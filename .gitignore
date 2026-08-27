@@ -24,8 +24,13 @@ debug_cells/
 .DS_Store
 Thumbs.db
 
-# VS Code
+# VS Code — ignored everywhere except the root workspace settings file,
+# which is intentionally shared (e.g. Live Server scoping) so every
+# groupmate gets it automatically instead of hitting the same issue.
 .vscode/
+!/.vscode/
+/.vscode/*
+!/.vscode/settings.json
 
 # Temporary files
 *.tmp

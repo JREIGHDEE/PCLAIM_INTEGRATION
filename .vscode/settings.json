@@ -1,0 +1,9 @@
+{
+  "liveServer.settings.root": "/PClaimAssist",
+  "liveServer.settings.ignoreFiles": [
+    ".vscode/**",
+    "**/Ocr_module/**",
+    "**/*.scss",
+    "**/*.sass"
+  ]
+}

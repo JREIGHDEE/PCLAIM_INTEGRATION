@@ -14,7 +14,7 @@ over HTTP, not by being merged into one codebase.
 
 ## First-time setup
 
-From this folder (`my_ocr_project/`):
+From this folder (`Ocr_module/`):
 
 ```
 setup_ocr.bat
@@ -85,8 +85,11 @@ uploads/                              generated data (grid templates, sessions, 
 
 - All existing endpoints keep their original paths and JSON response shapes
   (see `templates/index.html`, which calls them directly). `/api/ocr` is a
-  new REST-style alias of `/ocr` for the PClaimAssist integration — it is
-  not yet wired into PClaimAssist itself.
+  REST-style alias of `/ocr` added for the PClaimAssist integration.
+- PClaimAssist's `ocr.html` page shows this app's `templates/index.html`
+  live inside an `<iframe>` pointed at `http://127.0.0.1:5000/` — this
+  backend must be running for that page to work. Nothing is copied; the UI
+  served here is the single source of truth.
 - Error responses are always JSON — `{"success": false, "error": "...",
   "error_code": "..."}` — never a raw Python traceback, even with
   `OCR_DEBUG=true`.

@@ -12,19 +12,6 @@
 <body>
 
 <!-- ═══════════════════════════════════════════════════════════
-     SCOPE NOTICE — unlike index.html's privacy banner, this page
-     DOES send the uploaded file to a local backend, so it gets its
-     own accurate notice rather than reusing that banner's text.
-════════════════════════════════════════════════════════════ -->
-<div class="privacy-banner d-flex align-items-center justify-content-between gap-2 flex-wrap">
-  <span><i class="bi bi-hdd-network-fill me-2 text-info"></i>
-    <strong>OCR Workspace:</strong> Files uploaded here are sent to the local OCR backend
-    (127.0.0.1:5000) for processing. This is separate from the rest of PClaimAssist, which
-    never transmits data anywhere.
-  </span>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════
      TOP NAVBAR (same markup as index.html for brand consistency)
 ════════════════════════════════════════════════════════════ -->
 <nav class="top-navbar">
@@ -122,88 +109,20 @@
   <div class="section-header">
     <div>
       <h1 class="section-title">OCR Extraction</h1>
-      <p class="section-subtitle">Upload a logbook image or PDF and run it through the OCR backend</p>
-    </div>
-    <div id="ocrStatusPill" class="ocr-status ocr-status--idle">
-      <span class="dot"></span>Waiting for a file
+      <p class="section-subtitle">Original OCR workspace — upload, crop, template, and review tools</p>
     </div>
   </div>
 
-  <div class="ocr-scope-banner mb-3">
-    <i class="bi bi-info-circle-fill me-1"></i>
-    This is a standalone extraction workspace for testing the OCR backend. It does not fill in
-    or affect the CSF, CF2, CF3, or PMRF forms — that mapping isn't built yet.
-  </div>
-
-  <div class="row g-3">
-    <!-- LEFT: Upload -->
-    <div class="col-lg-6">
-      <div class="pca-card h-100">
-        <div class="pca-card-header"><i class="bi bi-cloud-upload me-2 text-primary"></i>Upload Document</div>
-        <div class="p-3">
-          <div class="drop-zone" id="ocrDropZone">
-            <div class="drop-icon"><i class="bi bi-cloud-arrow-up"></i></div>
-            <div class="drop-title">Drag &amp; Drop a File Here</div>
-            <div class="drop-sub">or click to browse files</div>
-            <div class="drop-types">
-              <span class="file-badge">PDF</span>
-              <span class="file-badge">JPG</span>
-              <span class="file-badge">PNG</span>
-            </div>
-            <p class="drop-note">Maximum file size: 20 MB</p>
-            <input type="file" id="ocrFileInput" accept=".pdf,.jpg,.jpeg,.png" hidden>
-          </div>
-
-          <div id="ocrFileChip" class="mt-3" style="display:none;"></div>
-
-          <div class="ocr-category-row mt-3">
-            <label class="pca-label">Category <span class="text-muted">(optional)</span></label>
-            <input type="text" id="ocrCategory" class="form-control pca-input" placeholder="e.g. NAME, ADDRESS, CASE #">
-            <div class="form-hint">Tags the extracted text, same as the calibration tool's category field. Leave blank if unsure.</div>
-          </div>
-
-          <button type="button" id="ocrRunBtn" class="btn-export w-100 mt-3 justify-content-center">
-            <i class="bi bi-cpu me-1"></i>Run OCR
-          </button>
-
-          <div id="ocrProcessingBlock" class="ocr-processing-block mt-3" style="display:none;">
-            <div class="spinner-border spinner-border-sm"></div>
-            <span>Sending file to the OCR backend and waiting for a result…</span>
-          </div>
-
-          <div id="ocrErrorBlock" class="ocr-error-block mt-3" style="display:none;"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- RIGHT: Results -->
-    <div class="col-lg-6">
-      <div class="pca-card h-100">
-        <div class="pca-card-header"><i class="bi bi-list-check me-2 text-primary"></i>OCR Result</div>
-
-        <div id="ocrEmptyState" class="ocr-empty-state">
-          <i class="bi bi-inbox"></i>
-          No result yet — upload a file and click "Run OCR".
-        </div>
-
-        <div id="ocrResultsWrap" style="display:none;">
-          <div class="p-3 pb-0">
-            <p class="pca-tab-section-label mb-2">Raw Text</p>
-            <div id="ocrRawText" class="ocr-raw-text"></div>
-          </div>
-          <div class="p-3">
-            <p class="pca-tab-section-label mb-2">Tokens</p>
-            <div class="ocr-token-table-wrap">
-              <table class="ocr-token-table">
-                <thead>
-                  <tr><th>Text</th><th>Confidence</th><th>Category</th></tr>
-                </thead>
-                <tbody id="ocrTokenTableBody"></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
+  <!-- The original OCR interface (Ocr_module/templates/index.html) is
+       the single source of truth for all OCR functionality — upload, crop,
+       grid/template tools, alignment, batch processing, review, and export.
+       It is not copied or reimplemented here; it's shown live from the
+       Flask backend that serves it. -->
+  <div class="ocr-iframe-wrap">
+    <iframe id="ocrIframe" class="ocr-native-iframe" title="PClaimAssist OCR workspace"></iframe>
+    <div id="ocrIframeOverlay" class="ocr-iframe-overlay">
+      <div class="spinner-border text-primary"></div>
+      <p>Loading the OCR workspace from <code>http://127.0.0.1:5000</code>…</p>
     </div>
   </div>
 </section>
@@ -211,9 +130,10 @@
 </main>
 </div>
 
-<!-- No js/app.js on this page by design — this workspace is fully
-     isolated from PClaimAssist's form state, autofill, validation,
-     and PDF-overlay logic. -->
+<!-- No js/app.js on this page by design — this workspace is isolated from
+     PClaimAssist's form state, autofill, validation, and PDF-overlay logic.
+     js/ocr.js only drives this page's shell (sidebar toggle, iframe load
+     state) — it never touches the OCR iframe's own document. -->
 <script src="js/ocr.js"></script>
 </body>
 </html>
