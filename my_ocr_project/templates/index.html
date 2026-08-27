@@ -1,0 +1,2959 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>PClaimAssist OCR</title>
+
+<link
+rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css"
+/>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+<style>
+
+:root{
+    --border:#e2e2e7;
+    --muted:#6b7280;
+    --accent:#2563eb;
+    --panel:#fafafa;
+}
+
+*{ box-sizing:border-box; }
+
+body{
+    font-family:-apple-system,Segoe UI,Arial,sans-serif;
+    margin:0;
+    padding:16px 20px 40px;
+    color:#1f2328;
+    font-size:14px;
+}
+
+h1{
+    font-size:18px;
+    margin:0 0 14px;
+}
+
+h2{
+    font-size:14px;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    color:var(--muted);
+    margin:0 0 10px;
+    font-weight:600;
+}
+
+h3{
+    font-size:13px;
+    margin:0 0 6px;
+}
+
+.container{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+    align-items:start;
+}
+
+.box{
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:16px;
+}
+
+.section{
+    margin-bottom:14px;
+    padding-bottom:14px;
+    border-bottom:1px solid var(--border);
+}
+
+.section:last-child{
+    margin-bottom:0;
+    padding-bottom:0;
+    border-bottom:none;
+}
+
+.toolbar{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    align-items:center;
+    margin-bottom:8px;
+}
+
+.toolbar:last-child{
+    margin-bottom:0;
+}
+
+.hint{
+    font-size:12px;
+    color:var(--muted);
+}
+
+details{
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:0 12px;
+    margin-bottom:10px;
+    background:var(--panel);
+}
+
+details[open]{
+    padding-bottom:12px;
+}
+
+details > summary{
+    cursor:pointer;
+    padding:10px 0;
+    font-size:13px;
+    font-weight:600;
+    color:#374151;
+    list-style:none;
+}
+
+details > summary::-webkit-details-marker{ display:none; }
+
+details > summary::before{
+    content:"▸ ";
+    color:var(--muted);
+}
+
+details[open] > summary::before{
+    content:"▾ ";
+}
+
+video,img{
+    width:100%;
+}
+
+#preview{
+    cursor: grab;
+}
+
+textarea{
+    width:100%;
+    height:140px;
+    font-family:inherit;
+    font-size:13px;
+    padding:8px;
+    border:1px solid var(--border);
+    border-radius:6px;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+}
+
+th,td{
+    border:1px solid var(--border);
+    padding:6px 8px;
+    text-align:left;
+}
+
+th{
+    background:var(--panel);
+    font-weight:600;
+}
+
+label{
+    font-size:13px;
+}
+
+input[type="text"],input[type="number"],input:not([type]),select{
+    font-size:13px;
+    padding:6px 8px;
+    border:1px solid var(--border);
+    border-radius:6px;
+}
+
+button{
+    padding:7px 12px;
+    margin:0;
+    cursor:pointer;
+    font-size:13px;
+    border:1px solid var(--border);
+    border-radius:6px;
+    background:#fff;
+    color:#1f2328;
+}
+
+button:hover{
+    background:#f3f4f6;
+}
+
+button.primary{
+    background:var(--accent);
+    border-color:var(--accent);
+    color:#fff;
+}
+
+button.primary:hover{
+    background:#1d4ed8;
+}
+
+.grid-line {
+    position:absolute;
+    top:0;
+    bottom:0;
+    width:4px;
+    background:rgba(255,0,0,0.75);
+    cursor:ew-resize;
+    z-index:3;
+    pointer-events:auto;
+}
+
+.grid-line-handle {
+    position:absolute;
+    left:-6px;
+    top:0;
+    width:16px;
+    height:100%;
+    cursor:ew-resize;
+}
+
+.grid-line-hover {
+    background:rgba(255,0,0,1);
+}
+
+.row-indicator {
+    position:absolute;
+    left:0;
+    right:0;
+    background:rgba(0,200,255,0.2);
+    border-top:1px solid rgba(0,200,255,0.8);
+    border-bottom:1px solid rgba(0,200,255,0.6);
+    z-index:4;
+    pointer-events:none;
+}
+
+.row-indicator.active {
+    background:rgba(0,150,255,0.25);
+    border-top:2px solid rgba(0,150,255,1);
+    border-bottom:2px solid rgba(0,150,255,0.9);
+    z-index:5;
+}
+
+.segment-list{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:8px 16px;
+}
+
+.segment-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    min-width:0;
+}
+
+.segment-row-label{
+    min-width:72px;
+    flex-shrink:0;
+    font-size:13px;
+    color:var(--muted);
+}
+
+.segment-row-select{
+    flex:1;
+    min-width:0;
+}
+
+@media (max-width:640px){
+    .segment-list{
+        grid-template-columns:1fr;
+    }
+}
+
+</style>
+</head>
+<body>
+
+<h1>PClaimAssist OCR</h1>
+
+<div class="container">
+
+<div class="box">
+
+<div class="section">
+    <h2>Upload</h2>
+    <div class="toolbar">
+        <input type="file" id="uploadInput" accept=".pdf,image/*">
+        <button class="primary" onclick="uploadImage()">Upload & OCR</button>
+    </div>
+    <span id="advancedStatus" class="hint"></span>
+</div>
+
+<h2>Crop Area</h2>
+
+<div id="previewContainer" style="position:relative; width:100%; height:600px; max-height:600px; overflow:auto; border:1px solid var(--border); border-radius:6px;">
+
+<img id="preview" style="max-width:100%; display:block;">
+
+<div id="gridOverlay" style="position:absolute; top:0; left:0; right:0; bottom:0; pointer-events:none; z-index:2;"></div>
+
+</div>
+
+<div class="toolbar" style="margin-top:10px;">
+    <button onclick="enableRowGridMode()">Row Grid Mode</button>
+    <button onclick="autoDetectColumns()">Auto Detect Columns</button>
+    <button onclick="addVerticalLine()">Add Vertical Line</button>
+    <button onclick="resetGridLines()">Reset Grid</button>
+    <button class="primary" onclick="cropRowCellsAndOCR()">Crop Row Cells + OCR</button>
+</div>
+
+<div class="toolbar">
+    <button onclick="smartPropagateRows()" title="Generate rows from template">Smart Propagate Rows</button>
+    <label class="hint">Spacing <input id="rowSpacingInput" type="number" min="0" step="1" value="5" style="width:60px;"></label>
+    <button onclick="saveSpacingPreset()" title="Save the current spacing as a preset">Save Spacing Preset</button>
+    <button onclick="moveToRow(-1)" title="Move to previous row">↑ Prev Row</button>
+    <button onclick="moveToRow(1)" title="Move to next row">↓ Next Row</button>
+    <span id="rowNavigationStatus" class="hint">No rows detected</span>
+</div>
+
+<div id="segmentEditor" class="section"></div>
+
+<div class="toolbar">
+    <button onclick="cropper?.zoom(0.2)">Zoom In</button>
+    <button onclick="cropper?.zoom(-0.2)">Zoom Out</button>
+    <button onclick="cropper?.rotate(90)">Rotate</button>
+    <button onclick="cropper?.reset()">Reset</button>
+</div>
+
+<div id="pdfNav" class="toolbar" style="display:none;">
+    <button onclick="prevPage()">Previous Page</button>
+    <span id="pageIndicator">Page 0 / 0</span>
+    <button onclick="nextPage()">Next Page</button>
+</div>
+
+<details>
+    <summary>Manual Field Training</summary>
+    <div class="toolbar">
+        <label for="fieldCategory">Field:</label>
+        <select id="fieldCategory" style="min-width:200px;">
+            <option value="">Select field category</option>
+            <option value="CASE #">CASE #</option>
+            <option value="DATE & TIME OF ADMISSION">DATE & TIME OF ADMISSION</option>
+            <option value="NAME">NAME</option>
+            <option value="BDAY">BDAY</option>
+            <option value="ADDRESS">ADDRESS</option>
+            <option value="ADMITTING DIAGNOSIS">ADMITTING DIAGNOSIS</option>
+            <option value="DATE & TIME OF DELIVERY">DATE & TIME OF DELIVERY</option>
+            <option value="FINAL DIAGNOSIS">FINAL DIAGNOSIS</option>
+            <option value="DATE & TIME OF DISCHARGE">DATE & TIME OF DISCHARGE</option>
+        </select>
+        <button onclick="saveCroppedField()">Save Cropped Field</button>
+        <span id="saveStatus" class="hint"></span>
+    </div>
+</details>
+
+<details>
+    <summary>Saved Templates</summary>
+    <div class="toolbar">
+        <select id="gridTemplateSelect" style="min-width:200px;">
+            <option value="">Saved templates</option>
+        </select>
+        <button onclick="loadSelectedTemplate()">Load Template</button>
+        <button onclick="deleteSelectedTemplate()">Delete</button>
+        <button onclick="saveGridTemplate()">Save Grid Template</button>
+        <button onclick="saveFullTemplate()">Save Full Template</button>
+    </div>
+</details>
+
+<details>
+    <summary>Crop Presets</summary>
+    <div class="toolbar">
+        <button onclick="saveCropPreset()">Save Crop Preset</button>
+        <button onclick="exportCropPresets()">Export Presets</button>
+        <button onclick="document.getElementById('cropPresetImportInput').click()">Import Presets</button>
+        <input id="cropPresetImportInput" type="file" accept="application/json,.json" style="display:none;" onchange="importCropPresetsFromFile(event)">
+    </div>
+    <div id="cropPresetManager" style="border:1px solid var(--border); border-radius:6px; padding:8px; max-height:220px; overflow:auto;"></div>
+</details>
+
+<details>
+    <summary>Row Position Templates</summary>
+    <div class="toolbar">
+        <button onclick="saveRowPositionTemplate()">Save Row Position Template</button>
+        <button onclick="cycleRowPositionTemplate(-1)" title="Previous row template">←</button>
+        <button onclick="cycleRowPositionTemplate(1)" title="Next row template">→</button>
+        <button onclick="exportRowPositionTemplates()">Export Templates</button>
+        <button onclick="document.getElementById('rowPositionTemplateImportInput').click()">Import Templates</button>
+        <input id="rowPositionTemplateImportInput" type="file" accept="application/json,.json" style="display:none;" onchange="importRowPositionTemplatesFromFile(event)">
+        <span id="rowPositionTemplateStatus" class="hint">No row templates saved</span>
+    </div>
+</details>
+
+</div>
+
+<div class="box">
+
+<details>
+    <summary>Raw OCR Output (diagnostic)</summary>
+    <textarea id="output" readonly></textarea>
+    <div id="ocrCategorySummary" class="hint" style="margin:8px 0;"></div>
+    <div id="confidenceLegend" class="toolbar hint">
+        <span><span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#22c55e; margin-right:6px;"></span>High confidence</span>
+        <span><span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#f59e0b; margin-right:6px;"></span>Medium confidence</span>
+        <span><span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#ef4444; margin-right:6px;"></span>Low confidence</span>
+    </div>
+    <table>
+        <thead>
+            <tr><th>Field Type</th><th>Text</th><th>Confidence</th></tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+</details>
+
+<div id="rowPreviewContainer" class="section" style="display:none;">
+    <div class="toolbar" style="justify-content:space-between;">
+        <strong>Row Preview</strong>
+        <button onclick="hideRowPreview()">Close Preview</button>
+    </div>
+    <div style="width:100%; overflow:auto; background:var(--panel); padding:6px; border-radius:6px;">
+        <img id="rowPreview" style="display:block; max-width:2000px; width:100%; height:auto;" />
+    </div>
+</div>
+
+<div class="section">
+    <h2>Review & Edit</h2>
+    <p class="hint">Edit OCR results directly in the table below before saving. Results for one case are stored together and can be exported to Excel.</p>
+    <div class="toolbar">
+        <input id="caseIdInput" placeholder="Case ID">
+        <input id="caseNameInput" placeholder="Case Name (optional)">
+    </div>
+
+    <div style="overflow:auto; max-height:300px; border:1px solid var(--border); border-radius:6px; margin-bottom:8px;">
+        <table id="reviewTable">
+            <thead>
+                <tr>
+                    <th>Field Type</th>
+                    <th>Text (editable)</th>
+                    <th>Confidence</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+    <div class="toolbar">
+        <button class="primary" onclick="saveReviewedResult()">Save Reviewed Result</button>
+        <button onclick="exportCaseSession()">Export Case to Excel</button>
+        <span id="reviewStatus" class="hint"></span>
+    </div>
+</div>
+
+</div>
+</div>
+
+<canvas id="canvas" style="display:none"></canvas>
+
+<script>
+let cropper = null;
+let pdfDoc = null;
+let pdfCurrentPage = 1;
+let pdfPageCount = 0;
+let pdfFileData = null;
+let originalPreviewURL = null;
+let rowGridMode = true;
+let gridLines = [];
+let segmentInfo = [];
+let activeGridLine = null;
+let gridOverlay = null;
+let isDraggingGridLine = false;
+let containerRect = null;
+let cropPresets = [];
+let rowPositionTemplates = [];
+let activeRowPositionTemplateIndex = -1;
+let detectedRows = [];
+let activeTemplateCropPreset = null;
+let activeCropPresetId = null;
+let currentRowIndex = -1;
+let activeTemplateFilename = "";
+let lastMatchedTemplateScore = 0;
+let rowSpacingPresets = [];
+const CROP_PRESET_STORAGE_KEY = "cropPresets";
+const ROW_POSITION_TEMPLATE_STORAGE_KEY = "rowPositionTemplates";
+const ROW_SPACING_PRESET_STORAGE_KEY = "rowSpacingPresets";
+const trainingCategories = [
+    "CASE #",
+    "DATE & TIME OF ADMISSION",
+    "NAME",
+    "BDAY",
+    "ADDRESS",
+    "ADMITTING DIAGNOSIS",
+    "DATE & TIME OF DELIVERY",
+    "FINAL DIAGNOSIS",
+    "DATE & TIME OF DISCHARGE"
+];
+const segmentColors = [
+    "#ef476f",
+    "#ffd166",
+    "#06d6a0",
+    "#118ab2",
+    "#073b4c",
+    "#fb8500",
+    "#8338ec",
+    "#ff5d8f",
+    "#00b4d8"
+];
+
+function getStoredCropPresets(){
+    try{
+        const raw = localStorage.getItem(CROP_PRESET_STORAGE_KEY);
+        if(!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    }catch(err){
+        console.warn("Failed to load crop presets", err);
+        return [];
+    }
+}
+
+function saveCropPresetsToStorage(){
+    try{
+        localStorage.setItem(CROP_PRESET_STORAGE_KEY, JSON.stringify(cropPresets));
+    }catch(err){
+        console.warn("Failed to save crop presets", err);
+    }
+}
+
+function getStoredRowPositionTemplates(){
+    try{
+        const raw = localStorage.getItem(ROW_POSITION_TEMPLATE_STORAGE_KEY);
+        if(!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    }catch(err){
+        console.warn("Failed to load row position templates", err);
+        return [];
+    }
+}
+
+function saveRowPositionTemplatesToStorage(){
+    try{
+        localStorage.setItem(ROW_POSITION_TEMPLATE_STORAGE_KEY, JSON.stringify(rowPositionTemplates));
+    }catch(err){
+        console.warn("Failed to save row position templates", err);
+    }
+}
+
+function getStoredRowSpacingPresets(){
+    try{
+        const raw = localStorage.getItem(ROW_SPACING_PRESET_STORAGE_KEY);
+        if(!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    }catch(err){
+        console.warn("Failed to load row spacing presets", err);
+        return [];
+    }
+}
+
+function saveRowSpacingPresetsToStorage(){
+    try{
+        localStorage.setItem(ROW_SPACING_PRESET_STORAGE_KEY, JSON.stringify(rowSpacingPresets));
+    }catch(err){
+        console.warn("Failed to save row spacing presets", err);
+    }
+}
+
+function saveSpacingPreset(){
+    const spacingValue = getRowSpacingValue();
+    const name = prompt("Enter a name for this spacing preset:", `Spacing ${spacingValue}px`);
+    if(!name) return;
+
+    const newPreset = {
+        id: createCropPresetId(),
+        name: name.trim(),
+        value: spacingValue,
+        createdAt: new Date().toISOString()
+    };
+
+    rowSpacingPresets.unshift(newPreset);
+    saveRowSpacingPresetsToStorage();
+    alert(`Saved spacing preset "${name.trim()}".`);
+}
+
+function updateRowPositionTemplateStatus(){
+    const statusEl = document.getElementById("rowPositionTemplateStatus");
+    if(!statusEl) return;
+    if(!rowPositionTemplates.length){
+        statusEl.textContent = "No row templates saved";
+        return;
+    }
+    const current = rowPositionTemplates[activeRowPositionTemplateIndex] || rowPositionTemplates[0];
+    const index = current ? rowPositionTemplates.indexOf(current) + 1 : 0;
+    statusEl.textContent = `${current ? current.name : "Template"} (${index}/${rowPositionTemplates.length})`;
+}
+
+function buildCurrentTemplateCropPreset(){
+    const presetData = getCurrentCropPresetData();
+    if(!presetData){
+        return null;
+    }
+
+    return {
+        id: createCropPresetId(),
+        name: 'Template Crop',
+        width: presetData.width,
+        height: presetData.height,
+        xOffset: presetData.xOffset,
+        yOffset: presetData.yOffset,
+        createdAt: new Date().toISOString(),
+        favorite: false,
+        fromTemplate: true
+    };
+}
+
+function setActiveTemplateCropPreset(preset){
+    if(!preset){
+        activeTemplateCropPreset = null;
+        activeCropPresetId = null;
+        return;
+    }
+
+    activeTemplateCropPreset = {
+        ...preset,
+        id: preset.id || createCropPresetId(),
+        name: preset.name || 'Applied Crop Preset',
+        createdAt: preset.createdAt || new Date().toISOString(),
+        favorite: Boolean(preset.favorite)
+    };
+    activeCropPresetId = activeTemplateCropPreset.id;
+}
+
+function ensureActiveTemplateCropPresetInList(){
+    if(!activeTemplateCropPreset) return;
+    const alreadyIncluded = cropPresets.some(preset =>
+        preset &&
+        preset.width === activeTemplateCropPreset.width &&
+        preset.height === activeTemplateCropPreset.height &&
+        Number(preset.xOffset ?? 0).toFixed(4) === Number(activeTemplateCropPreset.xOffset ?? 0).toFixed(4) &&
+        Number(preset.yOffset ?? 0).toFixed(4) === Number(activeTemplateCropPreset.yOffset ?? 0).toFixed(4)
+    );
+    if(alreadyIncluded) return;
+    cropPresets.unshift({
+        ...activeTemplateCropPreset,
+        id: activeTemplateCropPreset.id || createCropPresetId(),
+        name: activeTemplateCropPreset.name || 'Template Crop',
+        createdAt: activeTemplateCropPreset.createdAt || new Date().toISOString(),
+        fromTemplate: true
+    });
+    saveCropPresetsToStorage();
+}
+
+function getPreferredTemplatePreset(templateData, availablePresets){
+    const presets = Array.isArray(availablePresets) ? availablePresets : [];
+    const explicitPreset = templateData && templateData.activeCropPreset
+        ? templateData.activeCropPreset
+        : (templateData && templateData.activeCropPresetId ? presets.find(preset => preset && preset.id === templateData.activeCropPresetId) : null);
+    if(explicitPreset){
+        return explicitPreset;
+    }
+
+    const nonTemplatePreset = presets.find(preset => preset && preset.name && !/^template crop$/i.test(String(preset.name).trim()));
+    return nonTemplatePreset || presets[0] || null;
+}
+
+function getRowSpacingValue(){
+    const spacingInput = document.getElementById('rowSpacingInput');
+    const rawValue = spacingInput && spacingInput.value !== '' ? spacingInput.value : '5';
+    const parsedValue = Number(rawValue);
+    return Number.isFinite(parsedValue) ? parsedValue : 5;
+}
+
+function setRowSpacingValue(value){
+    const spacingInput = document.getElementById('rowSpacingInput');
+    if(!spacingInput) return;
+    const parsedValue = Number(value);
+    spacingInput.value = Number.isFinite(parsedValue) ? String(parsedValue) : '5';
+}
+
+function saveCurrentRowSpacingValue(){
+    const value = getRowSpacingValue();
+    try{
+        localStorage.setItem('rowSpacingValue', String(value));
+    }catch(err){
+        console.warn('Could not save row spacing value', err);
+    }
+    return value;
+}
+
+function restoreSavedRowSpacingValue(){
+    try{
+        const savedValue = localStorage.getItem('rowSpacingValue');
+        if(savedValue !== null){
+            const parsedValue = Number(savedValue);
+            if(Number.isFinite(parsedValue) && parsedValue > 0){
+                setRowSpacingValue(parsedValue);
+                return parsedValue;
+            }
+        }
+    }catch(err){
+        console.warn('Could not restore row spacing value', err);
+    }
+    setRowSpacingValue(5);
+    return 5;
+}
+
+// Row indicators are stored as fractions of the rendered image canvas (yFrac/heightFrac)
+// rather than raw container pixels. Raw pixels go stale the moment the user zooms or pans
+// the image (cropper.zoom()/cropper.move() shift the canvas without firing "cropend"), so a
+// row drawn at a fixed pixel position drifts away from the row it's supposed to mark. Storing
+// a fraction of the canvas and re-deriving pixels from the *current* canvasData on every draw
+// keeps rows locked to the same image content, mirroring how grid lines already work (percent
+// of the crop box, recomputed live).
+function rowToFraction(y, height, canvasData){
+    if(!canvasData || !canvasData.height){
+        return {yFrac: 0, heightFrac: 0};
+    }
+    return {
+        yFrac: (y - canvasData.top) / canvasData.height,
+        heightFrac: height / canvasData.height
+    };
+}
+
+function rowRectFromFraction(row){
+    const canvasData = cropper ? cropper.getCanvasData() : null;
+    if(!row || !canvasData || !canvasData.height){
+        return {y: 0, height: 8};
+    }
+    return {
+        y: canvasData.top + (row.yFrac || 0) * canvasData.height,
+        height: Math.max(4, (row.heightFrac || 0) * canvasData.height)
+    };
+}
+
+function applyTemplateRowPositions(templateData){
+    if(!cropper || !templateData || !templateData.rowTemplate) return;
+    const rowTemplate = templateData.rowTemplate || {};
+    const rowHeight = Number(rowTemplate.height || 0);
+    const rowSpacing = (Number.isFinite(Number(rowTemplate.spacing)) && Number(rowTemplate.spacing) > 0) ? Number(rowTemplate.spacing) : 5;
+    const firstY = Number(rowTemplate.y || 0);
+    setRowSpacingValue(rowSpacing);
+    if(!Number.isFinite(rowHeight) || rowHeight <= 0) return;
+
+    const canvasData = cropper.getCanvasData();
+    if(!canvasData || !canvasData.height) return;
+    // Stop at the image's actual rendered bottom edge (top + height), not just its height -
+    // otherwise an image that doesn't start at canvas top would generate rows past its end.
+    const imageBottom = canvasData.top + canvasData.height;
+    const generatedRows = [];
+    let currentY = firstY;
+    let count = 0;
+    while(currentY < imageBottom && count < 100){
+        generatedRows.push({y: currentY, height: rowHeight});
+        currentY += rowHeight + rowSpacing;
+        count += 1;
+    }
+
+    if(!generatedRows.length) return;
+
+    detectedRows = generatedRows.map(r => rowToFraction(r.y, r.height, canvasData));
+    currentRowIndex = 0;
+    renderDetectedRowIndicators();
+    updateRowNavigationStatus();
+
+    const currentCrop = cropper.getCropBoxData();
+    if(currentCrop){
+        cropper.setCropBoxData({
+            left: currentCrop.left,
+            top: generatedRows[0].y,
+            width: currentCrop.width,
+            height: generatedRows[0].height
+        });
+        updateGridOverlay();
+        updateRowPreview();
+    }
+}
+
+function getCurrentTemplatePayload(name = null){
+    let cropBoxPercent = null;
+    try{
+        if(cropper){
+            const cropData = cropper.getCropBoxData();
+            const previewEl = document.getElementById('preview');
+            const rect = previewEl.getBoundingClientRect();
+            if(rect.width > 0 && rect.height > 0){
+                cropBoxPercent = {
+                    left: cropData.left / rect.width,
+                    top: cropData.top / rect.height,
+                    width: cropData.width / rect.width,
+                    height: cropData.height / rect.height
+                };
+            }
+        }
+    }catch(e){
+        console.warn('Could not capture crop box for template payload', e);
+    }
+
+    let rowTemplate = null;
+    if(cropper){
+        const cropData = cropper.getCropBoxData();
+        const spacingValue = saveCurrentRowSpacingValue();
+        rowTemplate = {
+            y: cropData.top,
+            height: cropData.height,
+            spacing: spacingValue
+        };
+    }
+
+    ensureActiveTemplateCropPresetInList();
+    const currentPreset = buildCurrentTemplateCropPreset();
+    const presetsForTemplate = Array.isArray(cropPresets) ? cropPresets.slice() : [];
+    const presetToSave = activeTemplateCropPreset || currentPreset;
+    if(presetToSave){
+        const alreadyHasPreset = presetsForTemplate.some(preset =>
+            preset && preset.width === presetToSave.width && preset.height === presetToSave.height &&
+            Number(preset.xOffset ?? 0).toFixed(4) === Number(presetToSave.xOffset ?? 0).toFixed(4) &&
+            Number(preset.yOffset ?? 0).toFixed(4) === Number(presetToSave.yOffset ?? 0).toFixed(4)
+        );
+        if(!alreadyHasPreset){
+            presetsForTemplate.unshift({
+                ...presetToSave,
+                id: presetToSave.id || createCropPresetId(),
+                name: presetToSave.name || 'Template Crop',
+                createdAt: presetToSave.createdAt || new Date().toISOString(),
+                fromTemplate: true
+            });
+        }
+    }
+
+    return {
+        name: name || `Template ${new Date().toLocaleTimeString()}`,
+        gridLines: gridLines,
+        segmentInfo: segmentInfo,
+        cropBoxPercent: cropBoxPercent,
+        rowTemplate: rowTemplate,
+        cropPresets: presetsForTemplate,
+        activeCropPreset: presetToSave ? {
+            ...presetToSave,
+            id: presetToSave.id || createCropPresetId(),
+            name: presetToSave.name || 'Template Crop',
+            createdAt: presetToSave.createdAt || new Date().toISOString(),
+            favorite: Boolean(presetToSave.favorite)
+        } : null,
+        activeCropPresetId: presetToSave ? (presetToSave.id || activeCropPresetId || createCropPresetId()) : null,
+        imageWidth: preview && preview.naturalWidth ? preview.naturalWidth : (cropper ? cropper.getCanvasData().width : null),
+        imageHeight: preview && preview.naturalHeight ? preview.naturalHeight : (cropper ? cropper.getCanvasData().height : null),
+        metadata: {
+            source: 'manual',
+            lastMatchedScore: lastMatchedTemplateScore
+        }
+    };
+}
+
+async function capturePreviewAsBlob(){
+    if(!preview){
+        throw new Error('Preview element not ready');
+    }
+
+    if(document.getElementById('canvas') && document.getElementById('canvas').width > 0){
+        const canvasEl = document.getElementById('canvas');
+        return await new Promise((resolve, reject) => {
+            canvasEl.toBlob(blob => blob ? resolve(blob) : reject(new Error('Could not capture preview canvas')), 'image/png');
+        });
+    }
+
+    if(cropper){
+        const canvasEl = cropper.getCroppedCanvas({imageSmoothingEnabled:true, imageSmoothingQuality:'high'});
+        return await new Promise((resolve, reject) => {
+            canvasEl.toBlob(blob => blob ? resolve(blob) : reject(new Error('Could not capture cropper canvas')), 'image/png');
+        });
+    }
+
+    const canvasEl = document.createElement('canvas');
+    canvasEl.width = preview.naturalWidth || preview.clientWidth || 1000;
+    canvasEl.height = preview.naturalHeight || preview.clientHeight || 1000;
+    const ctx = canvasEl.getContext('2d');
+    ctx.drawImage(preview, 0, 0, canvasEl.width, canvasEl.height);
+    return await new Promise((resolve, reject) => {
+        canvasEl.toBlob(blob => blob ? resolve(blob) : reject(new Error('Could not capture preview image')), 'image/png');
+    });
+}
+
+async function matchAndApplyTemplate(){
+    try{
+        const blob = await capturePreviewAsBlob();
+        const formData = new FormData();
+        formData.append('image', blob, 'page.png');
+
+        const response = await fetch('/match_template', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        if(!data.success){
+            console.warn('Template matching failed', data.error);
+            return;
+        }
+
+        const score = Number(data.bestScore || 0);
+        lastMatchedTemplateScore = score;
+
+        const sel = document.getElementById('gridTemplateSelect');
+        if(!sel){ return; }
+
+        const threshold = Number(data.threshold || 0.55);
+        if(data.bestTemplate && score >= threshold){
+            const matchName = data.bestTemplate.name || data.bestTemplate.filename || '';
+            const option = Array.from(sel.options).find(opt => opt.textContent === matchName || opt.value === data.bestTemplate.filename);
+            if(option){
+                sel.value = option.value;
+            }
+            activeTemplateFilename = data.bestTemplate.filename || activeTemplateFilename;
+            await loadSelectedTemplate();
+            const statusEl = document.getElementById('advancedStatus');
+            if(statusEl){
+                statusEl.textContent = `Matched template with ${(score * 100).toFixed(0)}% confidence.`;
+            }
+            return;
+        }
+
+        const fallbackTemplate = data.bestTemplate || (data.templates || [])[0];
+        if(fallbackTemplate){
+            const fallbackOption = Array.from(sel.options).find(opt => opt.textContent === (fallbackTemplate.name || fallbackTemplate.filename) || opt.value === fallbackTemplate.filename);
+            if(fallbackOption){
+                sel.value = fallbackOption.value;
+                activeTemplateFilename = fallbackOption.value;
+                await loadSelectedTemplate();
+                const statusEl = document.getElementById('advancedStatus');
+                if(statusEl){
+                    statusEl.textContent = `Applied best available template at ${(score * 100).toFixed(0)}% confidence.`;
+                }
+            }
+        }
+    }catch(err){
+        console.warn('Template matching skipped', err);
+    }
+}
+
+function exportRowPositionTemplates(){
+    if(!rowPositionTemplates.length){
+        alert("No row position templates to export.");
+        return;
+    }
+
+    const blob = new Blob([JSON.stringify(rowPositionTemplates, null, 2)], {type: "application/json"});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "row-position-templates.json";
+    link.click();
+    URL.revokeObjectURL(url);
+}
+
+function importRowPositionTemplatesFromFile(event){
+    const file = event.target.files && event.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+        try{
+            const parsed = JSON.parse(reader.result);
+            if(!Array.isArray(parsed)) throw new Error("The selected file does not contain a template array.");
+            const imported = parsed
+                .filter(item => item && typeof item === "object")
+                .map(item => ({
+                    id: item.id || createCropPresetId(),
+                    name: String(item.name || "Imported Row Template").trim(),
+                    left: Math.round(Number(item.left) || 0),
+                    top: Math.round(Number(item.top) || 0),
+                    width: Math.max(10, Math.round(Number(item.width) || 0)),
+                    height: Math.max(10, Math.round(Number(item.height) || 0)),
+                    createdAt: item.createdAt || new Date().toISOString()
+                }));
+            rowPositionTemplates = imported.concat(rowPositionTemplates);
+            activeRowPositionTemplateIndex = 0;
+            saveRowPositionTemplatesToStorage();
+            updateRowPositionTemplateStatus();
+            alert(`Imported ${imported.length} row position template(s).`);
+        }catch(err){
+            alert("Failed to import row position templates: " + err.message);
+        }
+    };
+    reader.readAsText(file);
+    event.target.value = "";
+}
+
+function clampCropBoxToCanvas(target){
+    if(!cropper) return target;
+    const canvasData = cropper.getCanvasData();
+    const minLeft = canvasData.left;
+    const maxLeft = canvasData.left + canvasData.width;
+    const minTop = canvasData.top;
+    const maxTop = canvasData.top + canvasData.height;
+    const safeWidth = Math.max(10, Math.min(target.width, canvasData.width));
+    const safeHeight = Math.max(10, Math.min(target.height, canvasData.height));
+    const left = Math.min(Math.max(target.left, minLeft), Math.max(minLeft, maxLeft - safeWidth));
+    const top = Math.min(Math.max(target.top, minTop), Math.max(minTop, maxTop - safeHeight));
+    return {left, top, width: safeWidth, height: safeHeight};
+}
+
+function getCurrentCropPresetData(){
+    if(!cropper) return null;
+    const cropData = cropper.getCropBoxData();
+    if(!cropData || cropData.width < 10 || cropData.height < 10) return null;
+    const canvasData = cropper.getCanvasData();
+    const centerX = cropData.left + cropData.width / 2;
+    const centerY = cropData.top + cropData.height / 2;
+    const xOffset = canvasData.width > 0 ? (centerX - canvasData.left) / canvasData.width : null;
+    const yOffset = canvasData.height > 0 ? (centerY - canvasData.top) / canvasData.height : null;
+    return {
+        width: Math.round(cropData.width),
+        height: Math.round(cropData.height),
+        xOffset: xOffset !== null ? Number(xOffset.toFixed(4)) : null,
+        yOffset: yOffset !== null ? Number(yOffset.toFixed(4)) : null
+    };
+}
+
+function renderCropPresetManager(){
+    const container = document.getElementById("cropPresetManager");
+    if(!container) return;
+    // Deduplicate presets by id or by dimensions+offset to avoid showing duplicates
+    try{
+        const unique = [];
+        const seen = new Set();
+        (cropPresets || []).forEach(preset => {
+            const key = preset && preset.id ? String(preset.id) : `${preset.width || 0}_${preset.height || 0}_${preset.xOffset || 0}_${preset.yOffset || 0}`;
+            if(!seen.has(key)){
+                seen.add(key);
+                unique.push(preset);
+            }
+        });
+        if(unique.length !== (cropPresets || []).length){
+            cropPresets = unique;
+            saveCropPresetsToStorage();
+        }
+    }catch(e){
+        // ignore dedupe failures
+    }
+    container.innerHTML = "";
+
+    if(!cropPresets.length){
+        container.innerHTML = '<div style="color:#666;">No crop presets saved yet.</div>';
+        return;
+    }
+
+    const list = document.createElement("div");
+    list.style.display = "grid";
+    list.style.gap = "8px";
+
+    cropPresets.forEach(preset => {
+        const card = document.createElement("div");
+        const isSelected = activeCropPresetId && activeCropPresetId === preset.id;
+        card.style.border = isSelected ? "2px solid #2563eb" : "1px solid #ddd";
+        card.style.borderRadius = "6px";
+        card.style.padding = "8px";
+        card.style.background = isSelected ? "#eff6ff" : "#fafafa";
+
+        const header = document.createElement("div");
+        header.style.display = "flex";
+        header.style.justifyContent = "space-between";
+        header.style.alignItems = "center";
+        header.style.marginBottom = "4px";
+
+        const title = document.createElement("strong");
+        title.textContent = preset.name || "Unnamed preset";
+
+        const favoriteBtn = document.createElement("button");
+        favoriteBtn.textContent = preset.favorite ? "★" : "☆";
+        favoriteBtn.title = preset.favorite ? "Remove favorite" : "Mark favorite";
+        favoriteBtn.addEventListener("click", () => {
+            preset.favorite = !preset.favorite;
+            saveCropPresetsToStorage();
+            renderCropPresetManager();
+        });
+
+        header.appendChild(title);
+        header.appendChild(favoriteBtn);
+
+        const meta = document.createElement("div");
+        meta.style.fontSize = "12px";
+        meta.style.color = "#666";
+        meta.style.marginBottom = "6px";
+        meta.textContent = `${preset.width} × ${preset.height}` + (preset.xOffset !== null && preset.yOffset !== null ? ` · offset ${preset.xOffset}, ${preset.yOffset}` : "");
+
+        const actions = document.createElement("div");
+        actions.style.display = "flex";
+        actions.style.flexWrap = "wrap";
+        actions.style.gap = "6px";
+
+        const applyBtn = document.createElement("button");
+        applyBtn.textContent = isSelected ? "Selected" : "Apply";
+        applyBtn.disabled = isSelected;
+        applyBtn.addEventListener("click", () => applyCropPreset(preset));
+
+        const renameBtn = document.createElement("button");
+        renameBtn.textContent = "Rename";
+        renameBtn.addEventListener("click", () => renameCropPreset(preset.id));
+
+        const duplicateBtn = document.createElement("button");
+        duplicateBtn.textContent = "Duplicate";
+        duplicateBtn.addEventListener("click", () => duplicateCropPreset(preset.id));
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "Delete";
+        deleteBtn.addEventListener("click", () => deleteCropPreset(preset.id));
+
+        actions.appendChild(applyBtn);
+        actions.appendChild(renameBtn);
+        actions.appendChild(duplicateBtn);
+        actions.appendChild(deleteBtn);
+
+        card.appendChild(header);
+        card.appendChild(meta);
+        card.appendChild(actions);
+        list.appendChild(card);
+    });
+
+    container.appendChild(list);
+}
+
+function createCropPresetId(){
+    if(typeof crypto !== "undefined" && crypto.randomUUID){
+        return crypto.randomUUID();
+    }
+    return `preset-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+}
+
+function saveCropPreset(){
+    if(!cropper){
+        alert("Upload an image first before saving a crop preset.");
+        return;
+    }
+
+    const presetData = getCurrentCropPresetData();
+    if(!presetData){
+        alert("Adjust the crop box to a valid size first.");
+        return;
+    }
+
+    const name = prompt("Enter a name for this crop preset:", "New Crop Preset");
+    if(!name){
+        return;
+    }
+
+    const newPreset = {
+        id: createCropPresetId(),
+        name: name.trim(),
+        width: presetData.width,
+        height: presetData.height,
+        xOffset: presetData.xOffset,
+        yOffset: presetData.yOffset,
+        createdAt: new Date().toISOString(),
+        favorite: false
+    };
+    cropPresets.unshift(newPreset);
+    setActiveTemplateCropPreset(newPreset);
+    saveCropPresetsToStorage();
+    renderCropPresetManager();
+    alert(`Saved crop preset "${name.trim()}".`);
+}
+
+function applyCropPreset(preset){
+    if(!cropper){
+        alert("Upload an image first.");
+        return;
+    }
+
+    const canvasData = cropper.getCanvasData();
+    if(!canvasData || canvasData.width <= 0 || canvasData.height <= 0){
+        alert("The image preview is not ready yet.");
+        return;
+    }
+
+    const current = cropper.getCropBoxData();
+    const width = Math.max(10, Math.min(Math.round(Number(preset.width) || 0), Math.round(canvasData.width)));
+    const height = Math.max(10, Math.min(Math.round(Number(preset.height) || 0), Math.round(canvasData.height)));
+
+    let left = current.left;
+    let top = current.top;
+
+    if(preset.xOffset !== null && preset.yOffset !== null){
+        left = canvasData.left + (Number(preset.xOffset) * canvasData.width) - width / 2;
+        top = canvasData.top + (Number(preset.yOffset) * canvasData.height) - height / 2;
+    } else {
+        const centerX = current.left + current.width / 2;
+        const centerY = current.top + current.height / 2;
+        left = centerX - width / 2;
+        top = centerY - height / 2;
+    }
+
+    const clamped = clampCropBoxToCanvas({left, top, width, height});
+    cropper.setCropBoxData(clamped);
+    const appliedPreset = {
+        ...preset,
+        id: preset.id || createCropPresetId(),
+        name: preset.name || 'Applied Crop Preset',
+        width: width,
+        height: height,
+        xOffset: preset.xOffset !== null && preset.yOffset !== null ? Number(preset.xOffset) : null,
+        yOffset: preset.yOffset !== null && preset.xOffset !== null ? Number(preset.yOffset) : null,
+        createdAt: preset.createdAt || new Date().toISOString(),
+        favorite: Boolean(preset.favorite)
+    };
+    setActiveTemplateCropPreset(appliedPreset);
+    renderCropPresetManager();
+    updateGridOverlay();
+    updateRowPreview();
+}
+
+function renameCropPreset(id){
+    const preset = cropPresets.find(item => item.id === id);
+    if(!preset) return;
+    const newName = prompt("Rename crop preset:", preset.name || "");
+    if(!newName) return;
+    preset.name = newName.trim();
+    saveCropPresetsToStorage();
+    renderCropPresetManager();
+}
+
+function duplicateCropPreset(id){
+    const preset = cropPresets.find(item => item.id === id);
+    if(!preset) return;
+    const duplicate = {
+        ...preset,
+        id: createCropPresetId(),
+        name: `${preset.name || "Crop Preset"} Copy`,
+        createdAt: new Date().toISOString()
+    };
+    cropPresets.splice(0, 0, duplicate);
+    saveCropPresetsToStorage();
+    renderCropPresetManager();
+}
+
+function deleteCropPreset(id){
+    const preset = cropPresets.find(item => item.id === id);
+    if(!preset) return;
+    if(!confirm(`Delete crop preset "${preset.name || "Unnamed preset"}"?`)) return;
+    cropPresets = cropPresets.filter(item => item.id !== id);
+    if(activeCropPresetId === id){
+        activeCropPresetId = null;
+        activeTemplateCropPreset = null;
+    }
+    saveCropPresetsToStorage();
+    renderCropPresetManager();
+}
+
+function exportCropPresets(){
+    const blob = new Blob([JSON.stringify(cropPresets, null, 2)], {type: "application/json"});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "crop-presets.json";
+    link.click();
+    URL.revokeObjectURL(url);
+}
+
+function importCropPresetsFromFile(event){
+    const file = event.target.files && event.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+        try{
+            const parsed = JSON.parse(reader.result);
+            if(!Array.isArray(parsed)) throw new Error("The selected file does not contain a preset array.");
+            const imported = parsed
+                .filter(item => item && typeof item === "object")
+                .map(item => ({
+                    id: item.id || createCropPresetId(),
+                    name: String(item.name || "Imported Preset").trim(),
+                    width: Math.max(10, Number(item.width) || 0),
+                    height: Math.max(10, Number(item.height) || 0),
+                    xOffset: item.xOffset !== undefined && item.xOffset !== null ? Number(item.xOffset) : null,
+                    yOffset: item.yOffset !== undefined && item.yOffset !== null ? Number(item.yOffset) : null,
+                    createdAt: item.createdAt || new Date().toISOString(),
+                    favorite: Boolean(item.favorite)
+                }));
+            cropPresets = imported.concat(cropPresets);
+            saveCropPresetsToStorage();
+            renderCropPresetManager();
+            alert(`Imported ${imported.length} crop preset(s).`);
+        }catch(err){
+            alert("Failed to import crop presets: " + err.message);
+        }
+    };
+    reader.readAsText(file);
+    event.target.value = "";
+}
+
+function saveRowPositionTemplate(){
+    if(!cropper){
+        alert("Upload an image first before saving a row position template.");
+        return;
+    }
+
+    const cropData = cropper.getCropBoxData();
+    if(!cropData || cropData.width < 10 || cropData.height < 10){
+        alert("Adjust the crop box to a valid size first.");
+        return;
+    }
+
+    const name = prompt("Enter a name for this row position template:", `Row ${rowPositionTemplates.length + 1}`);
+    if(!name){
+        return;
+    }
+
+    rowPositionTemplates.push({
+        id: createCropPresetId(),
+        name: name.trim(),
+        left: Math.round(cropData.left),
+        top: Math.round(cropData.top),
+        width: Math.round(cropData.width),
+        height: Math.round(cropData.height),
+        createdAt: new Date().toISOString()
+    });
+    activeRowPositionTemplateIndex = rowPositionTemplates.length - 1;
+    saveRowPositionTemplatesToStorage();
+    updateRowPositionTemplateStatus();
+    alert(`Saved row position template "${name.trim()}".`);
+}
+
+function applyRowPositionTemplate(template){
+    if(!cropper){
+        alert("Upload an image first.");
+        return;
+    }
+
+    const canvasData = cropper.getCanvasData();
+    if(!canvasData || canvasData.width <= 0 || canvasData.height <= 0){
+        alert("The image preview is not ready yet.");
+        return;
+    }
+
+    const width = Math.max(10, Math.min(Math.round(Number(template.width) || 0), Math.round(canvasData.width)));
+    const height = Math.max(10, Math.min(Math.round(Number(template.height) || 0), Math.round(canvasData.height)));
+    const left = Math.max(canvasData.left, Math.min(Math.round(Number(template.left) || 0), canvasData.left + canvasData.width - width));
+    const top = Math.max(canvasData.top, Math.min(Math.round(Number(template.top) || 0), canvasData.top + canvasData.height - height));
+
+    cropper.setCropBoxData({left, top, width, height});
+    updateGridOverlay();
+    updateRowPreview();
+}
+
+function cycleRowPositionTemplate(direction){
+    if(!rowPositionTemplates.length){
+        alert("Save at least one row position template first.");
+        return;
+    }
+
+    if(activeRowPositionTemplateIndex < 0){
+        activeRowPositionTemplateIndex = 0;
+    } else {
+        activeRowPositionTemplateIndex = (activeRowPositionTemplateIndex + direction + rowPositionTemplates.length) % rowPositionTemplates.length;
+    }
+
+    const template = rowPositionTemplates[activeRowPositionTemplateIndex];
+    if(template){
+        applyRowPositionTemplate(template);
+        updateRowPositionTemplateStatus();
+    }
+}
+
+function getStartCategoryIndex(){
+    const selectedCategory = document.getElementById("fieldCategory").value.trim();
+    const selectedIndex = trainingCategories.indexOf(selectedCategory);
+    return selectedIndex !== -1 ? selectedIndex : 0;
+}
+
+function ensureSegmentInfo(){
+    // One segment per line: line i is where its category's crop starts, ending at line i+1
+    // (or the row's right edge for the last line). The space to the left of the first line is
+    // never cropped, so there is no extra "segment 0" ahead of the first line.
+    const targetCount = gridLines.length;
+    const startIndex = getStartCategoryIndex();
+    const newInfo = [];
+
+    for(let i = 0; i < targetCount; i++){
+        const defaultCategory = trainingCategories[startIndex + i] || `ROW_CELL_${i + 1}`;
+        const existing = segmentInfo[i] || {};
+        newInfo[i] = {
+            color: existing.color || segmentColors[i % segmentColors.length],
+            category: existing.category || defaultCategory
+        };
+    }
+    segmentInfo = newInfo;
+}
+
+function updateSegmentEditor(){
+    const container = document.getElementById("segmentEditor");
+    if(!container) return;
+    container.innerHTML = "";
+    ensureSegmentInfo();
+
+    const title = document.createElement("h3");
+    title.textContent = "Row segment colors and category mapping";
+    container.appendChild(title);
+
+    if(segmentInfo.length === 0){
+        const empty = document.createElement("div");
+        empty.className = "hint";
+        empty.textContent = "Add a vertical line to define the first segment.";
+        container.appendChild(empty);
+        return;
+    }
+
+    const list = document.createElement("div");
+    list.className = "segment-list";
+
+    segmentInfo.forEach((segment, index) => {
+        const row = document.createElement("div");
+        row.className = "segment-row";
+
+        const swatch = document.createElement("input");
+        swatch.type = "color";
+        swatch.value = segment.color;
+        swatch.title = `Segment ${index + 1} color`;
+        swatch.addEventListener("input", event => {
+            segmentInfo[index].color = event.target.value;
+            renderGridLines();
+        });
+
+        const label = document.createElement("span");
+        label.className = "segment-row-label";
+        label.textContent = `Segment ${index + 1}`;
+
+        const select = document.createElement("select");
+        select.className = "segment-row-select";
+        trainingCategories.forEach(cat => {
+            const option = document.createElement("option");
+            option.value = cat;
+            option.textContent = cat;
+            if(cat === segment.category){
+                option.selected = true;
+            }
+            select.appendChild(option);
+        });
+        select.addEventListener("change", event => {
+            segmentInfo[index].category = event.target.value;
+        });
+
+        row.appendChild(swatch);
+        row.appendChild(label);
+        row.appendChild(select);
+        list.appendChild(row);
+    });
+
+    container.appendChild(list);
+}
+
+const preview = document.getElementById("preview");
+const previewContainer = document.getElementById("previewContainer");
+const gridOverlayElement = document.getElementById("gridOverlay");
+const pdfNav = document.getElementById("pdfNav");
+const pageIndicator = document.getElementById("pageIndicator");
+
+preview.addEventListener("contextmenu", e => e.preventDefault());
+preview.addEventListener("mousedown", e => {
+    if(e.button === 2 && cropper){
+        isRightMouseDown = true;
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+        preview.style.cursor = "grabbing";
+    }
+});
+preview.addEventListener("mousemove", e => {
+    if(isRightMouseDown && cropper){
+        const dx = e.clientX - lastMouseX;
+        const dy = e.clientY - lastMouseY;
+        cropper.move(dx, dy);
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+        // Panning moves the image under the crop box without firing "cropend", so the grid
+        // lines/row indicators would otherwise drift out of alignment with the image content.
+        renderGridLines();
+        renderDetectedRowIndicators();
+    }
+});
+preview.addEventListener("mouseup", e => {
+    if(e.button === 2 && isRightMouseDown){
+        isRightMouseDown = false;
+        preview.style.cursor = "grab";
+    }
+});
+preview.addEventListener("mouseleave", () => {
+    if(isRightMouseDown){
+        isRightMouseDown = false;
+        preview.style.cursor = "grab";
+    }
+});
+
+function initCropper(){
+    const previewEl = document.getElementById("preview");
+    if(cropper){
+        cropper.destroy();
+    }
+    rowGridMode = true;
+    cropper = new Cropper(previewEl, {
+        viewMode:1,
+        dragMode: rowGridMode ? "crop" : "move",
+        autoCropArea:0.2,
+        zoomable:true,
+        scalable:true,
+        movable:true,
+        responsive:true,
+        wheelZoomRatio:0.1,
+        cropend: () => updateGridOverlay(),
+        zoom: () => refreshOverlayAfterCropChange()
+    });
+    setupGridOverlay();
+}
+
+function updatePreviewDisplay(){
+    const previewEl = document.getElementById("preview");
+    if(!originalPreviewURL) return;
+    previewEl.onload = ()=> {
+        initCropper();
+        matchAndApplyTemplate();
+    };
+    previewEl.onerror = ()=> alert("Failed to load preview image.");
+    previewEl.src = originalPreviewURL;
+}
+
+function setupGridOverlay(){
+    if(gridOverlay) return;
+    gridOverlay = gridOverlayElement;
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+}
+
+function updateGridOverlay(){
+    if(!gridOverlay) return;
+    renderGridLines();
+    updateRowPreview();
+
+    if(detectedRows.length > 0){
+        // Pick which row is under the crop box first, then fold the crop box's current
+        // position/height into just *that* row (syncDetectedRowsToCurrentCrop only touches the
+        // active row plus a position cascade to later rows - see its comment) so the highlighter
+        // reflects a manual resize as soon as you let go of it, without forcing every other row
+        // in the template to the same height.
+        syncRowIndicatorsWithCropBox();
+        syncDetectedRowsToCurrentCrop();
+        renderDetectedRowIndicators();
+    }
+}
+
+function refreshOverlayAfterCropChange(){
+    const redraw = () => {
+        if(!cropper) return;
+        const cropData = cropper.getCropBoxData();
+        if(!cropData) return;
+        updateGridOverlay();
+    };
+
+    if(typeof window !== 'undefined' && window.requestAnimationFrame){
+        window.requestAnimationFrame(redraw);
+    } else {
+        setTimeout(redraw, 0);
+    }
+}
+
+function onPointerMove(event){
+    if(!isDraggingGridLine || !activeGridLine) return;
+    if(!containerRect){
+        containerRect = previewContainer.getBoundingClientRect();
+    }
+
+    const cropData = cropper.getCropBoxData();
+    const minLeft = cropData.left;
+    const maxLeft = cropData.left + cropData.width;
+    let x = event.clientX - containerRect.left;
+    x = Math.max(minLeft, Math.min(maxLeft, x));
+    const percent = Math.min(Math.max((x - cropData.left) / cropData.width, 0.01), 0.99);
+    const index = Number(activeGridLine.dataset.index);
+    if(!Number.isNaN(index)){
+        gridLines[index] = percent;
+    }
+    renderGridLines();
+}
+
+function onPointerUp(){
+    if(isDraggingGridLine){
+        isDraggingGridLine = false;
+        activeGridLine = null;
+    }
+}
+
+function renderGridLines(){
+    if(!cropper || !gridOverlay) return;
+    const cropData = cropper.getCropBoxData();
+    const existingLines = Array.from(gridOverlay.children).filter(el => el.classList.contains("grid-line"));
+    existingLines.forEach(line => line.remove());
+
+    gridLines = gridLines.slice().sort((a,b) => a - b);
+    ensureSegmentInfo();
+
+    gridLines.forEach((percent, i) => {
+        const left = cropData.left + percent * cropData.width;
+        const line = document.createElement("div");
+        line.className = "grid-line";
+        line.style.left = `${left - 2}px`;
+        line.style.background = segmentInfo[i]?.color || segmentColors[i % segmentColors.length];
+        line.dataset.percent = percent;
+        line.dataset.index = i;
+        line.addEventListener("pointerdown", event => {
+            event.preventDefault();
+            isDraggingGridLine = true;
+            activeGridLine = event.currentTarget;
+        });
+        gridOverlay.appendChild(line);
+    });
+    updateSegmentEditor();
+}
+
+function resetGridLines(){
+    gridLines = [];
+    segmentInfo = [];
+    gridOverlay.innerHTML = "";
+    updateSegmentEditor();
+}
+
+function addVerticalLine(){
+    if(!cropper){
+        alert("Load an image first.");
+        return;
+    }
+
+    // A new line must land to the right of every existing line so it always becomes the new
+    // highest index after the sort in renderGridLines(). segmentInfo is keyed by that sorted
+    // index, so inserting a line to the *left* of existing ones re-numbers them and reassigns
+    // already-configured categories to the wrong physical segment. Appending to the right keeps
+    // earlier lines' indexes stable: the new line simply marks where the previous (last) category
+    // ends and the next category begins.
+    const defaultPercent = gridLines.length ? (Math.max(...gridLines) + 1) / 2 : 0.5;
+    gridLines.push(defaultPercent);
+    ensureSegmentInfo();
+    renderGridLines();
+}
+
+async function autoDetectColumns(){
+    if(!cropper){
+        alert("Load an image first.");
+        return;
+    }
+
+    const rowCanvas = cropper.getCroppedCanvas({
+        imageSmoothingEnabled:true,
+        imageSmoothingQuality:"high"
+    });
+
+    const blob = await new Promise(resolve => rowCanvas.toBlob(resolve, "image/png"));
+    if(!blob){
+        alert("Unable to capture row for detection.");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("image", blob, "row.png");
+
+    const response = await fetch("/detect_row_columns", {
+        method: "POST",
+        body: formData
+    });
+
+    const data = await response.json();
+    if(!data.success){
+        alert(data.error || "Column detection failed.");
+        return;
+    }
+
+    const detectedColumns = Array.isArray(data.columns) ? data.columns : [];
+    gridLines = detectedColumns.slice(0, 5);
+    ensureSegmentInfo();
+    renderGridLines();
+    alert("Column detection completed. Adjust the red lines if needed.");
+}
+
+function updateRowPreview(){
+    if(!cropper || !rowGridMode) return;
+    try{
+        const cropData = cropper.getCropBoxData();
+        if(!cropData || cropData.width < 10 || cropData.height < 10) return;
+        const rowCanvas = cropper.getCroppedCanvas({imageSmoothingEnabled:true, imageSmoothingQuality:'high'});
+        if(!rowCanvas) return;
+        const img = document.getElementById('rowPreview');
+        img.src = rowCanvas.toDataURL('image/png');
+        document.getElementById('rowPreviewContainer').style.display = 'block';
+    }catch(err){
+        console.error('Row preview failed', err);
+    }
+}
+
+function hideRowPreview(){
+    const c = document.getElementById('rowPreviewContainer');
+    if(c){ c.style.display = 'none'; }
+}
+
+async function refreshGridTemplateList(){
+    try{
+        const resp = await fetch('/grid_templates');
+        const data = await resp.json();
+        const sel = document.getElementById('gridTemplateSelect');
+        sel.innerHTML = '<option value="">Saved grid templates</option>';
+        if(data.success && Array.isArray(data.templates)){
+            data.templates.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t.filename;
+                opt.textContent = t.name || t.filename;
+                sel.appendChild(opt);
+            });
+        }
+    }catch(err){
+        console.error('Failed to refresh templates', err);
+    }
+}
+
+async function saveGridTemplate(){
+    const name = prompt('Enter a name for this grid template:');
+    if(!name) return;
+    try{
+        saveCropPresetsToStorage();
+        const payload = getCurrentTemplatePayload(name);
+        const resp = await fetch('/save_grid_template', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        const data = await resp.json();
+        if(data.success){
+            alert('Grid template saved');
+            refreshGridTemplateList();
+        } else {
+            alert(data.error || 'Failed to save grid template');
+        }
+    }catch(err){
+        alert('Failed to save grid template: ' + err.message);
+    }
+}
+
+async function saveFullTemplate(){
+    const name = prompt('Enter a name for this full template:');
+    if(!name) return;
+    try{
+        saveCropPresetsToStorage();
+        const payload = getCurrentTemplatePayload(name);
+        const resp = await fetch('/save_grid_template', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        const data = await resp.json();
+        if(data.success){
+            alert('Full template saved');
+            refreshGridTemplateList();
+        } else {
+            alert(data.error || 'Failed to save full template');
+        }
+    }catch(err){
+        alert('Failed to save full template: ' + err.message);
+    }
+}
+
+async function loadSelectedTemplate(){
+    const sel = document.getElementById('gridTemplateSelect');
+    const filename = sel.value;
+    if(!filename) return alert('Select a template to load');
+    activeTemplateFilename = filename;
+    try{
+        const resp = await fetch('/grid_template?filename=' + encodeURIComponent(filename));
+        const data = await resp.json();
+        if(!data.success) return alert(data.error || 'Failed to load template');
+        const t = data.template || {};
+        gridLines = Array.isArray(t.gridLines) ? t.gridLines.slice(0,5) : [];
+        segmentInfo = Array.isArray(t.segmentInfo) ? t.segmentInfo : [];
+        const templatePresetList = Array.isArray(t.cropPresets) ? t.cropPresets : [];
+        cropPresets = templatePresetList.length ? templatePresetList : getStoredCropPresets();
+        if(t && t.rowTemplate && t.rowTemplate.spacing !== undefined){
+            setRowSpacingValue(t.rowTemplate.spacing);
+        }
+        const loadedPreset = getPreferredTemplatePreset(t, cropPresets);
+        if(loadedPreset){
+            setActiveTemplateCropPreset(loadedPreset);
+        } else {
+            setActiveTemplateCropPreset(null);
+        }
+        if(!cropPresets.length && t.cropBoxPercent){
+            const fallbackPreset = {
+                id: createCropPresetId(),
+                name: 'Template Crop',
+                width: Math.round((t.cropBoxPercent.width || 0) * 1000),
+                height: Math.round((t.cropBoxPercent.height || 0) * 1000),
+                xOffset: t.cropBoxPercent.left,
+                yOffset: t.cropBoxPercent.top,
+                createdAt: new Date().toISOString(),
+                favorite: false,
+                fromTemplate: true
+            };
+            cropPresets = [fallbackPreset];
+        }
+        saveCropPresetsToStorage();
+        ensureSegmentInfo();
+        renderGridLines();
+        renderCropPresetManager();
+        applyTemplateRowPositions(t);
+        if(loadedPreset){
+            const tryApplyLoadedPreset = () => {
+                try{
+                    if(!cropper) throw new Error('cropper not ready');
+                    applyCropPreset(loadedPreset);
+                }catch(err){
+                    setTimeout(tryApplyLoadedPreset, 150);
+                }
+            };
+            tryApplyLoadedPreset();
+        } else if(t.cropBoxPercent){
+            // restore crop box if present (percentages relative to preview element)
+            const tryApply = () => {
+                try{
+                    if(!cropper) throw new Error('cropper not ready');
+                    const previewEl = document.getElementById('preview');
+                    const rect = previewEl.getBoundingClientRect();
+                    if(rect.width === 0 || rect.height === 0) throw new Error('preview not ready');
+                    const cb = t.cropBoxPercent;
+                    const left = Math.round((cb.left || 0) * rect.width);
+                    const top = Math.round((cb.top || 0) * rect.height);
+                    const width = Math.round((cb.width || 0) * rect.width);
+                    const height = Math.round((cb.height || 0) * rect.height);
+                    cropper.setCropBoxData({left, top, width, height});
+                    updateGridOverlay();
+                    updateRowPreview();
+                }catch(err){
+                    // retry shortly if preview or cropper not ready
+                    setTimeout(tryApply, 150);
+                }
+            };
+            tryApply();
+        }
+    }catch(err){
+        alert('Failed to load template: ' + err.message);
+    }
+}
+
+async function deleteSelectedTemplate(){
+    const sel = document.getElementById('gridTemplateSelect');
+    const filename = sel.value;
+    if(!filename) return alert('Select a template to delete');
+    if(!confirm('Delete template?')) return;
+    try{
+        const resp = await fetch('/delete_grid_template', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({filename: filename})
+        });
+        const data = await resp.json();
+        if(data.success){
+            alert('Deleted');
+            refreshGridTemplateList();
+        } else {
+            alert(data.error || 'Failed to delete');
+        }
+    }catch(err){
+        alert('Failed to delete template: ' + err.message);
+    }
+}
+
+window.addEventListener('load', ()=>{
+    rowGridMode = true;
+    refreshGridTemplateList();
+    cropPresets = getStoredCropPresets();
+    rowPositionTemplates = getStoredRowPositionTemplates();
+    rowSpacingPresets = getStoredRowSpacingPresets();
+    setRowSpacingValue(5);
+    saveCurrentRowSpacingValue();
+    renderCropPresetManager();
+    updateRowPositionTemplateStatus();
+
+    const fieldCategoryEl = document.getElementById('fieldCategory');
+    if(fieldCategoryEl){
+        fieldCategoryEl.addEventListener('change', ()=>{
+            updateSegmentEditor();
+            renderGridLines();
+        });
+    }
+});
+
+function enableRowGridMode(){
+    rowGridMode = true;
+    setRowSpacingValue(5);
+    saveCurrentRowSpacingValue();
+    if(cropper){
+        cropper.setDragMode("crop");
+    }
+    alert("Row grid mode enabled. Draw a row selection with Cropper, then add/adjust vertical lines.");
+}
+
+function getRowCropPercents(){
+    if(!cropper) return [];
+    const cropData = cropper.getCropBoxData();
+    return gridLines.map(percent => Math.min(Math.max(percent, 0), 1)).sort((a,b) => a - b);
+}
+
+async function cropRowCells(){
+    if(!cropper){
+        alert("Load an image first.");
+        return;
+    }
+
+    const cropData = cropper.getCropBoxData();
+    if(cropData.width < 10 || cropData.height < 10){
+        alert("Draw a row selection first.");
+        return;
+    }
+
+    const rowCanvas = cropper.getCroppedCanvas({
+        imageSmoothingEnabled:true,
+        imageSmoothingQuality:"high"
+    });
+
+    // No leading 0: the region left of the first line is never cropped. Cell k runs from
+    // line k to line k+1 (or the row's right edge for the last line), matching segmentInfo[k].
+    const percents = [...getRowCropPercents(), 1];
+    const cells = [];
+    for(let i = 0; i < percents.length - 1; i++){
+        const leftPercent = percents[i];
+        const rightPercent = percents[i+1];
+        const cellX = Math.round(leftPercent * rowCanvas.width);
+        const cellWidth = Math.round((rightPercent - leftPercent) * rowCanvas.width);
+        if(cellWidth < 5) continue;
+        const cellCanvas = document.createElement("canvas");
+        cellCanvas.width = cellWidth;
+        cellCanvas.height = rowCanvas.height;
+        const ctx = cellCanvas.getContext("2d");
+        ctx.drawImage(rowCanvas, cellX, 0, cellWidth, rowCanvas.height, 0, 0, cellWidth, rowCanvas.height);
+        cells.push({canvas: cellCanvas, index: i + 1});
+    }
+
+    if(cells.length === 0){
+        alert("No cells found. Add at least one vertical line.");
+        return;
+    }
+
+    const combinedText = [];
+    const tbody = document.getElementById("tableBody");
+    tbody.innerHTML = "";
+
+    for(const cell of cells){
+        await new Promise(resolve => cell.canvas.toBlob(async blob => {
+            const category = segmentInfo[cell.index - 1]?.category || `ROW_CELL_${cell.index}`;
+            const formData = new FormData();
+            formData.append("image", blob, `cell-${cell.index}.png`);
+            formData.append("category", category);
+            const response = await fetch("/ocr", {
+                method: "POST",
+                body: formData
+            });
+            const data = await response.json();
+            if(!data.success){
+                alert(`OCR failed for cell ${cell.index}: ${data.error}`);
+                resolve();
+                return;
+            }
+            const cellText = data.raw_text;
+            combinedText.push(cellText);
+            document.getElementById("output").value = combinedText.join("\n---\n");
+            tbody.innerHTML += `
+                <tr>
+                    <td>${escapeHtml(category)}</td>
+                    <td>Cell ${cell.index}</td>
+                    <td contenteditable="true">${escapeHtml(cellText)}</td>
+                    <td>${data.tokens.length ? renderConfidenceCell(data.tokens[0].confidence) : ""}</td>
+                </tr>
+            `;
+            resolve();
+        }, "image/png"));
+    }
+
+    // After cropping the row cells, show a zoomed preview of the row
+    try{
+        const previewCanvas = cropper.getCroppedCanvas({imageSmoothingEnabled:true, imageSmoothingQuality:'high'});
+        if(previewCanvas){
+            const img = document.getElementById('rowPreview');
+            img.src = previewCanvas.toDataURL('image/png');
+            document.getElementById('rowPreviewContainer').style.display = 'block';
+        }
+    }catch(err){
+        console.error('Failed to show row preview after cropping', err);
+    }
+
+    const headerRow = document.querySelector("#tableBody").previousElementSibling.querySelector("tr");
+    if(headerRow){
+        headerRow.innerHTML = "<th>Field Type</th><th>Cell</th><th>Text</th><th>Confidence</th>";
+    }
+    // sync review table from the cells table so user can edit combined row cells
+    syncReviewTableFromTableBody();
+}
+
+function escapeHtml(value){
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+function normalizeConfidence(value){
+    if(value === null || value === undefined || value === "") return null;
+    const num = Number(value);
+    return Number.isFinite(num) ? num : null;
+}
+
+function getConfidenceHeatmap(value){
+    const confidence = normalizeConfidence(value);
+    if(confidence === null){
+        return {
+            label: "Unknown",
+            color: "#6b7280",
+            background: "#f3f4f6"
+        };
+    }
+
+    if(confidence >= 0.85){
+        return {
+            label: "High",
+            color: "#166534",
+            background: "#dcfce7"
+        };
+    }
+
+    if(confidence >= 0.65){
+        return {
+            label: "Medium",
+            color: "#92400e",
+            background: "#fef3c7"
+        };
+    }
+
+    return {
+        label: "Low",
+        color: "#991b1b",
+        background: "#fee2e2"
+    };
+}
+
+function renderConfidenceCell(value){
+    const heatmap = getConfidenceHeatmap(value);
+    const displayValue = value === null || value === undefined || value === "" ? "—" : String(value);
+    return `<span title="${escapeHtml(displayValue)}" style="display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; background:${heatmap.background}; color:${heatmap.color}; font-weight:bold;">${escapeHtml(displayValue)} <span style="font-size:11px;">●</span></span>`;
+}
+
+function populateReviewTableFromTokens(tokens, defaultCategory){
+    const tbody = document.querySelector('#reviewTable tbody');
+    tbody.innerHTML = '';
+    (tokens || []).forEach(t => {
+        const category = t.category || defaultCategory || '';
+        const text = t.text || '';
+        const conf = typeof t.confidence !== 'undefined' ? t.confidence : (t[1] && t[1][1]) || '';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td style="border:1px solid #ddd; padding:6px;">${escapeHtml(category)}</td><td contenteditable="true" style="border:1px solid #ddd; padding:6px;">${escapeHtml(text)}</td><td style="border:1px solid #ddd; padding:6px;">${renderConfidenceCell(conf)}</td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+function syncReviewTableFromTableBody(){
+    const srcRows = Array.from(document.querySelectorAll('#tableBody tr'));
+    const tbody = document.querySelector('#reviewTable tbody');
+    tbody.innerHTML = '';
+    srcRows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const category = cells[0]?.textContent.trim() || '';
+        const text = cells[2]?.textContent.trim() || '';
+        const conf = cells[3]?.textContent.trim() || '';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td style="border:1px solid #ddd; padding:6px;">${escapeHtml(category)}</td><td contenteditable="true" style="border:1px solid #ddd; padding:6px;">${escapeHtml(text)}</td><td style="border:1px solid #ddd; padding:6px;">${renderConfidenceCell(conf)}</td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+function getReviewTableValues(){
+    const rows = Array.from(document.querySelectorAll('#reviewTable tbody tr'));
+    const values = {};
+    const texts = [];
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const category = (cells[0]?.textContent || '').trim();
+        const text = (cells[1]?.textContent || '').trim();
+        if(category){
+            values[category] = text;
+        }
+        texts.push(text);
+    });
+    return {values, reviewed_text: texts.join('\n---\n')};
+}
+
+function getSelectedCategory(){
+    const fieldCategoryEl = document.getElementById("fieldCategory");
+    const category = fieldCategoryEl ? fieldCategoryEl.value.trim() : "";
+    return category;
+}
+
+async function ensurePDFJS(){
+    if(window.pdfjsLib){
+        return window.pdfjsLib;
+    }
+
+    return new Promise((resolve,reject)=>{
+        const script = document.createElement("script");
+        script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js";
+        script.onload = ()=>{
+            if(window.pdfjsLib){
+                resolve(window.pdfjsLib);
+            } else {
+                reject(new Error("PDF.js loaded but pdfjsLib is unavailable."));
+            }
+        };
+        script.onerror = (error)=>{
+            reject(error || new Error("Failed to load PDF.js script."));
+        };
+        document.head.appendChild(script);
+    });
+}
+
+function updatePdfNav(){
+    const show = pdfDoc && pdfPageCount > 0;
+    if(!pdfNav) return;
+    pdfNav.style.display = show ? "block" : "none";
+    if(show && pageIndicator){
+        pageIndicator.textContent = `Page ${pdfCurrentPage} / ${pdfPageCount}`;
+    }
+}
+
+function resetPdfState(){
+    pdfDoc = null;
+    pdfCurrentPage = 1;
+    pdfPageCount = 0;
+    pdfFileData = null;
+    updatePdfNav();
+}
+
+async function renderPDFPage(pageNumber){
+    if(!pdfDoc) return;
+    const page = await pdfDoc.getPage(pageNumber);
+    const unscaledViewport = page.getViewport({scale:1});
+    const maxWidth = 4096;
+    const defaultScale = Math.max(3, (window.devicePixelRatio || 1) * 3);
+    let scale = defaultScale;
+    if(unscaledViewport.width * scale > maxWidth){
+        scale = maxWidth / unscaledViewport.width;
+    }
+    const viewport = page.getViewport({scale});
+
+    const canvas = document.getElementById("canvas");
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext("2d");
+
+    await page.render({canvasContext: ctx, viewport}).promise;
+
+    const previewEl = document.getElementById("preview");
+    const pageImage = canvas.toDataURL("image/png");
+    if(originalPreviewURL && originalPreviewURL.startsWith("blob:")){
+        URL.revokeObjectURL(originalPreviewURL);
+    }
+    originalPreviewURL = pageImage;
+    updatePreviewDisplay();
+}
+
+async function nextPage(){
+    if(!pdfDoc) return;
+    if(pdfCurrentPage < pdfPageCount){
+        pdfCurrentPage += 1;
+        await renderPDFPage(pdfCurrentPage);
+        updatePdfNav();
+    }
+}
+
+async function prevPage(){
+    if(!pdfDoc) return;
+    if(pdfCurrentPage > 1){
+        pdfCurrentPage -= 1;
+        await renderPDFPage(pdfCurrentPage);
+        updatePdfNav();
+    }
+}
+
+async function sendToOCR(file, options = {}){
+    // Helper that sends an image blob to /ocr and populates outputs.
+    async function _send(blobFile, options = {}){
+        const category = getSelectedCategory();
+        const formData = new FormData();
+        formData.append("image", blobFile);
+        if(category){
+            formData.append("category", category);
+        }
+        if(activeTemplateFilename){
+            formData.append("template_filename", activeTemplateFilename);
+            formData.append("template_payload", JSON.stringify(getCurrentTemplatePayload()));
+        }
+
+        const resp = await fetch("/ocr", {method: "POST", body: formData});
+        const data = await resp.json();
+        if(!data.success){
+            alert(data.error || 'OCR failed');
+            return data;
+        }
+
+        document.getElementById("output").value = data.raw_text;
+
+        const summaryEl = document.getElementById("ocrCategorySummary");
+        summaryEl.textContent = `Field type: ${escapeHtml(data.category || category)}`;
+
+        // If preserve flag is set and review table already has rows, do not overwrite editable table.
+        const preserve = options && options.preserveReviewTable;
+        const existingReviewRows = document.querySelectorAll('#reviewTable tbody tr').length;
+
+        if(!preserve || !existingReviewRows){
+            populateReviewTableFromTokens(data.tokens || [], data.category || "");
+        }
+
+        const tbody = document.getElementById("tableBody");
+        const tableBodyHasRows = tbody.querySelectorAll('tr').length > 0;
+        if(!preserve || !tableBodyHasRows){
+            tbody.innerHTML = "";
+            (data.tokens || []).forEach(token=>{
+                tbody.innerHTML += `
+                <tr>
+                    <td>${escapeHtml(token.category || data.category || "")}</td>
+                    <td>${escapeHtml(token.text || "")}</td>
+                    <td>${renderConfidenceCell(token.confidence ?? "")}</td>
+                </tr>
+                `;
+            });
+        }
+
+        return data;
+    }
+
+    return await _send(file, options || {});
+}
+
+// Combined action: crop row cells (per-cell OCR) and also OCR the full selection
+async function cropRowCellsAndOCR(){
+    // run cell-level OCR (populates tableBody and reviewTable)
+    await cropRowCells();
+
+    // capture full crop and run page-level OCR but preserve existing editable review table
+    if(!cropper) return;
+    try{
+        const canvas = cropper.getCroppedCanvas({imageSmoothingEnabled:true, imageSmoothingQuality:'high'});
+        await new Promise(resolve => canvas.toBlob(async blob => {
+            await sendToOCR(blob, {preserveReviewTable: true});
+            resolve();
+        }, 'image/png'));
+    }catch(err){
+        console.warn('Combined OCR failed', err);
+    }
+}
+
+async function saveReviewedResult(){
+    const caseId = document.getElementById("caseIdInput").value.trim();
+    if(!caseId){
+        alert("Enter a case ID before saving.");
+        return;
+    }
+
+    const reviewStatus = document.getElementById("reviewStatus");
+    const formData = new FormData();
+    formData.append("case_id", caseId);
+    formData.append("case_name", document.getElementById("caseNameInput").value.trim());
+
+    // If the review table is empty but a cells table exists, populate review table from cells.
+    const reviewTableHasRows = document.querySelectorAll('#reviewTable tbody tr').length > 0;
+    const cellsTableHasRows = document.querySelectorAll('#tableBody tr').length > 0;
+    if(!reviewTableHasRows && cellsTableHasRows){
+        // populate review table from the cells table so user edits the combined result
+        syncReviewTableFromTableBody();
+    }
+    // Prefer values from the editable reviewTable if present
+    let rv = getReviewTableValues();
+    let reviewValues = rv.values || {};
+    const hasStructuredValues = Object.keys(reviewValues).length > 0;
+    if(hasStructuredValues){
+        formData.append("review_values", JSON.stringify(reviewValues));
+    }
+
+    // Compute reviewed_text from review table rows
+    const reviewedText = rv.reviewed_text || '';
+
+    let categoryForSave = document.getElementById("fieldCategory").value.trim();
+    if(!categoryForSave){
+        const keys = Object.keys(reviewValues || {});
+        if(keys.length === 1){
+            categoryForSave = keys[0];
+        }
+    }
+    if(categoryForSave){
+        formData.append("category", categoryForSave);
+    }
+    // reviewed_text is a single-blob fallback for when the review table has no per-category rows.
+    // When structured review_values exist, sending this too would let the backend overwrite one
+    // category's reviewed value with the concatenation of every row's text (looks like raw OCR
+    // soup in the export). Only send it in the unstructured fallback case.
+    if(!hasStructuredValues){
+        formData.append("reviewed_text", reviewedText);
+    }
+
+    const response = await fetch("/save_reviewed_result", {
+        method: "POST",
+        body: formData
+    });
+
+    const data = await response.json();
+    if(!data.success){
+        reviewStatus.style.color = "red";
+        reviewStatus.textContent = data.error || "Save failed";
+        return;
+    }
+
+    reviewStatus.style.color = "green";
+    reviewStatus.textContent = "Saved to case session.";
+}
+
+async function exportCaseSession(){
+    const caseId = document.getElementById("caseIdInput").value.trim();
+    if(!caseId){
+        alert("Enter a case ID before exporting.");
+        return;
+    }
+
+    // Save current edits before exporting to ensure exported file contains latest reviewed values
+    try{
+        await saveReviewedResult();
+    }catch(e){
+        // ignore — saveReviewedResult already shows errors to the user
+    }
+
+    window.location.href = `/export_case_session?case_id=${encodeURIComponent(caseId)}`;
+}
+
+async function uploadImage(){
+
+    const file =
+    document
+    .getElementById("uploadInput")
+    .files[0];
+
+    if(!file){
+        alert("Select a file");
+        return;
+    }
+
+    const preview =
+    document
+    .getElementById("preview");
+
+    if(file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")){
+        setRowSpacingValue(5);
+        saveCurrentRowSpacingValue();
+        await renderPDFPreview(file);
+        return;
+    }
+
+    resetPdfState();
+
+    if(originalPreviewURL && originalPreviewURL.startsWith("blob:")){
+        URL.revokeObjectURL(originalPreviewURL);
+    }
+    originalPreviewURL = URL.createObjectURL(file);
+    updatePreviewDisplay();
+    setTimeout(() => {
+        if(document.getElementById('preview').complete){
+            matchAndApplyTemplate();
+        }
+    }, 250);
+}
+
+async function renderPDFPreview(file){
+    try {
+        const arrayBuffer = await file.arrayBuffer();
+        const lib = await ensurePDFJS();
+
+        lib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
+        lib.disableWorker = true;
+
+        const loadingTask = lib.getDocument({data: arrayBuffer});
+        pdfDoc = await loadingTask.promise;
+        pdfPageCount = pdfDoc.numPages;
+        pdfCurrentPage = 1;
+        pdfFileData = arrayBuffer;
+
+        setRowSpacingValue(5);
+        saveCurrentRowSpacingValue();
+
+        await renderPDFPage(pdfCurrentPage);
+        updatePdfNav();
+    } catch(error) {
+        console.error("PDF rendering error", error);
+        alert("Failed to render PDF preview. Please try a different PDF file.");
+    }
+}
+
+async function cropAndOCR(){
+
+    if(!cropper){
+
+        alert(
+            "Upload image first"
+        );
+
+        return;
+    }
+
+    const canvas =
+    cropper.getCroppedCanvas({
+        imageSmoothingEnabled:true,
+        imageSmoothingQuality:"high"
+    });
+
+    canvas.toBlob(
+        async(blob)=>{
+            await sendToOCR(blob);
+        },
+        "image/png"
+    );
+}
+
+// ============================================================================
+// NEW ADVANCED TEMPLATE FEATURES
+// ============================================================================
+
+async function autoPlaceTemplate(){
+    const sel = document.getElementById('gridTemplateSelect');
+    const filename = sel.value;
+    if(!filename){
+        alert('Select a template first');
+        return;
+    }
+
+    if(!cropper){
+        alert('Upload an image first');
+        return;
+    }
+
+    try {
+        // Load template
+        const resp = await fetch('/grid_template?filename=' + encodeURIComponent(filename));
+        const data = await resp.json();
+        if(!data.success) return alert(data.error);
+        const template = data.template;
+
+        // Get current image
+        const canvas = cropper.getCroppedCanvas({imageSmoothingEnabled: true, imageSmoothingQuality: 'high'});
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+
+        // Call auto-place endpoint
+        const formData = new FormData();
+        formData.append('image', blob, 'page.png');
+        formData.append('template', JSON.stringify(template));
+        formData.append('auto_align', 'true');
+
+        const result = await fetch('/auto_place_template', {
+            method: 'POST',
+            body: formData
+        });
+        const placement = await result.json();
+
+        if(!placement.success){
+            alert('Auto-place failed: ' + (placement.error || 'unknown error'));
+            return;
+        }
+
+        // Apply placed template
+        gridLines = (placement.vertical_lines || []).map(line => line.x);
+        renderGridLines();
+        
+        const statusEl = document.getElementById('advancedStatus');
+        const alignment = placement.alignment || {};
+        statusEl.textContent = `Placement done. Alignment score: ${(alignment.alignment_score || 0).toFixed(2)}`;
+        
+        alert('Template auto-placed! Grid lines updated.');
+    } catch(err) {
+        alert('Error: ' + err.message);
+    }
+}
+
+async function detectAndAlignTemplate(){
+    const sel = document.getElementById('gridTemplateSelect');
+    const filename = sel.value;
+    if(!filename){
+        alert('Select a template first');
+        return;
+    }
+
+    if(!cropper){
+        alert('Upload an image first');
+        return;
+    }
+
+    try {
+        // Load template
+        const resp = await fetch('/grid_template?filename=' + encodeURIComponent(filename));
+        const data = await resp.json();
+        if(!data.success) return alert(data.error);
+        const template = data.template;
+
+        // Get current image
+        const canvas = cropper.getCroppedCanvas({imageSmoothingEnabled: true, imageSmoothingQuality: 'high'});
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+
+        // Call alignment endpoint
+        const formData = new FormData();
+        formData.append('image', blob, 'page.png');
+        formData.append('template', JSON.stringify(template));
+
+        const result = await fetch('/align_template', {
+            method: 'POST',
+            body: formData
+        });
+        const alignment = await result.json();
+
+        if(!alignment.success){
+            alert('Alignment failed: ' + (alignment.error || 'unknown error'));
+            return;
+        }
+
+        // Apply offset to grid lines
+        const offset = alignment.offset_x || 0;
+        gridLines = gridLines.map(x => x + offset);
+        renderGridLines();
+
+        const statusEl = document.getElementById('advancedStatus');
+        statusEl.textContent = `Aligned! Offset: ${offset.toFixed(1)}px, Score: ${(alignment.alignment_score || 0).toFixed(2)}`;
+        
+        alert(`Template aligned with offset ${offset.toFixed(1)}px`);
+    } catch(err) {
+        alert('Error: ' + err.message);
+    }
+}
+
+async function smartPropagateRows(){
+    if(!cropper){
+        alert('Upload an image first');
+        return;
+    }
+
+    const current = cropper.getCropBoxData();
+    if(!current){
+        alert('Set a crop box first to define first row');
+        return;
+    }
+
+    const canvasData = cropper.getCanvasData();
+    if(!canvasData || !canvasData.height){
+        alert('Could not read the image dimensions. Try reloading the image.');
+        return;
+    }
+
+    const firstY = current.top;
+    const height = current.height;
+    const spacing = saveCurrentRowSpacingValue();
+    // Bound propagation at the image's rendered bottom edge, in the same on-screen pixel space
+    // as firstY/height (cropBoxData and canvasData share one coordinate origin) - NOT the
+    // image's natural (full-resolution) pixel height, which is a different unit entirely and
+    // previously let the loop run all the way to max_rows regardless of the visible image size.
+    const imageBottom = canvasData.top + canvasData.height;
+
+    try {
+        const result = await fetch('/propagate_rows', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                first_row_y: firstY,
+                row_height: height,
+                row_spacing: spacing,
+                image_height: imageBottom,
+                max_rows: 100
+            })
+        });
+
+        const data = await result.json();
+        if(!data.success){
+            alert('Propagation failed: ' + data.error);
+            return;
+        }
+
+        const rawRows = data.rows || [];
+        detectedRows = rawRows.map(r => rowToFraction(Number(r.y) || 0, Number(r.height) || 8, canvasData));
+        currentRowIndex = 0;
+
+        renderDetectedRowIndicators();
+
+        if(rawRows.length > 0){
+            const firstRow = rawRows[0];
+            cropper.setCropBoxData({
+                left: current.left,
+                top: firstRow.y,
+                width: current.width,
+                height: firstRow.height
+            });
+            refreshOverlayAfterCropChange();
+        }
+
+        const statusEl = document.getElementById('advancedStatus');
+        if(statusEl){
+            statusEl.textContent = `Generated ${detectedRows.length} rows from template`;
+        }
+
+        updateRowNavigationStatus();
+        alert(`Generated ${detectedRows.length} rows! Use ↑↓ to navigate between rows.`);
+    } catch(err) {
+        alert('Error: ' + err.message);
+    }
+}
+
+function renderDetectedRowIndicators(){
+    if(!gridOverlay || detectedRows.length === 0) return;
+
+    const existingIndicators = gridOverlay.querySelectorAll('.row-indicator');
+    existingIndicators.forEach(ind => ind.remove());
+
+    if(!cropper) return;
+
+    detectedRows.forEach((row, idx) => {
+        const indicator = document.createElement('div');
+        indicator.className = 'row-indicator';
+        if(idx === currentRowIndex){
+            indicator.classList.add('active');
+        }
+        const rect = rowRectFromFraction(row);
+        indicator.style.top = `${Math.max(0, rect.y)}px`;
+        indicator.style.height = `${Math.max(8, rect.height)}px`;
+        indicator.title = `Row ${idx + 1}`;
+        gridOverlay.appendChild(indicator);
+    });
+}
+
+// Fold the crop box's current position/height into just the active row - e.g. the user dragged
+// the box taller because a row (like a multi-line address) wasn't fully covered by the uniform
+// propagated height. Only that row's own geometry changes; every row *after* it is shifted by
+// the same amount its bottom edge moved, so they stay lined up with no gap/overlap, but keep
+// their own original height. Rows before the active one are left alone entirely. This runs on
+// every crop box change (see updateGridOverlay) - it's safe to run automatically because,
+// unlike the old uniform rebase, it never resizes rows the user didn't touch.
+function syncDetectedRowsToCurrentCrop(){
+    if(detectedRows.length === 0 || !cropper) return;
+
+    const cropData = cropper.getCropBoxData();
+    const canvasData = cropper.getCanvasData();
+    if(!cropData || !canvasData || !canvasData.height) return;
+
+    const activeIndex = currentRowIndex >= 0 ? currentRowIndex : 0;
+    if(!detectedRows[activeIndex]) return;
+
+    const oldRect = rowRectFromFraction(detectedRows[activeIndex]);
+    const newY = Number(cropData.top);
+    const newHeight = Math.max(8, Number(cropData.height) || oldRect.height);
+    if(!Number.isFinite(newY)) return;
+
+    const bottomDelta = (newY + newHeight) - (oldRect.y + oldRect.height);
+
+    detectedRows[activeIndex] = rowToFraction(newY, newHeight, canvasData);
+
+    if(bottomDelta !== 0){
+        for(let i = activeIndex + 1; i < detectedRows.length; i++){
+            const rect = rowRectFromFraction(detectedRows[i]);
+            detectedRows[i] = rowToFraction(rect.y + bottomDelta, rect.height, canvasData);
+        }
+    }
+}
+
+function syncRowIndicatorsWithCropBox(){
+    if(detectedRows.length === 0 || !cropper) return;
+
+    const cropData = cropper.getCropBoxData();
+    if(!cropData) return;
+
+    const cropCenter = cropData.top + (cropData.height / 2);
+    let closestRowIdx = currentRowIndex >= 0 ? currentRowIndex : 0;
+    let closestDistance = Number.POSITIVE_INFINITY;
+
+    for(let i = 0; i < detectedRows.length; i++){
+        const rect = rowRectFromFraction(detectedRows[i]);
+        const rowCenter = rect.y + (rect.height / 2);
+        const distance = Math.abs(rowCenter - cropCenter);
+        if(distance < closestDistance){
+            closestDistance = distance;
+            closestRowIdx = i;
+        }
+    }
+
+    if(currentRowIndex !== closestRowIdx){
+        currentRowIndex = closestRowIdx;
+    }
+    updateRowNavigationStatus();
+}
+
+function scrollPreviewToRow(rect){
+    if(!rect || !document.getElementById('previewContainer')) return;
+    const previewContainer = document.getElementById('previewContainer');
+    const rowTop = Number(rect.y || 0);
+    const rowHeight = Math.max(8, Number(rect.height || 0));
+    const containerHeight = previewContainer.clientHeight;
+    const targetScroll = Math.max(0, rowTop - (containerHeight / 2) + (rowHeight / 2));
+    previewContainer.scrollTop = targetScroll;
+}
+
+function updateRowNavigationStatus(){
+    const statusEl = document.getElementById('rowNavigationStatus');
+    if(detectedRows.length === 0){
+        statusEl.textContent = 'No rows detected';
+        return;
+    }
+    statusEl.textContent = `Row ${currentRowIndex + 1} of ${detectedRows.length}`;
+}
+
+function moveToRow(direction){
+    if(detectedRows.length === 0){
+        alert('No rows detected. Click "Smart Propagate Rows" first.');
+        return;
+    }
+
+    if(!cropper){
+        alert('Upload an image first');
+        return;
+    }
+
+    // Safety net: cropend already syncs the active row live, but make sure any last adjustment
+    // to the row we're leaving is folded in before we move off of it.
+    syncDetectedRowsToCurrentCrop();
+
+    let newIndex = currentRowIndex + direction;
+    if(newIndex < 0){
+        newIndex = detectedRows.length - 1;
+    } else if(newIndex >= detectedRows.length){
+        newIndex = 0;
+    }
+
+    currentRowIndex = newIndex;
+    const targetRect = rowRectFromFraction(detectedRows[currentRowIndex]);
+    const current = cropper.getCropBoxData();
+
+    cropper.setCropBoxData({
+        left: current.left,
+        top: targetRect.y,
+        width: current.width,
+        height: targetRect.height
+    });
+
+    scrollPreviewToRow(targetRect);
+
+    refreshOverlayAfterCropChange();
+    updateRowNavigationStatus();
+}
+
+
+async function generateAutoZones(){
+    if(!gridLines.length){
+        alert('Add vertical lines first');
+        return;
+    }
+
+    if(!cropper){
+        alert('Upload an image first');
+        return;
+    }
+
+    const statusEl = document.getElementById('advancedStatus');
+    statusEl.textContent = 'Generated cells from lines and rows. Ready for batch OCR.';
+    alert('Cell zones generated from grid lines and rows. Now ready for batch processing or OCR.');
+}
+
+async function processPDFBatch(){
+    const sel = document.getElementById('gridTemplateSelect');
+    const filename = sel.value;
+    if(!filename){
+        alert('Select a template first');
+        return;
+    }
+
+    const fileInput = document.getElementById('uploadInput');
+    const file = fileInput.files[0];
+    if(!file || !file.name.toLowerCase().endsWith('.pdf')){
+        alert('Upload a PDF file');
+        return;
+    }
+
+    try {
+        // Load template
+        const resp = await fetch('/grid_template?filename=' + encodeURIComponent(filename));
+        const data = await resp.json();
+        if(!data.success) return alert(data.error);
+        const template = data.template;
+
+        const statusEl = document.getElementById('advancedStatus');
+        statusEl.textContent = 'Batch processing PDF... (this may take a moment)';
+
+        // Process PDF
+        const formData = new FormData();
+        formData.append('pdf', file);
+        formData.append('template', JSON.stringify(template));
+        formData.append('auto_align', 'true');
+
+        const result = await fetch('/process_pdf_batch', {
+            method: 'POST',
+            body: formData
+        });
+
+        const batchResult = await result.json();
+        if(!batchResult.success){
+            alert('Batch processing failed: ' + (batchResult.error || 'unknown error'));
+            statusEl.textContent = 'Batch processing failed';
+            return;
+        }
+
+        const totalCells = batchResult.pages.reduce((sum, page) => sum + (page.cells ? page.cells.length : 0), 0);
+        statusEl.textContent = `Batch complete! Processed ${batchResult.pages.length} pages, ${totalCells} cells`;
+
+        alert(`Batch processing complete!\nProcessed ${batchResult.pages.length} pages\nExtracted ${totalCells} cells`);
+
+        console.log('Batch results:', batchResult);
+    } catch(err) {
+        alert('Error: ' + err.message);
+        document.getElementById('advancedStatus').textContent = 'Error during batch processing';
+    }
+}
+
+async function learnFromAdjustments(){
+    const sel = document.getElementById('gridTemplateSelect');
+    const filename = sel.value;
+    if(!filename){
+        alert('Select a template first');
+        return;
+    }
+
+    try {
+        // Collect current adjustments
+        const updates = {
+            gridLines: gridLines,
+            segmentInfo: segmentInfo
+        };
+
+        // If row template exists, include it
+        if(cropper){
+            const crop = cropper.getCropBoxData();
+            const spacingValue = saveCurrentRowSpacingValue();
+            updates.rowTemplate = {
+                y: crop.top,
+                height: crop.height,
+                spacing: spacingValue
+            };
+        }
+
+        // Send to server for learning
+        const result = await fetch('/update_template_from_feedback', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                template_filename: filename,
+                updates: updates
+            })
+        });
+
+        const response = await result.json();
+        if(!response.success){
+            alert('Learning failed: ' + response.error);
+            return;
+        }
+
+        const statusEl = document.getElementById('advancedStatus');
+        statusEl.textContent = 'Template updated with learned values!';
+
+        alert('Template learned! Current adjustments saved.');
+    } catch(err) {
+        alert('Error: ' + err.message);
+    }
+}
+
+
+async function saveCroppedField(){
+    if(!cropper){
+        alert("Upload image first before saving a crop.");
+        return;
+    }
+
+    const category = document.getElementById("fieldCategory").value;
+    if(!category){
+        alert("Select a training field category first.");
+        return;
+    }
+
+    const canvas = cropper.getCroppedCanvas({
+        imageSmoothingEnabled:true,
+        imageSmoothingQuality:"high"
+    });
+
+    canvas.toBlob(
+        async(blob)=>{
+            const formData = new FormData();
+            formData.append("image", blob, "crop.png");
+            formData.append("category", category);
+
+            const response = await fetch("/save_crop", {
+                method: "POST",
+                body: formData
+            });
+
+            const data = await response.json();
+            const statusEl = document.getElementById("saveStatus");
+
+            if(!data.success){
+                statusEl.style.color = "red";
+                statusEl.textContent = "Save failed: " + (data.error || "Unknown error");
+                return;
+            }
+
+            statusEl.style.color = "green";
+            statusEl.textContent = "Crop saved for " + category + ".";
+        },
+        "image/png"
+    );
+}
+
+async function captureImage(){
+
+    const video =
+    document
+    .getElementById("video");
+
+    const canvas =
+    document
+    .getElementById("canvas");
+
+    canvas.width =
+    video.videoWidth;
+
+    canvas.height =
+    video.videoHeight;
+
+    const ctx =
+    canvas.getContext("2d");
+
+    ctx.drawImage(
+        video,
+        0,
+        0
+    );
+
+    canvas.toBlob(
+        async(blob)=>{
+
+            document
+            .getElementById("preview")
+            .src =
+            URL.createObjectURL(blob);
+
+            await sendToOCR(blob);
+
+        },
+        "image/jpeg"
+    );
+}
+
+</script>
+
+</body>
+</html>

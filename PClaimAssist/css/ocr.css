@@ -1,0 +1,167 @@
+/* ═══════════════════════════════════════════════════════════
+   PClaimAssist – OCR Workspace (ocr.html only)
+   OCR-specific styling. Shared branding (navbar, sidebar, cards,
+   colors, buttons) comes from css/style.css — nothing here
+   duplicates it.
+═══════════════════════════════════════════════════════════ */
+
+/* ── Status pill ───────────────────────────────────────────── */
+.ocr-status {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  font-size: .78rem;
+  font-weight: 600;
+  padding: .3rem .7rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  background: var(--card-bg);
+}
+.ocr-status .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--text-muted);
+  flex-shrink: 0;
+}
+.ocr-status--idle       .dot { background: var(--text-muted); }
+.ocr-status--processing { color: var(--primary); border-color: var(--primary-mid); background: var(--primary-light); }
+.ocr-status--processing .dot { background: var(--primary); animation: ocrPulse 1s ease-in-out infinite; }
+.ocr-status--success    { color: var(--success); border-color: #86EFAC; background: #F0FDF4; }
+.ocr-status--success    .dot { background: var(--success); }
+.ocr-status--error      { color: var(--danger); border-color: #FECACA; background: #FEF2F2; }
+.ocr-status--error      .dot { background: var(--danger); }
+
+@keyframes ocrPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: .4; transform: scale(1.3); }
+}
+
+/* ── Selected file summary ────────────────────────────────── */
+.ocr-file-chip {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: .6rem .8rem;
+  background: var(--body-bg);
+  font-size: .85rem;
+}
+.ocr-file-chip .bi { font-size: 1.2rem; color: var(--primary); }
+.ocr-file-chip .name { font-weight: 600; color: var(--text); word-break: break-all; }
+.ocr-file-chip .size { color: var(--text-muted); font-size: .75rem; }
+.ocr-file-chip .remove-btn {
+  margin-left: auto;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: .2rem;
+}
+.ocr-file-chip .remove-btn:hover { color: var(--danger); }
+
+/* ── Processing spinner block ─────────────────────────────── */
+.ocr-processing-block {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-sm);
+  background: var(--primary-light);
+  color: var(--primary);
+  font-size: .88rem;
+  font-weight: 600;
+}
+
+/* ── Error block ───────────────────────────────────────────── */
+.ocr-error-block {
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-sm);
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  color: #991B1B;
+  font-size: .85rem;
+}
+.ocr-error-block .bi { margin-right: .4rem; }
+
+/* ── Raw text output ───────────────────────────────────────── */
+.ocr-raw-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: 'Cascadia Code', Consolas, 'Courier New', monospace;
+  font-size: .82rem;
+  line-height: 1.6;
+  background: var(--body-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: .9rem 1rem;
+  max-height: 260px;
+  overflow-y: auto;
+  color: var(--text);
+}
+
+/* ── Token table ───────────────────────────────────────────── */
+.ocr-token-table-wrap {
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.ocr-token-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .82rem;
+}
+.ocr-token-table th {
+  position: sticky;
+  top: 0;
+  background: var(--body-bg);
+  text-align: left;
+  padding: .55rem .75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-size: .68rem;
+  letter-spacing: .04em;
+  border-bottom: 1px solid var(--border);
+}
+.ocr-token-table td {
+  padding: .55rem .75rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.ocr-token-table tr:last-child td { border-bottom: none; }
+.ocr-token-table .confidence-badge {
+  display: inline-block;
+  padding: .1rem .5rem;
+  border-radius: 999px;
+  font-size: .72rem;
+  font-weight: 700;
+}
+.ocr-token-table .confidence-badge--high { background: #F0FDF4; color: #166534; }
+.ocr-token-table .confidence-badge--mid  { background: #FEF9C3; color: #854D0E; }
+.ocr-token-table .confidence-badge--low  { background: #FEF2F2; color: #991B1B; }
+
+/* ── Empty state ───────────────────────────────────────────── */
+.ocr-empty-state {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 2.5rem 1rem;
+  font-size: .85rem;
+}
+.ocr-empty-state .bi { font-size: 2.25rem; display: block; margin-bottom: .6rem; color: var(--border); }
+
+/* ── Scope banner (this page talks to a real backend) ─────── */
+.ocr-scope-banner {
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  color: #78350F;
+  border-radius: var(--radius-sm);
+  padding: .75rem 1rem;
+  font-size: .82rem;
+}
+
+/* ── Category input row ───────────────────────────────────── */
+.ocr-category-row { max-width: 320px; }

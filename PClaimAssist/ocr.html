@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OCR Extraction – PClaimAssist</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="css/style.css" rel="stylesheet">
+  <link href="css/ocr.css" rel="stylesheet">
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SCOPE NOTICE — unlike index.html's privacy banner, this page
+     DOES send the uploaded file to a local backend, so it gets its
+     own accurate notice rather than reusing that banner's text.
+════════════════════════════════════════════════════════════ -->
+<div class="privacy-banner d-flex align-items-center justify-content-between gap-2 flex-wrap">
+  <span><i class="bi bi-hdd-network-fill me-2 text-info"></i>
+    <strong>OCR Workspace:</strong> Files uploaded here are sent to the local OCR backend
+    (127.0.0.1:5000) for processing. This is separate from the rest of PClaimAssist, which
+    never transmits data anywhere.
+  </span>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     TOP NAVBAR (same markup as index.html for brand consistency)
+════════════════════════════════════════════════════════════ -->
+<nav class="top-navbar">
+  <div class="navbar-left">
+    <button class="sidebar-toggle-btn" id="sidebarToggle" title="Toggle sidebar">
+      <i class="bi bi-list"></i>
+    </button>
+    <div class="brand-logo"><i class="bi bi-heart-pulse-fill"></i></div>
+    <div>
+      <div class="brand-name">PClaimAssist</div>
+      <div class="brand-sub">PhilHealth Claims Preparation System</div>
+    </div>
+  </div>
+  <div class="navbar-right">
+    <div class="user-profile-wrap">
+      <div class="user-avatar"><i class="bi bi-person-fill"></i></div>
+      <div class="d-none d-sm-block">
+        <div class="user-name">Clinic Staff</div>
+        <div class="user-role">Claims Encoder</div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════
+     LAYOUT
+════════════════════════════════════════════════════════════ -->
+<div class="layout-wrapper">
+
+<!-- ── SIDEBAR ─────────────────────────────────────────────────
+     Static — this page does not use the section-switching system
+     from js/app.js. Every item except "OCR Extraction" just links
+     back to index.html (which opens on its default Dashboard view).
+──────────────────────────────────────────────────────────────── -->
+<aside class="sidebar" id="sidebar">
+  <nav class="sidebar-nav">
+
+    <div class="sidebar-section-label">Overview</div>
+    <a href="index.html" class="sidebar-item">
+      <i class="bi bi-grid-1x2-fill"></i><span>Dashboard</span>
+    </a>
+
+    <div class="sidebar-section-label mt-3">Data Entry</div>
+    <a href="index.html" class="sidebar-item">
+      <i class="bi bi-person-vcard-fill"></i><span>Patient Information</span>
+      <span class="sidebar-badge">Step 1</span>
+    </a>
+    <a href="index.html" class="sidebar-item">
+      <i class="bi bi-cloud-upload-fill"></i><span>Document Upload</span>
+    </a>
+
+    <div class="sidebar-section-label mt-3">Form Previews</div>
+    <a href="index.html" class="sidebar-item">
+      <i class="bi bi-file-earmark-text-fill"></i><span>Claim Signature Form</span>
+      <span class="sidebar-badge">CSF</span>
+    </a>
+    <a href="index.html" class="sidebar-item">
+      <i class="bi bi-file-earmark-medical-fill text-teal"></i><span>Confinement Form 2</span>
+      <span class="sidebar-badge">CF2</span>
+    </a>
+    <a href="index.html" class="sidebar-item">
+      <i class="bi bi-file-earmark-heart-fill text-orange"></i><span>Confinement Form 3</span>
+      <span class="sidebar-badge">CF3</span>
+    </a>
+    <a href="index.html" class="sidebar-item">
+      <i class="bi bi-person-lines-fill text-purple"></i><span>Member Reg. Form</span>
+      <span class="sidebar-badge">PMRF</span>
+    </a>
+
+    <div class="sidebar-section-label mt-3">OCR</div>
+    <a href="ocr.html" class="sidebar-item active">
+      <i class="bi bi-camera-fill text-info"></i><span>OCR Extraction</span>
+    </a>
+
+    <div class="sidebar-section-label mt-3">Tools</div>
+    <a href="index.html" class="sidebar-item">
+      <i class="bi bi-clipboard2-check-fill"></i><span>Validation Checker</span>
+    </a>
+    <a href="index.html" class="sidebar-item">
+      <i class="bi bi-gear-fill"></i><span>Settings</span>
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="d-flex align-items-center gap-2">
+      <span class="text-muted" style="font-size:.72rem;">Standalone OCR workspace</span>
+    </div>
+  </div>
+</aside>
+
+<!-- ── MAIN CONTENT ─────────────────────────────────────────── -->
+<main class="main-content">
+
+<section class="content-section active">
+  <div class="section-header">
+    <div>
+      <h1 class="section-title">OCR Extraction</h1>
+      <p class="section-subtitle">Upload a logbook image or PDF and run it through the OCR backend</p>
+    </div>
+    <div id="ocrStatusPill" class="ocr-status ocr-status--idle">
+      <span class="dot"></span>Waiting for a file
+    </div>
+  </div>
+
+  <div class="ocr-scope-banner mb-3">
+    <i class="bi bi-info-circle-fill me-1"></i>
+    This is a standalone extraction workspace for testing the OCR backend. It does not fill in
+    or affect the CSF, CF2, CF3, or PMRF forms — that mapping isn't built yet.
+  </div>
+
+  <div class="row g-3">
+    <!-- LEFT: Upload -->
+    <div class="col-lg-6">
+      <div class="pca-card h-100">
+        <div class="pca-card-header"><i class="bi bi-cloud-upload me-2 text-primary"></i>Upload Document</div>
+        <div class="p-3">
+          <div class="drop-zone" id="ocrDropZone">
+            <div class="drop-icon"><i class="bi bi-cloud-arrow-up"></i></div>
+            <div class="drop-title">Drag &amp; Drop a File Here</div>
+            <div class="drop-sub">or click to browse files</div>
+            <div class="drop-types">
+              <span class="file-badge">PDF</span>
+              <span class="file-badge">JPG</span>
+              <span class="file-badge">PNG</span>
+            </div>
+            <p class="drop-note">Maximum file size: 20 MB</p>
+            <input type="file" id="ocrFileInput" accept=".pdf,.jpg,.jpeg,.png" hidden>
+          </div>
+
+          <div id="ocrFileChip" class="mt-3" style="display:none;"></div>
+
+          <div class="ocr-category-row mt-3">
+            <label class="pca-label">Category <span class="text-muted">(optional)</span></label>
+            <input type="text" id="ocrCategory" class="form-control pca-input" placeholder="e.g. NAME, ADDRESS, CASE #">
+            <div class="form-hint">Tags the extracted text, same as the calibration tool's category field. Leave blank if unsure.</div>
+          </div>
+
+          <button type="button" id="ocrRunBtn" class="btn-export w-100 mt-3 justify-content-center">
+            <i class="bi bi-cpu me-1"></i>Run OCR
+          </button>
+
+          <div id="ocrProcessingBlock" class="ocr-processing-block mt-3" style="display:none;">
+            <div class="spinner-border spinner-border-sm"></div>
+            <span>Sending file to the OCR backend and waiting for a result…</span>
+          </div>
+
+          <div id="ocrErrorBlock" class="ocr-error-block mt-3" style="display:none;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Results -->
+    <div class="col-lg-6">
+      <div class="pca-card h-100">
+        <div class="pca-card-header"><i class="bi bi-list-check me-2 text-primary"></i>OCR Result</div>
+
+        <div id="ocrEmptyState" class="ocr-empty-state">
+          <i class="bi bi-inbox"></i>
+          No result yet — upload a file and click "Run OCR".
+        </div>
+
+        <div id="ocrResultsWrap" style="display:none;">
+          <div class="p-3 pb-0">
+            <p class="pca-tab-section-label mb-2">Raw Text</p>
+            <div id="ocrRawText" class="ocr-raw-text"></div>
+          </div>
+          <div class="p-3">
+            <p class="pca-tab-section-label mb-2">Tokens</p>
+            <div class="ocr-token-table-wrap">
+              <table class="ocr-token-table">
+                <thead>
+                  <tr><th>Text</th><th>Confidence</th><th>Category</th></tr>
+                </thead>
+                <tbody id="ocrTokenTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+</div>
+
+<!-- No js/app.js on this page by design — this workspace is fully
+     isolated from PClaimAssist's form state, autofill, validation,
+     and PDF-overlay logic. -->
+<script src="js/ocr.js"></script>
+</body>
+</html>
