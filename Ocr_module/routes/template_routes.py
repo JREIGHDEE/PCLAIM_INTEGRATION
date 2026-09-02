@@ -80,7 +80,8 @@ def list_grid_templates():
                 "gridLines": data.get("gridLines", []),
                 "segmentInfo": data.get("segmentInfo", []),
                 "rowTemplate": data.get("rowTemplate"),
-                "cropPresets": data.get("cropPresets", [])
+                "cropPresets": data.get("cropPresets", []),
+                "metadata": data.get("metadata", {})
             })
         except Exception:
             continue
@@ -117,6 +118,7 @@ def get_grid_template():
 @template_bp.route("/match_template", methods=["POST"])
 def match_template_route():
     file = require_file(request.files, "image")
+    page_parity = request.form.get("page_parity") or None
 
     with temp_upload_path(file, prefix="match_template", suffix=".png") as temp_path:
         try:
@@ -126,7 +128,7 @@ def match_template_route():
 
             current_context = analyze_document_layout(image)
             templates = load_template_payloads()
-            best_template, best_score = match_templates(templates, current_context)
+            best_template, best_score = match_templates(templates, current_context, page_parity=page_parity)
 
             auto_apply = False
             if best_template and best_score is not None:

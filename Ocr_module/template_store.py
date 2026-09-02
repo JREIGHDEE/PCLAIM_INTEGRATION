@@ -31,6 +31,7 @@ def load_template_payloads():
             with open(path, "r", encoding="utf-8") as handle:
                 data = json.load(handle)
             if isinstance(data, dict):
+                data.setdefault("filename", filename)
                 templates.append(data)
         except Exception:
             continue

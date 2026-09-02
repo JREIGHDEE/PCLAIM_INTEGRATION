@@ -299,20 +299,48 @@ def score_template_match(template_payload: Optional[Dict[str, Any]], current_con
     return round(score / max(1.0, weights), 3)
 
 
-def match_templates(templates: List[Dict[str, Any]], current_context: Optional[Dict[str, Any]]) -> Tuple[Optional[Dict[str, Any]], Optional[float]]:
+def match_templates(templates: List[Dict[str, Any]], current_context: Optional[Dict[str, Any]], page_parity: Optional[str] = None) -> Tuple[Optional[Dict[str, Any]], Optional[float]]:
     """Find the best matching saved template for the active document."""
     if not templates:
         return None, None
 
+    normalized_parity = page_parity if page_parity in {"odd", "even"} else None
+    eligible_templates = []
+    for template in templates:
+        template_parity = (template.get("metadata") or {}).get("pageParity", "current")
+        if normalized_parity and template_parity not in {"current", normalized_parity}:
+            continue
+        eligible_templates.append(template)
+    if not eligible_templates:
+        eligible_templates = templates
+
     best_template = None
     best_score = 0.0
-    for template in templates:
+    for template in eligible_templates:
         score = score_template_match(template, current_context)
         if score > best_score:
             best_score = score
             best_template = template
 
     return best_template, best_score
+
+
+def normalize_template_for_image(template_dict: Dict[str, Any], image_width: int, image_height: int) -> Dict[str, Any]:
+    """Convert the editor's normalized grid and row coordinates to image pixels."""
+    placed = dict(template_dict or {})
+    source_width = float(placed.get("imageWidth") or image_width or 1)
+    source_height = float(placed.get("imageHeight") or image_height or 1)
+    scale_y = image_height / source_height
+    placed["gridLines"] = [float(x) * image_width for x in placed.get("gridLines", [])]
+    row_template = placed.get("rowTemplate")
+    if row_template:
+        placed["rowTemplate"] = {
+            **row_template,
+            "y": float(row_template.get("y", 0)) * scale_y,
+            "height": float(row_template.get("height", 0)) * scale_y,
+            "spacing": float(row_template.get("spacing", 0)) * scale_y
+        }
+    return placed
 
 
 def detect_vertical_lines(image: np.ndarray, 
@@ -429,6 +457,239 @@ def align_template(image: np.ndarray,
         total_lines=len(template_x),
         alignment_score=alignment_score
     )
+
+
+def _compute_ink_mask(image: np.ndarray,
+                     ink_thresh: int = 180,
+                     blue_thresh: int = 35) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Build a per-pixel ink mask (and its per-row density) for a ruled ledger
+    page. Two things pollute a naive "any dark pixel" mask on scans like
+    this:
+    - The ledger's own printed ruling lines, which are a light blue rather
+      than the neutral black/gray of handwriting - excluded via a blueness
+      check (B channel minus R channel) rather than brightness alone.
+    - Uneven scan lighting (gutter shadow near the spine, vignetting), which
+      a single global brightness threshold can't tell apart from ink -
+      corrected by dividing out a large-kernel local background estimate
+      before thresholding, since ink strokes are thin relative to that
+      kernel but shading gradients are not.
+
+    Returns (mask, density) where mask is a 2D boolean array (cropped to the
+    2%-98% horizontal margin, to dodge binding-edge artifacts) and density is
+    mask summed per row.
+    """
+    h, w = image.shape[:2]
+    if h == 0 or w == 0:
+        return np.zeros((0, 0), dtype=bool), np.zeros(0, dtype=np.float64)
+
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    bg_kernel = max(15, (min(h, w) // 15) | 1)
+    background = cv2.GaussianBlur(gray, (bg_kernel, bg_kernel), 0)
+    normalized = cv2.divide(gray, background, scale=255)
+
+    b, g, r = cv2.split(image.astype(np.int16))
+    blueness = b - r
+
+    x0, x1 = int(w * 0.02), int(w * 0.98)
+    dark = normalized[:, x0:x1] < ink_thresh
+    not_ruled = blueness[:, x0:x1] < blue_thresh
+    mask = dark & not_ruled
+    density = mask.sum(axis=1).astype(np.float64)
+    return mask, density
+
+
+def _coarse_row_bands(density: np.ndarray, h: int) -> List[Tuple[int, int]]:
+    """
+    Locate roughly where rows are from a per-row ink density profile: smooth
+    it, threshold against its own baseline/peak, then merge bands separated
+    by a small gap (a wrapped sub-line inside one multi-line cell) while
+    keeping bands separated by a real gap (several times wider, empirically -
+    a genuine blank ruled line between entries) apart.
+
+    This pass only needs to be roughly right - _wrap_bands_to_components()
+    afterwards grows each band to fully contain whatever ink actually
+    touches it, so a slightly-too-tight or slightly-too-loose threshold here
+    gets corrected rather than baked into the final row.
+    """
+    smooth_k = max(3, int(h * 0.004) | 1)
+    kernel = np.ones(smooth_k, dtype=np.float64) / smooth_k
+    smoothed = np.convolve(density, kernel, mode='same')
+
+    baseline = float(np.percentile(smoothed, 10))
+    peak = float(np.percentile(smoothed, 90))
+    threshold = baseline + max(2.0, (peak - baseline) * 0.10)
+    is_text = smoothed > threshold
+
+    raw_bands = []
+    start = None
+    for y in range(h):
+        if is_text[y] and start is None:
+            start = y
+        elif not is_text[y] and start is not None:
+            raw_bands.append((start, y))
+            start = None
+    if start is not None:
+        raw_bands.append((start, h))
+
+    merge_gap = max(4, int(h * 0.014))
+    merged: List[List[int]] = []
+    for band in raw_bands:
+        if merged and band[0] - merged[-1][1] <= merge_gap:
+            merged[-1][1] = band[1]
+        else:
+            merged.append([band[0], band[1]])
+
+    min_band_px = max(6, int(h * 0.01))
+    return [(b0, b1) for b0, b1 in merged if b1 - b0 >= min_band_px]
+
+
+def _wrap_bands_to_components(ink_mask: np.ndarray,
+                             bands: List[Tuple[int, int]],
+                             h: int) -> List[Tuple[int, int]]:
+    """
+    Grow each row band to fully contain every ink blob (stroke/character) it
+    overlaps, using connected-component analysis instead of a fixed-distance
+    edge search. A distance cap can't tell "the last couple of pixels of a
+    descender" apart from "a genuinely taller multi-line entry the coarse
+    pass under-measured" - it just clips whichever is bigger than the cap.
+    Whole connected ink blobs don't have that problem: if any part of a
+    stroke overlaps a row's current range, the row grows to that stroke's
+    *entire* extent in one step, above and below, however tall it turns out
+    to be - so both a small clipped descender and a taller-than-expected
+    wrapped line get fully included, with no arbitrary size limit.
+
+    Two guards keep this from absorbing noise or bridging two entries
+    together:
+    - A blob only counts if it's more than a couple of stray pixels (dust
+      specks and scan-line artifacts commonly render as a hair-thin, tall
+      sliver - real handwriting strokes are wider than that even when faint)
+      and isn't a long thin thread far taller than a normal stroke.
+    - A blob can only pull a row's edge out to the midpoint of the gap to
+      the *next* band in the list, in either direction - so it can never
+      drag two neighboring rows together, only reclaim genuinely unclaimed
+      space between them.
+    """
+    if not bands:
+        return []
+
+    mask_u8 = ink_mask.astype(np.uint8)
+    num_labels, _, stats, _ = cv2.connectedComponentsWithStats(mask_u8, connectivity=8)
+
+    max_component_height = max(20, int(h * 0.05))
+    components = [
+        (int(stats[i, 1]), int(stats[i, 1] + stats[i, 3]))
+        for i in range(1, num_labels)
+        if stats[i, 4] >= 3  # drop 1-2px specks
+        and stats[i, 2] >= 2  # drop hair-thin single-pixel-wide slivers
+        and stats[i, 3] <= max_component_height  # drop implausibly tall "strokes" (scan artifacts)
+    ]
+
+    n = len(bands)
+    refined = []
+    for i, (y0, y1) in enumerate(bands):
+        prev_bottom = bands[i - 1][1] if i > 0 else 0
+        next_top = bands[i + 1][0] if i < n - 1 else h
+        top_guard = (y0 + prev_bottom) // 2 if i > 0 else 0
+        bottom_guard = (y1 + next_top) // 2 if i < n - 1 else h
+
+        new_top, new_bottom = y0, y1
+        changed = True
+        while changed:
+            changed = False
+            for (cy0, cy1) in components:
+                cy0c, cy1c = max(cy0, top_guard), min(cy1, bottom_guard)
+                if cy1c <= cy0c:
+                    continue
+                if cy0c < new_bottom and cy1c > new_top:
+                    if cy0c < new_top:
+                        new_top = cy0c
+                        changed = True
+                    if cy1c > new_bottom:
+                        new_bottom = cy1c
+                        changed = True
+
+        refined.append((new_top, new_bottom))
+    return refined
+
+
+def detect_content_rows(image: np.ndarray,
+                       seed_y: float,
+                       seed_height: float,
+                       image_bottom: Optional[float] = None,
+                       max_rows: int = 100) -> List[RowTemplate]:
+    """
+    Detect row positions/heights from actual page content instead of blindly
+    repeating a fixed height+spacing.
+
+    Row 1's *top* is trusted from seed_y - the box the user drew (or a saved
+    template's first row) - since nothing in the image says where the
+    *logical* first entry starts (it may follow a header, a title, or
+    nothing) - that's a human judgment call, not something detectable. Its
+    bottom, and every row after it, are fully wrapped around real ink -
+    above and below - via connected-component analysis (see
+    _wrap_bands_to_components), so nothing gets clipped at either edge,
+    including row 1 itself if the drawn seed box was a little short. If
+    detection runs dry before reaching the bottom of the page (faint ink, a
+    trailing blank section, a band the detector missed), the remainder is
+    filled by uniform propagation using the median height/spacing of the
+    rows that *were* detected, so output never regresses below the old
+    blind-propagation behavior - it just no longer needs to guess for
+    content it can see.
+    """
+    rows: List[RowTemplate] = [RowTemplate(y=float(seed_y), height=float(seed_height), spacing=0.0)]
+    if image is None or image.size == 0 or max_rows <= 1:
+        return rows
+
+    h = image.shape[0]
+    bottom = float(image_bottom) if image_bottom else float(h)
+
+    seed_bottom = seed_y + seed_height
+    ink_mask, density = _compute_ink_mask(image)
+    coarse_bands = _coarse_row_bands(density, h)
+    candidates = [
+        band for band in coarse_bands
+        if band[0] >= seed_bottom - max(2.0, seed_height * 0.15)
+    ]
+
+    # Wrap row 1's own seed alongside the candidates in one pass, sharing the
+    # same neighbor-midpoint guard, so row 1's bottom edge is corrected
+    # consistently with every other row instead of by a separate rule - and
+    # so a component that would grow row 1 downward can't overshoot into
+    # row 2's territory (or vice versa).
+    wrapped = _wrap_bands_to_components(
+        ink_mask,
+        [(int(seed_y), int(seed_bottom))] + [(int(y0), int(y1)) for (y0, y1) in candidates],
+        h
+    )
+    seed_top, seed_bottom_wrapped = wrapped[0]
+    candidates = wrapped[1:]
+    rows[0] = RowTemplate(y=float(seed_top), height=float(seed_bottom_wrapped - seed_top), spacing=0.0)
+    seed_bottom = float(seed_bottom_wrapped)
+
+    cursor_bottom = seed_bottom
+    detected_heights = []
+    for (y0, y1) in candidates:
+        if len(rows) >= max_rows or y0 >= bottom:
+            break
+        rows[-1] = RowTemplate(y=rows[-1].y, height=rows[-1].height, spacing=max(0.0, y0 - cursor_bottom))
+        band_height = float(y1 - y0)
+        rows.append(RowTemplate(y=float(y0), height=band_height, spacing=0.0))
+        detected_heights.append(band_height)
+        cursor_bottom = float(y1)
+
+    if len(rows) < max_rows and cursor_bottom < bottom:
+        fallback_height = float(np.median(detected_heights)) if detected_heights else float(seed_height)
+        gaps = [rows[i + 1].y - (rows[i].y + rows[i].height) for i in range(len(rows) - 1)]
+        fallback_spacing = float(np.median(gaps)) if gaps else 0.0
+        if rows:
+            rows[-1] = RowTemplate(y=rows[-1].y, height=rows[-1].height, spacing=fallback_spacing)
+        current_y = cursor_bottom + fallback_spacing
+        while current_y < bottom and len(rows) < max_rows:
+            rows.append(RowTemplate(y=current_y, height=fallback_height, spacing=fallback_spacing))
+            current_y += fallback_height + fallback_spacing
+
+    return rows
 
 
 def propagate_rows(first_row_y: float,
@@ -640,19 +901,28 @@ class TemplateAutoDetector:
     def auto_place_template(self,
                            image: np.ndarray,
                            template_dict: Dict[str, Any],
-                           auto_align: bool = True) -> Dict[str, Any]:
+                           auto_align: bool = True,
+                           forced_rows: Optional[List[Dict[str, float]]] = None) -> Dict[str, Any]:
         """
         Automatically place all template elements on image.
-        
+
         Args:
             image: Input image
             template_dict: Saved template data
             auto_align: Whether to detect and apply alignment offset
-        
+            forced_rows: If given, use these row positions verbatim instead of
+                detecting/propagating rows on this image. Used to carry the
+                row layout detected on one side of a two-page ledger spread
+                over to its paired side, since a spread's rows are one
+                physical entry split across both pages and must line up.
+
         Returns:
             Dictionary with placed template elements
         """
-        self.template_engine.load_template_from_dict(template_dict)
+        self.template_engine.load_template_from_dict(
+            normalize_template_for_image(template_dict, image.shape[1], image.shape[0])
+            if image is not None and image.size else template_dict
+        )
         
         result = {
             "vertical_lines": [],
@@ -685,13 +955,21 @@ class TemplateAutoDetector:
                 "confidence": line.confidence
             })
         
-        # Step 3: Generate rows if template exists
-        if self.template_engine.row_template:
-            rows = propagate_rows(
+        # Step 3: Generate rows - forced (paired-page) rows take precedence over
+        # detecting/propagating fresh ones on this image.
+        if forced_rows is not None:
+            for row in forced_rows:
+                result["rows"].append({
+                    "y": float(row.get("y", 0)),
+                    "height": float(row.get("height", 0)),
+                    "spacing": float(row.get("spacing", 0))
+                })
+        elif self.template_engine.row_template:
+            rows = detect_content_rows(
+                image,
                 self.template_engine.row_template.y,
                 self.template_engine.row_template.height,
-                self.template_engine.row_template.spacing,
-                h
+                image_bottom=h
             )
             for row in rows:
                 result["rows"].append({

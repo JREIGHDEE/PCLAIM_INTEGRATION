@@ -24,7 +24,9 @@ from template_engine import (
     GridLine,
     TemplateAutoDetector,
     align_template,
+    detect_content_rows,
     detect_vertical_lines,
+    normalize_template_for_image,
     propagate_rows,
 )
 from utils.uploads import require_file, temp_upload_path
@@ -145,9 +147,10 @@ def align_template_route():
             if image is None:
                 raise Exception(f"Could not load image: {temp_path}")
 
+            normalized_template = normalize_template_for_image(template_data, image.shape[1], image.shape[0])
             template_lines = [
                 GridLine(x=float(x))
-                for x in template_data.get("gridLines", [])
+                for x in normalized_template.get("gridLines", [])
             ]
 
             result = align_template(image, template_lines)
@@ -195,12 +198,54 @@ def propagate_rows_route():
     })
 
 
+@layout_bp.route("/detect_content_rows", methods=["POST"])
+def detect_content_rows_route():
+    """Detect row positions/heights from actual ink content on the page,
+    seeded by the user's first-row crop box (Smart Propagate Rows in the
+    calibration UI). Falls back to filling remaining space uniformly past
+    whatever content was detected - see detect_content_rows()."""
+    file = require_file(request.files, "image")
+
+    try:
+        first_y = float(request.form.get("first_row_y", 0))
+        height = float(request.form.get("row_height", 50))
+        max_rows = int(request.form.get("max_rows", 100))
+        image_height_raw = request.form.get("image_height")
+    except (TypeError, ValueError):
+        return jsonify({
+            "success": False,
+            "error": "Invalid row detection parameters"
+        }), 400
+
+    with temp_upload_path(file, prefix="detect_content_rows", suffix=".png") as temp_path:
+        try:
+            image = cv2.imread(temp_path)
+            if image is None:
+                raise Exception(f"Could not load image: {temp_path}")
+
+            bottom = float(image_height_raw) if image_height_raw else float(image.shape[0])
+            rows = detect_content_rows(image, first_y, height, bottom, max_rows)
+
+            return jsonify({
+                "success": True,
+                "rows": [
+                    {"y": row.y, "height": row.height, "spacing": row.spacing}
+                    for row in rows
+                ]
+            })
+        except Exception as e:
+            return jsonify({
+                "success": False,
+                "error": str(e)
+            }), 500
+
+
 @layout_bp.route("/auto_place_template", methods=["POST"])
 def auto_place_template_route():
     """Automatically place all template elements on image."""
     file = require_file(request.files, "image")
 
-    template_data = request.form.get("template", "{}")
+    template_data = request.form.get("templates") or request.form.get("template", "{}")
     try:
         template_dict = json.loads(template_data)
     except Exception:
@@ -233,7 +278,7 @@ def process_pdf_batch():
     """Batch process PDF with template."""
     file = require_file(request.files, "pdf")
 
-    template_data = request.form.get("template", "{}")
+    template_data = request.form.get("templates") or request.form.get("template", "{}")
     try:
         template_dict = json.loads(template_data)
     except Exception:
@@ -243,6 +288,10 @@ def process_pdf_batch():
         }), 400
 
     auto_align = request.form.get("auto_align", "true").lower() == "true"
+    try:
+        template_assignments = json.loads(request.form.get("template_assignments", "{}"))
+    except Exception:
+        template_assignments = {}
 
     output_path = os.path.join(
         config.UPLOAD_FOLDER,
@@ -263,6 +312,23 @@ def process_pdf_batch():
                     return {"text": "", "confidence": 0}
 
             processor = BatchProcessor(ocr_function=ocr_wrapper)
+            if isinstance(template_dict, list) and isinstance(template_assignments, dict):
+                template_by_filename = {
+                    template.get("filename"): template
+                    for template in template_dict
+                    if isinstance(template, dict) and template.get("filename")
+                }
+                assigned_templates = []
+                for parity in ("main", "odd", "even"):
+                    filename = template_assignments.get(parity)
+                    template = template_by_filename.get(filename)
+                    if template:
+                        assigned = dict(template)
+                        assigned["metadata"] = dict(assigned.get("metadata") or {})
+                        assigned["metadata"]["pageParity"] = "current" if parity == "main" else parity
+                        assigned_templates.append(assigned)
+                if assigned_templates:
+                    template_dict = assigned_templates
             results = processor.process_pdf(
                 pdf_path,
                 template_dict,

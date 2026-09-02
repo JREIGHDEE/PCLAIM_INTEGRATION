@@ -58,13 +58,48 @@ class BatchProcessor:
             doc = fitz.open(pdf_path)
             results["total_pages"] = len(doc)
             
+            templates = template_dict if isinstance(template_dict, list) else [template_dict]
+            # A two-page ledger spread has one physical row split across its odd
+            # (left) and even (right) page - the row boundaries detected on the
+            # odd page are carried over (as fractions of page height, since the
+            # two sides can render at slightly different pixel heights) so the
+            # even page's rows line up with the same entries instead of being
+            # detected independently and potentially drifting out of alignment.
+            pending_row_fractions = None
             for page_num in range(len(doc)):
+                page_parity = "even" if (page_num + 1) % 2 == 0 else "odd"
+                page_template = next(
+                    (template for template in templates
+                     if (template.get("metadata") or {}).get("pageParity", "current") == page_parity),
+                    next((template for template in templates
+                          if (template.get("metadata") or {}).get("pageParity", "current") == "current"),
+                         templates[0])
+                )
+                forced_row_fractions = pending_row_fractions if page_parity == "even" else None
                 page_result = self.process_pdf_page(
                     doc,
                     page_num,
-                    template_dict,
-                    auto_align
+                    page_template,
+                    auto_align,
+                    forced_row_fractions=forced_row_fractions
                 )
+                page_result["template_name"] = page_template.get("name")
+                page_result["template_parity"] = (page_template.get("metadata") or {}).get("pageParity", "current")
+
+                rows_used = page_result.pop("rows_used", [])
+                image_height = page_result.pop("image_height", 0)
+                if page_parity == "odd" and rows_used and image_height:
+                    pending_row_fractions = [
+                        {
+                            "yFrac": row["y"] / image_height,
+                            "heightFrac": row["height"] / image_height,
+                            "spacingFrac": row.get("spacing", 0) / image_height
+                        }
+                        for row in rows_used
+                    ]
+                else:
+                    pending_row_fractions = None
+
                 results["pages"].append(page_result)
             
             doc.close()
@@ -91,39 +126,48 @@ class BatchProcessor:
         return results
     
     def process_pdf_page(self,
-                        doc: fitz.Document,
+                        doc,
                         page_num: int,
                         template_dict: Dict[str, Any],
-                        auto_align: bool = True) -> Dict[str, Any]:
+                        auto_align: bool = True,
+                        forced_row_fractions: Optional[List[Dict[str, float]]] = None) -> Dict[str, Any]:
         """
         Process single PDF page.
-        
+
         Args:
             doc: PDF document
             page_num: Page number (0-indexed)
             template_dict: Template configuration
             auto_align: Whether to auto-align template
-        
+            forced_row_fractions: Row y/height/spacing as fractions of page
+                height, carried over from the paired page of a two-page
+                spread, in place of detecting rows on this page.
+
         Returns:
-            Dictionary with page results
+            Dictionary with page results. Includes internal "rows_used" and
+            "image_height" keys (in pixel space) for the caller to derive
+            forced_row_fractions for a paired page - process_pdf() strips
+            these before returning results.
         """
         page_result = {
             "page_number": page_num + 1,
             "success": False,
             "cells": [],
             "alignment": None,
+            "rows_used": [],
+            "image_height": 0,
             "error": None
         }
-        
+
         try:
             # Render page to image
             page = doc[page_num]
             pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
-            
+
             # Convert to numpy array
             img_data = np.frombuffer(pix.samples, dtype=np.uint8)
             img_data = img_data.reshape((pix.height, pix.width, pix.n))
-            
+
             # Convert to BGR if RGB
             if pix.n == 3:
                 image = cv2.cvtColor(img_data, cv2.COLOR_RGB2BGR)
@@ -131,21 +175,37 @@ class BatchProcessor:
                 image = cv2.cvtColor(img_data, cv2.COLOR_RGBA2BGR)
             else:
                 image = img_data
-            
+
+            page_result["image_height"] = image.shape[0]
+
+            forced_rows = None
+            if forced_row_fractions:
+                h = image.shape[0]
+                forced_rows = [
+                    {
+                        "y": frac.get("yFrac", 0) * h,
+                        "height": frac.get("heightFrac", 0) * h,
+                        "spacing": frac.get("spacingFrac", 0) * h
+                    }
+                    for frac in forced_row_fractions
+                ]
+
             # Auto-place template on page
             placement = self.detector.auto_place_template(
                 image,
                 template_dict,
-                auto_align=auto_align
+                auto_align=auto_align,
+                forced_rows=forced_rows
             )
-            
+
             if not placement["success"]:
                 page_result["error"] = "Failed to place template"
                 return page_result
-            
+
             # Extract cell information
             page_result["alignment"] = placement.get("alignment")
-            
+            page_result["rows_used"] = placement.get("rows", [])
+
             # Reconstruct cells for OCR
             for cell_data in placement.get("cells", []):
                 cell = Cell(
