@@ -110,6 +110,12 @@ ALLOWED_UPLOAD_EXTENSIONS = ALLOWED_IMAGE_EXTENSIONS | ALLOWED_PDF_EXTENSIONS
 # ── Template matching ────────────────────────────────────────────────────
 TEMPLATE_MATCH_THRESHOLD = _env_float("OCR_TEMPLATE_MATCH_THRESHOLD", 0.55)
 
+# ── Tesseract OCR (benchmarking only - see benchmarks/) ─────────────────
+# Path to tesseract.exe. Leave unset to rely on Tesseract being on PATH.
+# Only used by ocr_tesseract.py / benchmarks/ - the production PaddleOCR
+# pipeline (ocr_engine.py) never reads this.
+TESSERACT_CMD = os.environ.get("TESSERACT_CMD", "")
+
 # ── Training categories (unchanged from the original project) ───────────
 TRAINING_CATEGORIES = [
     "CASE #",

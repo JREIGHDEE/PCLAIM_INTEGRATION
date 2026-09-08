@@ -7,6 +7,9 @@ Route bodies are the original app.py logic, unchanged, except:
   - the repeated "no file uploaded" check now goes through utils.uploads.require_file
   - /ocr's error responses now use proper HTTP status codes (previously always 200)
   - a new /api/ocr alias is added, sharing the exact same implementation
+  - an optional "engine" form field selects paddle (default, unchanged
+    production behavior) or tesseract (for side-by-side manual testing -
+    see benchmarks/ for the actual documented comparison tooling)
 """
 import json
 import logging
@@ -18,9 +21,9 @@ from flask import Blueprint, jsonify, request, send_file
 from werkzeug.utils import secure_filename
 
 import config
+import ocr_engine
 from case_session_store import get_reviewed_session, save_reviewed_session
 from errors import InvalidRequestError, OCRProcessingError
-from ocr_engine import extract_pdf_text, extract_text
 from template_store import update_template_from_session
 from utils.uploads import require_file
 
@@ -28,11 +31,41 @@ logger = logging.getLogger(__name__)
 
 ocr_bp = Blueprint("ocr", __name__)
 
+VALID_OCR_ENGINES = ("paddle", "tesseract")
+DEFAULT_OCR_ENGINE = "paddle"
+
+
+def _get_ocr_functions(engine):
+    """Return (extract_text_fn, extract_pdf_text_fn) for the requested engine.
+
+    "paddle" (the default) uses ocr_engine.py exactly as before - nothing
+    about the production PaddleOCR path changes. "tesseract" is imported
+    lazily, only when actually selected, so a venv that hasn't installed
+    pytesseract yet keeps working for the default engine with zero risk.
+    """
+    if engine == "tesseract":
+        try:
+            import ocr_tesseract
+        except ImportError as exc:
+            raise InvalidRequestError(
+                "Tesseract engine selected but pytesseract isn't installed in this "
+                "environment. Run: venv\\Scripts\\python.exe -m pip install -r requirements.txt"
+            ) from exc
+        return ocr_tesseract.extract_text, ocr_tesseract.extract_pdf_text
+    return ocr_engine.extract_text, ocr_engine.extract_pdf_text
+
 
 def _perform_ocr():
     """Core OCR handling shared by /ocr and /api/ocr."""
     file = require_file(request.files, "image")
     category = request.form.get("category", "").strip()
+
+    engine = (request.form.get("engine") or DEFAULT_OCR_ENGINE).strip().lower()
+    if engine not in VALID_OCR_ENGINES:
+        raise InvalidRequestError(
+            f"Unknown OCR engine '{engine}'. Valid options: {', '.join(VALID_OCR_ENGINES)}"
+        )
+    extract_text_fn, extract_pdf_text_fn = _get_ocr_functions(engine)
 
     filename = secure_filename(file.filename)
     filepath = os.path.join(config.UPLOAD_FOLDER, filename)
@@ -41,9 +74,9 @@ def _perform_ocr():
     extension = os.path.splitext(filename)[1].lower()
 
     if extension == ".pdf":
-        tokens = extract_pdf_text(filepath)
+        tokens = extract_pdf_text_fn(filepath)
     else:
-        tokens = extract_text(filepath)
+        tokens = extract_text_fn(filepath)
 
     enriched_tokens = [
         {**token, "category": category}
@@ -72,14 +105,15 @@ def _perform_ocr():
             update_template_from_session(template_filename, template_payload, learned_context)
 
     logger.info(
-        "OCR extracted %d token(s) from '%s' (category=%s)",
-        len(enriched_tokens), filename, category or "-",
+        "OCR extracted %d token(s) from '%s' (category=%s, engine=%s)",
+        len(enriched_tokens), filename, category or "-", engine,
     )
 
     return jsonify({
         "success": True,
         "raw_text": raw_text,
         "category": category,
+        "engine": engine,
         "tokens": enriched_tokens
     })
 
