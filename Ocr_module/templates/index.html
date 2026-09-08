@@ -288,6 +288,11 @@ button.primary:hover{
     <div class="toolbar">
         <input type="file" id="uploadInput" accept=".pdf,image/*">
         <button class="primary" onclick="uploadImage()">Upload & OCR</button>
+        <label for="ocrEngineSelect" style="font-size:13px; color:var(--muted);">OCR engine:</label>
+        <select id="ocrEngineSelect" title="For testing/comparison only - PaddleOCR is the default production engine.">
+            <option value="paddle" selected>PaddleOCR (default)</option>
+            <option value="tesseract">Tesseract (testing)</option>
+        </select>
     </div>
     <span id="advancedStatus" class="hint"></span>
 </div>
@@ -2127,6 +2132,7 @@ async function cropRowCells(){
             const formData = new FormData();
             formData.append("image", blob, `cell-${cell.index}.png`);
             formData.append("category", category);
+            formData.append("engine", getSelectedOcrEngine());
             const response = await fetch("/ocr", {
                 method: "POST",
                 body: formData
@@ -2276,6 +2282,13 @@ function getSelectedCategory(){
     return category;
 }
 
+function getSelectedOcrEngine(){
+    // Defaults to "paddle" (the production engine) if the selector isn't
+    // present for any reason - never silently falls back to Tesseract.
+    const engineEl = document.getElementById("ocrEngineSelect");
+    return engineEl ? engineEl.value : "paddle";
+}
+
 async function ensurePDFJS(){
     if(window.pdfjsLib){
         return window.pdfjsLib;
@@ -2367,6 +2380,7 @@ async function sendToOCR(file, options = {}){
         const category = getSelectedCategory();
         const formData = new FormData();
         formData.append("image", blobFile);
+        formData.append("engine", getSelectedOcrEngine());
         if(category){
             formData.append("category", category);
         }
@@ -2385,7 +2399,7 @@ async function sendToOCR(file, options = {}){
         document.getElementById("output").value = data.raw_text;
 
         const summaryEl = document.getElementById("ocrCategorySummary");
-        summaryEl.textContent = `Field type: ${escapeHtml(data.category || category)}`;
+        summaryEl.textContent = `Field type: ${escapeHtml(data.category || category)} | Engine: ${escapeHtml(data.engine || "paddle")}`;
 
         // If preserve flag is set and review table already has rows, do not overwrite editable table.
         const preserve = options && options.preserveReviewTable;

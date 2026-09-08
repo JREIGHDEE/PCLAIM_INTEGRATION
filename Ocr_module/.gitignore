@@ -16,6 +16,15 @@ __pycache__/
 uploads/
 debug_cells/
 
+# OCR benchmark output (generated) and test scans (potentially sensitive
+# patient forms - never committed by default; add real files locally only)
+benchmarks/results/
+benchmarks/test_data/**/*.png
+benchmarks/test_data/**/*.jpg
+benchmarks/test_data/**/*.jpeg
+benchmarks/test_data/**/*.pdf
+!benchmarks/test_data/**/.gitkeep
+
 # OS
 Thumbs.db
 .DS_Store
