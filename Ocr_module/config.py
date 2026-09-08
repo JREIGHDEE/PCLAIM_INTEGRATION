@@ -95,8 +95,6 @@ DB_CONNECT_TIMEOUT = _env_int("DB_CONNECT_TIMEOUT", 5)
 # ── Storage paths (always relative to this project's folder) ───────────────
 UPLOAD_FOLDER = Path(os.environ.get("OCR_UPLOAD_DIR", BASE_DIR / "uploads"))
 TRAINING_FOLDER = UPLOAD_FOLDER / "training"
-REVIEWED_RESULTS_FOLDER = UPLOAD_FOLDER / "reviewed_results"
-SESSIONS_FOLDER = REVIEWED_RESULTS_FOLDER / "sessions"
 GRID_TEMPLATES_FOLDER = Path(
     os.environ.get("OCR_TEMPLATES_DIR", UPLOAD_FOLDER / "grid_templates")
 )
@@ -135,8 +133,6 @@ def ensure_directories():
     for folder in (
         UPLOAD_FOLDER,
         TRAINING_FOLDER,
-        REVIEWED_RESULTS_FOLDER,
-        SESSIONS_FOLDER,
         GRID_TEMPLATES_FOLDER,
     ):
         os.makedirs(folder, exist_ok=True)
