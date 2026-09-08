@@ -67,6 +67,20 @@ class OCRProcessingError(OCRAppError):
     error_code = "ocr_processing_failed"
 
 
+class DatabaseConnectionError(OCRAppError):
+    """Could not establish a connection to MariaDB/MySQL."""
+
+    status_code = 503
+    error_code = "database_unavailable"
+
+
+class DatabaseError(OCRAppError):
+    """A database query failed after a connection was successfully established."""
+
+    status_code = 500
+    error_code = "database_error"
+
+
 def register_error_handlers(app):
     """Attach JSON error handlers so no route ever leaks a raw traceback."""
 

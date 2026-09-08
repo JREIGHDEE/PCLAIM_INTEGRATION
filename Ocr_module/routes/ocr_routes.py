@@ -11,7 +11,6 @@ Route bodies are the original app.py logic, unchanged, except:
 import json
 import logging
 import os
-import time
 from io import BytesIO
 
 import pandas as pd
@@ -19,9 +18,10 @@ from flask import Blueprint, jsonify, request, send_file
 from werkzeug.utils import secure_filename
 
 import config
+from case_session_store import get_reviewed_session, save_reviewed_session
 from errors import InvalidRequestError, OCRProcessingError
 from ocr_engine import extract_pdf_text, extract_text
-from template_store import get_case_session_path, update_template_from_session
+from template_store import update_template_from_session
 from utils.uploads import require_file
 
 logger = logging.getLogger(__name__)
@@ -137,22 +137,7 @@ def save_reviewed_result():
         # that made saving edited results fail when users used custom category labels.
 
     case_name = request.form.get("case_name", "").strip()
-    session_path = get_case_session_path(case_id)
 
-    session_data = {}
-    if os.path.exists(session_path):
-        with open(session_path, "r", encoding="utf-8") as handle:
-            try:
-                session_data = json.load(handle)
-            except Exception:
-                session_data = {}
-
-    if not isinstance(session_data, dict):
-        session_data = {}
-
-    session_data["case_id"] = case_id
-    session_data["case_name"] = case_name or session_data.get("case_name", "")
-    session_data["updated_at"] = int(time.time() * 1000)
     # Replace stored values with only the reviewed/edited values provided in this request.
     # This prevents raw OCR tokens from being kept in the session when the user saved reviewed edits.
     new_values = {}
@@ -174,14 +159,11 @@ def save_reviewed_result():
         else:
             new_values["_reviewed_text"] = reviewed_text
 
-    session_data["values"] = new_values
-
-    with open(session_path, "w", encoding="utf-8") as handle:
-        json.dump(session_data, handle, indent=2)
+    session_id = save_reviewed_session(case_id, case_name, new_values)
 
     return jsonify({
         "success": True,
-        "saved_path": session_path
+        "saved_path": f"database:case_sessions.id={session_id}"
     })
 
 
@@ -194,23 +176,20 @@ def export_case_session():
             "error": "Please enter a case ID before exporting"
         }), 400
 
-    session_path = get_case_session_path(case_id)
-    if not os.path.exists(session_path):
+    session = get_reviewed_session(case_id)
+    if session is None:
         return jsonify({
             "success": False,
             "error": "No saved session found for that case ID"
         }), 404
 
-    with open(session_path, "r", encoding="utf-8") as handle:
-        session_data = json.load(handle)
-
-    values = session_data.get("values", {}) or {}
+    values = session["values"]
 
     # Build export columns from the saved session values only (reviewed/edited fields).
     # This ensures raw OCR tokens that were not explicitly saved by the user are not exported.
     row = {
-        "Case ID": session_data.get("case_id", case_id),
-        "Case Name": session_data.get("case_name", "")
+        "Case ID": session["case_id"] or case_id,
+        "Case Name": session["case_name"]
     }
 
     # Add all saved value keys (sorted for determinism)
