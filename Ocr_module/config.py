@@ -77,11 +77,24 @@ CORS_ORIGINS = _env_list(
     ["http://127.0.0.1:5500", "http://localhost:5500"],
 )
 
+# ── Database (MariaDB/MySQL via XAMPP) ──────────────────────────────────────
+# Used so far only by case_sessions persistence (Phase 1). Grid templates,
+# training crops, and every other OCR storage path stay file-based.
+DB_HOST = os.environ.get("DB_HOST", "localhost")
+DB_PORT = _env_int("DB_PORT", 3306)
+DB_NAME = os.environ.get("DB_NAME", "pclaimassist_db")
+DB_USER = os.environ.get("DB_USER", "root")
+# Empty string matches XAMPP's out-of-the-box MySQL/MariaDB root account
+# (no password set). This is a default that mirrors that factory setup, not
+# a real credential - override it via an environment variable or a local
+# .env file (see .env.example) for any other setup. Never hardcode a real
+# password here.
+DB_PASSWORD = os.environ.get("DB_PASSWORD", "")
+DB_CONNECT_TIMEOUT = _env_int("DB_CONNECT_TIMEOUT", 5)
+
 # ── Storage paths (always relative to this project's folder) ───────────────
 UPLOAD_FOLDER = Path(os.environ.get("OCR_UPLOAD_DIR", BASE_DIR / "uploads"))
 TRAINING_FOLDER = UPLOAD_FOLDER / "training"
-REVIEWED_RESULTS_FOLDER = UPLOAD_FOLDER / "reviewed_results"
-SESSIONS_FOLDER = REVIEWED_RESULTS_FOLDER / "sessions"
 GRID_TEMPLATES_FOLDER = Path(
     os.environ.get("OCR_TEMPLATES_DIR", UPLOAD_FOLDER / "grid_templates")
 )
@@ -120,8 +133,6 @@ def ensure_directories():
     for folder in (
         UPLOAD_FOLDER,
         TRAINING_FOLDER,
-        REVIEWED_RESULTS_FOLDER,
-        SESSIONS_FOLDER,
         GRID_TEMPLATES_FOLDER,
     ):
         os.makedirs(folder, exist_ok=True)

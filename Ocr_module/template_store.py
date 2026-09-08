@@ -1,11 +1,13 @@
 """
-Grid template and case-session persistence.
+Grid template persistence.
 
-This is plain file I/O (JSON files under config.GRID_TEMPLATES_FOLDER /
-config.SESSIONS_FOLDER) — distinct from template_engine.py, which holds the
-actual image-processing/matching algorithms. Moved out of app.py unchanged
-except for reading folder paths from config instead of module-level
-constants.
+This is plain file I/O (JSON files under config.GRID_TEMPLATES_FOLDER) —
+distinct from template_engine.py, which holds the actual image-processing/
+matching algorithms. Moved out of app.py unchanged except for reading
+folder paths from config instead of module-level constants.
+
+Reviewed OCR "case session" persistence lives separately in
+case_session_store.py (MariaDB-backed, not file-based).
 """
 import json
 import os
@@ -90,8 +92,3 @@ def update_template_from_session(template_filename, template_payload, learned_co
         json.dump(merged, handle, indent=2)
 
     return merged
-
-
-def get_case_session_path(case_id):
-    safe_case_id = secure_filename(case_id) or "case"
-    return os.path.join(config.SESSIONS_FOLDER, f"{safe_case_id}.json")
