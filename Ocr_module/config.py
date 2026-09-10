@@ -100,6 +100,14 @@ GRID_TEMPLATES_FOLDER = Path(
 )
 DEBUG_CELLS_FOLDER = BASE_DIR / "debug_cells"
 
+# ── OCR engine testing (PaddleOCR vs Tesseract, capstone comparison UI) ─────
+# One running workbook that every "save to Excel" call appends rows to -
+# never overwritten, so results accumulate across page navigation and across
+# uploading new logbook files within the same testing session.
+OCR_TESTING_WORKBOOK = Path(
+    os.environ.get("OCR_TESTING_WORKBOOK", UPLOAD_FOLDER / "ocr_testing_results.xlsx")
+)
+
 # ── Uploads ──────────────────────────────────────────────────────────────
 MAX_UPLOAD_MB = _env_int("OCR_MAX_UPLOAD_MB", 20)
 MAX_CONTENT_LENGTH = MAX_UPLOAD_MB * 1024 * 1024
@@ -140,6 +148,7 @@ def ensure_directories():
         UPLOAD_FOLDER,
         TRAINING_FOLDER,
         GRID_TEMPLATES_FOLDER,
+        OCR_TESTING_WORKBOOK.parent,
     ):
         os.makedirs(folder, exist_ok=True)
     for folder in CATEGORY_FOLDERS.values():
