@@ -323,6 +323,11 @@ button.primary:hover{
     <button onclick="moveToRow(-1)" title="Move to previous row">↑ Prev Row</button>
     <button onclick="moveToRow(1)" title="Move to next row">↓ Next Row</button>
     <span id="rowNavigationStatus" class="hint">No rows detected</span>
+    <span id="pdfPageControls" style="display:none; gap:6px; align-items:center;">
+        <button onclick="prevPage()" title="Previous PDF page">← Prev Page</button>
+        <span id="pageIndicator">Page 0 / 0</span>
+        <button onclick="nextPage()" title="Next PDF page">Next Page →</button>
+    </span>
 </div>
 
 <div id="segmentEditor" class="section"></div>
@@ -335,9 +340,6 @@ button.primary:hover{
 </div>
 
 <div id="pdfNav" class="toolbar" style="display:none;">
-    <button onclick="prevPage()">Previous Page</button>
-    <span id="pageIndicator">Page 0 / 0</span>
-    <button onclick="nextPage()">Next Page</button>
     <label class="hint">Template applies to
         <select id="templateParity">
             <option value="current">Current page only</option>
@@ -459,6 +461,35 @@ button.primary:hover{
     </div>
 </div>
 
+<details id="ocrTestingPanel" class="section" open>
+    <summary>OCR Engine Testing (PaddleOCR vs Tesseract)</summary>
+    <p class="hint">Select a row (above), then run both engines on it. Review/correct the outputs, then save - every save appends to one running Excel file, across rows, pages, and uploads.</p>
+    <div class="toolbar">
+        <label class="hint">Spread ID <input id="testingSpreadId" type="text" style="width:90px;" placeholder="SP-01"></label>
+        <label class="hint">Patient ID <input id="testingPatientId" type="text" style="width:140px;"></label>
+        <button id="testingRunBtn" class="primary" onclick="runDualOcrOnCurrentRow()">Run Both OCRs on Current Row</button>
+        <button id="testingSaveBtn" onclick="saveTestingRowsToExcel()">Save Rows to Excel</button>
+        <a id="testingDownloadLink" href="/api/testing/download">Download results.xlsx</a>
+        <button id="testingClearBtn" onclick="clearSavedTestingRows()" title="Permanently erase every row saved so far, keeping only the column headers">Clear Saved Rows</button>
+    </div>
+    <span id="testingStatus" class="hint"></span>
+    <div style="overflow-x:auto;">
+    <table id="testingTable" style="width:100%; border-collapse:collapse; margin-top:8px;">
+        <thead>
+            <tr>
+                <th style="border:1px solid var(--border); padding:6px; text-align:left;">Field</th>
+                <th style="border:1px solid var(--border); padding:6px; text-align:left;">PaddleOCR Output</th>
+                <th style="border:1px solid var(--border); padding:6px;">Paddle ✓</th>
+                <th style="border:1px solid var(--border); padding:6px; text-align:left;">Tesseract Output</th>
+                <th style="border:1px solid var(--border); padding:6px;">Tesseract ✓</th>
+                <th style="border:1px solid var(--border); padding:6px; text-align:left;">Ground Truth</th>
+            </tr>
+        </thead>
+        <tbody id="testingTableBody"></tbody>
+    </table>
+    </div>
+</details>
+
 <div class="section">
     <h2>Review & Edit</h2>
     <p class="hint">Edit OCR results directly in the table below before saving. Results for one case are stored together and can be exported to Excel.</p>
@@ -519,6 +550,7 @@ let currentRowIndex = -1;
 // (navigating rows, adjusting the crop box, panning, zooming) clears it back to false.
 let rowIndicatorsVisible = false;
 let activeTemplateFilename = "";
+let currentUploadFilename = "";
 const templateAssignmentStorageKey = 'pclaimassist.templateAssignments';
 let lastMatchedTemplateScore = 0;
 let rowSpacingPresets = [];
@@ -2056,6 +2088,7 @@ window.addEventListener('load', ()=>{
     saveCurrentRowSpacingValue();
     renderCropPresetManager();
     updateRowPositionTemplateStatus();
+    refreshTestingSummary();
 
     const fieldCategoryEl = document.getElementById('fieldCategory');
     if(fieldCategoryEl){
@@ -2176,6 +2209,254 @@ async function cropRowCells(){
     }
     // sync review table from the cells table so user can edit combined row cells
     syncReviewTableFromTableBody();
+}
+
+// ============================================================================
+// OCR ENGINE TESTING (PaddleOCR vs Tesseract) - compile both engines' output
+// per field for the currently selected row, then append reviewed rows to one
+// running Excel workbook (server-side, /api/testing/*) that keeps growing
+// across row navigation, PDF page changes, and new file uploads.
+// ============================================================================
+
+function sliceCurrentRowIntoCells(){
+    // Same slicing as cropRowCells() (row crop box -> per-column canvases at
+    // each gridLines percent), kept separate so this testing panel never
+    // risks the production Crop Row Cells + OCR flow above.
+    if(!cropper) return null;
+
+    const cropData = cropper.getCropBoxData();
+    if(cropData.width < 10 || cropData.height < 10) return [];
+
+    const rowCanvas = cropper.getCroppedCanvas({
+        imageSmoothingEnabled:true,
+        imageSmoothingQuality:"high"
+    });
+
+    const percents = [...getRowCropPercents(), 1];
+    const cells = [];
+    for(let i = 0; i < percents.length - 1; i++){
+        const leftPercent = percents[i];
+        const rightPercent = percents[i+1];
+        const cellX = Math.round(leftPercent * rowCanvas.width);
+        const cellWidth = Math.round((rightPercent - leftPercent) * rowCanvas.width);
+        if(cellWidth < 5) continue;
+        const cellCanvas = document.createElement("canvas");
+        cellCanvas.width = cellWidth;
+        cellCanvas.height = rowCanvas.height;
+        const ctx = cellCanvas.getContext("2d");
+        ctx.drawImage(rowCanvas, cellX, 0, cellWidth, rowCanvas.height, 0, 0, cellWidth, rowCanvas.height);
+        const field = segmentInfo[i]?.category || `ROW_CELL_${i + 1}`;
+        cells.push({canvas: cellCanvas, field});
+    }
+    return cells;
+}
+
+async function runSingleEngineOcr(blob, engine, filename){
+    try{
+        const formData = new FormData();
+        formData.append("image", blob, filename);
+        formData.append("engine", engine);
+        const resp = await fetch("/ocr", {method: "POST", body: formData});
+        const data = await resp.json();
+        if(!data.success){
+            return {text: "", confidence: "", error: data.error || "OCR failed"};
+        }
+        return {text: data.raw_text || "", confidence: data.tokens?.[0]?.confidence ?? ""};
+    }catch(err){
+        return {text: "", confidence: "", error: String(err)};
+    }
+}
+
+function addTestingRow(field, paddle, tesseract){
+    const tbody = document.getElementById("testingTableBody");
+    const tr = document.createElement("tr");
+    tr.dataset.field = field;
+    tr.dataset.paddleConfidence = paddle.confidence ?? "";
+    tr.dataset.tesseractConfidence = tesseract.confidence ?? "";
+    const cellStyle = 'border:1px solid var(--border); padding:6px;';
+    tr.innerHTML = `
+        <td style="${cellStyle}">${escapeHtml(field)}</td>
+        <td contenteditable="true" class="testing-paddle-output" style="${cellStyle}">${escapeHtml(paddle.text)}</td>
+        <td style="${cellStyle} text-align:center;"><input type="checkbox" class="testing-paddle-correct"></td>
+        <td contenteditable="true" class="testing-tesseract-output" style="${cellStyle}">${escapeHtml(tesseract.text)}</td>
+        <td style="${cellStyle} text-align:center;"><input type="checkbox" class="testing-tesseract-correct"></td>
+        <td contenteditable="true" class="testing-ground-truth" style="${cellStyle}"></td>
+    `;
+    tbody.appendChild(tr);
+
+    const gtCell = tr.querySelector(".testing-ground-truth");
+    const paddleCell = tr.querySelector(".testing-paddle-output");
+    const tessCell = tr.querySelector(".testing-tesseract-output");
+    const paddleCheck = tr.querySelector(".testing-paddle-correct");
+    const tessCheck = tr.querySelector(".testing-tesseract-correct");
+
+    // Auto-tick "correct" once a ground truth is typed, exact match after
+    // trim/case-fold - still freely editable by hand afterwards.
+    function autoCheckAgainstGroundTruth(){
+        const gt = gtCell.textContent.trim().toLowerCase();
+        if(!gt) return;
+        paddleCheck.checked = paddleCell.textContent.trim().toLowerCase() === gt;
+        tessCheck.checked = tessCell.textContent.trim().toLowerCase() === gt;
+    }
+    gtCell.addEventListener("input", autoCheckAgainstGroundTruth);
+    paddleCell.addEventListener("input", autoCheckAgainstGroundTruth);
+    tessCell.addEventListener("input", autoCheckAgainstGroundTruth);
+}
+
+// Guards both testing actions against overlapping runs - without this, a
+// double-click (or clicking "Run Both OCRs" again before the first pass
+// finished) starts a second async pass that clears + repopulates the same
+// table concurrently with the first, which is what caused fields to show up
+// duplicated. Also gates "Save Rows to Excel" so the same on-screen rows
+// can't be appended to the workbook twice in a row.
+let testingBusy = false;
+
+function setTestingButtonsEnabled(enabled){
+    const runBtn = document.getElementById("testingRunBtn");
+    const saveBtn = document.getElementById("testingSaveBtn");
+    const clearBtn = document.getElementById("testingClearBtn");
+    if(runBtn) runBtn.disabled = !enabled;
+    if(saveBtn) saveBtn.disabled = !enabled;
+    if(clearBtn) clearBtn.disabled = !enabled;
+}
+
+async function runDualOcrOnCurrentRow(){
+    if(testingBusy){
+        return;
+    }
+    if(!cropper){
+        alert("Load an image first.");
+        return;
+    }
+
+    const cells = sliceCurrentRowIntoCells();
+    if(cells === null){
+        alert("Load an image first.");
+        return;
+    }
+    if(cells.length === 0){
+        alert("Draw/select a row first (use Prev/Next Row or the crop box).");
+        return;
+    }
+
+    testingBusy = true;
+    setTestingButtonsEnabled(false);
+    const statusEl = document.getElementById("testingStatus");
+    const tbody = document.getElementById("testingTableBody");
+    tbody.innerHTML = "";
+    statusEl.textContent = `Running PaddleOCR + Tesseract on ${cells.length} field(s)...`;
+
+    try{
+        for(const cell of cells){
+            const blob = await new Promise(resolve => cell.canvas.toBlob(resolve, "image/png"));
+            const filename = `${cell.field.replace(/[^a-z0-9]+/gi, "_")}.png`;
+            const [paddle, tesseract] = await Promise.all([
+                runSingleEngineOcr(blob, "paddle", filename),
+                runSingleEngineOcr(blob, "tesseract", filename)
+            ]);
+            addTestingRow(cell.field, paddle, tesseract);
+        }
+        statusEl.textContent = `Ready - ${cells.length} field(s). Review/correct below, then Save Rows to Excel.`;
+    } finally {
+        testingBusy = false;
+        setTestingButtonsEnabled(true);
+    }
+}
+
+async function refreshTestingSummary(){
+    try{
+        const resp = await fetch("/api/testing/summary");
+        const data = await resp.json();
+        const statusEl = document.getElementById("testingStatus");
+        if(statusEl && data.success){
+            statusEl.textContent = `${data.total_rows} row(s) saved so far in ${data.path.split(/[\\/]/).pop()}.`;
+        }
+    }catch(err){
+        console.warn("Could not load OCR testing summary", err);
+    }
+}
+
+async function saveTestingRowsToExcel(){
+    if(testingBusy){
+        return;
+    }
+
+    const spreadId = document.getElementById("testingSpreadId").value.trim();
+    const patientId = document.getElementById("testingPatientId").value.trim();
+    const pdfPage = pdfDoc ? pdfCurrentPage : 1;
+
+    const rows = Array.from(document.querySelectorAll("#testingTableBody tr")).map(tr => ({
+        spread_id: spreadId,
+        source_file: currentUploadFilename,
+        pdf_page: pdfPage,
+        patient_id: patientId,
+        field: tr.dataset.field || "",
+        ground_truth: tr.querySelector(".testing-ground-truth").textContent.trim(),
+        paddle_output: tr.querySelector(".testing-paddle-output").textContent.trim(),
+        paddle_confidence: tr.dataset.paddleConfidence || "",
+        paddle_correct: tr.querySelector(".testing-paddle-correct").checked,
+        tesseract_output: tr.querySelector(".testing-tesseract-output").textContent.trim(),
+        tesseract_confidence: tr.dataset.tesseractConfidence || "",
+        tesseract_correct: tr.querySelector(".testing-tesseract-correct").checked,
+    }));
+
+    if(rows.length === 0){
+        alert("Nothing to save yet - run both OCRs on a row first.");
+        return;
+    }
+
+    testingBusy = true;
+    setTestingButtonsEnabled(false);
+    const statusEl = document.getElementById("testingStatus");
+    try{
+        const resp = await fetch("/api/testing/rows", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({rows})
+        });
+        const data = await resp.json();
+        if(!data.success){
+            statusEl.textContent = `Save failed: ${data.error || "unknown error"}`;
+            return;
+        }
+        // Clear the reviewed rows once they're safely in the workbook - otherwise
+        // clicking "Save Rows to Excel" again (e.g. a second accidental click)
+        // would re-append the exact same fields as new duplicate rows.
+        document.getElementById("testingTableBody").innerHTML = "";
+        statusEl.textContent = `Saved ${data.added} row(s). Workbook now has ${data.total_rows} row(s) total.`;
+    }catch(err){
+        statusEl.textContent = `Save failed: ${err}`;
+    } finally {
+        testingBusy = false;
+        setTestingButtonsEnabled(true);
+    }
+}
+
+async function clearSavedTestingRows(){
+    if(testingBusy){
+        return;
+    }
+    if(!confirm("This permanently erases every OCR test row saved so far (results.xlsx), keeping only the column headers. Continue?")){
+        return;
+    }
+
+    testingBusy = true;
+    setTestingButtonsEnabled(false);
+    const statusEl = document.getElementById("testingStatus");
+    try{
+        const resp = await fetch("/api/testing/clear", {method: "POST"});
+        const data = await resp.json();
+        if(!data.success){
+            statusEl.textContent = `Clear failed: ${data.error || "unknown error"}`;
+            return;
+        }
+        statusEl.textContent = `Saved rows cleared. Workbook now has ${data.total_rows} row(s) total.`;
+    }catch(err){
+        statusEl.textContent = `Clear failed: ${err}`;
+    } finally {
+        testingBusy = false;
+        setTestingButtonsEnabled(true);
+    }
 }
 
 function escapeHtml(value){
@@ -2313,11 +2594,15 @@ async function ensurePDFJS(){
 
 function updatePdfNav(){
     const show = pdfDoc && pdfPageCount > 0;
-    if(!pdfNav) return;
-    pdfNav.style.display = show ? "block" : "none";
+    const pageControls = document.getElementById("pdfPageControls");
+    if(pageControls){
+        pageControls.style.display = show ? "inline-flex" : "none";
+    }
     if(show && pageIndicator){
         pageIndicator.textContent = `Page ${pdfCurrentPage} / ${pdfPageCount}`;
     }
+    if(!pdfNav) return;
+    pdfNav.style.display = show ? "block" : "none";
 }
 
 function resetPdfState(){
@@ -2540,6 +2825,8 @@ async function uploadImage(){
         alert("Select a file");
         return;
     }
+
+    currentUploadFilename = file.name;
 
     const preview =
     document
