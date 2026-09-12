@@ -24,25 +24,42 @@ logger = logging.getLogger(__name__)
 testing_bp = Blueprint("testing", __name__, url_prefix="/api/testing")
 
 
+def _page_side(pdf_page):
+    """Odd pages are the left side of a spread, even pages the right side -
+    same convention as the page_parity computation in batch_processor.py.
+    Derived server-side so it's authoritative regardless of what (if
+    anything) the client sends.
+    """
+    try:
+        page_num = int(pdf_page)
+    except (TypeError, ValueError):
+        return ""
+    return "left" if page_num % 2 == 1 else "right"
+
+
 def _clean_row(raw):
     if not isinstance(raw, dict):
         raise InvalidRequestError("Each item in 'rows' must be an object")
     field = str(raw.get("field", "")).strip()
     if not field:
         raise InvalidRequestError("Each row needs a non-empty 'field'")
+    pdf_page = raw.get("pdf_page", "")
+    best_engine = str(raw.get("best_engine", "")).strip().lower()
+    if best_engine not in ("paddle", "tesseract", "neither"):
+        best_engine = ""
     return {
         "spread_id": str(raw.get("spread_id", "")).strip(),
         "source_file": str(raw.get("source_file", "")).strip(),
-        "pdf_page": raw.get("pdf_page", ""),
+        "pdf_page": pdf_page,
+        "side": _page_side(pdf_page),
         "patient_id": str(raw.get("patient_id", "")).strip(),
         "field": field,
         "ground_truth": str(raw.get("ground_truth", "")).strip(),
         "paddle_output": str(raw.get("paddle_output", "")),
         "paddle_confidence": raw.get("paddle_confidence", ""),
-        "paddle_correct": raw.get("paddle_correct"),
         "tesseract_output": str(raw.get("tesseract_output", "")),
         "tesseract_confidence": raw.get("tesseract_confidence", ""),
-        "tesseract_correct": raw.get("tesseract_correct"),
+        "best_engine": best_engine,
     }
 
 

@@ -4,6 +4,14 @@
 -- 8 tables: patients, case_sessions, encounters, claims,
 --           claim_prenatal_visits, claim_postpartum_care,
 --           research_ground_truth, research_ocr_results
+--
+-- NOTE: 8 CF3/PMRF-only `claims` columns (civil_status, citizenship,
+-- mobile, lmp, delivery_date, manner_of_delivery, fetal_outcome,
+-- birth_weight) were relaxed from NOT NULL to nullable so a 'draft' claim
+-- can be created from CF2/CSF data alone (the PhilHealth claim-form
+-- population feature builds CF2+CSF first; CF3/PMRF are a later phase).
+-- An existing database created from an earlier copy of this file needs
+-- database/migrations/001_relax_pmrf_cf3_not_null.sql applied.
 -- =====================================================================
 
 CREATE DATABASE IF NOT EXISTS `pclaimassist_db`
@@ -88,14 +96,18 @@ CREATE TABLE `claims` (
   `updated_at`       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
   -- member info (CSF, PMRF) ----------------------------------------
-  `member_last_name`   VARCHAR(100) NOT NULL,
-  `member_first_name`  VARCHAR(100) NOT NULL,
+  -- Nullable: these are CSF-required fields for export validation, but have
+  -- no OCR/patient source data - they can only ever be filled by manual
+  -- entry, so a claim must be able to exist (in 'draft' status) before they
+  -- are - see database/migrations/001_relax_pmrf_cf3_not_null.sql
+  `member_last_name`   VARCHAR(100) NULL DEFAULT NULL,
+  `member_first_name`  VARCHAR(100) NULL DEFAULT NULL,
   `member_middle_name` VARCHAR(100) NULL DEFAULT NULL,
   `member_name_ext`    VARCHAR(10)  NULL DEFAULT NULL,
-  `member_dob`         DATE         NOT NULL,
+  `member_dob`         DATE         NULL DEFAULT NULL,
   `member_sex`         ENUM('Male','Female') NULL DEFAULT NULL,
-  `member_pin`         VARCHAR(20)  NOT NULL,
-  `relationship`       ENUM('Self','Spouse','Child','Parent','Sibling') NOT NULL,
+  `member_pin`         VARCHAR(20)  NULL DEFAULT NULL,
+  `relationship`       ENUM('Self','Spouse','Child','Parent','Sibling') NULL DEFAULT NULL,
 
   -- HCI / facility (CF2, CF3) ---------------------------------------
   `hci_pan`      VARCHAR(20)  NOT NULL,
@@ -110,20 +122,25 @@ CREATE TABLE `claims` (
   `employer_name`  VARCHAR(255) NULL DEFAULT NULL,
 
   -- member profile (PMRF) --------------------------------------------
-  `civil_status`       ENUM('Single','Married','Widowed','Legally Separated','Annulled') NOT NULL,
+  -- civil_status/citizenship are PMRF-only fields; nullable so a claim can
+  -- exist in 'draft' status (see `status` above) before PMRF data is
+  -- collected - see database/migrations/001_relax_pmrf_cf3_not_null.sql
+  `civil_status`       ENUM('Single','Married','Widowed','Legally Separated','Annulled') NULL DEFAULT NULL,
   `place_of_birth`     VARCHAR(255) NULL DEFAULT NULL,
-  `citizenship`        VARCHAR(100) NOT NULL,
+  `citizenship`        VARCHAR(100) NULL DEFAULT NULL,
   `mother_last_name`   VARCHAR(100) NULL DEFAULT NULL,
   `mother_first_name`  VARCHAR(100) NULL DEFAULT NULL,
   `mother_middle_name` VARCHAR(100) NULL DEFAULT NULL,
   `spouse_last_name`   VARCHAR(100) NULL DEFAULT NULL,
   `spouse_first_name`  VARCHAR(100) NULL DEFAULT NULL,
   `spouse_middle_name` VARCHAR(100) NULL DEFAULT NULL,
+  -- member_type is PMRF-only; nullable for the same draft-claim reason as
+  -- civil_status/citizenship above.
   `member_type` ENUM(
     'Employed Private','Employed Government','Self-Earning Individual',
     'OFW Land-Based','OFW Sea-Based','Lifetime Member',
     'Senior Citizen','Indigent/Sponsored'
-  ) NOT NULL,
+  ) NULL DEFAULT NULL,
   `profession`      VARCHAR(100) NULL DEFAULT NULL,
   `monthly_income`  VARCHAR(50)  NULL DEFAULT NULL,
 
@@ -134,7 +151,9 @@ CREATE TABLE `claims` (
   `addr_city`         VARCHAR(100) NULL DEFAULT NULL,
   `addr_province`     VARCHAR(100) NULL DEFAULT NULL,
   `addr_zip`          VARCHAR(100) NULL DEFAULT NULL,
-  `mobile`            VARCHAR(20)  NOT NULL,
+  -- mobile is a PMRF-only field; nullable for the same draft-claim reason
+  -- as civil_status/citizenship above.
+  `mobile`            VARCHAR(20)  NULL DEFAULT NULL,
   `home_phone`        VARCHAR(20)  NULL DEFAULT NULL,
   `addr_unit`         VARCHAR(100) NULL DEFAULT NULL,
   `addr_building`     VARCHAR(100) NULL DEFAULT NULL,
@@ -142,21 +161,24 @@ CREATE TABLE `claims` (
   `email`             VARCHAR(100) NULL DEFAULT NULL,
 
   -- maternity / delivery (CF3) -----------------------------------------
-  `lmp`                DATE         NOT NULL,
+  -- These are CF3-only fields; nullable so a claim can exist in 'draft'
+  -- status before CF3 data is collected (v1 only builds CF2+CSF) - see
+  -- database/migrations/001_relax_pmrf_cf3_not_null.sql
+  `lmp`                DATE         NULL DEFAULT NULL,
   `age_of_menarche`    DECIMAL(4,1) NULL DEFAULT NULL,
   `gravida`            SMALLINT UNSIGNED NULL DEFAULT NULL,
   `para`               SMALLINT UNSIGNED NULL DEFAULT NULL,
   `expected_dd`        DATE         NULL DEFAULT NULL,
-  `delivery_date`      DATE         NOT NULL,
+  `delivery_date`      DATE         NULL DEFAULT NULL,
   `delivery_time`      VARCHAR(5)   NULL DEFAULT NULL,
   `am_pm_delivery`     ENUM('AM','PM') NULL DEFAULT NULL,
   `manner_of_delivery` ENUM(
     'Normal Spontaneous Delivery (NSD)','Caesarean Section (CS)',
     'Vacuum Extraction','Forceps Delivery','Breech Delivery'
-  ) NOT NULL,
-  `fetal_outcome` ENUM('Live Birth','Stillbirth','Abortion','Ectopic Pregnancy') NOT NULL,
+  ) NULL DEFAULT NULL,
+  `fetal_outcome` ENUM('Live Birth','Stillbirth','Abortion','Ectopic Pregnancy') NULL DEFAULT NULL,
   `baby_sex`      ENUM('Male','Female') NULL DEFAULT NULL,
-  `birth_weight`  VARCHAR(20)  NOT NULL,
+  `birth_weight`  VARCHAR(20)  NULL DEFAULT NULL,
   `apgar_score`   DECIMAL(4,1) NULL DEFAULT NULL,
   `brief_history` TEXT NULL DEFAULT NULL,
 
