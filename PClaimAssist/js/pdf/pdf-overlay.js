@@ -15,7 +15,7 @@ const pdfState = {
   csf:  { doc: null, page: 1, totalPages: 1, rendered: false },
   cf2:  { doc: null, page: 1, totalPages: 2, rendered: false },
   cf3:  { doc: null, page: 1, totalPages: 2, rendered: false },
-  pmrf: { doc: null, page: 1, totalPages: 1, rendered: false },
+  pmrf: { doc: null, page: 1, totalPages: 2, rendered: false },
 };
 
 /* ── Overlay field coordinate maps ──────────────────────────
@@ -74,6 +74,18 @@ async function renderPDFPage(formKey, pageNum) {
   st.page = pageNum;
   scaleOverlayFonts(formKey);
   updateOverlayForForm(formKey);
+  syncEntryPanelPageGroups(formKey, pageNum);
+}
+
+/* ── Show only the Data Entry fields for the currently viewed PDF page ── */
+function syncEntryPanelPageGroups(formKey, pageNum) {
+  const panel = document.querySelector(`#section-${formKey} .entry-panel-body`);
+  if (!panel) return;
+  const groups = panel.querySelectorAll('.pdf-page-group[data-pdf-page]');
+  if (!groups.length) return;
+  groups.forEach(group => {
+    group.hidden = Number(group.dataset.pdfPage) !== pageNum;
+  });
 }
 
 /* ── Load PDF and show first page ───────────────────────── */
@@ -117,12 +129,15 @@ function injectOverlaySpans(formKey) {
 
   (OVERLAY_MAP[formKey] || []).forEach(f => {
     const span = document.createElement('span');
-    span.className     = 'pdf-field';
+    span.className     = 'pdf-field' + (f.wrap ? ' pdf-field--wrap' : '') + (f.center ? ' pdf-field--center' : '');
     span.id            = 'pof-' + formKey + '-' + f.id;
     span.dataset.page  = f.page;
-    span.dataset.fsPct = (f.fs || 8) / refH; 
+    span.dataset.fsPct = (f.fs || 8) / refH;
+    // translateY in em (not %) so the anchor stays put as text wraps to
+    // more lines — a % offset is relative to the span's own (growing)
+    // height and would shift multi-line text too far up.
     span.style.cssText =
-      `top:${f.top}%;left:${f.left}%;width:${f.w}%;transform:translateY(-70%);`;
+      `top:${f.top}%;left:${f.left}%;width:${f.w}%;transform:translateY(-0.7em);`;
     overlay.appendChild(span);
   });
   scaleOverlayFonts(formKey);
@@ -135,18 +150,25 @@ function scaleOverlayFonts(formKey) {
   const h = parseFloat(overlay.style.height) || overlay.getBoundingClientRect().height || 800;
   overlay.querySelectorAll('.pdf-field').forEach(span => {
     const fsPct = parseFloat(span.dataset.fsPct) || (8 / 936);
-    span.style.fontSize = Math.max(6, Math.round(fsPct * h)) + 'px';
+    span.style.fontSize = Math.max(5, Math.round(fsPct * h)) + 'px';
   });
 }
 
 /* ── Resolve one overlay field's display value ───────────────────
-   Supports plain computed/key lookups plus 3 generic field shapes,
-   used across CF3 page 2 to avoid a getComputedValue case per field:
+   Supports plain computed/key lookups plus generic field shapes, used to
+   avoid a getComputedValue case per field:
      checkbox:true        → '✓' if state.data[f.key] is truthy, or
                              (with checkValue set) equals checkValue
      dateComponent:'MM'|'DD'|'YYYY' → part of an ISO date at state.data[f.key]
      timeComponent:'AM'|'PM'        → bare hh:mm at state.data[f.key],
                              shown only when that period applies
+     digit:N               → one character (0-indexed) out of state.data[f.key]
+                             (or f.digitKey, if the id differs from the key),
+                             digits only — non-digit separators are stripped.
+                             With digitOrder:'mmddyyyy', f.digitKey is treated
+                             as an ISO "YYYY-MM-DD" date and reordered to
+                             MM+DD+YYYY (matching printed mm/dd/yyyy digit boxes)
+                             before indexing.
 ─────────────────────────────────────────────────────────────── */
 function resolveOverlayFieldValue(f) {
   const data = window.state?.data || {};
@@ -164,6 +186,18 @@ function resolveOverlayFieldValue(f) {
     return parts[2] || '';
   }
 
+  if (f.digit !== undefined) {
+    const raw = data[f.digitKey || f.key] || '';
+    let digits;
+    if (f.digitOrder === 'mmddyyyy') {
+      const parts = raw.split('-'); // ISO: [YYYY, MM, DD]
+      digits = (parts[1] || '') + (parts[2] || '') + (parts[0] || '');
+    } else {
+      digits = raw.replace(/\D/g, '');
+    }
+    return digits.charAt(f.digit) || '';
+  }
+
   if (f.timeComponent) {
     const raw = data[f.key] || '';
     const h = parseInt(raw.split(':')[0], 10);
@@ -171,6 +205,16 @@ function resolveOverlayFieldValue(f) {
     const isPM = h >= 12;
     if ((f.timeComponent === 'PM') !== isPM) return '';
     return typeof window.bareTime === 'function' ? window.bareTime(raw) : raw;
+  }
+
+  // amPmCheck: a literal AM/PM checkbox (distinct from timeComponent, which
+  // shows the time value itself in whichever of two alternate boxes applies)
+  if (f.amPmCheck) {
+    const raw = data[f.key] || '';
+    const h = parseInt(raw.split(':')[0], 10);
+    if (isNaN(h)) return '';
+    const isPM = h >= 12;
+    return (f.amPmCheck === 'PM') === isPM ? '✓' : '';
   }
 
   const gcv = window.getComputedValue;
@@ -259,15 +303,15 @@ async function exportFilledPDF(formKey) {
       // (the on-screen overlay still renders the real checkmark glyph).
       const safeVal = String(val).replace(/✓/g, 'X');
 
-      const x = (f.left / 100) * width;
       const baselineOffset = 6; // Increase this to push text further down when printing
       const y = height - ((f.top / 100) * height) - baselineOffset;
       const fs = f.fs || 7;
+      const x = (f.left / 100) * width;
 
       pg.drawText(safeVal, {
         x: x,
-        y: y, 
-        size: fs, 
+        y: y,
+        size: fs,
         font: font,
         color: PDFLib.rgb(0, 0, 0),
         maxWidth: (f.w / 100) * width,

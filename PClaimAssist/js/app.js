@@ -2,6 +2,14 @@
    PClaimAssist – Application Logic  |  Phase 1 Prototype
    Privacy-by-design: no storage, no server calls.
 ═══════════════════════════════════════════════════════════ */
+
+/* ── Auth guard: bounce to login if no active session ──────── */
+(function requireLogin() {
+  if (!sessionStorage.getItem('pca_logged_in')) {
+    window.location.replace('login.html');
+  }
+})();
+
 AOS.init({ duration: 500, once: true, offset: 30 });
 
 /* ══════════════════════════════════════════════════════════
@@ -26,10 +34,51 @@ const state = {
     dateAdmitted:'', timeAdmitted:'', amPmAdmitted:'AM',
     dateDischarge:'', timeDischarge:'', amPmDischarge:'AM',
     disposition:'', accommodation:'', chiefComplaint:'', admissionDx:'', dischargeDx:'',
+    /* CF2 – Referral */
+    referredByHCI:'', referralHciName:'', referralStreet:'', referralCity:'',
+    referralProvince:'', referralZip:'',
+    /* CF2 – Discharge Diagnosis table (2 diagnoses x up to 3 procedures each) */
+    dxADiagnosis:'', dxAIcd10:'',
+    dxAProcI:'', dxARvsI:'', dxADateI:'', dxALatI:'',
+    dxAProcII:'', dxARvsII:'', dxADateII:'', dxALatII:'',
+    dxAProcIII:'', dxARvsIII:'', dxADateIII:'', dxALatIII:'',
+    dxBDiagnosis:'', dxBIcd10:'',
+    dxBProcI:'', dxBRvsI:'', dxBDateI:'', dxBLatI:'',
+    dxBProcII:'', dxBRvsII:'', dxBDateII:'', dxBLatII:'',
+    dxBProcIII:'', dxBRvsIII:'', dxBDateIII:'', dxBLatIII:'',
     /* HCI */
     hciPAN:'', hciName:'', hciStreet:'', hciCity:'', hciProvince:'',
     /* Employer – CSF Part II */
     employerPEN:'', employerPhone:'', employerName:'',
+
+    /* CSF Part I – Certification of Member (signature block) */
+    memberSignedDate:'', repSignedDate:'',
+    memberSignerType:'', repRelationship:'', repRelationshipOther:'',
+    repReason:'', repReasonOther:'',
+    /* CSF Part II – Employer's Certification (signature) */
+    employerSignedDate:'', employerRepName:'', employerCapacity:'',
+    /* CSF Part III – Consent to Access Patient Record/s */
+    patientRepName:'', patientRepSignedDate:'',
+    patientSignerType:'', patientRepRelationship:'', patientRepRelationshipOther:'',
+    patientReason:'', patientReasonOther:'',
+    /* CSF Part IV – Health Care Professional Information (up to 3 rows) */
+    hciProf1AccredNo:'', hciProf1Name:'', hciProf1DateSigned:'',
+    hciProf2AccredNo:'', hciProf2Name:'', hciProf2DateSigned:'',
+    hciProf3AccredNo:'', hciProf3Name:'', hciProf3DateSigned:'',
+    /* CSF Part V – Provider Information and Certification */
+    csfFirstCaseRate:'', csfSecondCaseRate:'',
+    providerRepName:'', providerCapacity:'', providerSignedDate:'',
+
+    /* CF2 Item 10 – Accreditation/Signature/Date Signed + Co-pay (up to 3 rows) */
+    cf2Prof1AccredNo:'', cf2Prof1Name:'', cf2Prof1DateSigned:'', cf2Prof1Copay:'', cf2Prof1CopayAmount:'',
+    cf2Prof2AccredNo:'', cf2Prof2Name:'', cf2Prof2DateSigned:'', cf2Prof2Copay:'', cf2Prof2CopayAmount:'',
+    cf2Prof3AccredNo:'', cf2Prof3Name:'', cf2Prof3DateSigned:'', cf2Prof3Copay:'', cf2Prof3CopayAmount:'',
+    /* CF2 Part III-B – Consent to Access Patient Record/s */
+    cf2PatientRepName:'', cf2PatientRepSignedDate:'',
+    cf2PatientRepRelationship:'', cf2PatientRepRelationshipOther:'',
+    cf2PatientReason:'', cf2PatientReasonOther:'',
+    /* CF2 Part IV – Certification of Consumption of Health Care Institution */
+    cf2ProviderRepName:'', cf2ProviderCapacity:'', cf2ProviderSignedDate:'',
     /* Member Profile – PMRF */
     civilStatus:'', placeOfBirth:'', citizenship:'',
     motherLastName:'', motherFirstName:'', motherMiddleName:'',
@@ -89,6 +138,40 @@ const state = {
     ppScheduleNextDone:false, ppScheduleNextRemarks:'',
     /* Certification of Attending Physician/Midwife (section 19) */
     attendingPhysicianName:'', dateSigned:'',
+
+    /* PMRF – Purpose / PhilSys / TIN */
+    registrationPurpose:'', preferredKonsulta:'', philsysId:'', tin:'',
+    /* PMRF – Name table checkboxes (Member / Mother / Spouse) */
+    memberNoMiddleName:false, memberMononym:false,
+    motherNoMiddleName:false, motherMononym:false,
+    spouseNoMiddleName:false, spouseMononym:false,
+    /* PMRF – Dependent 1 extras (shares patientLastName/FirstName/etc with CSF/CF2/CF3) */
+    patientCitizenship:'', dep1NoMiddleName:false, dep1Mononym:false, dep1Disability:false,
+    /* PMRF – Dependents 2–4 */
+    dep2LastName:'', dep2FirstName:'', dep2Ext:'', dep2MiddleName:'',
+    dep2Relationship:'', dep2DOB:'', dep2Citizenship:'',
+    dep2NoMiddleName:false, dep2Mononym:false, dep2Disability:false,
+    dep3LastName:'', dep3FirstName:'', dep3Ext:'', dep3MiddleName:'',
+    dep3Relationship:'', dep3DOB:'', dep3Citizenship:'',
+    dep3NoMiddleName:false, dep3Mononym:false, dep3Disability:false,
+    dep4LastName:'', dep4FirstName:'', dep4Ext:'', dep4MiddleName:'',
+    dep4Relationship:'', dep4DOB:'', dep4Citizenship:'',
+    dep4NoMiddleName:false, dep4Mononym:false, dep4Disability:false,
+    /* PMRF – Mailing Address */
+    mailingSameAsAbove:false, businessPhone:'',
+    mailingAddrUnit:'', mailingAddrBuilding:'', mailingAddrLot:'', mailingAddrStreet:'',
+    mailingAddrSubdivision:'', mailingAddrBarangay:'', mailingAddrCity:'',
+    mailingAddrProvince:'', mailingAddrZip:'',
+    /* PMRF – Member Type extras */
+    pwdIdNo:'', praSrrvNo:'', acrICardNo:'', groupEnrollmentNo:'', proofOfIncome:'',
+    /* PMRF Page 2 – V. Updating/Amendment */
+    amendName:false, amendNameFrom:'', amendNameTo:'',
+    amendDOB:false, amendDOBFrom:'', amendDOBTo:'',
+    amendSex:false, amendSexFrom:'', amendSexTo:'',
+    amendCivilStatus:false, amendCivilStatusFrom:'', amendCivilStatusTo:'',
+    amendPersonalInfo:false, amendPersonalInfoFrom:'', amendPersonalInfoTo:'',
+    /* PMRF Page 2 – Member's Signature */
+    memberSignatureName:'', memberSignatureDate:'',
   }
 };
 
@@ -115,7 +198,7 @@ const SAMPLE_DATA = {
   hciPAN:'000001234', hciName:'Mapagpala Maternity Clinic',
   hciStreet:'456 Bonifacio Avenue', hciCity:'Quezon City', hciProvince:'Metro Manila',
   employerPEN:'', employerPhone:'', employerName:'',
-  civilStatus:'Married', placeOfBirth:'Quezon City, Metro Manila', citizenship:'Filipino',
+  civilStatus:'Married', placeOfBirth:'Quezon City, Metro Manila', citizenship:'FILIPINO',
   motherLastName:'SANTOS', motherFirstName:'LILIA', motherMiddleName:'GARCIA',
   spouseLastName:'DELA CRUZ', spouseFirstName:'PEDRO', spouseMiddleName:'REYES',
   memberType:'Employed Private', profession:'Teacher', monthlyIncome:'25,000',
@@ -165,6 +248,41 @@ const SAMPLE_DATA = {
   ppReferredVSSDone:false, ppReferredVSSRemarks:'',
   ppScheduleNextDone:true, ppScheduleNextRemarks:'1 week post-partum check',
   attendingPhysicianName:'Dr. Ana Reyes, M.D.', dateSigned:'2026-06-13',
+
+  /* PMRF – Purpose / PhilSys / TIN */
+  registrationPurpose:'Registration', preferredKonsulta:'Mapagpala Maternity Clinic',
+  philsysId:'1234-5678-9012', tin:'123-456-789-000',
+  /* PMRF – Name table checkboxes */
+  memberNoMiddleName:false, memberMononym:false,
+  motherNoMiddleName:false, motherMononym:false,
+  spouseNoMiddleName:false, spouseMononym:false,
+  /* PMRF – Dependent 1 extras */
+  patientCitizenship:'FILIPINO', dep1NoMiddleName:false, dep1Mononym:false, dep1Disability:false,
+  /* PMRF – Dependents 2–4 (left blank by default) */
+  dep2LastName:'', dep2FirstName:'', dep2Ext:'', dep2MiddleName:'',
+  dep2Relationship:'', dep2DOB:'', dep2Citizenship:'',
+  dep2NoMiddleName:false, dep2Mononym:false, dep2Disability:false,
+  dep3LastName:'', dep3FirstName:'', dep3Ext:'', dep3MiddleName:'',
+  dep3Relationship:'', dep3DOB:'', dep3Citizenship:'',
+  dep3NoMiddleName:false, dep3Mononym:false, dep3Disability:false,
+  dep4LastName:'', dep4FirstName:'', dep4Ext:'', dep4MiddleName:'',
+  dep4Relationship:'', dep4DOB:'', dep4Citizenship:'',
+  dep4NoMiddleName:false, dep4Mononym:false, dep4Disability:false,
+  /* PMRF – Mailing Address */
+  mailingSameAsAbove:true, businessPhone:'',
+  mailingAddrUnit:'', mailingAddrBuilding:'', mailingAddrLot:'', mailingAddrStreet:'',
+  mailingAddrSubdivision:'', mailingAddrBarangay:'', mailingAddrCity:'',
+  mailingAddrProvince:'', mailingAddrZip:'',
+  /* PMRF – Member Type extras */
+  pwdIdNo:'', praSrrvNo:'', acrICardNo:'', groupEnrollmentNo:'', proofOfIncome:'',
+  /* PMRF Page 2 – V. Updating/Amendment (left unchecked by default) */
+  amendName:false, amendNameFrom:'', amendNameTo:'',
+  amendDOB:false, amendDOBFrom:'', amendDOBTo:'',
+  amendSex:false, amendSexFrom:'', amendSexTo:'',
+  amendCivilStatus:false, amendCivilStatusFrom:'', amendCivilStatusTo:'',
+  amendPersonalInfo:false, amendPersonalInfoFrom:'', amendPersonalInfoTo:'',
+  /* PMRF Page 2 – Member's Signature */
+  memberSignatureName:'Pedro R. Dela Cruz', memberSignatureDate:'2026-06-01',
 };
 
 /* ══════════════════════════════════════════════════════════
@@ -172,7 +290,13 @@ const SAMPLE_DATA = {
 ══════════════════════════════════════════════════════════ */
 const DATE_FIELDS = new Set([
   'memberDOB','patientDOB','dateAdmitted','dateDischarge',
-  'deliveryDate','expectedDD','lmp'
+  'deliveryDate','expectedDD','lmp',
+  'dxADateI','dxADateII','dxADateIII','dxBDateI','dxBDateII','dxBDateIII',
+  'memberSignedDate','repSignedDate','employerSignedDate','patientRepSignedDate',
+  'hciProf1DateSigned','hciProf2DateSigned','hciProf3DateSigned','providerSignedDate',
+  'cf2Prof1DateSigned','cf2Prof2DateSigned','cf2Prof3DateSigned',
+  'cf2PatientRepSignedDate','cf2ProviderSignedDate',
+  'dep2DOB','dep3DOB','dep4DOB','memberSignatureDate',
 ]);
 
 function getComputedValue(key) {
@@ -207,14 +331,10 @@ function getComputedValue(key) {
       return formatTime12h(d.timeDischarge);
     case 'deliveryTimeStr':
       return formatTime12h(d.deliveryTime);
-    /* CF3 Date Admitted/Discharged split into per-box Month/Day/Year
-       to match the PDF's three separate ruled boxes */
-    case 'dateAdmittedMM':   return d.dateAdmitted ? d.dateAdmitted.split('-')[1] : '';
-    case 'dateAdmittedDD':   return d.dateAdmitted ? d.dateAdmitted.split('-')[2] : '';
-    case 'dateAdmittedYYYY': return d.dateAdmitted ? d.dateAdmitted.split('-')[0] : '';
-    case 'dateDischargeMM':   return d.dateDischarge ? d.dateDischarge.split('-')[1] : '';
-    case 'dateDischargeDD':   return d.dateDischarge ? d.dateDischarge.split('-')[2] : '';
-    case 'dateDischargeYYYY': return d.dateDischarge ? d.dateDischarge.split('-')[0] : '';
+    case 'timeAdmittedDigits':
+      return time12hDigits(d.timeAdmitted);
+    case 'timeDischargeDigits':
+      return time12hDigits(d.timeDischarge);
     /* CF3 Time Admitted/Discharged: the PDF has two ruled hh:mm boxes per
        row, one before the printed "AM" label and one before "PM" — the
        box position itself indicates the period, so the value goes in
@@ -240,6 +360,29 @@ function getComputedValue(key) {
     case 'hciPANc7': return (d.hciPAN || '').charAt(6);
     case 'hciPANc8': return (d.hciPAN || '').charAt(7);
     case 'hciPANc9': return (d.hciPAN || '').charAt(8);
+    /* PMRF Date of Birth: 8 individual digit boxes in mm-dd-yyyy order
+       (state stores the ISO "YYYY-MM-DD" value from the date input) */
+    case 'memberDOBd1': return (d.memberDOB || '').slice(5,7).charAt(0);
+    case 'memberDOBd2': return (d.memberDOB || '').slice(5,7).charAt(1);
+    case 'memberDOBd3': return (d.memberDOB || '').slice(8,10).charAt(0);
+    case 'memberDOBd4': return (d.memberDOB || '').slice(8,10).charAt(1);
+    case 'memberDOBd5': return (d.memberDOB || '').slice(0,4).charAt(0);
+    case 'memberDOBd6': return (d.memberDOB || '').slice(0,4).charAt(1);
+    case 'memberDOBd7': return (d.memberDOB || '').slice(0,4).charAt(2);
+    case 'memberDOBd8': return (d.memberDOB || '').slice(0,4).charAt(3);
+    /* PMRF PIN / PhilSys ID / TIN: one character per ruled digit box
+       (non-digit separators like "-" are stripped first) */
+    case 'memberPINc1': case 'memberPINc2': case 'memberPINc3': case 'memberPINc4':
+    case 'memberPINc5': case 'memberPINc6': case 'memberPINc7': case 'memberPINc8':
+    case 'memberPINc9': case 'memberPINc10': case 'memberPINc11': case 'memberPINc12':
+      return digitsOnly(d.memberPIN).charAt(Number(key.slice(10)) - 1);
+    case 'philsysIdc1': case 'philsysIdc2': case 'philsysIdc3': case 'philsysIdc4':
+    case 'philsysIdc5': case 'philsysIdc6': case 'philsysIdc7': case 'philsysIdc8':
+    case 'philsysIdc9': case 'philsysIdc10': case 'philsysIdc11': case 'philsysIdc12':
+      return digitsOnly(d.philsysId).charAt(Number(key.slice(10)) - 1);
+    case 'tinc1': case 'tinc2': case 'tinc3': case 'tinc4': case 'tinc5':
+    case 'tinc6': case 'tinc7': case 'tinc8': case 'tinc9':
+      return digitsOnly(d.tin).charAt(Number(key.slice(4)) - 1);
     default:
       return d[key] || '';
   }
@@ -253,6 +396,10 @@ function isPMTime(hhmm) {
 
 function bareTime(hhmm) {
   return formatTime12h(hhmm).replace(/\s*(AM|PM)$/, '');
+}
+
+function digitsOnly(str) {
+  return (str || '').replace(/\D/g, '');
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -332,7 +479,7 @@ const VAL_FIELDS = {
     { key:'disposition',   label:'Patient Disposition' },
     { key:'accommodation', label:'Type of Accommodation' },
     { key:'admissionDx',   label:'Admission Diagnosis' },
-    { key:'dischargeDx',   label:'Discharge Diagnosis' },
+    { key:'dxADiagnosis',  label:'Discharge Diagnosis' },
   ],
   cf3: [
     { key:'hciPAN',           label:'HCI Accreditation No. (PAN)' },
@@ -361,7 +508,10 @@ const VAL_FIELDS = {
 /* ══════════════════════════════════════════════════════════
    NAVIGATION
 ══════════════════════════════════════════════════════════ */
-function navigateTo(section) {
+const VALID_SECTIONS = ['dashboard','patient','documents','csf','cf2','cf3','pmrf','validation','settings'];
+
+function navigateTo(section, opts) {
+  opts = opts || {};
   const prev = document.querySelector('.content-section.active');
   if (prev) prev.classList.remove('active');
   const next = document.getElementById('section-' + section);
@@ -369,6 +519,9 @@ function navigateTo(section) {
   document.querySelectorAll('.sidebar-item').forEach(el =>
     el.classList.toggle('active', el.dataset.section === section));
   state.currentSection = section;
+  if (!opts.skipHash) {
+    history.replaceState(null, '', '#' + section);
+  }
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('sidebarOverlay');
   if (sidebar.classList.contains('mobile-open')) {
@@ -388,6 +541,28 @@ document.querySelectorAll('.sidebar-item').forEach(item =>
     if (!item.dataset.section) return; // external link (e.g. OCR page) — let the browser navigate normally
     e.preventDefault(); navigateTo(item.dataset.section);
   }));
+
+/* ══════════════════════════════════════════════════════════
+   PROFILE MENU & LOGOUT
+══════════════════════════════════════════════════════════ */
+(function setupProfileMenu() {
+  const email = sessionStorage.getItem('pca_user_email') || 'staff@clinic.ph';
+  const emailEl = document.getElementById('navUserEmail');
+  if (emailEl) emailEl.textContent = email;
+
+  document.querySelectorAll('.profile-dropdown-menu [data-section]').forEach(item =>
+    item.addEventListener('click', e => { e.preventDefault(); navigateTo(item.dataset.section); }));
+
+  const logoutBtn = document.getElementById('logoutBtn');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', e => {
+      e.preventDefault();
+      sessionStorage.removeItem('pca_logged_in');
+      sessionStorage.removeItem('pca_user_email');
+      window.location.href = 'login.html';
+    });
+  }
+})();
 
 (function setupMobileSidebar() {
   if (!document.getElementById('sidebarOverlay')) {
@@ -433,6 +608,8 @@ function updateFormPreviews() {
   });
   // Sync all duplicate data-autofill elements (e.g. split-screen right panels)
   syncAllAutofillElements();
+  // Sync segmented box-group inputs (dates, PAN) from state
+  syncBoxGroupsFromState();
   // Update PDF canvas overlays
   if (typeof updateAllOverlays === 'function') updateAllOverlays();
   updateValidation();
@@ -459,7 +636,49 @@ function syncAllAutofillElements() {
       }
     });
   });
+  syncBtnCheckGroups();
 }
+
+/* ══════════════════════════════════════════════════════════
+   BUTTON-CHECK GROUPS (e.g. CSF Relationship: child/parent/spouse)
+══════════════════════════════════════════════════════════ */
+function syncBtnCheckGroups() {
+  document.querySelectorAll('.btn-check-group[data-autofill]').forEach(group => {
+    const key = group.dataset.autofill;
+    const val = state.data[key] || '';
+    group.querySelectorAll('.btn-check-option').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.value === val);
+    });
+  });
+
+  const referralDetails = document.getElementById('cf2-referral-details');
+  if (referralDetails) referralDetails.style.display = state.data.referredByHCI === 'Yes' ? '' : 'none';
+}
+
+const AMPM_TIME_KEY = { amPmAdmitted: 'timeAdmitted', amPmDischarge: 'timeDischarge', amPmDelivery: 'deliveryTime' };
+
+document.querySelectorAll('.btn-check-group[data-autofill]').forEach(group => {
+  const key = group.dataset.autofill;
+  group.querySelectorAll('.btn-check-option').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const alreadyActive = btn.classList.contains('active');
+      const newVal = alreadyActive ? '' : btn.dataset.value;
+      state.data[key] = newVal;
+
+      const timeKey = AMPM_TIME_KEY[key];
+      if (timeKey && newVal && state.data[timeKey]) {
+        const [hStr, mStr] = state.data[timeKey].split(':');
+        let h = parseInt(hStr, 10);
+        if (!isNaN(h)) {
+          h = h % 12;
+          if (newVal === 'PM') h += 12;
+          state.data[timeKey] = `${String(h).padStart(2, '0')}:${mStr}`;
+        }
+      }
+      updateFormPreviews();
+    });
+  });
+});
 
 function formatDate(iso) {
   if (!iso) return '';
@@ -480,6 +699,15 @@ function formatTime12h(hhmm) {
   return `${String(h).padStart(2, '0')}:${mStr} ${period}`;
 }
 
+function time12hDigits(hhmm) {
+  if (!hhmm) return '';
+  const [hStr, mStr] = hhmm.split(':');
+  let h = parseInt(hStr, 10);
+  if (isNaN(h)) return '';
+  h = h % 12 || 12;
+  return `${String(h).padStart(2, '0')}${mStr}`;
+}
+
 function bindInputListeners() {
   document.querySelectorAll('[data-autofill]').forEach(el => {
     const key = el.dataset.autofill;
@@ -491,6 +719,85 @@ function bindInputListeners() {
     };
     el.addEventListener('input', handler);
     el.addEventListener('change', handler);
+  });
+}
+
+/* ══════════════════════════════════════════════════════════
+   SEGMENTED "BOX" INPUTS
+   Some CF3 fields (dates, HCI Accreditation No./PAN) print as
+   individual ruled boxes on the PDF. These groups render as
+   separate per-character/segment boxes in the data-entry panel
+   to match, while still feeding the same state.data[key] the
+   rest of the app (overlays, validation, previews) expects.
+══════════════════════════════════════════════════════════ */
+function bindBoxGroupListeners() {
+  document.querySelectorAll('.pca-box-group').forEach(group => {
+    const boxes = Array.from(group.querySelectorAll('.pca-box'));
+    boxes.forEach((box, i) => {
+      box.addEventListener('input', () => {
+        box.value = box.value.replace(/\D/g, '').slice(0, box.maxLength);
+        if (box.value.length >= box.maxLength && boxes[i + 1]) boxes[i + 1].focus();
+        commitBoxGroup(group);
+      });
+      box.addEventListener('keydown', e => {
+        if (e.key === 'Backspace' && !box.value && boxes[i - 1]) boxes[i - 1].focus();
+      });
+      box.addEventListener('paste', e => {
+        const text = (e.clipboardData || window.clipboardData).getData('text');
+        if (!text) return;
+        e.preventDefault();
+        let idx = i;
+        text.replace(/\D/g, '').split('').forEach(ch => {
+          if (boxes[idx]) { boxes[idx].value = ch; idx++; }
+        });
+        (boxes[idx] || box).focus();
+        commitBoxGroup(group);
+      });
+    });
+  });
+}
+
+function commitBoxGroup(group) {
+  const key   = group.dataset.boxKey;
+  const type  = group.dataset.boxType;
+  const boxes = Array.from(group.querySelectorAll('.pca-box'));
+  if (type === 'date') {
+    const mm = boxes[0].value, dd = boxes[1].value, yyyy = boxes[2].value;
+    state.data[key] = (mm.length === 2 && dd.length === 2 && yyyy.length === 4)
+      ? `${yyyy}-${mm}-${dd}` : '';
+  } else if (type === 'date8') {
+    // 8 single-digit boxes: MM MM DD DD YYYY YYYY YYYY YYYY
+    const d = boxes.map(b => b.value);
+    state.data[key] = d.every(c => c.length === 1)
+      ? `${d[4]}${d[5]}${d[6]}${d[7]}-${d[0]}${d[1]}-${d[2]}${d[3]}` : '';
+  } else {
+    state.data[key] = boxes.map(b => b.value).join('');
+  }
+  updateFormPreviews();
+}
+
+function syncBoxGroupsFromState() {
+  document.querySelectorAll('.pca-box-group').forEach(group => {
+    if (group.contains(document.activeElement)) return; // don't clobber active typing
+    const key   = group.dataset.boxKey;
+    const type  = group.dataset.boxType;
+    const boxes = Array.from(group.querySelectorAll('.pca-box'));
+    const val   = state.data[key] || '';
+    if (type === 'date') {
+      const [yyyy, mm, dd] = val ? val.split('-') : ['', '', ''];
+      boxes[0].value = mm || '';
+      boxes[1].value = dd || '';
+      boxes[2].value = yyyy || '';
+    } else if (type === 'date8') {
+      const [yyyy, mm, dd] = val ? val.split('-') : ['', '', ''];
+      const chars = `${mm}${dd}${yyyy}`.split('');
+      boxes.forEach((b, i) => { b.value = chars[i] || ''; });
+    } else {
+      // strip separators like "-" that plain-text sample/typed values may
+      // carry (e.g. "12-345678901-2") — boxes hold one digit each
+      const chars = digitsOnly(val).split('');
+      boxes.forEach((b, i) => { b.value = chars[i] || ''; });
+    }
   });
 }
 
@@ -610,7 +917,8 @@ function updateDashboardStats() {
 /* ══════════════════════════════════════════════════════════
    SAMPLE DATA
 ══════════════════════════════════════════════════════════ */
-function loadSampleData() {
+function loadSampleData(opts) {
+  const stayOnPage = !!(opts && opts.stayOnPage);
   Object.assign(state.data, SAMPLE_DATA);
   document.querySelectorAll('[data-autofill]').forEach(el => {
     const key = el.dataset.autofill;
@@ -622,7 +930,7 @@ function loadSampleData() {
   updateFormPreviews();
   showToast('Sample data loaded', 'All fields populated with fictional demo data.', 'success');
   logActivity('Sample data loaded for demonstration', 'success');
-  navigateTo('patient');
+  if (!stayOnPage) navigateTo('patient');
 }
 
 
@@ -815,8 +1123,18 @@ function escHtml(str) {
    INIT
 ══════════════════════════════════════════════════════════ */
 bindInputListeners();
+bindBoxGroupListeners();
 updateFormPreviews();
-navigateTo('dashboard');
+
+const initialSection = VALID_SECTIONS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'dashboard';
+navigateTo(initialSection);
+
+window.addEventListener('hashchange', () => {
+  const section = location.hash.slice(1);
+  if (VALID_SECTIONS.includes(section) && section !== state.currentSection) {
+    navigateTo(section, { skipHash: true });
+  }
+});
 
 // Add this at the very bottom of js/app.js
 window.state = state;

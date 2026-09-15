@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In – PClaimAssist</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="css/style.css?v=20260827a" rel="stylesheet">
+</head>
+<body class="login-body">
+
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-11 col-sm-8 col-md-6 col-lg-5 col-xl-4">
+
+      <div class="text-center mb-4">
+        <div class="brand-logo brand-logo--lg mx-auto"><i class="bi bi-heart-pulse-fill"></i></div>
+        <div class="login-brand-name mt-3">PClaimAssist</div>
+        <div class="login-brand-sub">PhilHealth Claims Preparation System</div>
+      </div>
+
+      <div class="pca-card p-4 p-sm-5" data-aos="fade-up">
+        <div class="text-center mb-4">
+          <h1 class="login-title"><span id="typewriterText"></span><span class="typewriter-cursor">|</span></h1>
+          <p class="text-muted small mb-0">Sign in with your clinic staff account to continue</p>
+        </div>
+
+        <form id="loginForm" novalidate>
+          <div class="mb-3">
+            <label class="form-label fw-semibold" for="loginEmail">Email address</label>
+            <div class="input-group">
+              <span class="input-group-text bg-light"><i class="bi bi-envelope text-muted"></i></span>
+              <input type="email" class="form-control" id="loginEmail" placeholder="staff@clinic.ph" autocomplete="username">
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold" for="loginPassword">Password</label>
+            <div class="input-group">
+              <span class="input-group-text bg-light"><i class="bi bi-lock text-muted"></i></span>
+              <input type="password" class="form-control" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
+              <button type="button" class="input-group-text bg-light" id="togglePassword" title="Show password">
+                <i class="bi bi-eye text-muted"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="d-flex align-items-center justify-content-between mb-4">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="rememberMe">
+              <label class="form-check-label small" for="rememberMe">Remember me</label>
+            </div>
+            <a href="#" class="small fw-semibold text-decoration-none" id="forgotPasswordLink">Forgot password?</a>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100 py-2" id="signInBtn">
+            <span class="btn-label"><i class="bi bi-box-arrow-in-right me-2"></i>Sign In</span>
+            <span class="btn-spinner d-none">
+              <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Signing in…
+            </span>
+          </button>
+        </form>
+
+        <div class="text-center small text-muted border-top mt-4 pt-3">
+          <i class="bi bi-shield-lock-fill me-1"></i>
+          Prototype access — no credentials are verified or stored.
+        </div>
+      </div>
+
+      <p class="text-center small text-muted mt-4">
+        &copy; 2026 PClaimAssist. For demonstration purposes only.
+      </p>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══ FORGOT PASSWORD MODAL ═══ -->
+<div class="modal fade" id="forgotPasswordModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-key-fill me-2 text-primary"></i>Reset Password</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted mb-3">Enter your email address and we'll send you a link to reset your password.</p>
+        <label class="form-label fw-semibold" for="resetEmail">Email address</label>
+        <div class="input-group">
+          <span class="input-group-text bg-light"><i class="bi bi-envelope text-muted"></i></span>
+          <input type="email" class="form-control" id="resetEmail" placeholder="staff@clinic.ph">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="sendResetBtn">Send Reset Link</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toastContainer" class="position-fixed bottom-0 end-0 p-3" style="z-index:1090;"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/login.js?v=20260827a"></script>
+</body>
+</html>

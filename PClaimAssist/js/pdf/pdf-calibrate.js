@@ -273,6 +273,17 @@ function setupCalibrationUI(formKey) {
   const wrap    = document.getElementById('pdf-wrap-' + formKey);
   if (!toolbar || !wrap) return;
 
+  const fillBtn = document.createElement('button');
+  fillBtn.className = 'pdf-nav-btn';
+  fillBtn.id = formKey + '-autofill-btn';
+  fillBtn.title = 'Autofill sample data (for checking alignment)';
+  fillBtn.innerHTML = '<i class="bi bi-magic"></i>';
+  fillBtn.addEventListener('click', () => {
+    loadSampleData({ stayOnPage: true });
+    if (calibrate.active[formKey]) labelFieldsForCalibration(formKey);
+  });
+  toolbar.appendChild(fillBtn);
+
   const btn = document.createElement('button');
   btn.className = 'pdf-nav-btn';
   btn.id = formKey + '-calibrate-btn';
