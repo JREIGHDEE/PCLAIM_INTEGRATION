@@ -60,6 +60,20 @@ class TemplateNotFoundError(OCRAppError):
     error_code = "template_not_found"
 
 
+class ClaimNotFoundError(OCRAppError):
+    """Requested claim id does not exist."""
+
+    status_code = 404
+    error_code = "claim_not_found"
+
+
+class ClaimIncompleteError(OCRAppError):
+    """A PhilHealth form export was requested but required fields are missing."""
+
+    status_code = 400
+    error_code = "claim_incomplete"
+
+
 class OCRProcessingError(OCRAppError):
     """OCR or image/PDF processing failed for a reason worth surfacing."""
 

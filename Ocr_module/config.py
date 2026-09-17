@@ -142,6 +142,23 @@ CATEGORY_FOLDERS = {
 }
 
 
+# ── PhilHealth claim-form population/export ─────────────────────────────
+# Real PhilHealth PDF templates live in the sibling PClaimAssist project
+# (checked in there, not duplicated here) - this app only reads them.
+PHILHEALTH_FORMS_DIR = Path(
+    os.environ.get("PHILHEALTH_FORMS_DIR", BASE_DIR.parent / "PClaimAssist" / "forms")
+)
+
+# HCI (health care institution/facility) fields are the same for every claim
+# in a single-facility deployment - defaulted here rather than re-typed per
+# claim, still editable per-claim via PUT /api/claims/<id>.
+DEFAULT_HCI_PAN = os.environ.get("PHILHEALTH_HCI_PAN", "")
+DEFAULT_HCI_NAME = os.environ.get("PHILHEALTH_HCI_NAME", "")
+DEFAULT_HCI_STREET = os.environ.get("PHILHEALTH_HCI_STREET", "")
+DEFAULT_HCI_CITY = os.environ.get("PHILHEALTH_HCI_CITY", "")
+DEFAULT_HCI_PROVINCE = os.environ.get("PHILHEALTH_HCI_PROVINCE", "")
+
+
 def ensure_directories():
     """Create every storage directory this app needs, if missing."""
     for folder in (

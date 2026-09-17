@@ -8,7 +8,7 @@ keeps a single running workbook that every save *appends* to - so results
 accumulate across row navigation, page navigation, and new file uploads
 within the same testing session, matching the capstone's per-field
 comparison sheet (Test ID, Patient ID, Field, Ground Truth, PaddleOCR
-Output, Paddle Correct?, TesseractOCR Output, Tesseract Correct?).
+Output, TesseractOCR Output, Best Engine).
 
 File-based (openpyxl), not database-backed: there is no schema for this data
 in the project's MariaDB instance (research_ground_truth/research_ocr_results
@@ -30,15 +30,15 @@ HEADERS = [
     "Spread ID",
     "Source File",
     "PDF Page",
+    "Side",
     "Patient ID",
     "Field",
     "Ground Truth",
     "PaddleOCR Output",
     "Paddle Confidence",
-    "Paddle Correct?",
     "TesseractOCR Output",
     "Tesseract Confidence",
-    "Tesseract Correct?",
+    "Best Engine",
     "Saved At",
 ]
 
@@ -68,10 +68,15 @@ def _load_or_create_workbook():
     return workbook, sheet
 
 
-def _bool_label(value):
-    if value is None or value == "":
-        return ""
-    return "Yes" if value in (True, "true", "True", "1", 1) else "No"
+_BEST_ENGINE_LABELS = {
+    "paddle": "PaddleOCR",
+    "tesseract": "TesseractOCR",
+    "neither": "Neither",
+}
+
+
+def _best_engine_label(value):
+    return _BEST_ENGINE_LABELS.get(value, "")
 
 
 def append_rows(rows):
@@ -99,15 +104,15 @@ def append_rows(rows):
                 row.get("spread_id", ""),
                 row.get("source_file", ""),
                 row.get("pdf_page", ""),
+                row.get("side", ""),
                 row.get("patient_id", ""),
                 row.get("field", ""),
                 row.get("ground_truth", ""),
                 row.get("paddle_output", ""),
                 row.get("paddle_confidence", ""),
-                _bool_label(row.get("paddle_correct")),
                 row.get("tesseract_output", ""),
                 row.get("tesseract_confidence", ""),
-                _bool_label(row.get("tesseract_correct")),
+                _best_engine_label(row.get("best_engine", "")),
                 saved_at,
             ])
             added += 1

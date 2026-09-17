@@ -454,10 +454,16 @@ button.primary:hover{
 <div id="rowPreviewContainer" class="section" style="display:none;">
     <div class="toolbar" style="justify-content:space-between;">
         <strong>Row Preview</strong>
-        <button onclick="hideRowPreview()">Close Preview</button>
+        <div class="toolbar" style="gap:4px;">
+            <button type="button" onclick="zoomRowPreview(-25)" title="Zoom out">−</button>
+            <span id="rowPreviewZoomLabel" class="hint" style="min-width:3.5em; text-align:center; display:inline-block;">100%</span>
+            <button type="button" onclick="zoomRowPreview(25)" title="Zoom in">+</button>
+            <button type="button" onclick="resetRowPreviewZoom()" title="Reset zoom">Reset</button>
+            <button onclick="hideRowPreview()">Close Preview</button>
+        </div>
     </div>
-    <div style="width:100%; overflow:auto; background:var(--panel); padding:6px; border-radius:6px;">
-        <img id="rowPreview" style="display:block; max-width:2000px; width:100%; height:auto;" />
+    <div id="rowPreviewScroll" style="width:100%; max-height:70vh; overflow:auto; background:var(--panel); padding:6px; border-radius:6px;">
+        <img id="rowPreview" style="display:block; width:100%; height:auto;" />
     </div>
 </div>
 
@@ -479,14 +485,43 @@ button.primary:hover{
             <tr>
                 <th style="border:1px solid var(--border); padding:6px; text-align:left;">Field</th>
                 <th style="border:1px solid var(--border); padding:6px; text-align:left;">PaddleOCR Output</th>
-                <th style="border:1px solid var(--border); padding:6px;">Paddle ✓</th>
                 <th style="border:1px solid var(--border); padding:6px; text-align:left;">Tesseract Output</th>
-                <th style="border:1px solid var(--border); padding:6px;">Tesseract ✓</th>
+                <th style="border:1px solid var(--border); padding:6px;">Best Output</th>
                 <th style="border:1px solid var(--border); padding:6px; text-align:left;">Ground Truth</th>
             </tr>
         </thead>
         <tbody id="testingTableBody"></tbody>
     </table>
+    </div>
+</details>
+
+<details id="philhealthClaimPanel" class="section" open>
+    <summary>PhilHealth Claim (CF2 / CSF)</summary>
+    <p class="hint">Generate a claim from a reviewed OCR case session, complete the fields OCR can't supply (member info, disposition, accommodation, PINs, ...), then export the filled PhilHealth PDF.</p>
+    <div class="toolbar">
+        <label class="hint">Case ID <input id="claimCaseId" type="text" style="width:140px;" placeholder="e.g. 2026-0123"></label>
+        <button id="claimGenerateBtn" class="primary" onclick="generatePhilhealthClaim()">Generate Claim</button>
+        <span id="claimIdLabel" class="hint"></span>
+    </div>
+    <span id="claimStatus" class="hint"></span>
+
+    <div id="claimReviewSection" style="display:none; margin-top:8px;">
+        <div style="overflow-x:auto;">
+        <table id="claimFieldsTable" style="width:100%; border-collapse:collapse;">
+            <thead>
+                <tr>
+                    <th style="border:1px solid var(--border); padding:6px; text-align:left;">PhilHealth Field</th>
+                    <th style="border:1px solid var(--border); padding:6px; text-align:left;">Value</th>
+                    <th style="border:1px solid var(--border); padding:6px;">Source</th>
+                </tr>
+            </thead>
+            <tbody id="claimFieldsBody"></tbody>
+        </table>
+        </div>
+        <div class="toolbar" style="margin-top:8px;">
+            <button id="claimSaveBtn" onclick="savePhilhealthClaimCorrections()">Save Corrections</button>
+        </div>
+        <div id="claimFormsStatus"></div>
     </div>
 </details>
 
@@ -1845,6 +1880,43 @@ function hideRowPreview(){
     if(c){ c.style.display = 'none'; }
 }
 
+// Row Preview zoom - lets you blow up a cropped row (handwritten names in
+// particular are often too small/blurry at 100% to read confidently) without
+// having to re-crop or re-run OCR. Percentage is of the scrollable container's
+// width, so >100% overflows into scrollbars rather than the page layout.
+let rowPreviewZoomPercent = 100;
+const ROW_PREVIEW_ZOOM_MIN = 50;
+const ROW_PREVIEW_ZOOM_MAX = 500;
+
+function applyRowPreviewZoom(){
+    const img = document.getElementById('rowPreview');
+    if(img) img.style.width = `${rowPreviewZoomPercent}%`;
+    const label = document.getElementById('rowPreviewZoomLabel');
+    if(label) label.textContent = `${rowPreviewZoomPercent}%`;
+}
+
+function zoomRowPreview(deltaPercent){
+    rowPreviewZoomPercent = Math.min(ROW_PREVIEW_ZOOM_MAX, Math.max(ROW_PREVIEW_ZOOM_MIN, rowPreviewZoomPercent + deltaPercent));
+    applyRowPreviewZoom();
+}
+
+function resetRowPreviewZoom(){
+    rowPreviewZoomPercent = 100;
+    applyRowPreviewZoom();
+}
+
+// Ctrl/Cmd + scroll-wheel over the preview zooms instead of scrolling the
+// page, same convention as image viewers/PDF readers.
+document.addEventListener('DOMContentLoaded', () => {
+    const scrollEl = document.getElementById('rowPreviewScroll');
+    if(!scrollEl) return;
+    scrollEl.addEventListener('wheel', (event) => {
+        if(!event.ctrlKey && !event.metaKey) return;
+        event.preventDefault();
+        zoomRowPreview(event.deltaY < 0 ? 25 : -25);
+    }, {passive: false});
+});
+
 async function refreshGridTemplateList(){
     try{
         const resp = await fetch('/grid_templates');
@@ -2267,19 +2339,49 @@ async function runSingleEngineOcr(blob, engine, filename){
     }
 }
 
+// Classic edit distance (Levenshtein) - used only to suggest which engine's
+// output is *closer* to the ground truth, since exact matches are rare and
+// "both are wrong" is the normal case here.
+function levenshteinDistance(a, b){
+    const m = a.length, n = b.length;
+    if(m === 0) return n;
+    if(n === 0) return m;
+    let prevRow = Array(n + 1).fill(0).map((_, j) => j);
+    for(let i = 1; i <= m; i++){
+        const currRow = [i];
+        for(let j = 1; j <= n; j++){
+            const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+            currRow.push(Math.min(
+                prevRow[j] + 1,
+                currRow[j - 1] + 1,
+                prevRow[j - 1] + cost
+            ));
+        }
+        prevRow = currRow;
+    }
+    return prevRow[n];
+}
+
+let testingRowSeq = 0;
+
 function addTestingRow(field, paddle, tesseract){
     const tbody = document.getElementById("testingTableBody");
     const tr = document.createElement("tr");
+    const rowId = `testing-row-${testingRowSeq++}`;
     tr.dataset.field = field;
     tr.dataset.paddleConfidence = paddle.confidence ?? "";
     tr.dataset.tesseractConfidence = tesseract.confidence ?? "";
+    tr.dataset.userPickedBest = "false";
     const cellStyle = 'border:1px solid var(--border); padding:6px;';
     tr.innerHTML = `
         <td style="${cellStyle}">${escapeHtml(field)}</td>
         <td contenteditable="true" class="testing-paddle-output" style="${cellStyle}">${escapeHtml(paddle.text)}</td>
-        <td style="${cellStyle} text-align:center;"><input type="checkbox" class="testing-paddle-correct"></td>
         <td contenteditable="true" class="testing-tesseract-output" style="${cellStyle}">${escapeHtml(tesseract.text)}</td>
-        <td style="${cellStyle} text-align:center;"><input type="checkbox" class="testing-tesseract-correct"></td>
+        <td style="${cellStyle} text-align:center; white-space:nowrap;">
+            <label style="margin-right:8px;"><input type="radio" name="${rowId}" class="testing-best-radio" value="paddle"> Paddle</label>
+            <label style="margin-right:8px;"><input type="radio" name="${rowId}" class="testing-best-radio" value="tesseract"> Tesseract</label>
+            <label><input type="radio" name="${rowId}" class="testing-best-radio" value="neither"> Neither</label>
+        </td>
         <td contenteditable="true" class="testing-ground-truth" style="${cellStyle}"></td>
     `;
     tbody.appendChild(tr);
@@ -2287,20 +2389,40 @@ function addTestingRow(field, paddle, tesseract){
     const gtCell = tr.querySelector(".testing-ground-truth");
     const paddleCell = tr.querySelector(".testing-paddle-output");
     const tessCell = tr.querySelector(".testing-tesseract-output");
-    const paddleCheck = tr.querySelector(".testing-paddle-correct");
-    const tessCheck = tr.querySelector(".testing-tesseract-correct");
+    const bestRadios = tr.querySelectorAll(".testing-best-radio");
 
-    // Auto-tick "correct" once a ground truth is typed, exact match after
-    // trim/case-fold - still freely editable by hand afterwards.
-    function autoCheckAgainstGroundTruth(){
+    // Once the user manually picks a radio, stop overriding their choice -
+    // only .checked set programmatically (below) skips this, since a
+    // user click is the only thing that fires "change".
+    bestRadios.forEach(radio => {
+        radio.addEventListener("change", () => {
+            tr.dataset.userPickedBest = "true";
+        });
+    });
+
+    // Suggest whichever output is *closer* to the ground truth (by edit
+    // distance), not just an exact match - both outputs being wrong is the
+    // norm, so this still points at the better guess. Still freely
+    // overridable by hand, and once overridden, no longer auto-updated.
+    function autoSuggestBest(){
+        if(tr.dataset.userPickedBest === "true") return;
         const gt = gtCell.textContent.trim().toLowerCase();
         if(!gt) return;
-        paddleCheck.checked = paddleCell.textContent.trim().toLowerCase() === gt;
-        tessCheck.checked = tessCell.textContent.trim().toLowerCase() === gt;
+        const paddleText = paddleCell.textContent.trim().toLowerCase();
+        const tessText = tessCell.textContent.trim().toLowerCase();
+        if(!paddleText && !tessText) return;
+        const paddleDist = levenshteinDistance(paddleText, gt);
+        const tessDist = levenshteinDistance(tessText, gt);
+        let best = null;
+        if(paddleDist < tessDist) best = "paddle";
+        else if(tessDist < paddleDist) best = "tesseract";
+        if(!best) return;
+        const radio = tr.querySelector(`.testing-best-radio[value="${best}"]`);
+        if(radio) radio.checked = true;
     }
-    gtCell.addEventListener("input", autoCheckAgainstGroundTruth);
-    paddleCell.addEventListener("input", autoCheckAgainstGroundTruth);
-    tessCell.addEventListener("input", autoCheckAgainstGroundTruth);
+    gtCell.addEventListener("input", autoSuggestBest);
+    paddleCell.addEventListener("input", autoSuggestBest);
+    tessCell.addEventListener("input", autoSuggestBest);
 }
 
 // Guards both testing actions against overlapping runs - without this, a
@@ -2376,6 +2498,180 @@ async function refreshTestingSummary(){
     }
 }
 
+// ============================================================================
+// PHILHEALTH CLAIM (CF2 / CSF) - generate from a reviewed OCR case session,
+// review/complete the mapped fields, then export the filled PDF. Backed by
+// /api/claims/* (routes/claims_routes.py) - see philhealth/mapping_service.py
+// for what "missing"/"source" mean here.
+// ============================================================================
+let currentClaimId = null;
+
+const CLAIM_SOURCE_LABELS = {
+    auto_ocr: "Auto (OCR)",
+    auto_config: "Auto (Facility)",
+    manual: "Manual",
+    computed: "Computed",
+};
+
+async function generatePhilhealthClaim(){
+    const caseId = document.getElementById("claimCaseId").value.trim();
+    if(!caseId){
+        alert("Enter a Case ID first (the same Case ID used when saving the OCR review).");
+        return;
+    }
+
+    const statusEl = document.getElementById("claimStatus");
+    statusEl.textContent = "Generating claim...";
+    try{
+        const resp = await fetch("/api/claims/generate", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({case_id: caseId}),
+        });
+        const data = await resp.json();
+        if(!data.success){
+            statusEl.textContent = `Could not generate claim: ${data.error || "unknown error"}`;
+            return;
+        }
+
+        currentClaimId = data.claim_id;
+        document.getElementById("claimIdLabel").textContent = `Claim #${data.claim_id}`;
+        statusEl.textContent = data.warnings && data.warnings.length
+            ? `Claim #${data.claim_id} generated - ${data.warnings.length} item(s) need review: ${data.warnings.join(" | ")}`
+            : `Claim #${data.claim_id} generated.`;
+
+        await loadPhilhealthClaim(currentClaimId);
+    }catch(err){
+        statusEl.textContent = `Could not generate claim: ${err}`;
+    }
+}
+
+async function loadPhilhealthClaim(claimId){
+    const resp = await fetch(`/api/claims/${claimId}`);
+    const data = await resp.json();
+    if(!data.success){
+        document.getElementById("claimStatus").textContent = data.error || "Could not load claim.";
+        return;
+    }
+    renderClaimFields(data.fields);
+    renderClaimFormsStatus(data.forms);
+    document.getElementById("claimReviewSection").style.display = "block";
+}
+
+function renderClaimFields(fields){
+    const tbody = document.getElementById("claimFieldsBody");
+    tbody.innerHTML = "";
+    const cellStyle = 'border:1px solid var(--border); padding:6px;';
+
+    fields.forEach(field => {
+        const tr = document.createElement("tr");
+        let valueCell;
+        if(field.source === "computed"){
+            valueCell = `<span>${escapeHtml(field.resolved || "")}</span>`;
+        } else if(Array.isArray(field.choices)){
+            const options = ['<option value="">-- select --</option>']
+                .concat(field.choices.map(choice => {
+                    const selected = choice === field.value ? " selected" : "";
+                    return `<option value="${escapeHtml(choice)}"${selected}>${escapeHtml(choice)}</option>`;
+                }));
+            valueCell = `<select class="claim-field-input" data-key="${field.key}" data-table="${field.table || ''}" data-column="${field.column || ''}" style="width:100%;">${options.join("")}</select>`;
+        } else {
+            valueCell = `<input type="text" class="claim-field-input" data-key="${field.key}" data-table="${field.table || ''}" data-column="${field.column || ''}" value="${escapeHtml(field.value || '')}" style="width:100%; box-sizing:border-box;">`;
+        }
+
+        const errorNote = field.error ? ` <span style="color:#c0392b;">(${escapeHtml(field.error)})</span>` : "";
+        tr.innerHTML = `
+            <td style="${cellStyle}">${escapeHtml(field.label)}${errorNote}</td>
+            <td style="${cellStyle}">${valueCell}</td>
+            <td style="${cellStyle} text-align:center;">${CLAIM_SOURCE_LABELS[field.source] || field.source}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function renderClaimFormsStatus(forms){
+    const container = document.getElementById("claimFormsStatus");
+    container.innerHTML = "";
+
+    Object.keys(forms).forEach(formKey => {
+        const status = forms[formKey];
+        const problems = [...status.missing_required, ...status.validation_errors];
+        const box = document.createElement("div");
+        box.style.cssText = "border:1px solid var(--border); border-radius:6px; padding:8px; margin-top:8px;";
+        const title = formKey.toUpperCase();
+        box.innerHTML = `
+            <strong>${title}</strong> - ${status.complete ? "Ready to export" : "Missing required information"}
+            ${problems.length ? `<ul style="margin:4px 0 8px 20px;">${problems.map(p => `<li>${escapeHtml(p)}</li>`).join("")}</ul>` : ""}
+            <button ${status.complete ? "" : "disabled"} onclick="exportPhilhealthClaim('${formKey}')">Export ${title} PDF</button>
+        `;
+        container.appendChild(box);
+    });
+}
+
+async function savePhilhealthClaimCorrections(){
+    if(!currentClaimId){
+        return;
+    }
+
+    const payload = {patient: {}, encounter: {}, claim: {}};
+    document.querySelectorAll(".claim-field-input").forEach(input => {
+        const table = input.dataset.table;
+        const column = input.dataset.column;
+        if(!table || !column || input.value === ""){
+            return;
+        }
+        const bucket = table === "patients" ? "patient" : (table === "encounters" ? "encounter" : "claim");
+        payload[bucket][column] = input.value;
+    });
+
+    const statusEl = document.getElementById("claimStatus");
+    statusEl.textContent = "Saving corrections...";
+    try{
+        const resp = await fetch(`/api/claims/${currentClaimId}`, {
+            method: "PUT",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(payload),
+        });
+        const data = await resp.json();
+        if(!data.success){
+            statusEl.textContent = `Could not save corrections: ${data.error || "unknown error"}`;
+            return;
+        }
+        statusEl.textContent = "Corrections saved.";
+        renderClaimFields(data.fields);
+        renderClaimFormsStatus(data.forms);
+    }catch(err){
+        statusEl.textContent = `Could not save corrections: ${err}`;
+    }
+}
+
+async function exportPhilhealthClaim(formKey){
+    if(!currentClaimId){
+        return;
+    }
+    try{
+        const resp = await fetch(`/api/claims/${currentClaimId}/export/${formKey}`);
+        if(!resp.ok){
+            const data = await resp.json().catch(() => ({}));
+            alert(data.error || `Export failed (HTTP ${resp.status}).`);
+            return;
+        }
+        const blob = await resp.blob();
+        const disposition = resp.headers.get("Content-Disposition") || "";
+        const match = disposition.match(/filename="?([^"]+)"?/);
+        const filename = match ? match[1] : `PHILHEALTH_CLAIM_${currentClaimId}_${formKey.toUpperCase()}.pdf`;
+
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = filename;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+    }catch(err){
+        alert(`Export failed: ${err}`);
+    }
+}
+
 async function saveTestingRowsToExcel(){
     if(testingBusy){
         return;
@@ -2384,20 +2680,21 @@ async function saveTestingRowsToExcel(){
     const spreadId = document.getElementById("testingSpreadId").value.trim();
     const patientId = document.getElementById("testingPatientId").value.trim();
     const pdfPage = pdfDoc ? pdfCurrentPage : 1;
+    const side = pdfPage % 2 === 0 ? "right" : "left";
 
     const rows = Array.from(document.querySelectorAll("#testingTableBody tr")).map(tr => ({
         spread_id: spreadId,
         source_file: currentUploadFilename,
         pdf_page: pdfPage,
+        side: side,
         patient_id: patientId,
         field: tr.dataset.field || "",
         ground_truth: tr.querySelector(".testing-ground-truth").textContent.trim(),
         paddle_output: tr.querySelector(".testing-paddle-output").textContent.trim(),
         paddle_confidence: tr.dataset.paddleConfidence || "",
-        paddle_correct: tr.querySelector(".testing-paddle-correct").checked,
         tesseract_output: tr.querySelector(".testing-tesseract-output").textContent.trim(),
         tesseract_confidence: tr.dataset.tesseractConfidence || "",
-        tesseract_correct: tr.querySelector(".testing-tesseract-correct").checked,
+        best_engine: (tr.querySelector(".testing-best-radio:checked") || {}).value || "",
     }));
 
     if(rows.length === 0){
@@ -2423,6 +2720,11 @@ async function saveTestingRowsToExcel(){
         // clicking "Save Rows to Excel" again (e.g. a second accidental click)
         // would re-append the exact same fields as new duplicate rows.
         document.getElementById("testingTableBody").innerHTML = "";
+        // Row Preview is checked left-to-right per row - snap it back to the
+        // start for the next row instead of leaving it scrolled wherever the
+        // last check left off.
+        const previewScroll = document.getElementById("rowPreviewScroll");
+        if(previewScroll) previewScroll.scrollLeft = 0;
         statusEl.textContent = `Saved ${data.added} row(s). Workbook now has ${data.total_rows} row(s) total.`;
     }catch(err){
         statusEl.textContent = `Save failed: ${err}`;
@@ -2599,7 +2901,11 @@ function updatePdfNav(){
         pageControls.style.display = show ? "inline-flex" : "none";
     }
     if(show && pageIndicator){
-        pageIndicator.textContent = `Page ${pdfCurrentPage} / ${pdfPageCount}`;
+        const parity = getCurrentPageParity();
+        const sideLabel = parity === "odd" ? "Left" : parity === "even" ? "Right" : "";
+        pageIndicator.textContent = sideLabel
+            ? `Page ${pdfCurrentPage} / ${pdfPageCount} (${sideLabel})`
+            : `Page ${pdfCurrentPage} / ${pdfPageCount}`;
     }
     if(!pdfNav) return;
     pdfNav.style.display = show ? "block" : "none";
@@ -3329,6 +3635,21 @@ function updateRowNavigationStatus(){
     statusEl.textContent = `Row ${currentRowIndex + 1} of ${detectedRows.length}`;
 }
 
+// Steps the Patient ID field along with row navigation (Next Row -> +1,
+// Prev Row -> -1), preserving zero-padding (e.g. "022" -> "023") since each
+// row in a spread is normally the next patient. Only auto-steps when the
+// field is purely numeric - left alone otherwise so it never mangles a
+// hand-typed ID that isn't a simple counter.
+function stepPatientId(direction){
+    const input = document.getElementById("testingPatientId");
+    if(!input) return;
+    const match = input.value.trim().match(/^(\d+)$/);
+    if(!match) return;
+    const digits = match[1];
+    const next = Math.max(0, parseInt(digits, 10) + direction);
+    input.value = String(next).padStart(digits.length, "0");
+}
+
 function moveToRow(direction){
     if(detectedRows.length === 0){
         alert('No rows detected. Click "Smart Propagate Rows" first.');
@@ -3367,6 +3688,7 @@ function moveToRow(direction){
 
     refreshOverlayAfterCropChange();
     updateRowNavigationStatus();
+    stepPatientId(direction);
 }
 
 
