@@ -1,0 +1,132 @@
+{
+  "name": "Template 19:55:01",
+  "gridLines": [
+    0.01,
+    0.11739829396325453,
+    0.255521653543307,
+    0.42126985364698666,
+    0.5704429133858266
+  ],
+  "segmentInfo": [
+    {
+      "color": "#ef476f",
+      "category": "CASE #"
+    },
+    {
+      "color": "#ffd166",
+      "category": "DATE & TIME OF ADMISSION"
+    },
+    {
+      "color": "#06d6a0",
+      "category": "NAME"
+    },
+    {
+      "color": "#118ab2",
+      "category": "BDAY"
+    },
+    {
+      "color": "#073b4c",
+      "category": "ADDRESS"
+    }
+  ],
+  "cropBoxPercent": null,
+  "rowTemplate": {
+    "y": 36.47996948242201,
+    "height": 40,
+    "spacing": 5
+  },
+  "cropPresets": [
+    {
+      "createdAt": "2026-07-07T10:38:48.000Z",
+      "favorite": false,
+      "fromTemplate": true,
+      "height": 35,
+      "id": "09899959-e71d-45dd-ba64-6b30e3bea77e",
+      "name": "Template Crop",
+      "width": 321,
+      "xOffset": 0.5,
+      "yOffset": 0.1233
+    },
+    {
+      "createdAt": "2026-07-07T09:00:34.278Z",
+      "favorite": false,
+      "height": 35,
+      "id": "5e798ba7-bcd9-483f-bfa5-511ae808e29e",
+      "name": "2",
+      "width": 354,
+      "xOffset": 0.5,
+      "yOffset": 0.1233
+    },
+    {
+      "createdAt": "2026-07-07T08:45:27.493Z",
+      "favorite": false,
+      "height": 27,
+      "id": "16eb1342-f249-4769-aad4-95f7920f64b8",
+      "name": "1",
+      "width": 322,
+      "xOffset": 0.5,
+      "yOffset": 0.1213
+    }
+  ],
+  "created_at": 1789214042272,
+  "metadata": {
+    "source": "manual",
+    "lastMatchedScore": 0,
+    "pageParity": "odd",
+    "lastImprovedAt": 1789214102993,
+    "lastLearnedOffsets": {
+      "category": "",
+      "gridLines": [
+        0.01,
+        0.11739829396325453,
+        0.255521653543307,
+        0.42126985364698666,
+        0.5704429133858266
+      ],
+      "rowTemplate": {
+        "y": 36.47996948242201,
+        "height": 40,
+        "spacing": 5
+      },
+      "cropBoxPercent": null,
+      "imageWidth": 1527,
+      "imageHeight": 2526,
+      "source": "ocr"
+    }
+  },
+  "imageWidth": 1527,
+  "imageHeight": 2526,
+  "activeCropPreset": {
+    "createdAt": "2026-07-07T10:38:48.000Z",
+    "favorite": false,
+    "fromTemplate": true,
+    "height": 35,
+    "id": "09899959-e71d-45dd-ba64-6b30e3bea77e",
+    "name": "Template Crop",
+    "width": 321,
+    "xOffset": 0.5,
+    "yOffset": 0.1233
+  },
+  "activeCropPresetId": "09899959-e71d-45dd-ba64-6b30e3bea77e",
+  "learnedOffsets": [
+    {
+      "category": "",
+      "gridLines": [
+        0.01,
+        0.11739829396325453,
+        0.255521653543307,
+        0.42126985364698666,
+        0.5704429133858266
+      ],
+      "rowTemplate": {
+        "y": 36.47996948242201,
+        "height": 40,
+        "spacing": 5
+      },
+      "cropBoxPercent": null,
+      "imageWidth": 1527,
+      "imageHeight": 2526,
+      "source": "ocr"
+    }
+  ]
+}
