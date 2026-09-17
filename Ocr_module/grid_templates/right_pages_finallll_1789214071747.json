@@ -1,0 +1,86 @@
+{
+  "name": "right pages finallll",
+  "gridLines": [
+    0.054830111306385466,
+    0.3803838646502682,
+    0.4839689513766842,
+    0.8909109548916228
+  ],
+  "segmentInfo": [
+    {
+      "color": "#ef476f",
+      "category": "ADMITTING DIAGNOSIS"
+    },
+    {
+      "color": "#ffd166",
+      "category": "DATE & TIME OF DELIVERY"
+    },
+    {
+      "color": "#06d6a0",
+      "category": "FINAL DIAGNOSIS"
+    },
+    {
+      "color": "#118ab2",
+      "category": "DATE & TIME OF DISCHARGE"
+    }
+  ],
+  "cropBoxPercent": null,
+  "rowTemplate": {
+    "y": 22.4799084472657,
+    "height": 41,
+    "spacing": 5
+  },
+  "cropPresets": [
+    {
+      "createdAt": "2026-07-07T10:38:48.000Z",
+      "favorite": false,
+      "fromTemplate": true,
+      "height": 35,
+      "id": "09899959-e71d-45dd-ba64-6b30e3bea77e",
+      "name": "Template Crop",
+      "width": 321,
+      "xOffset": 0.5,
+      "yOffset": 0.1233
+    },
+    {
+      "createdAt": "2026-07-07T09:00:34.278Z",
+      "favorite": false,
+      "height": 35,
+      "id": "5e798ba7-bcd9-483f-bfa5-511ae808e29e",
+      "name": "2",
+      "width": 354,
+      "xOffset": 0.5,
+      "yOffset": 0.1233
+    },
+    {
+      "createdAt": "2026-07-07T08:45:27.493Z",
+      "favorite": false,
+      "height": 27,
+      "id": "16eb1342-f249-4769-aad4-95f7920f64b8",
+      "name": "1",
+      "width": 322,
+      "xOffset": 0.5,
+      "yOffset": 0.1213
+    }
+  ],
+  "created_at": 1789214071747,
+  "metadata": {
+    "source": "manual",
+    "lastMatchedScore": 0,
+    "pageParity": "even"
+  },
+  "imageWidth": 1707,
+  "imageHeight": 2526,
+  "activeCropPreset": {
+    "createdAt": "2026-07-07T10:38:48.000Z",
+    "favorite": false,
+    "fromTemplate": true,
+    "height": 35,
+    "id": "09899959-e71d-45dd-ba64-6b30e3bea77e",
+    "name": "Template Crop",
+    "width": 321,
+    "xOffset": 0.5,
+    "yOffset": 0.1233
+  },
+  "activeCropPresetId": "09899959-e71d-45dd-ba64-6b30e3bea77e"
+}

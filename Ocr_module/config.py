@@ -96,7 +96,7 @@ DB_CONNECT_TIMEOUT = _env_int("DB_CONNECT_TIMEOUT", 5)
 UPLOAD_FOLDER = Path(os.environ.get("OCR_UPLOAD_DIR", BASE_DIR / "uploads"))
 TRAINING_FOLDER = UPLOAD_FOLDER / "training"
 GRID_TEMPLATES_FOLDER = Path(
-    os.environ.get("OCR_TEMPLATES_DIR", UPLOAD_FOLDER / "grid_templates")
+    os.environ.get("OCR_TEMPLATES_DIR", BASE_DIR / "grid_templates")
 )
 DEBUG_CELLS_FOLDER = BASE_DIR / "debug_cells"
 
