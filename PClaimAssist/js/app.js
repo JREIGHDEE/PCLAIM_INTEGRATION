@@ -1,6 +1,8 @@
 /* ═══════════════════════════════════════════════════════════
    PClaimAssist – Application Logic  |  Phase 1 Prototype
-   Privacy-by-design: no storage, no server calls.
+   This file keeps form data in memory only and makes no API calls
+   itself; OCR, claim storage (MariaDB) and server-side PDF export are
+   handled by the Ocr_module Flask backend (see js/ocr.js).
 ═══════════════════════════════════════════════════════════ */
 AOS.init({ duration: 500, once: true, offset: 30 });
 
