@@ -4,6 +4,7 @@ test_template_matching.py / test_philhealth_mapping.py.
 """
 import unittest
 
+import cv2
 import numpy as np
 
 import config
@@ -70,6 +71,28 @@ class AssessImageQualityTests(unittest.TestCase):
         self.assertFalse(result["is_too_dark"])
         self.assertFalse(result["is_too_bright"])
         self.assertEqual(result["warnings"], [])
+
+    def test_clean_white_document_is_not_overexposed(self):
+        # Mostly white paper with a little dark text - a normal scan has a
+        # high mean brightness but is not overexposed.
+        page = _solid_image(250, size=400)
+        for row in range(40, 360, 40):
+            cv2.putText(page, "Dela Cruz 06/10/2026", (20, row), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (20, 20, 20), 1)
+        result = assess_image_quality(page)
+        self.assertGreater(result["brightness_score"], config.IMAGE_QUALITY_BRIGHTNESS_HIGH)
+        self.assertFalse(result["is_too_bright"])
+        self.assertTrue(result["passed"])
+
+    def test_washed_out_document_is_overexposed(self):
+        page = _solid_image(250, size=400)
+        for row in range(40, 360, 40):
+            cv2.putText(page, "Dela Cruz 06/10/2026", (20, row), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1)
+        result = assess_image_quality(page)
+        self.assertTrue(result["is_too_bright"])
+        self.assertFalse(result["passed"])
+
+    def test_result_is_tagged_as_rule_iq_01(self):
+        self.assertEqual(assess_image_quality(_noisy_image())["rule_id"], "IQ-01")
 
     def test_never_raises_on_none(self):
         result = assess_image_quality(None)

@@ -15,6 +15,7 @@ import config
 from db import test_connection
 from errors import register_error_handlers
 from logging_setup import configure_logging
+from philhealth import field_catalog
 from routes import register_routes
 
 logger = logging.getLogger(__name__)
@@ -38,7 +39,21 @@ def create_app():
 
     @app.route("/")
     def home():
-        return render_template("index.html")
+        return render_template(
+            "index.html",
+            accept=config.OCR_CONFIDENCE_ACCEPT,
+            review=config.OCR_CONFIDENCE_REVIEW,
+        )
+
+    @app.route("/review")
+    def review():
+        return render_template(
+            "review.html",
+            accept=config.OCR_CONFIDENCE_ACCEPT,
+            review=config.OCR_CONFIDENCE_REVIEW,
+            forms_url=config.PCLAIMASSIST_FORMS_URL,
+            claim_required=list(field_catalog.OCR_CLAIM_REQUIRED_CATEGORIES),
+        )
 
     @app.route("/db_health")
     def db_health():

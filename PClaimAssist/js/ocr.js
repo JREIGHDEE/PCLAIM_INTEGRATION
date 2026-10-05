@@ -1,11 +1,14 @@
 /* ═══════════════════════════════════════════════════════════
    PClaimAssist – OCR Workspace (ocr.html only)
 
-   This page hosts the ORIGINAL OCR interface (single source of truth:
-   Ocr_module/templates/index.html, served by Flask) inside an
-   <iframe>. All upload/crop/template/OCR/review logic lives inside
-   that iframe's own document — this file only drives the PClaimAssist
-   shell around it (mobile sidebar toggle, iframe load/error state).
+   This page hosts the OCR backend's Logbook Review page
+   (Ocr_module/templates/review.html, served by Flask; the template
+   calibration UI is one link away from it) inside an <iframe>. All
+   upload/OCR/review logic lives inside that iframe's own document —
+   this file only drives the PClaimAssist shell around it (mobile
+   sidebar toggle, iframe load/error state) and, when the review's
+   "Send to Forms" posts {type: 'pclaimassist:open-claim', claimId},
+   opens the data-entry forms on that claim (index.html?claim=<id>).
 
    Does NOT read or write window.state / state.data, does NOT call
    navigateTo() / updateFormPreviews() / any validation or PDF-overlay
@@ -14,7 +17,7 @@
    couldn't reach any of that even by accident.
 ═══════════════════════════════════════════════════════════ */
 
-const OCR_APP_URL = 'http://127.0.0.1:5000/';
+const OCR_APP_URL = 'http://127.0.0.1:5000/review';
 const OCR_LOAD_TIMEOUT_MS = 10000;
 
 /* ── Iframe load / error state ───────────────────────────── */
@@ -48,6 +51,17 @@ const OCR_LOAD_TIMEOUT_MS = 10000;
 
   iframe.src = OCR_APP_URL;
 })();
+
+/* ── "Send to Forms" from the review inside the iframe ────────
+   Only messages from the OCR backend's origin are accepted, and only a
+   numeric claim id is taken from them - the forms load the claim's data
+   from the API themselves. */
+window.addEventListener('message', event => {
+  if (event.origin !== new URL(OCR_APP_URL).origin) return;
+  const msg = event.data || {};
+  if (msg.type !== 'pclaimassist:open-claim' || !/^\d+$/.test(String(msg.claimId))) return;
+  window.location.href = `index.html?claim=${encodeURIComponent(msg.claimId)}`;
+});
 
 /* ── Mobile sidebar toggle (presentational only — mirrors the
    same class names app.js uses, but is an independent copy so

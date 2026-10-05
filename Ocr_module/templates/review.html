@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Logbook Reader</title>
+<style>
+/* Designed for staff who may find small, busy screens hard to use:
+   large text and buttons, one patient at a time, plain words, and every
+   status shown with an icon and words - never colour alone. */
+:root{
+    --text:#111827;
+    --muted:#4b5563;
+    --line:#d1d5db;
+    --bg:#f3f4f6;
+    --card:#ffffff;
+    --blue:#1d4ed8;
+    --blue-soft:#dbeafe;
+    --ok:#166534;     --ok-soft:#dcfce7;
+    --check:#854d0e;  --check-soft:#fef9c3;  --check-line:#ca8a04;
+    --type:#991b1b;   --type-soft:#fee2e2;   --type-line:#dc2626;
+}
+*{ box-sizing:border-box; }
+html{ font-size:18px; }
+body{
+    margin:0;
+    padding:20px 16px 60px;
+    background:var(--bg);
+    color:var(--text);
+    font-family:"Segoe UI",Arial,sans-serif;
+    line-height:1.5;
+}
+main{ max-width:960px; margin:0 auto; }
+h1{ font-size:1.7rem; margin:0 0 4px; }
+h2{ font-size:1.35rem; margin:0 0 8px; }
+p{ margin:0 0 10px; }
+a{ color:var(--blue); }
+.muted{ color:var(--muted); }
+
+/* ── Tabs: Upload / Check patients ──────────────────── */
+.tabs{ display:flex; flex-wrap:wrap; gap:10px; margin:16px 0 0; border-bottom:3px solid var(--blue); }
+.tab{
+    flex:1 1 200px; display:flex; align-items:center; gap:10px;
+    min-height:64px; padding:12px 18px; margin-bottom:-3px;
+    border:3px solid var(--line); border-bottom:none; border-radius:14px 14px 0 0;
+    background:#e5e7eb; color:var(--muted); font-size:1.1rem; text-align:left;
+}
+.tab .num{
+    display:inline-flex; align-items:center; justify-content:center; flex:none;
+    width:2rem; height:2rem; border-radius:50%; background:var(--line); color:var(--text);
+}
+.tab[aria-selected="true"]{ background:var(--card); color:var(--text); border-color:var(--blue); border-bottom:3px solid var(--card); }
+.tab[aria-selected="true"] .num{ background:var(--blue); color:#fff; }
+.tab{ flex-wrap:wrap; row-gap:2px; }
+.tab .tab-count{ flex-basis:100%; padding-left:calc(2rem + 10px); font-size:.9rem; font-weight:600; color:var(--muted); }
+.tab .tab-count:empty{ display:none; }
+.tab[aria-disabled="true"]{ opacity:.6; cursor:not-allowed; }
+.tab-panel{ background:var(--card); border:3px solid var(--blue); border-top:none; border-radius:0 0 14px 14px; padding:20px; margin-bottom:18px; }
+.tab-panel .card{ border-width:2px; }
+.empty-review{ text-align:center; padding:30px 10px; }
+#reviewNote:empty{ display:none; }
+
+/* Tab 3: one big row per patient. */
+.patient-list{ list-style:none; margin:12px 0 0; padding:0; display:grid; gap:12px; }
+.patient-row{
+    width:100%; display:grid; grid-template-columns:auto 1fr auto; gap:6px 16px; align-items:center;
+    min-height:76px; padding:14px 18px; text-align:left; font-weight:400; color:var(--text);
+    border:2px solid var(--line); background:#fff;
+}
+.patient-row .pnum{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:2.6rem; height:2.6rem; border-radius:50%; background:#e5e7eb; font-weight:700;
+}
+.patient-row .pname{ font-size:1.15rem; font-weight:700; }
+.patient-row .pinfo{ color:var(--muted); font-size:.95rem; }
+.patient-row .pstate{ font-weight:700; white-space:nowrap; }
+.patient-row.done{ border-color:var(--ok); }
+.patient-row.done .pnum{ background:var(--ok-soft); color:var(--ok); }
+.patient-row.done .pstate{ color:var(--ok); }
+.patient-row.here{ border-color:var(--blue); box-shadow:0 0 0 3px var(--blue-soft); }
+.patient-row.next{ border:3px dashed var(--blue); }
+.patient-row.next .pstate{ color:var(--blue); }
+.patient-row.here .pnum{ background:var(--blue); color:#fff; }
+.patient-top{ display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; justify-content:space-between; }
+.list-progress{ font-size:1.1rem; font-weight:700; }
+
+/* One box at a time: numbered box buttons, one field, Back / Next. */
+.box-steps{ display:flex; flex-wrap:wrap; gap:8px; list-style:none; padding:0; margin:16px 0 4px; }
+.box-steps button{
+    min-height:52px; min-width:52px; padding:6px 12px; font-size:1rem;
+    border-color:var(--line); color:var(--text); background:#fff;
+}
+.box-steps .mark{ font-weight:700; margin-right:4px; }
+.box-steps .s-accepted{ border-color:var(--ok); }
+.box-steps .s-accepted .mark{ color:var(--ok); }
+.box-steps .s-needs_check{ border-color:var(--check-line); background:var(--check-soft); }
+.box-steps .s-manual_encoding_required{ border-color:var(--type-line); background:var(--type-soft); }
+.box-steps .s-empty{ border-style:dashed; color:var(--muted); }
+.box-steps .s-problem{ border-color:var(--type-line); background:var(--type-soft); box-shadow:0 0 0 3px var(--type-soft); }
+.box-steps button[aria-current="step"]{ background:var(--blue); border-color:var(--blue); color:#fff; }
+.box-steps button[aria-current="step"] .mark{ color:#fff; }
+.box-steps .finish{ border-color:var(--ok); color:var(--ok); }
+.box-nav{ display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; margin-top:18px; }
+.box-nav button{ flex:0 1 220px; }
+.box-nav .where{ font-weight:700; font-size:1.1rem; text-align:center; flex:1 1 120px; }
+#fields .field{ margin-top:10px; }
+/* Titles get focus only so screen readers announce the new box. */
+.field-title:focus, h2[tabindex="-1"]:focus{ outline:none; }
+.summary-table{ width:100%; border-collapse:collapse; margin:8px 0 16px; }
+.summary-table th, .summary-table td{ padding:12px 8px; border-bottom:1px solid var(--line); text-align:left; vertical-align:middle; }
+.summary-table th{ width:32%; font-weight:700; }
+.summary-table td.value{ font-size:1.1rem; }
+.summary-table td.value.missing{ color:var(--type); font-weight:700; }
+.summary-table td.value.blank{ color:var(--muted); font-style:italic; }
+.summary-table button{ min-height:44px; padding:6px 14px; font-size:.95rem; }
+.keys-tip{ font-size:.95rem; color:var(--muted); margin:10px 0 0; }
+kbd{ display:inline-block; min-width:2rem; padding:2px 8px; border:2px solid var(--line); border-bottom-width:4px;
+     border-radius:6px; background:#fff; font-family:inherit; font-weight:700; text-align:center; color:var(--text); }
+
+.card{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px; margin-bottom:18px; }
+
+/* ── Buttons & inputs ──────────────────────────────── */
+button, .file-button{
+    font:inherit; font-weight:700; min-height:56px; padding:12px 22px;
+    border-radius:12px; border:2px solid var(--blue); background:#fff; color:var(--blue);
+    cursor:pointer;
+}
+button.primary, .file-button{ background:var(--blue); color:#fff; }
+button.go{ background:var(--ok); border-color:var(--ok); color:#fff; }
+button:disabled{ opacity:.55; cursor:default; }
+/* A main button that can't be pressed yet is plain grey, not faded blue,
+   so it clearly reads as "not ready". */
+button.primary:disabled{ opacity:1; background:#d1d5db; border-color:#d1d5db; color:#4b5563; }
+button:focus-visible, input:focus-visible, .file-button:focus-within, summary:focus-visible, a:focus-visible{
+    outline:4px solid #f59e0b; outline-offset:2px;
+}
+.actions{ display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+input.big{
+    width:100%; font:inherit; font-size:1.15rem; padding:12px 14px;
+    border:2px solid var(--line); border-radius:10px; background:#fff; color:var(--text);
+}
+.file-button{ position:relative; display:inline-flex; align-items:center; justify-content:center; }
+.upload-actions{ display:flex; flex-wrap:wrap; justify-content:center; gap:16px; margin-top:16px; }
+.upload-actions > *{ flex:0 1 280px; min-width:240px; text-align:center; }
+#fileName{ display:block; text-align:center; margin-top:10px; }
+.resume-note{ text-align:center; }
+.file-button input{ position:absolute; width:1px; height:1px; opacity:0; }
+#fileName{ font-weight:600; }
+
+/* ── Messages ──────────────────────────────────────── */
+.notice{ border-radius:12px; padding:14px 18px; margin-bottom:18px; border:2px solid; }
+.notice strong{ display:block; font-size:1.1rem; }
+.notice ul{ margin:6px 0 0 20px; padding:0; }
+.notice.warn{ background:var(--check-soft); border-color:var(--check-line); color:var(--check); }
+.notice.good{ background:var(--ok-soft); border-color:var(--ok); color:var(--ok); }
+.notice.bad{ background:var(--type-soft); border-color:var(--type-line); color:var(--type); }
+.notice .tag{ display:block; margin-top:4px; font-size:.8rem; font-weight:600; opacity:.85; }
+/* Heart-line progress: the line fills with blue from left to right as
+   the scan is read; full when finished. */
+.heartline{ margin-top:18px; }
+.heartline svg{ display:block; width:100%; height:90px; overflow:visible; }
+.heartline path{ fill:none; stroke-width:5; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke; }
+.heartline-track{ stroke:var(--blue-soft); }
+.heartline-done{ stroke:var(--blue); }
+#heartlineFill{ transform-box:fill-box; transform-origin:left center; transform:scaleX(0); transition:transform .6s ease-out; }
+@media (prefers-reduced-motion: reduce){ #heartlineFill{ transition:none; } }
+.heartline-text{ display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 14px; margin-top:6px; font-size:1.15rem; font-weight:600; }
+.heartline-percent{ font-size:1.6rem; font-weight:700; color:var(--blue); min-width:4.2rem; }
+.heartline.finished .heartline-percent{ color:var(--ok); }
+.heartline-note{ margin-top:4px; }
+.heartline.finished .heartline-note{ display:none; }
+.message{ font-weight:600; min-height:1.5em; }
+.message.ok{ color:var(--ok); }
+.message.bad{ color:var(--type); }
+
+/* ── Patient navigation ────────────────────────────── */
+.patient-nav{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; }
+.summary-line{ font-size:1.05rem; margin:4px 0 0; }
+.done-badge{ color:var(--ok); font-weight:700; }
+
+/* ── Fields ────────────────────────────────────────── */
+.field{ border:2px solid var(--line); border-radius:12px; padding:16px; margin-top:16px; background:#fff; }
+.field--needs_check{ border-color:var(--check-line); }
+.field--manual_encoding_required{ border-color:var(--type-line); }
+.field-head{ display:flex; flex-wrap:wrap; gap:8px 12px; align-items:center; justify-content:space-between; margin-bottom:6px; }
+.field-head label, .field-title{ font-size:1.2rem; font-weight:700; }
+.chip{ display:inline-flex; align-items:center; gap:6px; padding:4px 12px; border-radius:999px; font-weight:700; font-size:.95rem; }
+.chip--accepted{ background:var(--ok-soft); color:var(--ok); }
+.chip--needs_check{ background:var(--check-soft); color:var(--check); }
+.chip--manual_encoding_required{ background:var(--type-soft); color:var(--type); }
+.chip--empty{ background:#e5e7eb; color:var(--muted); }
+.field--empty{ border-style:dashed; }
+.field-help strong{ color:var(--check); }
+.chip .sure{ font-weight:500; }
+.field-help{ color:var(--muted); }
+.scan-label{ font-size:.9rem; color:var(--muted); margin:8px 0 4px; }
+.scan{ display:block; border:1px solid var(--line); border-radius:8px; background:#fafafa; padding:6px; overflow-x:auto; }
+.scan img{ display:block; max-width:100%; height:auto; min-height:48px; }
+.input-label{ font-size:.9rem; color:var(--muted); margin:12px 0 4px; display:block; }
+input.big.empty-required{ border-color:var(--type-line); background:#fff7f7; }
+.field.empty-required input.big:not([data-part="middle"]):not([data-part="suffix"]){ border-color:var(--type-line); background:#fff7f7; }
+.inputs-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr)); gap:10px 14px; }
+.inputs-grid .input-label{ margin-top:4px; }
+.when{ display:flex; flex-wrap:wrap; gap:12px 18px; align-items:flex-end; }
+.when .date-box{ flex:1 1 230px; }
+.time-box{ display:flex; align-items:center; gap:6px; }
+.time-box input.big{ width:4.2rem; text-align:center; }
+.time-colon{ font-size:1.4rem; font-weight:700; }
+.ampm{ min-width:72px; min-height:52px; padding:8px 12px; }
+.ampm[aria-pressed="true"]{ background:var(--blue); color:#fff; }
+.quick{ min-height:44px; padding:6px 14px; font-size:.95rem; margin-top:8px; }
+.req{ color:var(--type); }
+.field-note{ font-size:.95rem; margin:8px 0 0; }
+.field-problem{ color:var(--type); font-weight:700; margin:8px 0 0; }
+.field-tip{ color:var(--blue); font-weight:700; margin:8px 0 0; }
+.empty-toggle{
+    display:flex; align-items:center; gap:10px; width:100%; margin-top:12px;
+    min-height:52px; padding:10px 16px; text-align:left; font-weight:600;
+    border:2px dashed var(--line); color:var(--muted); background:#fff;
+}
+.empty-toggle .tick{ font-size:1.5rem; line-height:1; }
+.empty-toggle[aria-pressed="true"]{ border-style:solid; border-color:var(--muted); color:var(--text); background:#e5e7eb; }
+.field.is-empty{ border-style:dashed; }
+.field.is-empty .field-inputs{ opacity:.45; }
+.empty-note{ display:none; font-weight:700; color:var(--muted); }
+.field.is-empty .empty-note{ display:block; }
+.field.is-empty .chip, .field.is-empty .field-help{ display:none; }
+.field-warning{ color:var(--check); font-weight:700; margin:8px 0 0; }
+.field.has-problem{ border-color:var(--type-line); box-shadow:0 0 0 3px var(--type-soft); }
+.field.has-warning{ border-color:var(--check-line); box-shadow:0 0 0 3px var(--check-soft); }
+.confirm-box{ margin-top:14px; }
+.confirm-box .actions{ margin-top:10px; }
+.example{ font-size:.9rem; color:var(--muted); margin:6px 0 0; }
+details.more{ margin-top:10px; font-size:.9rem; color:var(--muted); }
+details.more summary{ cursor:pointer; font-weight:600; min-height:32px; }
+details.more dl{ margin:6px 0 0; display:grid; grid-template-columns:max-content 1fr; gap:4px 12px; }
+details.more dt{ font-weight:600; }
+details.more dd{ margin:0; word-break:break-word; }
+.admin-link{ font-size:.9rem; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Logbook Reader</h1>
+<p class="muted">Scan a page of the maternity logbook. The computer reads each patient's line, you check it, then it fills in the PhilHealth forms.</p>
+
+<div class="tabs" role="tablist" aria-label="Logbook reader">
+    <button type="button" class="tab" role="tab" id="tab-upload" aria-controls="panel-upload"
+        aria-selected="true" onclick="showTab('upload')"><span class="num" aria-hidden="true">1</span>Upload the scan</button>
+    <button type="button" class="tab" role="tab" id="tab-patient" aria-controls="panel-patient"
+        aria-selected="false" tabindex="-1" onclick="showTab('patient')"><span class="num" aria-hidden="true">2</span>Check the patient
+        <span class="tab-count" id="patientLabel"></span></button>
+    <button type="button" class="tab" role="tab" id="tab-patients" aria-controls="panel-patients"
+        aria-selected="false" tabindex="-1" onclick="showTab('patients')"><span class="num" aria-hidden="true">3</span>All patients
+        <span class="tab-count" id="reviewCount"></span></button>
+</div>
+
+<div class="tab-panel" role="tabpanel" id="panel-upload" aria-labelledby="tab-upload">
+<section class="card" aria-labelledby="uploadTitle">
+    <h2 id="uploadTitle">Step 1. Choose the logbook scan</h2>
+    <p class="muted">A photo or scan (JPG or PNG) of one page, or a PDF with both pages of the logbook.</p>
+    <div class="upload-actions">
+        <label class="file-button">
+            1. Choose a file
+            <input type="file" id="fileInput" accept=".pdf,image/*" onchange="showFileName()">
+        </label>
+        <button class="primary" id="uploadBtn" type="button" onclick="uploadLogbook()" disabled
+            aria-describedby="fileName">2. Read the logbook</button>
+    </div>
+    <span id="fileName" class="muted">No file chosen yet — choose one first</span>
+    <div id="readingProgress" class="heartline" hidden>
+        <svg viewBox="0 0 600 80" role="progressbar" aria-label="Reading the logbook"
+             aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="heartlineBar" preserveAspectRatio="none">
+            <defs><clipPath id="heartlineClip"><rect id="heartlineFill" x="0" y="0" width="600" height="80"/></clipPath></defs>
+            <path class="heartline-track" d="M0,50 L40,50 Q50,40 60,50 L80,50 L88,58 L98,10 L108,70 L116,50 L140,50 Q155,32 170,50 L200,50 L240,50 Q250,40 260,50 L280,50 L288,58 L298,10 L308,70 L316,50 L340,50 Q355,32 370,50 L400,50 L440,50 Q450,40 460,50 L480,50 L488,58 L498,10 L508,70 L516,50 L540,50 Q555,32 570,50 L600,50"/>
+            <path class="heartline-done" d="M0,50 L40,50 Q50,40 60,50 L80,50 L88,58 L98,10 L108,70 L116,50 L140,50 Q155,32 170,50 L200,50 L240,50 Q250,40 260,50 L280,50 L288,58 L298,10 L308,70 L316,50 L340,50 Q355,32 370,50 L400,50 L440,50 Q450,40 460,50 L480,50 L488,58 L498,10 L508,70 L516,50 L540,50 Q555,32 570,50 L600,50" clip-path="url(#heartlineClip)"/>
+        </svg>
+        <div class="heartline-text">
+            <span id="heartlinePercent" class="heartline-percent">0%</span>
+            <span id="heartlineMessage">Starting…</span>
+        </div>
+        <p class="muted heartline-note">Please wait and keep this page open. It takes about a minute.</p>
+    </div>
+    <div id="uploadStatus" class="message" role="status" aria-live="polite" style="margin-top:12px;"></div>
+</section>
+
+</div>
+
+<div class="tab-panel" role="tabpanel" id="panel-patient" aria-labelledby="tab-patient" hidden>
+<p id="reviewNote" class="message ok" role="status"></p>
+<div id="iqBanner"></div>
+<div id="pageReport"></div>
+<div id="sessions">
+    <div class="empty-review">
+        <p><strong>No scan has been read yet.</strong></p>
+        <p class="muted">Go to <strong>1. Upload the scan</strong> first. The patients will show here when it's done.</p>
+        <button type="button" class="primary" onclick="showTab('upload')">Go to Upload the scan</button>
+    </div>
+</div>
+</div>
+
+<div class="tab-panel" role="tabpanel" id="panel-patients" aria-labelledby="tab-patients" hidden>
+<div id="patientList">
+    <div class="empty-review">
+        <p><strong>No scan has been read yet.</strong></p>
+        <p class="muted">Go to <strong>1. Upload the scan</strong> first. The patients will show here when it's done.</p>
+        <button type="button" class="primary" onclick="showTab('upload')">Go to Upload the scan</button>
+    </div>
+</div>
+</div>
+
+<p class="admin-link muted">For administrators: <a href="/">template setup (calibration)</a>.</p>
+</main>
+
+<script>
+const FORMS_URL = {{ forms_url | tojson }};
+const CLAIM_REQUIRED = {{ claim_required | tojson }};
+const ACCEPT = {{ accept | tojson }};
+const REVIEW = {{ review | tojson }};
+
+// Plain-language names for the logbook columns (display only).
+const FIELD_NAMES = {
+    "CASE #": "Case number",
+    "DATE & TIME OF ADMISSION": "Admitted (date and time)",
+    "NAME": "Patient name",
+    "BDAY": "Birthday",
+    "ADDRESS": "Address",
+    "ADMITTING DIAGNOSIS": "Reason for admission",
+    "DATE & TIME OF DELIVERY": "Delivered (date and time)",
+    "FINAL DIAGNOSIS": "Final diagnosis",
+    "DATE & TIME OF DISCHARGE": "Went home (date and time)",
+};
+// Confidence routing (thresholds from config.py), in plain words.
+const STATUS = {
+    accepted: {
+        icon: "✓", label: "Looks good",
+        help: "The computer is sure about this. Take a quick look at the picture.",
+    },
+    needs_check: {
+        icon: "!", label: "Please check",
+        help: "The computer is not sure. Compare the words in the box with the picture, and fix them if needed.",
+    },
+    manual_encoding_required: {
+        icon: "✎", label: "Please type",
+        help: "The computer could not read this. Look at the picture and type what you see.",
+    },
+    empty: {
+        icon: "–", label: "Empty in the logbook",
+        help: "Nothing is written here in the logbook. Leave it empty, or type it if you know it.",
+    },
+};
+const MAYBE_MISSING = "Part of the writing may be missing from the box. Look at the whole picture.";
+
+let sessions = [];
+let current = 0;
+
+// Remembered in this browser so nothing is lost when staff switch to
+// another PClaimAssist tab (which unloads this page) and come back:
+// the reading job in progress, the patients being checked, which patient
+// was open, and anything typed but not yet saved. Saved reviews live in
+// the database; this only covers the in-between.
+const STORE_KEY = "pclaimassist.logbookReader";
+function loadMemory(){
+    try{ return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; }catch(err){ return {}; }
+}
+function remember(changes){
+    try{ localStorage.setItem(STORE_KEY, JSON.stringify({...loadMemory(), ...changes})); }catch(err){ /* storage off - just don't remember */ }
+}
+function rememberDrafts(){
+    const s = sessions[current];
+    if(!s) return;
+    const memory = loadMemory();
+    const drafts = memory.drafts || {};
+    drafts[s.session_id] = collectParts();
+    remember({drafts, current});
+}
+function forgetDraft(sessionId){
+    const drafts = loadMemory().drafts || {};
+    delete drafts[sessionId];
+    remember({drafts});
+}
+
+function escapeHtml(value){
+    return String(value ?? "")
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+const nameOf = category => FIELD_NAMES[category] || category;
+const percent = value => value === null || value === undefined ? null : Math.round(value * 100);
+
+// ── Tabs ───────────────────────────────────────────────────────────
+const TABS = ["upload", "patient", "patients"];
+let activeTab = "upload";
+
+function showTab(name, focusTab){
+    if(!TABS.includes(name)) return;
+    activeTab = name;
+    TABS.forEach(tab => {
+        const button = document.getElementById(`tab-${tab}`);
+        const selected = tab === name;
+        button.setAttribute("aria-selected", String(selected));
+        button.tabIndex = selected ? 0 : -1;
+        document.getElementById(`panel-${tab}`).hidden = !selected;
+    });
+    remember({tab: name});
+    if(name === "patients") renderPatientList();
+    if(focusTab) document.getElementById(`tab-${name}`).focus();
+    window.scrollTo({top: 0});
+}
+
+function updateReviewCount(){
+    const count = document.getElementById("reviewCount");
+    const label = document.getElementById("patientLabel");
+    if(!sessions.length){ count.textContent = ""; label.textContent = ""; return; }
+    const done = sessions.filter(s => s.review_status === "reviewed").length;
+    count.textContent = `${done} of ${sessions.length} checked`;
+    label.textContent = `Patient ${current + 1} of ${sessions.length}`;
+}
+
+// The patient's name as it stands (typed or read), for headings and the list.
+function patientName(session){
+    const field = session.fields.find(f => f.category === "NAME") || {};
+    const p = field.parts || {};
+    if(p.last || p.first) return [p.last, [p.first, p.middle].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+    return field.value || "(name not read yet)";
+}
+
+// Tab 3: every patient on the page; pressing one opens it in tab 2.
+let listNote = "";
+
+function renderPatientList(){
+    const el = document.getElementById("patientList");
+    if(!sessions.length) return;
+    keepTyped();
+    const note = listNote;
+    listNote = "";
+    const nextUp = sessions.findIndex((s, i) => i > current && s.review_status !== "reviewed");
+    const done = sessions.filter(s => s.review_status === "reviewed").length;
+    const rows = sessions.map((s, i) => {
+        const checked = s.review_status === "reviewed";
+        const here = i === current;
+        const left = summaryText(s).replace(/<[^>]+>/g, "");
+        const isNext = !checked && !here && i === nextUp;
+        return `<li><button type="button" class="patient-row ${checked ? "done" : ""} ${here ? "here" : ""} ${isNext ? "next" : ""}"
+                onclick="openPatient(${i})" aria-label="Patient ${i + 1}: ${escapeHtml(patientName(s))}. ${checked ? "Checked" : "Not checked yet"}. ${escapeHtml(left)}">
+            <span class="pnum" aria-hidden="true">${checked ? "✓" : i + 1}</span>
+            <span>
+                <span class="pname">${escapeHtml(patientName(s))}</span><br>
+                <span class="pinfo">${s.case_id ? "Case number " + escapeHtml(s.case_id) + " · " : ""}${escapeHtml(left)}</span>
+            </span>
+            <span class="pstate">${checked ? "✓ Checked" : here ? "You are here" : i === nextUp ? "Next ▶" : "Not checked yet"}</span>
+        </button></li>`;
+    }).join("");
+    el.innerHTML = `<div class="patient-top">
+            <h2>Choose a patient</h2>
+            <span class="list-progress">${done} of ${sessions.length} checked</span>
+        </div>
+        ${note ? `<p class="message ok" role="status">${escapeHtml(note)}</p>` : ""}
+        <p class="muted">Press a patient to check them. Use <kbd aria-label="up arrow">↑</kbd> and <kbd aria-label="down arrow">↓</kbd> to move through the list.</p>
+        <ol class="patient-list" id="patientRows">${rows}</ol>`;
+}
+
+function openPatient(index){
+    goTo(index);
+    showTab("patient");
+    document.getElementById("patientTitle")?.focus({preventScroll: true});
+}
+
+// Kept for the step names used in the flow: 1 upload, 2-3 checking.
+function setStep(n){
+    showTab(n === 1 ? "upload" : "patient");
+}
+
+function showFileName(){
+    const file = document.getElementById("fileInput").files[0];
+    document.getElementById("fileName").textContent = file ? `Chosen: ${file.name}` : "No file chosen yet — choose one first";
+    updateReadButton();
+}
+
+// "Read the logbook" is only usable once a file is chosen, and not while
+// a scan is already being read.
+let reading = false;
+function updateReadButton(){
+    const hasFile = !!document.getElementById("fileInput").files[0];
+    document.getElementById("uploadBtn").disabled = reading || !hasFile;
+}
+
+function setUploadStatus(html, kind){
+    const el = document.getElementById("uploadStatus");
+    el.className = `message ${kind || ""}`;
+    el.innerHTML = html;
+}
+
+// IQ-01 (image quality) is advisory: the reading has already happened.
+function renderIqBanner(iq){
+    const el = document.getElementById("iqBanner");
+    if(!iq){ el.innerHTML = ""; return; }
+    if(iq.passed){
+        el.innerHTML = `<div class="notice good" role="status"><strong>✓ The scan is clear.</strong>
+            <span class="tag">Image quality check ${escapeHtml(iq.rule_id)}: passed</span></div>`;
+        return;
+    }
+    const items = iq.warnings.map(w => `<li>${escapeHtml(w)}</li>`).join("");
+    el.innerHTML = `<div class="notice warn" role="alert">
+        <strong>! The scan is not very clear.</strong>
+        The computer still read it, but it may make more mistakes. Check every box carefully, or scan the page again.
+        <details class="more"><summary>What is wrong with the scan?</summary><ul>${items}</ul></details>
+        <span class="tag">Image quality check ${escapeHtml(iq.rule_id)}</span></div>`;
+}
+
+function renderPageReport(pages){
+    const errors = (pages || []).filter(p => p.error);
+    document.getElementById("pageReport").innerHTML = errors.length
+        ? `<div class="notice bad" role="alert"><strong>Some pages could not be read.</strong>
+            Ask an administrator to set up a template for this kind of page.
+            <details class="more"><summary>Details</summary><ul>${
+            errors.map(p => `<li>Page ${p.page}: ${escapeHtml(p.error)}</li>`).join("")}</ul></details></div>`
+        : "";
+}
+
+function summaryText(session){
+    let toType = 0, toCheck = 0, good = 0, empty = 0;
+    session.fields.forEach(f => {
+        const blank = isBlank(f.kind, f.parts || {});
+        if((f.parts || {}).empty || (f.status === "empty" && blank)) empty++;
+        else if(f.status === "manual_encoding_required" && blank) toType++;
+        else if(f.status === "needs_check") toCheck++;
+        else good++;
+    });
+    const parts = [];
+    if(toType) parts.push(`<strong>${toType} to type</strong>`);
+    if(toCheck) parts.push(`<strong>${toCheck} to check</strong>`);
+    parts.push(`${good} look good`);
+    if(empty) parts.push(`${empty} empty in the logbook`);
+    return parts.join(" · ");
+}
+
+const TODAY = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+const DATETIME_LABELS = {
+    "DATE & TIME OF ADMISSION": "Date admitted",
+    "DATE & TIME OF DELIVERY": "Date delivered",
+    "DATE & TIME OF DISCHARGE": "Date went home",
+};
+
+function attr(value){ return escapeHtml(value ?? ""); }
+
+// The inputs for one field, shaped like the PClaimAssist form entry it
+// fills (see Ocr_module/philhealth/review_fields.py for the rules).
+function renderInputs(f, id){
+    const p = f.parts || {};
+    const cat = attr(f.category);
+    if(f.kind === "case_number"){
+        return `<label class="input-label" for="${id}">Case number (numbers only):</label>
+            <input class="big" id="${id}" data-part="number" inputmode="numeric" autocomplete="off" maxlength="20"
+                value="${attr(p.number)}" oninput="onlyNumbers(this, true)" placeholder="Numbers only, e.g. 2026-4140">`;
+    }
+    if(f.kind === "name"){
+        const box = (part, label, required, hint) => `<div>
+            <label class="input-label" for="${id}-${part}">${label}${required ? ' <span class="req">(needed)</span>' : ""}</label>
+            <input class="big" id="${id}-${part}" data-part="${part}" autocomplete="off" maxlength="${part === "suffix" ? 10 : 100}"
+                value="${attr(p[part])}" oninput="onlyLetters(this)" placeholder="${hint}">
+        </div>`;
+        return `<div class="inputs-grid">
+                ${box("last", "Last name", true, "e.g. Dela Cruz")}
+                ${box("first", "First name", true, "e.g. Maria")}
+                ${box("middle", "Middle name", false, "e.g. Santos")}
+                ${box("suffix", "Suffix (Jr./Sr./III)", false, "if any")}
+            </div>
+            ${p.guessed ? `<p class="field-note"><strong>Check the boxes:</strong> the logbook writes names without a comma,
+                so the computer guessed which word is the last name. Move any word that is in the wrong box.</p>` : ""}`;
+    }
+    if(f.kind === "date"){
+        return `<label class="input-label" for="${id}">Birthday (click the calendar to pick the date):</label>
+            <input class="big" type="date" id="${id}" data-part="date" min="1900-01-01" max="${TODAY}" value="${attr(p.date)}">`;
+    }
+    if(f.kind === "datetime"){
+        const sameDay = f.category !== "DATE & TIME OF ADMISSION"
+            ? `<button type="button" class="quick" onclick="sameDayAsAdmitted('${cat}')">Same day as admitted</button>` : "";
+        return `<div class="when">
+            <div class="date-box">
+                <label class="input-label" for="${id}">${DATETIME_LABELS[f.category] || "Date"} (click the calendar to pick the date):</label>
+                <input class="big" type="date" id="${id}" data-part="date" min="2000-01-01" max="${TODAY}" value="${attr(p.date)}">
+                ${sameDay}
+            </div>
+            <div>
+                <span class="input-label" id="${id}-time">Time:</span>
+                <div class="time-box" role="group" aria-labelledby="${id}-time">
+                    <input class="big" data-part="hour" inputmode="numeric" maxlength="2" aria-label="Hour (1 to 12)"
+                        value="${attr(p.hour)}" oninput="onlyNumbers(this); nextWhenFull(this)" placeholder="hh">
+                    <span class="time-colon" aria-hidden="true">:</span>
+                    <input class="big" data-part="minute" inputmode="numeric" maxlength="2" aria-label="Minutes (00 to 59)"
+                        value="${attr(p.minute)}" oninput="onlyNumbers(this)" placeholder="mm">
+                    <button type="button" class="ampm" aria-pressed="${p.am_pm === "AM"}" onclick="setAmPm(this, 'AM')">AM</button>
+                    <button type="button" class="ampm" aria-pressed="${p.am_pm === "PM"}" onclick="setAmPm(this, 'PM')">PM</button>
+                </div>
+            </div>
+        </div>`;
+    }
+    return `<label class="input-label" for="${id}">What it says:</label>
+        <input class="big" id="${id}" data-part="text" autocomplete="off" maxlength="255" value="${attr(p.text)}"
+            ${f.status === "manual_encoding_required" ? 'placeholder="Type what you see in the picture"' : ""}>`;
+}
+
+// "Nothing is written here": the logbook box is really blank, so there is
+// nothing to type - here or on the forms. Not offered for the name,
+// birthday and admission date: a claim can't be made without them.
+function renderEmptyChoice(f){
+    if(CLAIM_REQUIRED.includes(f.category)){
+        return `<p class="field-note muted">Every logbook entry should have this, so it can't be marked empty.</p>`;
+    }
+    const empty = !!(f.parts || {}).empty;
+    return `<button type="button" class="empty-toggle" aria-pressed="${empty}" onclick="toggleEmpty(this)">
+        <span class="tick" aria-hidden="true">${empty ? "☑" : "☐"}</span>
+        Nothing is written here (empty in the logbook)
+    </button>`;
+}
+
+function toggleEmpty(button){
+    const field = button.closest(".field");
+    setEmpty(field, field.dataset.empty !== "true");
+    fieldChanged(field);
+    if(field.dataset.empty !== "true") field.querySelector("[data-part]")?.focus();
+}
+
+// Lock (and clear) a field's boxes while it is marked empty.
+function setEmpty(field, empty){
+    field.dataset.empty = String(empty);
+    field.classList.toggle("is-empty", empty);
+    const button = field.querySelector(".empty-toggle");
+    if(button){
+        button.setAttribute("aria-pressed", String(empty));
+        button.querySelector(".tick").textContent = empty ? "☑" : "☐";
+    }
+    field.querySelectorAll(".field-inputs input, .field-inputs button").forEach(el => {
+        el.disabled = empty;
+        if(empty && el.tagName === "INPUT") el.value = "";
+    });
+    if(empty){
+        field.dataset.amPm = "";
+        field.querySelectorAll(".ampm").forEach(b => b.setAttribute("aria-pressed", "false"));
+    }
+}
+
+function renderField(session, f, index){
+    const status = STATUS[f.status] || STATUS.needs_check;
+    const id = `f-${session.session_id}-${index}`;
+    const sure = percent(f.confidence);
+    const sureText = sure === null ? "" : ` <span class="sure">(computer is ${sure}% sure)</span>`;
+    const cropUrl = `/api/review/crops/${f.crop.split("/").map(encodeURIComponent).join("/")}`;
+    const manual = f.status === "manual_encoding_required";
+    const neededHere = manual && CLAIM_REQUIRED.includes(f.category)
+        ? " This one is needed before the forms can be filled." : "";
+    const targets = (f.target_fields || []).map(t => escapeHtml(t.label)).join(", ") || "—";
+    return `<div class="field field--${f.status}" role="group" aria-labelledby="${id}-title"
+            data-category="${attr(f.category)}" data-kind="${attr(f.kind)}" data-manual="${manual}"
+            data-am-pm="${attr((f.parts || {}).am_pm)}" data-empty="${!!(f.parts || {}).empty}" oninput="fieldChanged(this)">
+        <div class="field-head">
+            <span class="field-title" id="${id}-title">${escapeHtml(nameOf(f.category))}</span>
+            <span class="chip chip--${f.status}"><span aria-hidden="true">${status.icon}</span> ${status.label}${sureText}</span>
+        </div>
+        <p class="field-help">${status.help}${neededHere}${f.possibly_incomplete ? ` <strong>${MAYBE_MISSING}</strong>` : ""}</p>
+        <p class="scan-label">From the logbook (click the picture to make it bigger):</p>
+        <a class="scan" href="${cropUrl}" target="_blank" rel="noopener">
+            <img src="${cropUrl}" alt="Scanned logbook entry for ${escapeHtml(nameOf(f.category))}" onload="enlarge(this)">
+        </a>
+        <p class="empty-note">Marked as empty in the logbook — nothing to type.</p>
+        <div class="field-inputs">${renderInputs(f, id)}</div>
+        ${renderEmptyChoice(f)}
+        <p class="field-tip" aria-live="polite" hidden></p>
+        <p class="field-problem" role="alert" hidden></p>
+        <p class="field-warning" hidden></p>
+        <details class="more"><summary>More details</summary><dl>
+            <dt>Computer read</dt><dd>${f.raw_text ? escapeHtml(f.raw_text) : "(nothing)"}</dd>
+            <dt>How sure</dt><dd>${sure === null ? "—" : sure + "%"} (looks good from ${Math.round(ACCEPT * 100)}%, please check from ${Math.round(REVIEW * 100)}%)</dd>
+            <dt>Goes to</dt><dd>${targets}</dd>
+            ${f.ocr_error ? `<dt>Problem</dt><dd>${escapeHtml(f.ocr_error)}</dd>` : ""}
+        </dl></details>
+    </div>`;
+}
+
+let currentField = 0;
+
+function renderPatient(){
+    const el = document.getElementById("sessions");
+    if(!sessions.length){
+        el.innerHTML = `<div class="notice bad" role="alert"><strong>No patients were found on this scan.</strong>
+            Check that the whole page is in the picture and try again.</div>`;
+        return;
+    }
+    const s = sessions[current];
+    const checked = x => x.review_status === "reviewed";
+
+    el.innerHTML = `<section class="card" aria-labelledby="patientTitle">
+        <h2 id="patientTitle" tabindex="-1">Patient ${current + 1} of ${sessions.length}: ${escapeHtml(patientName(s))}</h2>
+        <p class="summary-line">${s.case_id ? "Case number " + escapeHtml(s.case_id) + " · " : ""}${summaryText(s)}
+            ${checked(s) ? ' · <span class="done-badge">✓ Checked</span>' : ""}</p>
+    </section>
+    <section class="card" aria-label="Boxes for patient ${current + 1}">
+        <ol class="box-steps" id="boxSteps" aria-label="Boxes for this patient"></ol>
+        <p class="keys-tip">Tip: press <kbd aria-label="left arrow">←</kbd> and <kbd aria-label="right arrow">→</kbd>
+            on the keyboard to go to the previous or next box. If you are typing in a box, press <kbd>Esc</kbd> first.</p>
+        <div id="fields">${s.fields.map((f, i) => renderField(s, f, i)).join("")}</div>
+        <section id="finishStep" class="finish-step" aria-labelledby="finishTitle" hidden>
+            <h2 id="finishTitle" tabindex="-1">Finish: is everything right?</h2>
+            <p class="muted">Here is everything for this patient. Press "Change" to fix anything.</p>
+            <div id="finishSummary"></div>
+            <p class="muted">"Send to Forms" saves this patient and opens the PhilHealth forms with the answers filled in.
+                Anything left empty can still be typed on the forms.</p>
+            <div class="actions">
+                <button class="go" type="button" onclick="sendToForms(this)">Send to Forms ➜</button>
+                <button type="button" onclick="saveAndNext(this)">${sessions.length > 1 ? "Save and choose the next patient" : "Save"}</button>
+            </div>
+        </section>
+        <div class="box-nav">
+            <button type="button" id="boxBack" onclick="goToField(currentField - 1)">◀ Back</button>
+            <span class="where" id="boxWhere" aria-live="polite"></span>
+            <button type="button" class="primary" id="boxNext" onclick="goToField(currentField + 1)">Next ▶</button>
+        </div>
+        <p id="msg" class="message" role="status" aria-live="polite"></p>
+    </section>`;
+    document.querySelectorAll("#fields .field").forEach(field => {
+        if(field.dataset.empty === "true") setEmpty(field, true);
+        markEmpty(field);
+    });
+    updateReviewCount();
+    goToField(currentField, false);
+}
+
+// Index of the "Finish" step (after the last box).
+const finishIndex = () => sessions[current].fields.length;
+
+// The state of one box, for its button in the box row.
+function boxState(field){
+    if(field.classList.contains("has-problem")) return "problem";
+    if(field.dataset.empty === "true") return "empty";
+    const status = field.className.match(/field--(\S+)/)?.[1];
+    if(status === "manual_encoding_required" && !isBlank(field.dataset.kind, partsOf(field))) return "accepted";
+    return status || "accepted";
+}
+
+const BOX_MARK = {accepted: "✓", needs_check: "!", manual_encoding_required: "✎", empty: "–", problem: "✗"};
+const BOX_WORDS = {accepted: "looks good", needs_check: "please check", manual_encoding_required: "please type",
+                   empty: "empty in the logbook", problem: "needs fixing"};
+
+function renderBoxSteps(){
+    const list = document.getElementById("boxSteps");
+    if(!list) return;
+    const fields = [...document.querySelectorAll("#fields .field")];
+    list.innerHTML = fields.map((field, i) => {
+        const state = boxState(field);
+        const name = nameOf(field.dataset.category);
+        return `<li><button type="button" class="s-${state}" aria-current="${i === currentField ? "step" : "false"}"
+            aria-label="Box ${i + 1}: ${escapeHtml(name)}, ${BOX_WORDS[state]}" title="${escapeHtml(name)}"
+            onclick="goToField(${i})"><span class="mark" aria-hidden="true">${BOX_MARK[state]}</span>${i + 1}</button></li>`;
+    }).join("") + `<li><button type="button" class="finish" aria-current="${currentField === fields.length ? "step" : "false"}"
+            onclick="goToField(${fields.length})">Finish ✓</button></li>`;
+}
+
+// Show one box (or the Finish step). Moves keyboard focus to its title.
+function goToField(index, moveFocus = true){
+    const fields = [...document.querySelectorAll("#fields .field")];
+    if(!fields.length) return;
+    if(index < 0){
+        setMessage("This is the first box.", true);
+        return;
+    }
+    if(index > fields.length){
+        setMessage(current < sessions.length - 1
+            ? "This is the last step. Press \"Save and choose the next patient\" when ready."
+            : "This is the last step.", true);
+        return;
+    }
+    currentField = index;
+    remember({field: index});
+    fields.forEach((field, i) => { field.hidden = i !== index; });
+    const finishing = index === fields.length;
+    document.getElementById("finishStep").hidden = !finishing;
+    if(finishing) renderFinishSummary();
+
+    const back = document.getElementById("boxBack");
+    const next = document.getElementById("boxNext");
+    back.disabled = index === 0;
+    next.hidden = finishing;
+    next.textContent = index === fields.length - 1 ? "Finish ▶" : "Next ▶";
+    document.getElementById("boxWhere").textContent = finishing
+        ? "Finish"
+        : `Box ${index + 1} of ${fields.length}: ${nameOf(fields[index].dataset.category)}`;
+    if(!document.getElementById("confirmBox")) setMessage("", true);
+    renderBoxSteps();
+
+    if(moveFocus){
+        const title = finishing ? document.getElementById("finishTitle")
+            : fields[index].querySelector(".field-title");
+        title.setAttribute("tabindex", "-1");
+        title.focus({preventScroll: true});
+        document.getElementById("boxSteps").scrollIntoView({behavior: "smooth", block: "start"});
+    }
+}
+
+// Plain-words value of one box, for the Finish summary.
+function describeValue(field){
+    const p = partsOf(field);
+    const kind = field.dataset.kind;
+    if(p.empty) return {text: "Empty in the logbook", cls: "blank"};
+    if(isBlank(kind, p)){
+        const must = CLAIM_REQUIRED.includes(field.dataset.category);
+        return {text: must ? "Not filled in — needed" : "Not filled in (can be typed on the forms)",
+                cls: must ? "missing" : "blank"};
+    }
+    const longDate = iso => new Date(iso + "T00:00:00").toLocaleDateString(undefined, {year: "numeric", month: "long", day: "numeric"});
+    if(kind === "name"){
+        const given = [p.first, p.middle].filter(Boolean).join(" ");
+        return {text: `${p.last}, ${given}${p.suffix ? " " + p.suffix : ""}`, cls: ""};
+    }
+    if(kind === "date") return {text: longDate(p.date), cls: ""};
+    if(kind === "datetime"){
+        const time = p.hour ? ` at ${p.hour}:${p.minute || "00"} ${p.am_pm || ""}` : "";
+        return {text: longDate(p.date) + time, cls: ""};
+    }
+    return {text: kind === "case_number" ? p.number : p.text, cls: ""};
+}
+
+function renderFinishSummary(){
+    const rows = [...document.querySelectorAll("#fields .field")].map((field, i) => {
+        const value = describeValue(field);
+        return `<tr>
+            <th scope="row">${escapeHtml(nameOf(field.dataset.category))}</th>
+            <td class="value ${value.cls}">${escapeHtml(value.text)}</td>
+            <td><button type="button" onclick="goToField(${i})">Change</button></td>
+        </tr>`;
+    }).join("");
+    document.getElementById("finishSummary").innerHTML = `<table class="summary-table">${rows}</table>`;
+}
+
+function goTo(index){
+    if(index < 0 || index >= sessions.length){
+        setMessage(index < 0 ? "This is the first patient." : "This is the last patient on this page.", true);
+        return;
+    }
+    keepTyped();
+    current = index;
+    currentField = 0;
+    remember({current, field: 0});
+    renderPatient();
+    const title = document.getElementById("patientTitle");
+    title.scrollIntoView({behavior: "smooth", block: "start"});
+    title.focus({preventScroll: true});
+}
+
+// Keep what was typed when moving between patients without saving.
+function keepTyped(){
+    const s = sessions[current];
+    if(!s) return;
+    const all = collectParts();
+    s.fields.forEach(f => { if(all[f.category]) f.parts = all[f.category]; });
+}
+
+// Show the handwriting at twice its scanned size (never wider than the
+// screen) - small scans are hard to read otherwise.
+function enlarge(img){
+    img.style.width = `${img.naturalWidth * 2}px`;
+}
+
+function fieldEl(category){
+    return document.querySelector(`#fields .field[data-category="${CSS.escape(category)}"]`);
+}
+
+// The first input of a field (used to move the cursor there).
+function inputFor(category){
+    return fieldEl(category)?.querySelector("[data-part]");
+}
+
+function partsOf(el){
+    if(el.dataset.empty === "true") return {empty: true};
+    const parts = {};
+    el.querySelectorAll("[data-part]").forEach(input => { parts[input.dataset.part] = input.value.trim(); });
+    if(el.dataset.kind === "datetime") parts.am_pm = el.dataset.amPm || "";
+    return parts;
+}
+
+function collectParts(){
+    const all = {};
+    document.querySelectorAll("#fields .field[data-category]").forEach(el => { all[el.dataset.category] = partsOf(el); });
+    return all;
+}
+
+// Same "is it filled in" rule as review_fields.is_blank on the server.
+function isBlank(kind, p){
+    if(p.empty) return true;
+    if(kind === "name") return !(p.last || p.first);
+    if(kind === "date" || kind === "datetime") return !p.date;
+    if(kind === "case_number") return !p.number;
+    return !p.text;
+}
+
+function markEmpty(el){
+    if(!el.classList.contains("field")) el = el.closest(".field");
+    if(!el) return;
+    el.classList.toggle("empty-required", el.dataset.manual === "true" && el.dataset.empty !== "true"
+        && isBlank(el.dataset.kind, partsOf(el)));
+}
+
+function fieldChanged(el){
+    const field = el.classList?.contains("field") ? el : el.closest(".field");
+    if(!field) return;
+    markEmpty(field);
+    showFieldMessages(field, [], []);
+    rememberDrafts();
+    renderBoxSteps();
+}
+
+// Keystroke filters - the server checks the same rules again on save.
+function flashNote(input, text){
+    const field = input.closest(".field");
+    const slot = field.querySelector(".field-tip");
+    slot.textContent = text;
+    slot.hidden = false;
+    clearTimeout(input._noteTimer);
+    input._noteTimer = setTimeout(() => { slot.hidden = true; }, 2500);
+}
+
+function onlyNumbers(input, allowDash){
+    const cleaned = input.value.replace(allowDash ? /[^0-9-]/g : /[^0-9]/g, "");
+    if(cleaned !== input.value){
+        input.value = cleaned;
+        flashNote(input, "Only numbers can go in this box.");
+    }
+}
+
+function onlyLetters(input){
+    const cleaned = input.value.replace(/[^\p{L} .'\-]/gu, "");
+    if(cleaned !== input.value){
+        input.value = cleaned;
+        flashNote(input, "Only letters can go in a name.");
+    }
+}
+
+function nextWhenFull(input){
+    if(input.value.length >= 2 || Number(input.value) > 1){
+        input.parentElement.querySelector('[data-part="minute"]').focus();
+    }
+}
+
+function setAmPm(button, value){
+    const field = button.closest(".field");
+    field.dataset.amPm = value;
+    field.querySelectorAll(".ampm").forEach(b => b.setAttribute("aria-pressed", String(b.textContent.trim() === value)));
+    fieldChanged(field);
+}
+
+function sameDayAsAdmitted(category){
+    const admitted = fieldEl("DATE & TIME OF ADMISSION")?.querySelector('[data-part="date"]').value;
+    const target = fieldEl(category).querySelector('[data-part="date"]');
+    if(!admitted){
+        flashNote(target, "Fill in the admission date first.");
+        return;
+    }
+    target.value = admitted;
+    fieldChanged(target);
+}
+
+function showFieldMessages(field, problems, warnings){
+    const problemSlot = field.querySelector(".field-problem");
+    const warningSlot = field.querySelector(".field-warning");
+    problemSlot.textContent = problems.join(" ");
+    problemSlot.hidden = !problems.length;
+    warningSlot.textContent = warnings.join(" ");
+    warningSlot.hidden = !warnings.length;
+    field.classList.toggle("has-problem", problems.length > 0);
+    field.classList.toggle("has-warning", !problems.length && warnings.length > 0);
+}
+
+// Show the server's safeguard results next to each box; returns the first
+// field with a message, to move the cursor there.
+function showChecks(data){
+    document.querySelectorAll("#fields .field").forEach(f => showFieldMessages(f, [], []));
+    const byField = {};
+    (data.problems || []).forEach(p => { (byField[p.category] ??= {p: [], w: []}).p.push(p.message); });
+    (data.warnings || []).forEach(w => { (byField[w.category] ??= {p: [], w: []}).w.push(w.message); });
+    let first = null;
+    Object.entries(byField).forEach(([category, m]) => {
+        const field = fieldEl(category);
+        if(!field) return;
+        showFieldMessages(field, m.p, m.w);
+        first = first || field;
+    });
+    if(first){
+        goToField([...document.querySelectorAll("#fields .field")].indexOf(first), false);
+        first.scrollIntoView({behavior: "smooth", block: "center"});
+        first.querySelector("[data-part]")?.focus({preventScroll: true});
+    }
+    renderBoxSteps();
+}
+
+function setMessage(text, ok){
+    const el = document.getElementById("msg");
+    if(!el) return;
+    el.className = `message ${ok ? "ok" : "bad"}`;
+    el.textContent = text;
+    document.getElementById("confirmBox")?.remove();
+}
+
+// Unusual answers: ask "are these correct?" with two big buttons.
+function askToConfirm(data, onYes){
+    setMessage("", true);
+    const box = document.createElement("div");
+    box.id = "confirmBox";
+    box.className = "notice warn confirm-box";
+    box.setAttribute("role", "alertdialog");
+    box.setAttribute("aria-label", "Please confirm");
+    box.innerHTML = `<strong>Some answers look unusual.</strong>
+        Please look at the boxes marked in yellow. Are they correct?
+        <div class="actions">
+            <button type="button" class="go" id="confirmYes">Yes, they are correct</button>
+            <button type="button" id="confirmNo">No, let me fix them</button>
+        </div>`;
+    document.getElementById("msg").after(box);
+    box.querySelector("#confirmYes").onclick = () => { box.remove(); onYes(); };
+    box.querySelector("#confirmNo").onclick = () => {
+        box.remove();
+        document.querySelector("#fields .field.has-warning [data-part]")?.focus();
+    };
+    box.querySelector("#confirmYes").focus({preventScroll: true});
+}
+
+// The patient's name, birthday and admission date are needed to create
+// the claim, so they must be typed here; everything else may wait.
+function blockIfMissing(){
+    const missing = sessions[current].fields.filter(f => f.status === "manual_encoding_required"
+        && CLAIM_REQUIRED.includes(f.category) && isBlank(f.kind, partsOf(fieldEl(f.category))));
+    if(!missing.length) return false;
+    setMessage(`Please fill in these first: ${missing.map(f => nameOf(f.category)).join(", ")}.`, false);
+    missing.forEach(f => showFieldMessages(fieldEl(f.category), ["Please fill this in - the forms need it."], []));
+    goToField([...document.querySelectorAll("#fields .field")].indexOf(fieldEl(missing[0].category)), false);
+    setMessage(`Please fill in these first: ${missing.map(f => nameOf(f.category)).join(", ")}.`, false);
+    const input = inputFor(missing[0].category);
+    if(input){ input.focus(); input.scrollIntoView({behavior: "smooth", block: "center"}); }
+    return true;
+}
+
+async function saveReview(confirmWarnings){
+    const resp = await fetch(`/api/review/sessions/${sessions[current].session_id}`, {
+        method: "PUT",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({parts: collectParts(), defer_manual: true, confirm_warnings: !!confirmWarnings}),
+    });
+    const data = await resp.json();
+    if(data.success){
+        sessions[current] = data;
+        forgetDraft(data.session_id);
+    }
+    return data;
+}
+
+// Save, handling the safeguards: problems are shown next to their boxes;
+// unusual answers are saved only after staff press "Yes, they are correct".
+// Calls onSaved(review) once saved.
+async function saveWithChecks(button, onSaved, confirmWarnings){
+    button.disabled = true;
+    try{
+        const data = await saveReview(confirmWarnings);
+        if(data.success){ await onSaved(data); return; }
+        if(data.error_code === "review_problems"){
+            showChecks(data);
+            setMessage("Please fix the boxes marked in red, then try again.", false);
+        }else if(data.error_code === "review_needs_confirmation"){
+            showChecks(data);
+            askToConfirm(data, () => saveWithChecks(button, onSaved, true));
+        }else{
+            setMessage(data.error || "Could not save. Please try again.", false);
+        }
+    }catch(err){
+        setMessage("Could not save. Please try again. (" + err.message + ")", false);
+    }finally{
+        button.disabled = false;
+    }
+}
+
+async function saveAndNext(button){
+    if(blockIfMissing()) return;
+    await saveWithChecks(button, async () => {
+        const saved = current + 1;
+        renderPatient();
+        if(sessions.length === 1){
+            setMessage("Saved.", true);
+            return;
+        }
+        // Choosing a patient happens only in "3. All patients".
+        const allDone = sessions.every(s => s.review_status === "reviewed");
+        listNote = allDone ? `✓ Patient ${saved} saved. All patients on this page are checked.`
+                           : `✓ Patient ${saved} saved. Choose the next patient.`;
+        showTab("patients");
+        const next = sessions.findIndex((s, i) => i > current && s.review_status !== "reviewed");
+        const pick = next !== -1 ? next : sessions.findIndex(s => s.review_status !== "reviewed");
+        document.querySelectorAll("#patientRows .patient-row")[pick === -1 ? current : pick]?.focus();
+    });
+}
+
+// Send to Forms: save this patient (fields still to type may stay empty -
+// they're typed on the forms), create or update the patient/encounter/
+// claim, then open PClaimAssist on that claim. Only the claim id goes in
+// the URL; the forms load the data from the API.
+async function sendToForms(button){
+    if(blockIfMissing()) return;
+    setMessage("Saving… please wait.", true);
+    await saveWithChecks(button, async review => {
+        const resp = await fetch("/api/claims/generate", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({session_id: review.session_id}),
+        });
+        const claim = await resp.json();
+        if(!claim.success){ setMessage(claim.error, false); return; }
+        setStep(3);
+        setMessage("Saved. Opening the forms…", true);
+        openForms(claim.claim_id);
+    });
+}
+
+function openForms(claimId){
+    const url = new URL(FORMS_URL);
+    url.searchParams.set("claim", String(claimId));
+    if(window.top !== window.self){
+        // Inside PClaimAssist's OCR tab (cross-origin iframe): ask the
+        // PClaimAssist page to navigate itself (js/ocr.js listens for this).
+        window.parent.postMessage({type: "pclaimassist:open-claim", claimId}, url.origin);
+        // If nothing picked the message up, the iframe is still here.
+        setTimeout(() => { window.open(url.href, "_top"); }, 1500);
+    }else{
+        window.location.href = url.href;
+    }
+}
+
+function showSessions(list, iq, pages, startAt){
+    // Put back anything typed but not saved before the page was left.
+    const drafts = loadMemory().drafts || {};
+    sessions = list.map(s => {
+        const draft = drafts[s.session_id];
+        if(!draft) return s;
+        return {...s, fields: s.fields.map(f => f.category in draft ? {...f, parts: {...f.parts, ...draft[f.category]}} : f)};
+    });
+    current = Number.isInteger(startAt) && startAt >= 0 && startAt < sessions.length
+        ? startAt
+        : Math.max(0, sessions.findIndex(s => s.review_status !== "reviewed"));
+    const rememberedField = loadMemory().field;
+    currentField = Number.isInteger(startAt) && Number.isInteger(rememberedField) ? rememberedField : 0;
+    renderIqBanner(iq);
+    renderPageReport(pages);
+    renderPatient();
+    setStep(2);
+}
+
+function showProgress(fraction, message){
+    const box = document.getElementById("readingProgress");
+    const pct = Math.round(Math.max(0, Math.min(1, fraction)) * 100);
+    box.hidden = false;
+    box.classList.toggle("finished", pct >= 100);
+    document.getElementById("heartlineFill").style.transform = `scaleX(${pct / 100})`;
+    document.getElementById("heartlinePercent").textContent = `${pct}%`;
+    document.getElementById("heartlineMessage").textContent = message;
+    const bar = document.getElementById("heartlineBar");
+    bar.setAttribute("aria-valuenow", String(pct));
+    bar.setAttribute("aria-valuetext", `${pct} percent. ${message}`);
+}
+
+// Plain-words wording for the server's progress messages.
+function progressMessage(job){
+    if(job.state === "waiting") return "Another scan is being read. Yours will start in a moment…";
+    if(job.state === "done") return "✓ Finished reading the logbook";
+    return `${job.message}…`;
+}
+
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+// Start reading in the background, then follow its progress until done.
+async function startReading(file){
+    const formData = new FormData();
+    formData.append("file", file);
+    const start = await (await fetch("/api/review/jobs", {method: "POST", body: formData})).json();
+    if(!start.success) throw new Error(start.error || "The scan could not be read.");
+    return start.job_id;
+}
+
+// Follow a reading job until it finishes; returns its result.
+async function followReading(jobId){
+    let failures = 0;
+    for(;;){
+        let job;
+        try{
+            job = await (await fetch(`/api/review/jobs/${jobId}`)).json();
+            failures = 0;
+        }catch(err){
+            if(++failures >= 5) throw err;   // a few blips are fine
+            await sleep(700);
+            continue;
+        }
+        if(!job.success) throw new Error(job.error || "The scan could not be read.");
+        showProgress(job.progress, progressMessage(job));
+        if(job.state === "done") return job.result;
+        if(job.state === "failed") throw new Error(job.error || "The scan could not be read.");
+        await sleep(700);
+    }
+}
+
+async function readAndShow(jobId){
+    reading = true;
+    updateReadButton();
+    try{
+        const data = await followReading(jobId);
+        remember({jobId: null, uploadId: data.upload_id, current: null, field: 0, drafts: {}});
+        const n = data.sessions.length;
+        setUploadStatus(`✓ Done. Found ${n} patient${n === 1 ? "" : "s"}.`, "ok");
+        showSessions(data.sessions, data.image_quality, data.pages);
+    }catch(err){
+        remember({jobId: null});
+        document.getElementById("readingProgress").hidden = true;
+        setUploadStatus(escapeHtml(err.message || "Something went wrong. Please try again."), "bad");
+    }finally{
+        reading = false;
+        updateReadButton();
+    }
+}
+
+async function uploadLogbook(){
+    const file = document.getElementById("fileInput").files[0];
+    if(!file){ setUploadStatus("Please choose the scan first.", "bad"); return; }
+    reading = true;
+    updateReadButton();
+    setUploadStatus("");
+    sessions = [];
+    updateReviewCount();
+    document.getElementById("reviewNote").textContent = "";
+    document.getElementById("sessions").innerHTML = `<div class="empty-review"><p><strong>Reading the scan…</strong></p>
+        <p class="muted">The patients will show here when it's done.</p></div>`;
+    document.getElementById("patientList").innerHTML = document.getElementById("sessions").innerHTML;
+    document.getElementById("iqBanner").innerHTML = "";
+    document.getElementById("pageReport").innerHTML = "";
+    setStep(1);
+    showProgress(0, "Sending the scan…");
+    let jobId;
+    try{
+        jobId = await startReading(file);
+    }catch(err){
+        reading = false;
+        updateReadButton();
+        document.getElementById("readingProgress").hidden = true;
+        setUploadStatus(escapeHtml(err.message || "Something went wrong. Please try again."), "bad");
+        return;
+    }
+    remember({jobId, uploadId: null, current: null, drafts: {}});
+    await readAndShow(jobId);
+}
+
+async function loadUpload(uploadId, startAt){
+    const resp = await fetch(`/api/review/uploads/${encodeURIComponent(uploadId)}`);
+    const data = await resp.json();
+    if(!data.success){
+        remember({uploadId: null});
+        setUploadStatus(escapeHtml(data.error), "bad");
+        return false;
+    }
+    showSessions(data.sessions, data.sessions[0]?.image_quality, [], startAt);
+    return true;
+}
+
+// Coming back to this page: carry on where things were left.
+(async function resume(){
+    const linked = new URLSearchParams(location.search).get("upload");
+    const memory = loadMemory();
+    if(linked){
+        await loadUpload(linked, memory.uploadId === linked ? memory.current : undefined);
+        return;
+    }
+    if(memory.jobId){
+        showProgress(0, "Still reading the logbook…");
+        setUploadStatus('<span class="resume-note">Still reading the scan you chose earlier.</span>');
+        await readAndShow(memory.jobId);
+        return;
+    }
+    if(memory.uploadId && await loadUpload(memory.uploadId, memory.current)){
+        document.getElementById("reviewNote").textContent =
+            "Welcome back — carry on with this patient. To pick another, use \"3. All patients\".";
+        showTab(TABS.includes(memory.tab) ? memory.tab : "patient");
+    }
+})();
+
+// ── Keyboard ───────────────────────────────────────────────────────
+function isTypingIn(el){
+    if(!el) return false;
+    if(el.isContentEditable || el.tagName === "TEXTAREA" || el.tagName === "SELECT") return true;
+    return el.tagName === "INPUT" && !["button", "checkbox", "radio", "submit"].includes(el.type);
+}
+
+document.addEventListener("keydown", event => {
+    if(event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    const target = event.target;
+
+    // Esc leaves a box, so the arrow keys move between patients again.
+    if(event.key === "Escape" && isTypingIn(target)){
+        target.blur();
+        document.getElementById("patientTitle")?.focus({preventScroll: true});
+        return;
+    }
+
+    // Arrow keys on the tabs move between the tabs (standard tab keys).
+    if(target.getAttribute && target.getAttribute("role") === "tab"){
+        const at = TABS.indexOf(activeTab);
+        const to = {ArrowLeft: at - 1, ArrowRight: at + 1, Home: 0, End: TABS.length - 1}[event.key];
+        if(to === undefined) return;
+        event.preventDefault();
+        showTab(TABS[(to + TABS.length) % TABS.length], true);
+        return;
+    }
+
+    // "All patients" tab: ↑ / ↓ move through the list of patients.
+    if(activeTab === "patients" && (event.key === "ArrowDown" || event.key === "ArrowUp") && !isTypingIn(target)){
+        const rows = [...document.querySelectorAll("#patientRows .patient-row")];
+        if(!rows.length) return;
+        event.preventDefault();
+        const at = rows.indexOf(document.activeElement);
+        const from = at === -1 ? Math.max(0, current) - (event.key === "ArrowDown" ? 1 : -1) : at;
+        rows[Math.min(rows.length - 1, Math.max(0, from + (event.key === "ArrowDown" ? 1 : -1)))].focus();
+        return;
+    }
+
+    // Everywhere else on the "Check the patient" tab: ← / → go through the
+    // boxes of this patient,
+    // but never while typing in a box (there they move the cursor).
+    if(activeTab !== "patient" || !sessions.length || isTypingIn(target)) return;
+    if(document.getElementById("confirmBox")) return;   // answer the question first
+    if(event.key === "ArrowLeft"){ event.preventDefault(); goToField(currentField - 1); }
+    else if(event.key === "ArrowRight"){ event.preventDefault(); goToField(currentField + 1); }
+});
+</script>
+</body>
+</html>

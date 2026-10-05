@@ -403,6 +403,123 @@ def detect_vertical_lines(image: np.ndarray,
     return result
 
 
+def _rule_peaks(projection: np.ndarray, threshold: float, gap: int = 8) -> List[float]:
+    """Centres of runs of projection values above threshold."""
+    peaks: List[List[int]] = []
+    for i in np.where(projection > threshold)[0]:
+        if peaks and i - peaks[-1][-1] <= gap:
+            peaks[-1].append(int(i))
+        else:
+            peaks.append([int(i)])
+    return [float(np.mean(run)) for run in peaks]
+
+
+def detect_ruling_lines(image: np.ndarray) -> Dict[str, List[float]]:
+    """Find the logbook's printed ruling lines: {"vertical": [x...],
+    "horizontal": [y...]}, in pixels, sorted.
+
+    Morphological opening with a long, thin kernel keeps only straight
+    strokes much longer than any handwriting (vertical: 1/8 of the page
+    height; horizontal: 1/4 of the width), so column rules and ruled
+    lines survive and written text doesn't. More reliable on real ledger
+    scans than detect_vertical_lines(), whose edge projection is dominated
+    by handwriting.
+    """
+    if image is None or image.size == 0:
+        return {"vertical": [], "horizontal": []}
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if image.ndim == 3 else image
+    h, w = gray.shape
+    ink = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 25, 10)
+    vertical = cv2.morphologyEx(ink, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_RECT, (1, max(3, h // 8))))
+    horizontal = cv2.morphologyEx(ink, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_RECT, (max(3, w // 4), 1)))
+    return {
+        "vertical": _rule_peaks((vertical > 0).sum(axis=0), 0.25 * h),
+        "horizontal": _rule_peaks((horizontal > 0).sum(axis=1), 0.3 * w),
+    }
+
+
+def fit_lines_to_rules(template_x: List[float], rules_x: List[float], width: float,
+                       tolerance: float = 0.04) -> Optional[Dict[str, Any]]:
+    """Map a template's column lines onto a page's printed column rules.
+
+    A template calibrated on one scan rarely sits exactly on another: the
+    page may be scanned at a different size, shifted, or cropped. So
+    instead of one global x offset, find the scale+shift (x' = a*x + b,
+    from every pair of template lines matched to a pair of rules, in order)
+    that lands the most template lines within `tolerance` x page width of a
+    rule, then snap each line to its rule. Lines with no rule nearby (e.g. a
+    page edge with no printed line) keep their scaled position.
+
+    Returns {"lines": [x...], "matched": n, "scale": a, "shift": b}, or
+    None when fewer than two lines can be matched.
+    """
+    template_x = sorted(template_x)
+    # A line hugging the page edge is the scan's border or the binding's
+    # shadow, not a printed column rule.
+    rules = sorted(r for r in rules_x if 0.02 * width < r < 0.98 * width)
+    tol = tolerance * width
+    best = None
+    for i in range(len(template_x)):
+        for k in range(i + 1, len(template_x)):
+            for j in range(len(rules)):
+                for l in range(j + 1, len(rules)):
+                    span = template_x[k] - template_x[i]
+                    if span <= 0:
+                        continue
+                    a = (rules[l] - rules[j]) / span
+                    if not 0.6 <= a <= 1.6:
+                        continue
+                    b = rules[j] - a * template_x[i]
+                    matched, error = 0, 0.0
+                    for x in template_x:
+                        d = min(abs(a * x + b - r) for r in rules)
+                        if d <= tol:
+                            matched += 1
+                            error += d
+                    if best is None or matched > best[0] or (matched == best[0] and error < best[1]):
+                        best = (matched, error, a, b)
+    if best is None or best[0] < 2:
+        return None
+    matched, _, a, b = best
+    lines, used = [], set()
+    for x in template_x:
+        moved = a * x + b
+        nearest = min(rules, key=lambda r: abs(moved - r))
+        if abs(nearest - moved) <= tol and nearest not in used:
+            used.add(nearest)
+            lines.append(float(nearest))
+        else:
+            lines.append(float(moved))
+    return {"lines": lines, "matched": matched, "scale": a, "shift": b}
+
+
+def map_rows_between_pages(rows: List[Dict[str, float]], rules_from: List[float],
+                           rules_to: List[float]) -> Optional[List[Dict[str, float]]]:
+    """Carry row bands from one page of a spread to the other by its ruled
+    lines: a band between ruled lines k and k+1 on one page lands between
+    ruled lines k and k+1 on the other. The two halves of a scanned spread
+    are often a few lines' height apart vertically, so copying raw pixel
+    positions would put every band on the wrong text. None if either page
+    has too few ruled lines to map reliably."""
+    count = min(len(rules_from), len(rules_to))
+    if count < 5:
+        return None
+    src, dst = np.array(rules_from[:count]), np.array(rules_to[:count])
+    # Beyond the first/last ruled line, keep the same spacing.
+    def move(y):
+        if y <= src[0]:
+            return float(dst[0] - (src[0] - y))
+        if y >= src[-1]:
+            return float(dst[-1] + (y - src[-1]))
+        return float(np.interp(y, src, dst))
+    mapped = []
+    for row in rows:
+        top = move(row["y"])
+        bottom = move(row["y"] + row["height"])
+        mapped.append({"y": top, "height": max(1.0, bottom - top), "spacing": row.get("spacing", 0)})
+    return mapped
+
+
 def align_template(image: np.ndarray,
                   template_lines: List[GridLine],
                   max_offset: float = 50) -> TemplateAlignmentResult:
@@ -431,21 +548,27 @@ def align_template(image: np.ndarray,
     # Calculate best offset match
     best_offset = 0
     best_matches = 0
-    
-    # Try different offsets
+    best_error = float("inf")
+
+    # Try different offsets. Every offset within the 15px tolerance of the
+    # true one matches the same number of lines, so ties are broken by the
+    # total distance to the detected lines - taking the first (most
+    # negative) tied offset shifted every placed grid ~15px to the left.
     for offset in np.linspace(-max_offset, max_offset, int(max_offset * 2) + 1):
         matches = 0
+        error = 0.0
         for tx in template_x:
             adjusted = tx + offset
             # Check if adjusted line is close to any detected line
-            for dx in detected_x:
-                if abs(adjusted - dx) < 15:
-                    matches += 1
-                    break
-        
-        if matches > best_matches:
+            nearest = min(abs(adjusted - dx) for dx in detected_x)
+            if nearest < 15:
+                matches += 1
+                error += nearest
+
+        if matches > best_matches or (matches == best_matches and matches and error < best_error):
             best_matches = matches
             best_offset = offset
+            best_error = error
     
     alignment_score = best_matches / len(template_x) if template_x else 0
     
@@ -902,7 +1025,8 @@ class TemplateAutoDetector:
                            image: np.ndarray,
                            template_dict: Dict[str, Any],
                            auto_align: bool = True,
-                           forced_rows: Optional[List[Dict[str, float]]] = None) -> Dict[str, Any]:
+                           forced_rows: Optional[List[Dict[str, float]]] = None,
+                           rows_start_y: Optional[float] = None) -> Dict[str, Any]:
         """
         Automatically place all template elements on image.
 
@@ -915,6 +1039,10 @@ class TemplateAutoDetector:
                 row layout detected on one side of a two-page ledger spread
                 over to its paired side, since a spread's rows are one
                 physical entry split across both pages and must line up.
+            rows_start_y: If given, no row may start above this y - e.g. the
+                ruled line under a logbook's printed header. Detected rows
+                entirely above it are dropped; a row crossing it is trimmed
+                to start there.
 
         Returns:
             Dictionary with placed template elements
@@ -937,23 +1065,41 @@ class TemplateAutoDetector:
         
         h, w = image.shape[:2]
         
-        # Step 1: Align template if requested
+        # Step 1+2: Align and place the column lines. Prefer fitting them to
+        # the page's own printed column rules; fall back to the single
+        # best x offset when the page has too few detectable rules.
         alignment = None
+        fitted = None
         if auto_align and self.template_engine.vertical_lines:
-            alignment = align_template(image, self.template_engine.vertical_lines)
-            result["alignment"] = {
-                "offset_x": alignment.offset_x,
-                "offset_y": alignment.offset_y,
-                "alignment_score": alignment.alignment_score
-            }
-        
-        # Step 2: Place vertical lines with offset
-        offset_x = alignment.offset_x if alignment else 0
-        for line in self.template_engine.vertical_lines:
-            result["vertical_lines"].append({
-                "x": line.x + offset_x,
-                "confidence": line.confidence
-            })
+            rules = detect_ruling_lines(image)["vertical"]
+            fitted = fit_lines_to_rules([line.x for line in self.template_engine.vertical_lines], rules, w)
+            if fitted:
+                result["alignment"] = {
+                    "method": "ruling_lines",
+                    "offset_x": fitted["shift"],
+                    "offset_y": 0,
+                    "scale_x": fitted["scale"],
+                    "alignment_score": fitted["matched"] / len(self.template_engine.vertical_lines),
+                }
+            else:
+                alignment = align_template(image, self.template_engine.vertical_lines)
+                result["alignment"] = {
+                    "method": "offset",
+                    "offset_x": alignment.offset_x,
+                    "offset_y": alignment.offset_y,
+                    "alignment_score": alignment.alignment_score
+                }
+
+        if fitted:
+            for x in fitted["lines"]:
+                result["vertical_lines"].append({"x": x, "confidence": 1.0})
+        else:
+            offset_x = alignment.offset_x if alignment else 0
+            for line in self.template_engine.vertical_lines:
+                result["vertical_lines"].append({
+                    "x": line.x + offset_x,
+                    "confidence": line.confidence
+                })
         
         # Step 3: Generate rows - forced (paired-page) rows take precedence over
         # detecting/propagating fresh ones on this image.
@@ -978,6 +1124,16 @@ class TemplateAutoDetector:
                     "spacing": row.spacing
                 })
         
+        if rows_start_y is not None and forced_rows is None:
+            trimmed = []
+            for row in result["rows"]:
+                bottom = row["y"] + row["height"]
+                if bottom <= rows_start_y + 2:
+                    continue
+                top = max(row["y"], rows_start_y)
+                trimmed.append({**row, "y": top, "height": bottom - top})
+            result["rows"] = trimmed
+
         # Step 4: Generate cells
         grid_lines = [GridLine(x=line["x"]) for line in result["vertical_lines"]]
         rows = [RowTemplate(

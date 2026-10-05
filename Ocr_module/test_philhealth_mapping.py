@@ -287,8 +287,24 @@ def _patient_address_column_exists():
         return False
 
 
+def _case_session_review_columns_exist():
+    """True once database/migrations/003_case_session_ocr_review.sql has
+    been applied - case_session_store reads its columns on every lookup."""
+    try:
+        from db import get_db_cursor
+        with get_db_cursor() as cursor:
+            cursor.execute("SHOW COLUMNS FROM case_sessions WHERE Field = 'review_status'")
+            return bool(cursor.fetchone())
+    except Exception:
+        return False
+
+
 @unittest.skipUnless(_database_available(), "MariaDB is not reachable in this environment")
 @unittest.skipUnless(_claims_not_null_relaxed(), "Apply database/migrations/001_relax_pmrf_cf3_not_null.sql first")
+@unittest.skipUnless(
+    _case_session_review_columns_exist(),
+    "Apply database/migrations/003_case_session_ocr_review.sql first",
+)
 class ClaimsStoreIntegrationTests(unittest.TestCase):
     """Touches the real database. Creates its own case_sessions/patients/
     encounters/claims rows under a unique test case id and deletes
@@ -303,14 +319,14 @@ class ClaimsStoreIntegrationTests(unittest.TestCase):
         self._created_ids = None
 
     def tearDown(self):
-        if not self._created_ids:
-            return
         from db import get_db_cursor
         with get_db_cursor(commit=True) as cursor:
-            cursor.execute("DELETE FROM claims WHERE id = %s", (self._created_ids["claim_id"],))
-            cursor.execute("DELETE FROM encounters WHERE id = %s", (self._created_ids["encounter_id"],))
-            cursor.execute("DELETE FROM patients WHERE id = %s", (self._created_ids["patient_id"],))
-            cursor.execute("DELETE FROM case_sessions WHERE id = %s", (self._created_ids["case_session_id"],))
+            if self._created_ids:
+                cursor.execute("DELETE FROM claims WHERE id = %s", (self._created_ids["claim_id"],))
+                cursor.execute("DELETE FROM encounters WHERE id = %s", (self._created_ids["encounter_id"],))
+                cursor.execute("DELETE FROM patients WHERE id = %s", (self._created_ids["patient_id"],))
+            # Also covers tests whose session never became a claim.
+            cursor.execute("DELETE FROM case_sessions WHERE logbook_case_number = %s", (self.case_id,))
 
     def _record_created_ids(self, claim_id):
         from db import get_db_cursor

@@ -18,6 +18,12 @@
 -- captured during OCR review and then silently dropped). An existing
 -- database created from an earlier copy of this file needs
 -- database/migrations/002_add_patient_address.sql applied.
+--
+-- NOTE: `case_sessions` gained ocr_data/upload_id/logbook_row/review_status
+-- so a logbook upload can create one pending review session per patient
+-- row, keeping each field's OCR text, confidence, routing status and crop.
+-- An existing database created from an earlier copy of this file needs
+-- database/migrations/003_case_session_ocr_review.sql applied.
 -- =====================================================================
 
 CREATE DATABASE IF NOT EXISTS `pclaimassist_db`
@@ -57,10 +63,17 @@ CREATE TABLE `case_sessions` (
   `logbook_case_number` VARCHAR(50)  NULL DEFAULT NULL,
   `case_name`           VARCHAR(255) NULL DEFAULT NULL,
   `reviewed_values`     JSON         NOT NULL,
+  -- Per-field OCR data for sessions created from a logbook upload - see
+  -- database/migrations/003_case_session_ocr_review.sql for the rationale.
+  `ocr_data`            JSON         NULL DEFAULT NULL,
   `source_document`     VARCHAR(500) NULL DEFAULT NULL,
+  `upload_id`           VARCHAR(64)  NULL DEFAULT NULL,
+  `logbook_row`         SMALLINT UNSIGNED NULL DEFAULT NULL,
+  `review_status`       ENUM('pending','reviewed') NOT NULL DEFAULT 'reviewed',
   `reviewed_at`         DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `created_at`          DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `idx_case_sessions_upload_id` (`upload_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------

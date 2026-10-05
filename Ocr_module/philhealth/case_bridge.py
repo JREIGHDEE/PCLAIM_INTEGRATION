@@ -20,6 +20,8 @@ case_sessions.logbook_case_number key, not a patient/claim field).
 import re
 from datetime import datetime
 
+from philhealth import field_catalog
+
 # OCR category labels, from Ocr_module/config.py TRAINING_CATEGORIES.
 CASE_NUMBER = "CASE #"
 NAME = "NAME"
@@ -30,6 +32,25 @@ DISCHARGE_DT = "DATE & TIME OF DISCHARGE"
 DELIVERY_DT = "DATE & TIME OF DELIVERY"
 ADMITTING_DX = "ADMITTING DIAGNOSIS"
 FINAL_DX = "FINAL DIAGNOSIS"
+
+def target_fields(category):
+    """[{"key", "column", "label"}, ...] for the claim fields a logbook
+    category maps to. CASE # is lookup-only (case_sessions key, not a claim
+    field); an unknown category maps to nothing."""
+    if category == CASE_NUMBER:
+        return [{"key": None, "column": "case_sessions.logbook_case_number",
+                 "label": "Case # (lookup only)"}]
+    targets = []
+    # field_catalog.OCR_CATEGORY_KEYS must match what
+    # draft_patient_and_encounter() below actually fills - keep them in sync.
+    for key in field_catalog.OCR_CATEGORY_KEYS.get(category, ()):
+        table, column = field_catalog.KEY_SOURCE[key]
+        targets.append({
+            "key": key,
+            "column": f"{table}.{column}",
+            "label": field_catalog.FIELD_LABELS.get(key, key),
+        })
+    return targets
 
 _DATE_FORMATS = (
     "%m/%d/%Y", "%m-%d-%Y", "%Y-%m-%d", "%m/%d/%y", "%m-%d-%y",
@@ -120,7 +141,7 @@ def _split_name(raw_name):
     return last, first, middle, warning
 
 
-def draft_patient_and_encounter(values):
+def draft_patient_and_encounter(values, reviewed_parts=None):
     """values: the case_sessions.reviewed_values dict (OCR review free text).
 
     Returns (patient_fields, encounter_fields, claims_fields, warnings):
@@ -141,13 +162,28 @@ def draft_patient_and_encounter(values):
 
     Never mutates `values`.
     """
-    values = values or {}
+    values = dict(values or {})
     warnings = []
     patient_fields = {}
     encounter_fields = {}
     claims_fields = {}
 
-    last, first, middle, name_warning = _split_name(values.get(NAME))
+    # Fields a person split into their parts in the logbook review
+    # (philhealth/review_fields.py) are used as typed - their free text is
+    # not re-parsed, so nothing is guessed and no parse warning applies.
+    reviewed_parts = reviewed_parts or {}
+    if reviewed_parts:
+        from philhealth import review_fields
+        tables = {"patients": patient_fields, "encounters": encounter_fields, "claims": claims_fields}
+        for category, parts in reviewed_parts.items():
+            for (table, column), value in review_fields.claim_fields(category, parts).items():
+                tables[table][column] = value
+            values.pop(category, None)
+
+    if NAME in reviewed_parts:
+        last, first, middle, name_warning = None, None, None, None
+    else:
+        last, first, middle, name_warning = _split_name(values.get(NAME))
     if last:
         patient_fields["last_name"] = last
     if first:

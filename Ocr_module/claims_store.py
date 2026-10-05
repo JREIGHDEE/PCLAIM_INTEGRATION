@@ -8,7 +8,7 @@ fixed column names.
 """
 import config
 from db import get_db_cursor
-from errors import ClaimNotFoundError, InvalidRequestError
+from errors import ClaimNotFoundError, InvalidRequestError, ReviewIncompleteError, SessionNotFoundError
 from philhealth import case_bridge
 
 # claims.status's three values, in forward order - used to make status
@@ -105,8 +105,35 @@ def create_or_update_claim_from_case_session(case_id):
     session = get_reviewed_session(case_id)
     if session is None:
         raise InvalidRequestError(f"No reviewed OCR case session found for case ID '{case_id}'.")
+    return _create_or_update_claim_from_session(session)
 
-    patient_fields, encounter_fields, claims_fields, warnings = case_bridge.draft_patient_and_encounter(session["values"])
+
+def create_or_update_claim_from_session_id(session_id):
+    """Same as create_or_update_claim_from_case_session(), addressed by
+    case_sessions.id - the only reliable key for sessions created per
+    logbook row by an upload, whose OCR'd CASE # may be blank or repeated."""
+    from case_session_store import get_session
+
+    session = get_session(session_id)
+    if session is None:
+        raise SessionNotFoundError(f"No case session found with id {session_id}.")
+    return _create_or_update_claim_from_session(session)
+
+
+def _create_or_update_claim_from_session(session):
+    if session["review_status"] == "pending":
+        raise ReviewIncompleteError(
+            "This case session still has unreviewed OCR fields - submit its review "
+            "before generating a claim."
+        )
+
+    reviewed_parts = {
+        f["category"]: f["parts"]
+        for f in ((session.get("ocr_data") or {}).get("fields") or [])
+        if f.get("parts_reviewed") and f.get("parts")
+    }
+    patient_fields, encounter_fields, claims_fields, warnings = case_bridge.draft_patient_and_encounter(
+        session["values"], reviewed_parts)
 
     with get_db_cursor(commit=True) as cursor:
         existing = _find_encounter_by_case_session(cursor, session["id"])
@@ -171,6 +198,30 @@ def get_claim(claim_id):
             patient_row = cursor.fetchone()
 
     return {"claim": claims_row, "encounter": encounter_row, "patient": patient_row}
+
+
+def get_claim_form_source(claim_id):
+    """Everything philhealth/form_prefill.build_form_data() needs for one
+    claim: its rows, CF3 prenatal visits and postpartum care rows, and the
+    OCR case session it was generated from (None for a manual claim).
+    Returns None if the claim doesn't exist."""
+    from case_session_store import get_session
+
+    rows = get_claim(claim_id)
+    if rows is None:
+        return None
+    with get_db_cursor() as cursor:
+        cursor.execute("SELECT * FROM claim_prenatal_visits WHERE claim_id = %s", (claim_id,))
+        prenatal_visits = cursor.fetchall()
+        cursor.execute("SELECT * FROM claim_postpartum_care WHERE claim_id = %s", (claim_id,))
+        postpartum_care = cursor.fetchall()
+    session_id = (rows["encounter"] or {}).get("case_session_id")
+    return {
+        "rows": rows,
+        "prenatal_visits": prenatal_visits,
+        "postpartum_care": postpartum_care,
+        "session": get_session(session_id) if session_id else None,
+    }
 
 
 def update_claim_fields(claim_id, patient_fields=None, encounter_fields=None, claims_fields=None):

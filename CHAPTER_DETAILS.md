@@ -139,6 +139,10 @@ Beyond the required-field lists, CF3 also carries ~60 additional detail fields i
 
 ---
 
+**Update (Send to Forms):** the field mapping now has one source of truth for all four forms — `FORM_FIELDS` in [Ocr_module/philhealth/field_catalog.py](Ocr_module/philhealth/field_catalog.py) maps every PClaimAssist form key (210 keys: PMRF, CSF, CF2, CF3, including the CF3 prenatal-visit grid and postpartum checklist child tables) to its database column. `KEY_SOURCE` (the CF2/CSF server-side subset) and the OCR column → field map (`OCR_CATEGORY_KEYS`) are derived from or live beside it. PClaimAssist holds no mapping: `GET /api/claims/<id>/form-data` ([philhealth/form_prefill.py](Ocr_module/philhealth/form_prefill.py)) returns values already keyed by form key plus each OCR field's status, and [PClaimAssist/js/claim-loader.js](PClaimAssist/js/claim-loader.js) applies them when the page is opened as `index.html?claim=<id>`. [Ocr_module/test_form_prefill.py](Ocr_module/test_form_prefill.py) fails if the mapping drifts from `js/app.js`, `index.html` or `schema.sql`. CF3/PMRF are still filled and exported only in the browser; the server stores and serves their values but does not export them.
+
+---
+
 ## 3. LOGBOOK COLUMNS the OCR reads
 
 Nine training categories are defined in config, representing the logbook's columns — [Ocr_module/config.py:128-138](Ocr_module/config.py#L128-L138):
@@ -176,6 +180,16 @@ Found in the calibration UI's review-table rendering — [Ocr_module/templates/i
 **MISMATCH / important limitation:** these thresholds are purely a **visual heatmap cue for the human reviewer** ([Ocr_module/templates/index.html:2812-2816](Ocr_module/templates/index.html#L2812-L2816)). There is **no automated behavior gated on confidence level anywhere in the codebase** — no auto-accept at high confidence, no auto-reject/flag-for-correction at low confidence, no routing to a correction module. The OCR review workflow always requires the human to manually accept/edit every field regardless of confidence (`/save_reviewed_result` just persists whatever text the reviewer submits — [Ocr_module/routes/ocr_routes.py:138-201](Ocr_module/routes/ocr_routes.py#L138-L201)).
 
 A second, unrelated threshold exists for **template matching** (not OCR text confidence): `TEMPLATE_MATCH_THRESHOLD = 0.55`, env-overridable via `OCR_TEMPLATE_MATCH_THRESHOLD` — [Ocr_module/config.py:119](Ocr_module/config.py#L119). At/above this layout-similarity score, a saved grid template is auto-applied to a new page — [Ocr_module/routes/template_routes.py:133-135](Ocr_module/routes/template_routes.py#L133-L135). This is unrelated to per-field OCR text confidence.
+
+**Update (logbook review flow): confidence routing is now implemented.** For sessions created by uploading a logbook scan (`POST /api/review/upload`, §13 F), every field is routed by its PaddleOCR confidence — [Ocr_module/logbook_pipeline.py](Ocr_module/logbook_pipeline.py) `route_confidence()`:
+
+| Status | Rule | What happens |
+|---|---|---|
+| `accepted` | `confidence >= OCR_CONFIDENCE_ACCEPT` (0.85) | Value pre-filled from OCR |
+| `needs_check` | `OCR_CONFIDENCE_REVIEW (0.65) <= confidence < 0.85` | Value pre-filled, flagged amber for the reviewer |
+| `manual_encoding_required` | `confidence < 0.65`, or no text found | Value left empty; the review cannot be submitted until it is typed |
+
+Both thresholds live only in [Ocr_module/config.py](Ocr_module/config.py) (`OCR_CONFIDENCE_ACCEPT`, `OCR_CONFIDENCE_REVIEW`, env-overridable); the calibration UI's badge colours now read the same values. A field's confidence is the **lowest** token confidence in its cell, not the mean, so one misread word cannot be hidden by confident neighbours. A session stays `pending` (and cannot become a claim) until the reviewer submits it. The thresholds are the thesis design values, not yet calibrated on real scans: on the one real logbook spread tested, only 6–8 of 99 handwritten fields reached 0.85.
 
 ---
 
@@ -242,6 +256,8 @@ If Chapter 3/4 presents 9 MF rules, 4 IF rules, 8 IC rules, 5 SP rules, 1 IQ rul
 - **Skew-angle measurement: still NOT IMPLEMENTED.**
 
 **Important framing for the thesis:** these thresholds are explicitly documented in the code itself as *"a reasonable starting default, not a value derived from this project's own scanned logbooks yet"* — [Ocr_module/image_quality.py:16-23](Ocr_module/image_quality.py#L16-L23). They are commonly-cited rule-of-thumb values for these two well-known metrics, not numbers calibrated against this project's own dataset — don't present them in Chapter 4 as empirically derived without first validating them against real logbook scans.
+
+**Update (logbook review flow):** the check is now tagged as rule **IQ-01** (`"rule_id": "IQ-01"`, `"passed"`), runs on **every page including PDF pages** in the logbook upload flow, and its warnings are shown at the top of the review page (`/review`) and stored with each review session. It still never blocks OCR. The "overexposed" rule was changed because it flagged every clean scan: a white page averages 226–236 brightness on its own. It now also requires washed-out ink — the darkest 0.1% of pixels lighter than `IMAGE_QUALITY_INK_MAX` (150). Clean logbook scans measured 53–58 on that metric, and the same pages blended 65% toward white measured 184–186 — [Ocr_module/image_quality.py](Ocr_module/image_quality.py).
 
 **Behavior is advisory only, matching the project's existing confidence-badge pattern (§4) — it never blocks OCR or rejects an upload.** The result is attached to the JSON response as `"image_quality": {blur_score, is_blurry, brightness_score, is_too_dark, is_too_bright, warnings: [...]}` — [Ocr_module/routes/ocr_routes.py](Ocr_module/routes/ocr_routes.py). The calibration UI (`templates/index.html`) shows any warnings in a small amber banner next to the existing OCR summary line (`renderImageQualityBanner()`), styled consistently with the existing confidence heatmap (§4). Unit-tested on synthetic images (flat/solid-color, random-noise) in `Ocr_module/test_image_quality.py`.
 
@@ -400,6 +416,18 @@ All registered in [Ocr_module/routes/__init__.py](Ocr_module/routes/__init__.py)
 
 **No routes exist for CF3 or PMRF export/mapping** — `_SUPPORTED_FORMS = ("cf2", "csf")` — [routes/claims_routes.py:25](Ocr_module/routes/claims_routes.py#L25) and `OVERLAYS = {"cf2": ..., "csf": ...}` — [Ocr_module/philhealth/overlays/__init__.py:13-16](Ocr_module/philhealth/overlays/__init__.py#L13-L16). All 4 real PDF templates exist on disk ([PClaimAssist/forms/CF2.pdf, CF3.pdf, CSF.pdf, PMRF.pdf](PClaimAssist/forms)), and the frontend has JS overlay coordinate maps for all 4 forms ([PClaimAssist/js/pdf/overlays/{csf,cf2,cf3,pmrf}.js](PClaimAssist/js/pdf/overlays)), but server-side mapping/validation/PDF-fill is CF2/CSF only.
 
+**Update (logbook review flow):** new routes — [Ocr_module/routes/review_routes.py](Ocr_module/routes/review_routes.py):
+
+| Method | Route | Purpose |
+|---|---|---|
+| GET | `/review` | Logbook review page (upload, IQ-01 banner, per-row field review) |
+| POST | `/api/review/upload` | Run the full flow on one scan; one pending session per patient row |
+| GET | `/api/review/uploads/<upload_id>` | Sessions created by one upload |
+| GET/PUT | `/api/review/sessions/<id>` | Read / submit one session's review |
+| GET | `/api/review/crops/<upload_id>/<file>` | A field's cell crop image |
+
+`POST /api/claims/generate` now also accepts `{"session_id": <id>}` and refuses sessions still `pending`. `GET /api/claims/<id>/form-data` returns the claim as PClaimAssist form values for PMRF/CSF/CF2/CF3 with per-field OCR status (accepted / needs_check / typed / required / default), the unsplit logbook address, and the form keys with no OCR source; `PUT /api/review/sessions/<id>` accepts `"defer_manual": true` ("Send to Forms"), which leaves manual-encoding fields blank for the forms except NAME, BDAY and admission date (a claim can't be created without them).
+
 ---
 
 ## 11. SAMPLE DATA
@@ -462,6 +490,19 @@ Actual module call order, traced from the routes:
 3. Insert-or-update `patients` → `encounters` (linked via `case_session_id`) → `claims` (HCI defaults applied) in one transaction — [claims_store.py:104-136](Ocr_module/claims_store.py#L104-L136)
 
 **E. Claim view / export** (`GET/PUT /api/claims/<id>`, `GET /api/claims/<id>/export/<form>`)
+
+
+**F. Logbook upload → per-row review sessions** (`POST /api/review/upload`) — [Ocr_module/logbook_pipeline.py](Ocr_module/logbook_pipeline.py)
+1. Load pages (image as-is; PDF pages rendered at 2x)
+2. IQ-01 per page (advisory, §8)
+3. `match_templates()` by page parity; a page below `TEMPLATE_MATCH_THRESHOLD` is reported and skipped, never OCR'd against a template that doesn't fit
+4. `auto_place_template()`; on a two-page spread the odd page's rows are carried to the even page so both halves of one entry line up
+5. Each cell cropped and saved; cell column *c* is labelled `segmentInfo[c-1]` (column 0, left of the first grid line, is ignored, matching the calibration UI)
+6. PaddleOCR per cell → raw text, confidence (lowest token), routing status (§4), target claim field(s) (`case_bridge.target_fields()`)
+7. Cells grouped per logbook row across the spread; the printed header row and rows with fewer than `REVIEW_MIN_FILLED_FIELDS` (2) filled fields are dropped
+8. One `case_sessions` row per patient row, `review_status='pending'`, per-field data in `ocr_data` (migration 003) → reviewer submits → `POST /api/claims/generate {"session_id"}` → step D
+
+**Fix in step B3:** `align_template()` used to keep the first (most negative) of all equally good offsets, so placed grids sat ~15px left of the detected lines. It now breaks ties by total distance. On the real logbook scan, `detect_vertical_lines()` does not find the ledger's printed lines (it returns clustered edges near the left margin), so the alignment offset there is unreliable either way — a known gap.
 1. `claims_store.get_claim()` — 3 separate SELECTs (patients/encounters/claims) — [claims_store.py:139-161](Ocr_module/claims_store.py#L139-L161)
 2. `mapping_service.map_claim()` — build flat data → validate → resolve computed values → per-form completeness status — [mapping_service.py:80-123](Ocr_module/philhealth/mapping_service.py#L80-L123)
 3. (Export only) gate on `form_status["complete"]`, then `pdf_export.export_claim_pdf()` — PyMuPDF opens the real CF2/CSF template, overlays resolved field values at pre-calibrated coordinates, returns bytes — [pdf_export.py:54-79](Ocr_module/philhealth/pdf_export.py#L54-L79)

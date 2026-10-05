@@ -58,24 +58,33 @@ def extract_text(image_path):
     return tokens
 
 
+def extract_tokens_from_array(image):
+    """OCR an in-memory (numpy array) image -> [{"text", "confidence", "box"}],
+    box being the token's four corner points [[x, y], ...] in image pixels.
+
+    Unlike extract_text_from_array(), errors propagate: the logbook review
+    pipeline must not mistake an OCR failure for an empty cell."""
+    result = get_ocr_engine().ocr(image, cls=True)
+    tokens = []
+    if result and result[0]:
+        for item in result[0]:
+            tokens.append({
+                "text": item[1][0],
+                "confidence": round(item[1][1], 2),
+                "box": [[float(x), float(y)] for x, y in item[0]],
+            })
+    return tokens
+
+
 def extract_text_from_array(image):
     """Extract text from an in-memory (numpy array) image.
 
     Moved here from app.py, where it lived as a module-level helper used only
-    by the /process_pdf_batch route's OCR callback. Behavior is unchanged.
+    by the /process_pdf_batch route's OCR callback. Behavior is unchanged:
+    any OCR error is logged and returned as no tokens.
     """
     try:
-        result = get_ocr_engine().ocr(image, cls=True)
-        tokens = []
-        if result and result[0]:
-            for item in result[0]:
-                text = item[1][0]
-                conf = item[1][1]
-                tokens.append({
-                    "text": text,
-                    "confidence": round(conf, 2)
-                })
-        return tokens
+        return extract_tokens_from_array(image)
     except Exception:
         logger.exception("OCR extraction from image array failed")
         return []
