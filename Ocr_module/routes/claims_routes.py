@@ -90,6 +90,7 @@ def export_claim(claim_id, form_key):
         raise ClaimIncompleteError(mapping_service.missing_fields_message(form_status))
 
     pdf_bytes = pdf_export.export_claim_pdf(form_key, rows["patient"], rows["encounter"], rows["claim"])
+    claims_store.mark_exported(claim_id)
     logger.info("Exported claim %s as %s PDF", claim_id, form_key.upper())
 
     filename = f"PHILHEALTH_CLAIM_{claim_id}_{form_key.upper()}.pdf"

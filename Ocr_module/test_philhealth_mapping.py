@@ -359,6 +359,53 @@ class ClaimsStoreIntegrationTests(unittest.TestCase):
         self.assertFalse(mapped["forms"]["cf2"]["complete"])
         self.assertIn("Patient Disposition", mapped["forms"]["cf2"]["missing_required"])
 
+    def test_status_advances_draft_to_ready_to_exported_and_never_regresses(self):
+        self.case_session_store.save_reviewed_session(self.case_id, "Test Case", {
+            "NAME": "Dela Cruz, Maria Santos",
+            "BDAY": "03/15/1995",
+            "DATE & TIME OF ADMISSION": "06/10/2026 8:30 AM",
+            "DATE & TIME OF DISCHARGE": "06/13/2026 10:00 AM",
+            "ADMITTING DIAGNOSIS": "Term pregnancy in active labor",
+            "FINAL DIAGNOSIS": "NSD, live birth",
+        })
+
+        result = self.claims_store.create_or_update_claim_from_case_session(self.case_id)
+        self._record_created_ids(result["claim_id"])
+        claim_id = result["claim_id"]
+
+        # OCR alone never supplies disposition/accommodation/member info/PINs/
+        # HCI defaults (this dev environment has no PHILHEALTH_HCI_* set) -
+        # cf2/csf are both incomplete, so status stays 'draft'.
+        rows = self.claims_store.get_claim(claim_id)
+        self.assertEqual(rows["claim"]["status"], "draft")
+
+        # Manually supply everything OCR couldn't - CF2 and CSF both become
+        # complete, so status should advance to 'ready'.
+        self.claims_store.update_claim_fields(
+            claim_id,
+            patient_fields={"pin": "12-345678901-3"},
+            encounter_fields={"disposition": "Improved", "accommodation": "Non-Private"},
+            claims_fields={
+                "hci_pan": "000001234", "hci_name": "Mapagpala Maternity Clinic",
+                "member_pin": "12-345678901-2", "member_last_name": "Dela Cruz",
+                "member_first_name": "Pedro", "member_dob": "1992-07-22",
+                "relationship": "Spouse",
+            },
+        )
+        rows = self.claims_store.get_claim(claim_id)
+        self.assertEqual(rows["claim"]["status"], "ready")
+
+        # A successful export moves it to 'exported'.
+        self.claims_store.mark_exported(claim_id)
+        rows = self.claims_store.get_claim(claim_id)
+        self.assertEqual(rows["claim"]["status"], "exported")
+
+        # A later edit that makes a required field blank again must not
+        # un-export the claim - status is monotonic.
+        self.claims_store.update_claim_fields(claim_id, encounter_fields={"disposition": None})
+        rows = self.claims_store.get_claim(claim_id)
+        self.assertEqual(rows["claim"]["status"], "exported")
+
     def test_missing_ocr_data_blocks_generation_with_a_clear_error(self):
         self.case_session_store.save_reviewed_session(self.case_id, "Test Case", {"NAME": ""})
         with self.assertRaises(Exception) as ctx:

@@ -11,6 +11,10 @@ from db import get_db_cursor
 from errors import ClaimNotFoundError, InvalidRequestError
 from philhealth import case_bridge
 
+# claims.status's three values, in forward order - used to make status
+# transitions monotonic (see _advance_status).
+_STATUS_ORDER = ("draft", "ready", "exported")
+
 PATIENT_EDITABLE_COLUMNS = {
     "last_name", "first_name", "middle_name", "name_ext", "date_of_birth", "sex", "pin",
     "address",
@@ -140,6 +144,7 @@ def create_or_update_claim_from_case_session(case_id):
             else:
                 claim_id = _insert_claim_with_hci_defaults(cursor, encounter_id, claims_fields)
 
+    advance_status_if_forms_complete(claim_id)
     return {"claim_id": claim_id, "warnings": warnings}
 
 
@@ -191,3 +196,47 @@ def update_claim_fields(claim_id, patient_fields=None, encounter_fields=None, cl
             patient_id = cursor.fetchone()["patient_id"]
             _update_row(cursor, "patients", patient_id, patient_fields)
 
+    advance_status_if_forms_complete(claim_id)
+
+
+def _advance_status(claim_id, new_status):
+    """Moves claims.status forward along _STATUS_ORDER only - never
+    regresses an already-'ready'/'exported' claim back to an earlier status,
+    even if whatever triggered this call would otherwise point that way (a
+    later edit making a required field blank again does not un-export a
+    claim that was already exported; re-export is always available
+    regardless of the stored status label, since export itself re-validates
+    required fields every time - see routes/claims_routes.py export_claim()).
+    No-op if the claim doesn't exist or is already at/past `new_status`.
+    """
+    with get_db_cursor(commit=True) as cursor:
+        cursor.execute("SELECT status FROM claims WHERE id = %s", (claim_id,))
+        row = cursor.fetchone()
+        if row is None or _STATUS_ORDER.index(new_status) <= _STATUS_ORDER.index(row["status"]):
+            return
+        cursor.execute("UPDATE claims SET status = %s WHERE id = %s", (new_status, claim_id))
+
+
+def advance_status_if_forms_complete(claim_id):
+    """Moves a 'draft' claim to 'ready' once its CF2 and CSF forms (the only
+    two forms this backend currently maps/exports - see
+    philhealth/overlays/__init__.py) are both complete per
+    mapping_service.map_claim(). Called after every write that could change
+    completeness (claim generation/sync, manual field correction). No-op if
+    the forms aren't complete yet, or the claim is already 'ready'/'exported'.
+    """
+    from philhealth import mapping_service
+
+    rows = get_claim(claim_id)
+    if rows is None:
+        return
+    mapped = mapping_service.map_claim(rows["patient"], rows["encounter"], rows["claim"])
+    if mapped["forms"]["cf2"]["complete"] and mapped["forms"]["csf"]["complete"]:
+        _advance_status(claim_id, "ready")
+
+
+def mark_exported(claim_id):
+    """Moves a claim to 'exported' - called once a PDF export has actually
+    succeeded (see routes/claims_routes.py export_claim()). Idempotent;
+    never regresses an already-'exported' claim."""
+    _advance_status(claim_id, "exported")
