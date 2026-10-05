@@ -118,6 +118,18 @@ ALLOWED_UPLOAD_EXTENSIONS = ALLOWED_IMAGE_EXTENSIONS | ALLOWED_PDF_EXTENSIONS
 # ── Template matching ────────────────────────────────────────────────────
 TEMPLATE_MATCH_THRESHOLD = _env_float("OCR_TEMPLATE_MATCH_THRESHOLD", 0.55)
 
+# ── Image quality assessment (advisory only - see image_quality.py) ────────
+# Variance-of-Laplacian sharpness score below which an image is flagged as
+# blurry. ~100 is the commonly cited rule-of-thumb cutoff for this metric on
+# ordinary document/photo content - a reasonable starting default, not a
+# value derived from this project's own scanned logbooks yet.
+IMAGE_QUALITY_BLUR_THRESHOLD = _env_float("OCR_IMAGE_QUALITY_BLUR_THRESHOLD", 100.0)
+# Mean grayscale pixel intensity (0-255) outside which an image is flagged
+# as too dark / too bright (overexposed). Same "reasonable starting
+# default" caveat as the blur threshold above.
+IMAGE_QUALITY_BRIGHTNESS_LOW = _env_float("OCR_IMAGE_QUALITY_BRIGHTNESS_LOW", 60.0)
+IMAGE_QUALITY_BRIGHTNESS_HIGH = _env_float("OCR_IMAGE_QUALITY_BRIGHTNESS_HIGH", 200.0)
+
 # ── Tesseract OCR (benchmarking only - see benchmarks/) ─────────────────
 # Path to tesseract.exe. Leave unset to rely on Tesseract being on PATH.
 # Only used by ocr_tesseract.py / benchmarks/ - the production PaddleOCR

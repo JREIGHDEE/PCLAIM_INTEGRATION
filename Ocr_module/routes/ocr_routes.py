@@ -10,12 +10,15 @@ Route bodies are the original app.py logic, unchanged, except:
   - an optional "engine" form field selects paddle (default, unchanged
     production behavior) or tesseract (for side-by-side manual testing -
     see benchmarks/ for the actual documented comparison tooling)
+  - the response now also includes an advisory "image_quality" object (see
+    image_quality.py) for image uploads - never blocks or alters OCR itself
 """
 import json
 import logging
 import os
 from io import BytesIO
 
+import cv2
 import pandas as pd
 from flask import Blueprint, jsonify, request, send_file
 from werkzeug.utils import secure_filename
@@ -24,6 +27,7 @@ import config
 import ocr_engine
 from case_session_store import get_reviewed_session, save_reviewed_session
 from errors import InvalidRequestError, OCRProcessingError
+from image_quality import assess_image_quality
 from template_store import update_template_from_session
 from utils.uploads import require_file
 
@@ -73,6 +77,17 @@ def _perform_ocr():
 
     extension = os.path.splitext(filename)[1].lower()
 
+    # Advisory only (see image_quality.py) - never blocks OCR, and only
+    # assessed for plain image uploads; a PDF page is rendered internally by
+    # extract_pdf_text_fn and isn't available here as a decoded image.
+    image_quality = None
+    if extension != ".pdf":
+        loaded_image = cv2.imread(filepath)
+        if loaded_image is not None:
+            image_quality = assess_image_quality(loaded_image)
+            for warning in image_quality["warnings"]:
+                logger.warning("Image quality: %s (file=%s)", warning, filename)
+
     if extension == ".pdf":
         tokens = extract_pdf_text_fn(filepath)
     else:
@@ -114,7 +129,8 @@ def _perform_ocr():
         "raw_text": raw_text,
         "category": category,
         "engine": engine,
-        "tokens": enriched_tokens
+        "tokens": enriched_tokens,
+        "image_quality": image_quality,
     })
 
 
