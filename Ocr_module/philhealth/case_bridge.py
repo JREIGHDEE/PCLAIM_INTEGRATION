@@ -1,5 +1,5 @@
 """Best-effort bridge: case_sessions.reviewed_values (OCR free text) ->
-patients/encounters column drafts.
+patients/encounters/claims column drafts.
 
 The OCR review UI only ever produces free text keyed by config.py's
 TRAINING_CATEGORIES ("CASE #", "DATE & TIME OF ADMISSION", "NAME", "BDAY",
@@ -9,6 +9,13 @@ and names in particular are never in one predictable format. Anything this
 module can't confidently parse is left out (never guessed) and reported as
 a warning, per the "avoid silently generating incorrect information" rule -
 the reviewer fills it in by hand instead.
+
+Every one of the 9 logbook categories above is now drafted into some
+destination column (ADDRESS -> patients.address, DATE & TIME OF DELIVERY ->
+claims.delivery_date/delivery_time/am_pm_delivery) - previously these two
+were captured during OCR review but had nowhere to go and were silently
+dropped when a claim was generated. CASE # remains lookup-only (it is the
+case_sessions.logbook_case_number key, not a patient/claim field).
 """
 import re
 from datetime import datetime
@@ -17,8 +24,10 @@ from datetime import datetime
 CASE_NUMBER = "CASE #"
 NAME = "NAME"
 BDAY = "BDAY"
+ADDRESS = "ADDRESS"
 ADMISSION_DT = "DATE & TIME OF ADMISSION"
 DISCHARGE_DT = "DATE & TIME OF DISCHARGE"
+DELIVERY_DT = "DATE & TIME OF DELIVERY"
 ADMITTING_DX = "ADMITTING DIAGNOSIS"
 FINAL_DX = "FINAL DIAGNOSIS"
 
@@ -114,13 +123,19 @@ def _split_name(raw_name):
 def draft_patient_and_encounter(values):
     """values: the case_sessions.reviewed_values dict (OCR review free text).
 
-    Returns (patient_fields, encounter_fields, warnings):
+    Returns (patient_fields, encounter_fields, claims_fields, warnings):
       - patient_fields: dict of patients columns this bridge could confidently
-        fill (last_name, first_name, middle_name, date_of_birth) - only keys
-        it actually resolved, never a full dict with blanks/guesses baked in.
+        fill (last_name, first_name, middle_name, date_of_birth, address) -
+        only keys it actually resolved, never a full dict with blanks/guesses
+        baked in.
       - encounter_fields: dict of encounters columns (date_admitted,
         time_admitted, am_pm_admitted, date_discharge, time_discharge,
         am_pm_discharge, admission_dx, discharge_dx), same rule.
+      - claims_fields: dict of claims columns this bridge could confidently
+        fill (delivery_date, delivery_time, am_pm_delivery), same rule. Only
+        ever populated when case_bridge can actually parse a value - a claim
+        can exist without any of these (see database/schema.sql's 'draft'
+        status), so an empty dict here is normal and expected, not an error.
       - warnings: list of human-readable strings for anything skipped or
         guessed, so the review UI can surface them.
 
@@ -130,6 +145,7 @@ def draft_patient_and_encounter(values):
     warnings = []
     patient_fields = {}
     encounter_fields = {}
+    claims_fields = {}
 
     last, first, middle, name_warning = _split_name(values.get(NAME))
     if last:
@@ -146,6 +162,12 @@ def draft_patient_and_encounter(values):
         patient_fields["date_of_birth"] = dob
     elif values.get(BDAY):
         warnings.append(f"Could not parse birth date \"{values.get(BDAY)}\" - please enter it manually.")
+
+    # Free text, no format to parse - passed through as-is, same as the
+    # diagnosis fields below.
+    address_raw = values.get(ADDRESS)
+    if address_raw and address_raw.strip():
+        patient_fields["address"] = address_raw.strip()
 
     admission_raw = values.get(ADMISSION_DT)
     admission_date = _parse_date_flexible(admission_raw)
@@ -171,9 +193,21 @@ def draft_patient_and_encounter(values):
     if discharge_ampm:
         encounter_fields["am_pm_discharge"] = discharge_ampm
 
+    delivery_raw = values.get(DELIVERY_DT)
+    delivery_date = _parse_date_flexible(delivery_raw)
+    delivery_time, delivery_ampm = _parse_time_flexible(delivery_raw)
+    if delivery_date:
+        claims_fields["delivery_date"] = delivery_date
+    elif delivery_raw:
+        warnings.append(f"Could not parse delivery date \"{delivery_raw}\" - please enter it manually.")
+    if delivery_time:
+        claims_fields["delivery_time"] = delivery_time
+    if delivery_ampm:
+        claims_fields["am_pm_delivery"] = delivery_ampm
+
     if values.get(ADMITTING_DX):
         encounter_fields["admission_dx"] = values[ADMITTING_DX]
     if values.get(FINAL_DX):
         encounter_fields["discharge_dx"] = values[FINAL_DX]
 
-    return patient_fields, encounter_fields, warnings
+    return patient_fields, encounter_fields, claims_fields, warnings

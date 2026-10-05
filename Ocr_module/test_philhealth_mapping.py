@@ -148,19 +148,19 @@ class MappingServiceTests(unittest.TestCase):
 
 class CaseBridgeTests(unittest.TestCase):
     def test_name_with_comma_splits_confidently_with_no_warning(self):
-        patient_fields, _, warnings = case_bridge.draft_patient_and_encounter({"NAME": "Dela Cruz, Maria Santos"})
+        patient_fields, _, _, warnings = case_bridge.draft_patient_and_encounter({"NAME": "Dela Cruz, Maria Santos"})
         self.assertEqual(patient_fields["last_name"], "Dela Cruz")
         self.assertEqual(patient_fields["first_name"], "Maria")
         self.assertEqual(patient_fields["middle_name"], "Santos")
         self.assertEqual(warnings, [])
 
     def test_name_without_comma_guesses_and_warns(self):
-        patient_fields, _, warnings = case_bridge.draft_patient_and_encounter({"NAME": "Maria Santos Dela Cruz"})
+        patient_fields, _, _, warnings = case_bridge.draft_patient_and_encounter({"NAME": "Maria Santos Dela Cruz"})
         self.assertEqual(patient_fields["last_name"], "Dela Cruz")
         self.assertTrue(any("no comma" in w for w in warnings))
 
     def test_blank_name_produces_no_fields_and_a_warning(self):
-        patient_fields, _, warnings = case_bridge.draft_patient_and_encounter({"NAME": ""})
+        patient_fields, _, _, warnings = case_bridge.draft_patient_and_encounter({"NAME": ""})
         self.assertNotIn("last_name", patient_fields)
         self.assertTrue(warnings)
 
@@ -169,18 +169,26 @@ class CaseBridgeTests(unittest.TestCase):
         # that alone produces its own "name was blank" warning, so this
         # checks for the absence of a birth-date warning specifically
         # rather than asserting an empty warnings list.
-        patient_fields, _, warnings = case_bridge.draft_patient_and_encounter({"BDAY": "03/15/1995"})
+        patient_fields, _, _, warnings = case_bridge.draft_patient_and_encounter({"BDAY": "03/15/1995"})
         self.assertEqual(patient_fields["date_of_birth"], "1995-03-15")
         self.assertFalse(any("birth date" in w for w in warnings))
 
     def test_unparseable_bday_is_left_out_and_warned_not_guessed(self):
-        patient_fields, _, warnings = case_bridge.draft_patient_and_encounter({"BDAY": "sometime in March"})
+        patient_fields, _, _, warnings = case_bridge.draft_patient_and_encounter({"BDAY": "sometime in March"})
         self.assertNotIn("date_of_birth", patient_fields)
         self.assertTrue(any("Could not parse birth date" in w for w in warnings))
 
+    def test_address_passes_through_as_is(self):
+        patient_fields, _, _, _ = case_bridge.draft_patient_and_encounter({"ADDRESS": "  123 Rizal St., Quezon City  "})
+        self.assertEqual(patient_fields["address"], "123 Rizal St., Quezon City")
+
+    def test_blank_address_produces_no_field(self):
+        patient_fields, _, _, _ = case_bridge.draft_patient_and_encounter({"ADDRESS": "   "})
+        self.assertNotIn("address", patient_fields)
+
     def test_admission_datetime_splits_date_and_time(self):
         # NAME is intentionally omitted (see test_bday_parses_common_format).
-        _, encounter_fields, warnings = case_bridge.draft_patient_and_encounter(
+        _, encounter_fields, _, warnings = case_bridge.draft_patient_and_encounter(
             {"DATE & TIME OF ADMISSION": "06/10/2026 8:30 AM"}
         )
         self.assertEqual(encounter_fields["date_admitted"], "2026-06-10")
@@ -188,8 +196,25 @@ class CaseBridgeTests(unittest.TestCase):
         self.assertEqual(encounter_fields["am_pm_admitted"], "AM")
         self.assertFalse(any("admission" in w.lower() for w in warnings))
 
+    def test_delivery_datetime_splits_date_and_time_into_claims_fields(self):
+        # NAME is intentionally omitted (see test_bday_parses_common_format).
+        _, _, claims_fields, warnings = case_bridge.draft_patient_and_encounter(
+            {"DATE & TIME OF DELIVERY": "06/10/2026 9:45 AM"}
+        )
+        self.assertEqual(claims_fields["delivery_date"], "2026-06-10")
+        self.assertEqual(claims_fields["delivery_time"], "09:45")
+        self.assertEqual(claims_fields["am_pm_delivery"], "AM")
+        self.assertFalse(any("delivery" in w.lower() for w in warnings))
+
+    def test_unparseable_delivery_date_is_left_out_and_warned_not_guessed(self):
+        _, _, claims_fields, warnings = case_bridge.draft_patient_and_encounter(
+            {"DATE & TIME OF DELIVERY": "sometime in June"}
+        )
+        self.assertNotIn("delivery_date", claims_fields)
+        self.assertTrue(any("Could not parse delivery date" in w for w in warnings))
+
     def test_diagnosis_fields_pass_through_as_is(self):
-        _, encounter_fields, _ = case_bridge.draft_patient_and_encounter({
+        _, encounter_fields, _, _ = case_bridge.draft_patient_and_encounter({
             "ADMITTING DIAGNOSIS": "Term pregnancy in active labor",
             "FINAL DIAGNOSIS": "NSD, live birth",
         })
@@ -248,6 +273,20 @@ def _claims_not_null_relaxed():
         return False
 
 
+def _patient_address_column_exists():
+    """True once database/migrations/002_add_patient_address.sql has been
+    applied - needed only by the test that exercises the ADDRESS/delivery
+    OCR-to-claim mapping. Same reasoning as _claims_not_null_relaxed(): the
+    app's own DB user cannot run that ALTER itself."""
+    try:
+        from db import get_db_cursor
+        with get_db_cursor() as cursor:
+            cursor.execute("SHOW COLUMNS FROM patients WHERE Field = 'address'")
+            return bool(cursor.fetchone())
+    except Exception:
+        return False
+
+
 @unittest.skipUnless(_database_available(), "MariaDB is not reachable in this environment")
 @unittest.skipUnless(_claims_not_null_relaxed(), "Apply database/migrations/001_relax_pmrf_cf3_not_null.sql first")
 class ClaimsStoreIntegrationTests(unittest.TestCase):
@@ -287,12 +326,18 @@ class ClaimsStoreIntegrationTests(unittest.TestCase):
             "case_session_id": enc_row["case_session_id"],
         }
 
+    @unittest.skipUnless(
+        _patient_address_column_exists(),
+        "Apply database/migrations/002_add_patient_address.sql first",
+    )
     def test_generate_from_case_session_then_fetch_mapped_view(self):
         self.case_session_store.save_reviewed_session(self.case_id, "Test Case", {
             "NAME": "Dela Cruz, Maria Santos",
             "BDAY": "03/15/1995",
+            "ADDRESS": "123 Rizal St., Quezon City",
             "DATE & TIME OF ADMISSION": "06/10/2026 8:30 AM",
             "DATE & TIME OF DISCHARGE": "06/13/2026 10:00 AM",
+            "DATE & TIME OF DELIVERY": "06/10/2026 9:45 AM",
             "ADMITTING DIAGNOSIS": "Term pregnancy in active labor",
             "FINAL DIAGNOSIS": "NSD, live birth",
         })
@@ -303,7 +348,11 @@ class ClaimsStoreIntegrationTests(unittest.TestCase):
         rows = self.claims_store.get_claim(result["claim_id"])
         self.assertIsNotNone(rows)
         self.assertEqual(rows["patient"]["last_name"], "Dela Cruz")
+        self.assertEqual(rows["patient"]["address"], "123 Rizal St., Quezon City")
         self.assertEqual(rows["encounter"]["date_admitted"].isoformat(), "2026-06-10")
+        self.assertEqual(rows["claim"]["delivery_date"].isoformat(), "2026-06-10")
+        self.assertEqual(rows["claim"]["delivery_time"], "09:45")
+        self.assertEqual(rows["claim"]["am_pm_delivery"], "AM")
 
         mapped = mapping_service.map_claim(rows["patient"], rows["encounter"], rows["claim"])
         # Disposition/accommodation/member info have no OCR source - expected missing.

@@ -12,6 +12,12 @@
 -- population feature builds CF2+CSF first; CF3/PMRF are a later phase).
 -- An existing database created from an earlier copy of this file needs
 -- database/migrations/001_relax_pmrf_cf3_not_null.sql applied.
+--
+-- NOTE: `patients.address` was added so the OCR logbook's ADDRESS column
+-- has somewhere to go when a claim is generated (it was previously
+-- captured during OCR review and then silently dropped). An existing
+-- database created from an earlier copy of this file needs
+-- database/migrations/002_add_patient_address.sql applied.
 -- =====================================================================
 
 CREATE DATABASE IF NOT EXISTS `pclaimassist_db`
@@ -35,6 +41,9 @@ CREATE TABLE `patients` (
   `date_of_birth` DATE         NOT NULL,
   `sex`           ENUM('Male','Female') NULL DEFAULT NULL,
   `pin`           VARCHAR(20)  NULL DEFAULT NULL,
+  -- Free-text logbook address (OCR'd ADDRESS column) - see
+  -- database/migrations/002_add_patient_address.sql for the rationale.
+  `address`       VARCHAR(255) NULL DEFAULT NULL,
   `created_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)

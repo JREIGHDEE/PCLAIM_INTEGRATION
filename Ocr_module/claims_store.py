@@ -13,6 +13,7 @@ from philhealth import case_bridge
 
 PATIENT_EDITABLE_COLUMNS = {
     "last_name", "first_name", "middle_name", "name_ext", "date_of_birth", "sex", "pin",
+    "address",
 }
 ENCOUNTER_EDITABLE_COLUMNS = {
     "date_admitted", "time_admitted", "am_pm_admitted",
@@ -24,6 +25,7 @@ CLAIMS_EDITABLE_COLUMNS = {
     "member_dob", "member_sex", "member_pin", "relationship",
     "hci_pan", "hci_name", "hci_street", "hci_city", "hci_province",
     "employer_pen", "employer_phone", "employer_name",
+    "delivery_date", "delivery_time", "am_pm_delivery",
 }
 
 
@@ -64,7 +66,7 @@ def _find_encounter_by_case_session(cursor, case_session_id):
     return cursor.fetchone()
 
 
-def _insert_claim_with_hci_defaults(cursor, encounter_id):
+def _insert_claim_with_hci_defaults(cursor, encounter_id, claims_fields=None):
     return _insert_row(cursor, "claims", {
         "encounter_id": encounter_id,
         "hci_pan": config.DEFAULT_HCI_PAN,
@@ -72,6 +74,7 @@ def _insert_claim_with_hci_defaults(cursor, encounter_id):
         "hci_street": config.DEFAULT_HCI_STREET,
         "hci_city": config.DEFAULT_HCI_CITY,
         "hci_province": config.DEFAULT_HCI_PROVINCE,
+        **(claims_fields or {}),
     })
 
 
@@ -99,7 +102,7 @@ def create_or_update_claim_from_case_session(case_id):
     if session is None:
         raise InvalidRequestError(f"No reviewed OCR case session found for case ID '{case_id}'.")
 
-    patient_fields, encounter_fields, warnings = case_bridge.draft_patient_and_encounter(session["values"])
+    patient_fields, encounter_fields, claims_fields, warnings = case_bridge.draft_patient_and_encounter(session["values"])
 
     with get_db_cursor(commit=True) as cursor:
         existing = _find_encounter_by_case_session(cursor, session["id"])
@@ -121,7 +124,7 @@ def create_or_update_claim_from_case_session(case_id):
                 "case_session_id": session["id"],
                 **encounter_fields,
             })
-            claim_id = _insert_claim_with_hci_defaults(cursor, encounter_id)
+            claim_id = _insert_claim_with_hci_defaults(cursor, encounter_id, claims_fields)
         else:
             encounter_id = existing["id"]
             patient_id = existing["patient_id"]
@@ -131,7 +134,11 @@ def create_or_update_claim_from_case_session(case_id):
 
             cursor.execute("SELECT id FROM claims WHERE encounter_id = %s", (encounter_id,))
             claim_row = cursor.fetchone()
-            claim_id = claim_row["id"] if claim_row else _insert_claim_with_hci_defaults(cursor, encounter_id)
+            if claim_row:
+                claim_id = claim_row["id"]
+                _update_row(cursor, "claims", claim_id, claims_fields)
+            else:
+                claim_id = _insert_claim_with_hci_defaults(cursor, encounter_id, claims_fields)
 
     return {"claim_id": claim_id, "warnings": warnings}
 
@@ -183,3 +190,4 @@ def update_claim_fields(claim_id, patient_fields=None, encounter_fields=None, cl
             cursor.execute("SELECT patient_id FROM encounters WHERE id = %s", (encounter_id,))
             patient_id = cursor.fetchone()["patient_id"]
             _update_row(cursor, "patients", patient_id, patient_fields)
+

@@ -28,6 +28,7 @@ KEY_SOURCE = {
     "patientDOB": ("patients", "date_of_birth"),
     "patientSex": ("patients", "sex"),
     "patientPIN": ("patients", "pin"),
+    "patientAddress": ("patients", "address"),
     # encounters
     "dateAdmitted": ("encounters", "date_admitted"),
     "timeAdmitted": ("encounters", "time_admitted"),
@@ -59,6 +60,12 @@ KEY_SOURCE = {
     "employerPEN": ("claims", "employer_pen"),
     "employerPhone": ("claims", "employer_phone"),
     "employerName": ("claims", "employer_name"),
+    # claims - delivery (CF3 field, captured from the OCR logbook's
+    # "DATE & TIME OF DELIVERY" column ahead of full CF3 support - see
+    # case_bridge.py and the DATE_FIELDS comment below)
+    "deliveryDate": ("claims", "delivery_date"),
+    "deliveryTime": ("claims", "delivery_time"),
+    "amPmDelivery": ("claims", "am_pm_delivery"),
 }
 
 # Human labels for every leaf field this catalog knows about (used for the
@@ -77,6 +84,7 @@ FIELD_LABELS = {
     "patientDOB": "Patient Date of Birth",
     "patientSex": "Patient Sex",
     "patientPIN": "Patient / Dependent PIN",
+    "patientAddress": "Patient Address",
     "dateAdmitted": "Date Admitted",
     "timeAdmitted": "Time Admitted",
     "dateDischarge": "Date Discharged",
@@ -95,6 +103,8 @@ FIELD_LABELS = {
     "employerPEN": "Employer PEN",
     "employerPhone": "Employer Phone",
     "employerName": "Employer / Business Name",
+    "deliveryDate": "Date of Delivery",
+    "deliveryTime": "Time of Delivery",
 }
 
 # Ported verbatim from PClaimAssist/js/app.js VAL_FIELDS (cf2/csf only - the
@@ -124,9 +134,12 @@ VAL_FIELDS = {
     ],
 }
 
-# Ported from PClaimAssist/js/app.js DATE_FIELDS (CF3-only entries -
-# deliveryDate/expectedDD/lmp - omitted, out of v1 scope).
-DATE_FIELDS = {"memberDOB", "patientDOB", "dateAdmitted", "dateDischarge"}
+# Ported from PClaimAssist/js/app.js DATE_FIELDS, plus deliveryDate (added
+# once case_bridge.py started capturing "DATE & TIME OF DELIVERY" from the
+# OCR logbook - see field_catalog KEY_SOURCE above). expectedDD/lmp remain
+# CF3-only entries omitted here - out of v1 scope (no OCR source and no
+# backend route reads/writes them yet).
+DATE_FIELDS = {"memberDOB", "patientDOB", "dateAdmitted", "dateDischarge", "deliveryDate"}
 
 # Schema ENUM columns this catalog validates against (database/schema.sql).
 ENUM_CHOICES = {
@@ -141,8 +154,9 @@ ENUM_CHOICES = {
 # the system for it. Used to annotate the review UI's "Source" column.
 AUTO_OCR_KEYS = {
     "patientLastName", "patientFirstName", "patientMiddleName", "patientNameExt",
-    "patientDOB", "dateAdmitted", "timeAdmitted", "amPmAdmitted",
+    "patientDOB", "patientAddress", "dateAdmitted", "timeAdmitted", "amPmAdmitted",
     "dateDischarge", "timeDischarge", "amPmDischarge", "admissionDx", "dischargeDx",
+    "deliveryDate", "deliveryTime", "amPmDelivery",
 }
 AUTO_CONFIG_KEYS = {"hciPAN", "hciName", "hciStreet", "hciCity", "hciProvince"}
 
