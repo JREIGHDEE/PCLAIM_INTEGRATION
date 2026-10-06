@@ -1,35 +1,245 @@
 /* ═══════════════════════════════════════════════════════════
    Overlay field coordinate map – CF2 (612×936 pt)
    top/left are % of rendered page (0–100).
-   Coordinates derived from actual PDF text/rect extraction.
-   (NOTE: All top% values have been corrected using the 100-X rule)
+   Coordinates derived from actual PDF text/rect extraction
+   (page.get_drawings() + get_text('words') via PyMuPDF).
+   PAN/date/time fields use the generic `digit` resolver (see
+   pdf-overlay.js resolveOverlayFieldValue) to place one character
+   per printed digit box; disposition/accommodation use `checkbox`.
 ═══════════════════════════════════════════════════════════ */
 window.PDF_OVERLAY_CF2 = [
-  // HCI Accreditation No (PAN)
-  { id:'hciPAN',           key:'hciPAN',           page:1, top:23.5, left:32,  w:65, fs:8 },
-  // HCI Name
-  { id:'hciName',          key:'hciName',          page:1, top:25.2, left:6,   w:90, fs:8 },
-  // HCI Address row
-  { id:'hciStreet',        key:'hciStreet',        page:1, top:28.2, left:6,   w:44, fs:8 },
-  { id:'hciCity',          key:'hciCity',          page:1, top:28.2, left:52,  w:24, fs:8 },
-  { id:'hciProvince',      key:'hciProvince',      page:1, top:28.2, left:78,  w:19, fs:8 },
-  // Patient name
-  { id:'patientLastName',  key:'patientLastName',  page:1, top:33.2, left:6,   w:20, fs:8 },
-  { id:'patientFirstName', key:'patientFirstName', page:1, top:33.2, left:28,  w:18, fs:8 },
-  { id:'patientMiddleName',key:'patientMiddleName',page:1, top:33.2, left:47,  w:18, fs:8 },
-  { id:'patientNameExt',   key:'patientNameExt',   page:1, top:33.2, left:67,  w:9,  fs:8 },
-  // Date/Time Admitted
-  { id:'dateAdmitted',     key:'dateAdmitted',     page:1, top:40.9, left:6,   w:32, fs:8, computed:'dateAdmitted' },
-  { id:'timeAdmitted',     key:'timeAdmitted',     page:1, top:40.9, left:56,  w:24, fs:8, computed:'timeAdmittedStr' },
-  // Date/Time Discharged
-  { id:'dateDischarge',    key:'dateDischarge',    page:1, top:42.6, left:6,   w:32, fs:8, computed:'dateDischarge' },
-  { id:'timeDischarge',    key:'timeDischarge',    page:1, top:42.6, left:56,  w:24, fs:8, computed:'timeDischargeStr' },
-  // Disposition
-  { id:'disposition',      key:'disposition',      page:1, top:45.2, left:6,   w:55, fs:8 },
-  // Accommodation
-  { id:'accommodation',    key:'accommodation',    page:1, top:45.2, left:64,  w:33, fs:8 },
-  // Admission diagnosis
-  { id:'admissionDx',      key:'admissionDx',      page:1, top:54.8, left:6,   w:91, fs:8 },
-  // Discharge diagnosis
-  { id:'dischargeDx',      key:'dischargeDx',      page:1, top:59.0, left:6,   w:91, fs:8 },
+  // 1. PhilHealth Accreditation Number (PAN) of HCI — 9 digit boxes
+  { id:'hciPANc1', key:'hciPANc1', page:1, top:21.69, left:53.96, w:2.0, fs:8, digit:0, digitKey:'hciPAN' },
+  { id:'hciPANc2', key:'hciPANc2', page:1, top:21.69, left:55.97, w:2.0, fs:8, digit:1, digitKey:'hciPAN' },
+  { id:'hciPANc3', key:'hciPANc3', page:1, top:21.69, left:57.97, w:2.0, fs:8, digit:2, digitKey:'hciPAN' },
+  { id:'hciPANc4', key:'hciPANc4', page:1, top:21.69, left:59.98, w:2.0, fs:8, digit:3, digitKey:'hciPAN' },
+  { id:'hciPANc5', key:'hciPANc5', page:1, top:21.69, left:61.98, w:2.0, fs:8, digit:4, digitKey:'hciPAN' },
+  { id:'hciPANc6', key:'hciPANc6', page:1, top:21.69, left:63.99, w:2.0, fs:8, digit:5, digitKey:'hciPAN' },
+  { id:'hciPANc7', key:'hciPANc7', page:1, top:21.69, left:65.99, w:2.0, fs:8, digit:6, digitKey:'hciPAN' },
+  { id:'hciPANc8', key:'hciPANc8', page:1, top:21.69, left:68.0,  w:2.0, fs:8, digit:7, digitKey:'hciPAN' },
+  { id:'hciPANc9', key:'hciPANc9', page:1, top:21.69, left:70.0,  w:2.0, fs:8, digit:8, digitKey:'hciPAN' },
+
+  // 2. Name of Health Care Institution
+  { id:'hciName', key:'hciName', page:1, top:23.1, left:28.44, w:67.83, fs:8 },
+
+  // 3. Address
+  { id:'hciStreet',   key:'hciStreet',   page:1, top:24.91, left:13.27, w:33.64, fs:8 },
+  { id:'hciCity',     key:'hciCity',     page:1, top:24.91, left:48.42, w:23.55, fs:8 },
+  { id:'hciProvince', key:'hciProvince', page:1, top:24.91, left:73.83, w:22.43, fs:8 },
+
+  // PART II — 1. Name of Patient
+  { id:'patientLastName',   key:'patientLastName',   page:1, top:29.90, left:20.4,  w:17.94, fs:8 },
+  { id:'patientFirstName',  key:'patientFirstName',  page:1, top:29.90, left:40.29, w:19.63, fs:8 },
+  { id:'patientNameExt',    key:'patientNameExt',    page:1, top:29.90, left:61.42, w:13.46, fs:8 },
+  { id:'patientMiddleName', key:'patientMiddleName', page:1, top:29.90, left:76.82, w:19.63, fs:8 },
+
+  // Was patient referred by another HCI? (Yes/No checkbox)
+  { id:'referredByHCINo', key:'referredByHCI', page:1, top:36.01, left:5.31, w:2.0, fs:9, checkbox:true, checkValue:'No' },
+  { id:'referredByHCIYes', key:'referredByHCI', page:1, top:36.01, left:11.49, w:2.0, fs:9, checkbox:true, checkValue:'Yes' },
+  { id:'referralHciName',  key:'referralHciName',  page:1, top:35.81, left:18.37, w:24.10, fs:7 },
+  { id:'referralStreet',   key:'referralStreet',   page:1, top:35.81, left:44.35, w:18.51, fs:7 },
+  { id:'referralCity',     key:'referralCity',     page:1, top:35.85, left:64.67, w:10.67, fs:7 },
+  { id:'referralProvince', key:'referralProvince', page:1, top:35.85, left:76.81, w:11.78, fs:7 },
+  { id:'referralZip',      key:'referralZip',      page:1, top:35.85, left:90.11, w:6.18,  fs:7 },
+
+  // 3. Confinement Period — a. Date Admitted (8 digits mm/dd/yyyy) + b. Time Admitted (4 digits hh:mm + AM/PM)
+  { id:'dateAdmittedD1', key:'dateAdmittedD1', page:1, top:39.1, left:32.35, w:2.0, fs:7, digit:0, digitKey:'dateAdmitted', digitOrder:'mmddyyyy' },
+  { id:'dateAdmittedD2', key:'dateAdmittedD2', page:1, top:39.1, left:34.36, w:2.0, fs:7, digit:1, digitKey:'dateAdmitted', digitOrder:'mmddyyyy' },
+  { id:'dateAdmittedD3', key:'dateAdmittedD3', page:1, top:39.1, left:37.53, w:2.0, fs:7, digit:2, digitKey:'dateAdmitted', digitOrder:'mmddyyyy' },
+  { id:'dateAdmittedD4', key:'dateAdmittedD4', page:1, top:39.1, left:39.54, w:2.0, fs:7, digit:3, digitKey:'dateAdmitted', digitOrder:'mmddyyyy' },
+  { id:'dateAdmittedD5', key:'dateAdmittedD5', page:1, top:39.1, left:42.71, w:2.0, fs:7, digit:4, digitKey:'dateAdmitted', digitOrder:'mmddyyyy' },
+  { id:'dateAdmittedD6', key:'dateAdmittedD6', page:1, top:39.1, left:44.72, w:2.0, fs:7, digit:5, digitKey:'dateAdmitted', digitOrder:'mmddyyyy' },
+  { id:'dateAdmittedD7', key:'dateAdmittedD7', page:1, top:39.1, left:46.73, w:2.0, fs:7, digit:6, digitKey:'dateAdmitted', digitOrder:'mmddyyyy' },
+  { id:'dateAdmittedD8', key:'dateAdmittedD8', page:1, top:39.1, left:48.74, w:2.0, fs:7, digit:7, digitKey:'dateAdmitted', digitOrder:'mmddyyyy' },
+  { id:'timeAdmittedD1', key:'timeAdmittedD1', page:1, top:39.1, left:63.94, w:2.0, fs:7, digit:0, digitKey:'timeAdmitted' },
+  { id:'timeAdmittedD2', key:'timeAdmittedD2', page:1, top:39.1, left:65.96, w:2.0, fs:7, digit:1, digitKey:'timeAdmitted' },
+  { id:'timeAdmittedD3', key:'timeAdmittedD3', page:1, top:39.1, left:69.13, w:2.0, fs:7, digit:2, digitKey:'timeAdmitted' },
+  { id:'timeAdmittedD4', key:'timeAdmittedD4', page:1, top:39.1, left:71.14, w:2.0, fs:7, digit:3, digitKey:'timeAdmitted' },
+  { id:'timeAdmittedAM', key:'timeAdmitted', page:1, top:39.1, left:76.98, w:2.0, fs:8, amPmCheck:'AM' },
+  { id:'timeAdmittedPM', key:'timeAdmitted', page:1, top:39.1, left:83.85, w:2.0, fs:8, amPmCheck:'PM' },
+
+  // c. Date Discharge (8 digits) + d. Time Discharge (4 digits + AM/PM)
+  { id:'dateDischargeD1', key:'dateDischargeD1', page:1, top:41.1, left:32.35, w:2.0, fs:7, digit:0, digitKey:'dateDischarge', digitOrder:'mmddyyyy' },
+  { id:'dateDischargeD2', key:'dateDischargeD2', page:1, top:41.1, left:34.36, w:2.0, fs:7, digit:1, digitKey:'dateDischarge', digitOrder:'mmddyyyy' },
+  { id:'dateDischargeD3', key:'dateDischargeD3', page:1, top:41.1, left:37.53, w:2.0, fs:7, digit:2, digitKey:'dateDischarge', digitOrder:'mmddyyyy' },
+  { id:'dateDischargeD4', key:'dateDischargeD4', page:1, top:41.1, left:39.54, w:2.0, fs:7, digit:3, digitKey:'dateDischarge', digitOrder:'mmddyyyy' },
+  { id:'dateDischargeD5', key:'dateDischargeD5', page:1, top:41.1, left:42.71, w:2.0, fs:7, digit:4, digitKey:'dateDischarge', digitOrder:'mmddyyyy' },
+  { id:'dateDischargeD6', key:'dateDischargeD6', page:1, top:41.1, left:44.72, w:2.0, fs:7, digit:5, digitKey:'dateDischarge', digitOrder:'mmddyyyy' },
+  { id:'dateDischargeD7', key:'dateDischargeD7', page:1, top:41.1, left:46.73, w:2.0, fs:7, digit:6, digitKey:'dateDischarge', digitOrder:'mmddyyyy' },
+  { id:'dateDischargeD8', key:'dateDischargeD8', page:1, top:41.1, left:48.74, w:2.0, fs:7, digit:7, digitKey:'dateDischarge', digitOrder:'mmddyyyy' },
+  { id:'timeDischargeD1', key:'timeDischargeD1', page:1, top:41.1, left:63.94, w:2.0, fs:7, digit:0, digitKey:'timeDischarge' },
+  { id:'timeDischargeD2', key:'timeDischargeD2', page:1, top:41.1, left:65.96, w:2.0, fs:7, digit:1, digitKey:'timeDischarge' },
+  { id:'timeDischargeD3', key:'timeDischargeD3', page:1, top:41.1, left:69.13, w:2.0, fs:7, digit:2, digitKey:'timeDischarge' },
+  { id:'timeDischargeD4', key:'timeDischargeD4', page:1, top:41.1, left:71.14, w:2.0, fs:7, digit:3, digitKey:'timeDischarge' },
+  { id:'timeDischargeAM', key:'timeDischarge', page:1, top:41.1, left:76.98, w:2.0, fs:8, amPmCheck:'AM' },
+  { id:'timeDischargePM', key:'timeDischarge', page:1, top:41.1, left:83.85, w:2.0, fs:8, amPmCheck:'PM' },
+
+  // 4. Patient Disposition — checkboxes (shares the "disposition" select)
+  { id:'dispImproved',   key:'disposition', page:1, top:44.15, left:5.31,  w:2.0, fs:8, checkbox:true, checkValue:'Improved' },
+  { id:'dispRecovered',  key:'disposition', page:1, top:46.15, left:5.31,  w:2.0, fs:8, checkbox:true, checkValue:'Recovered' },
+  { id:'dispHAMA',       key:'disposition', page:1, top:48.1, left:5.31,  w:2.0, fs:8, checkbox:true, checkValue:'HAMA' },
+  { id:'dispAbsconded',  key:'disposition', page:1, top:49.15, left:5.31,  w:2.0, fs:8, checkbox:true, checkValue:'Absconded' },
+  { id:'dispExpired',    key:'disposition', page:1, top:44.16, left:31.12, w:2.0, fs:8, checkbox:true, checkValue:'Expired' },
+  { id:'dispTransferred',key:'disposition', page:1, top:46.15, left:31.12, w:2.0, fs:8, checkbox:true, checkValue:'Transferred' },
+
+  // 5. Type of Accomodation — checkboxes
+  { id:'accomPrivate',    key:'accommodation', page:1, top:50.8, left:23.53, w:2.0, fs:8, checkbox:true, checkValue:'Private' },
+  { id:'accomNonPrivate', key:'accommodation', page:1, top:50.8, left:32.43, w:2.0, fs:8, checkbox:true, checkValue:'Non-Private' },
+
+  // 6. Admission Diagnosis/es
+  { id:'admissionDx', key:'admissionDx', page:1, top:54.86, left:4.58, w:88, fs:8 },
+
+  // Discharge Diagnosis table (7. Discharge Diagnosis/es)
+  // Diagnosis A
+  { id:'dxADiagnosis',     key:'dxADiagnosis',     page:1, top:59.62, left:6.96,  w:11.55, fs:7 },
+  { id:'dxAIcd10',         key:'dxAIcd10',         page:1, top:59.62, left:20.39, w:8.99,  fs:7 },
+  { id:'dxAProcI',         key:'dxAProcI',         page:1, top:59.62, left:32.81, w:18.59, fs:7 },
+  { id:'dxARvsI',          key:'dxARvsI',          page:1, top:59.62, left:53.30, w:9.62,  fs:7 },
+  { id:'dxADateI',         key:'dxADateI',         page:1, top:59.62, left:64.67, w:10.26, fs:7, computed:'dxADateI' },
+  { id:'dxALatILeft', key:'dxALatI', page:1, top:59.6, left:77.34, w:2.0, fs:8, checkbox:true, checkValue:'left' },
+  { id:'dxALatIRight', key:'dxALatI', page:1, top:59.6, left:83.15, w:2.0, fs:8, checkbox:true, checkValue:'right' },
+  { id:'dxALatIBoth', key:'dxALatI', page:1, top:59.6, left:89.54, w:2.0, fs:8, checkbox:true, checkValue:'both' },
+  { id:'dxAProcII',        key:'dxAProcII',        page:1, top:61.06, left:32.81, w:18.59, fs:7 },
+  { id:'dxARvsII',         key:'dxARvsII',         page:1, top:61.06, left:53.30, w:9.62,  fs:7 },
+  { id:'dxADateII',        key:'dxADateII',        page:1, top:61.06, left:64.67, w:10.26, fs:7, computed:'dxADateII' },
+  { id:'dxALatIILeft', key:'dxALatII', page:1, top:61.04, left:77.34, w:2.0, fs:8, checkbox:true, checkValue:'left' },
+  { id:'dxALatIIRight', key:'dxALatII', page:1, top:61.04, left:83.15, w:2.0, fs:8, checkbox:true, checkValue:'right' },
+  { id:'dxALatIIBoth', key:'dxALatII', page:1, top:61.04, left:89.54, w:2.0, fs:8, checkbox:true, checkValue:'both' },
+  { id:'dxAProcIII',       key:'dxAProcIII',       page:1, top:62.5,  left:32.81, w:18.59, fs:7 },
+  { id:'dxARvsIII',        key:'dxARvsIII',        page:1, top:62.5,  left:53.30, w:9.62,  fs:7 },
+  { id:'dxADateIII',       key:'dxADateIII',       page:1, top:62.5,  left:64.67, w:10.26, fs:7, computed:'dxADateIII' },
+  { id:'dxALatIIILeft', key:'dxALatIII', page:1, top:62.48, left:77.34, w:2.0, fs:8, checkbox:true, checkValue:'left' },
+  { id:'dxALatIIIRight', key:'dxALatIII', page:1, top:62.48, left:83.15, w:2.0, fs:8, checkbox:true, checkValue:'right' },
+  { id:'dxALatIIIBoth', key:'dxALatIII', page:1, top:62.48, left:89.54, w:2.0, fs:8, checkbox:true, checkValue:'both' },
+  // Diagnosis B
+  { id:'dxBDiagnosis',     key:'dxBDiagnosis',     page:1, top:63.94, left:7.01,  w:11.54, fs:7 },
+  { id:'dxBIcd10',         key:'dxBIcd10',         page:1, top:63.94, left:20.39, w:8.99,  fs:7 },
+  { id:'dxBProcI',         key:'dxBProcI',         page:1, top:63.94, left:32.81, w:18.59, fs:7 },
+  { id:'dxBRvsI',          key:'dxBRvsI',          page:1, top:63.94, left:53.30, w:9.62,  fs:7 },
+  { id:'dxBDateI',         key:'dxBDateI',         page:1, top:63.94, left:64.67, w:10.26, fs:7, computed:'dxBDateI' },
+  { id:'dxBLatILeft', key:'dxBLatI', page:1, top:63.92, left:77.34, w:2.0, fs:8, checkbox:true, checkValue:'left' },
+  { id:'dxBLatIRight', key:'dxBLatI', page:1, top:63.92, left:83.15, w:2.0, fs:8, checkbox:true, checkValue:'right' },
+  { id:'dxBLatIBoth', key:'dxBLatI', page:1, top:63.92, left:89.54, w:2.0, fs:8, checkbox:true, checkValue:'both' },
+  { id:'dxBProcII',        key:'dxBProcII',        page:1, top:65.39, left:32.81, w:18.59, fs:7 },
+  { id:'dxBRvsII',         key:'dxBRvsII',         page:1, top:65.39, left:53.30, w:9.62,  fs:7 },
+  { id:'dxBDateII',        key:'dxBDateII',        page:1, top:65.39, left:64.67, w:10.26, fs:7, computed:'dxBDateII' },
+  { id:'dxBLatIILeft', key:'dxBLatII', page:1, top:65.37, left:77.34, w:2.0, fs:8, checkbox:true, checkValue:'left' },
+  { id:'dxBLatIIRight', key:'dxBLatII', page:1, top:65.37, left:83.15, w:2.0, fs:8, checkbox:true, checkValue:'right' },
+  { id:'dxBLatIIBoth', key:'dxBLatII', page:1, top:65.37, left:89.54, w:2.0, fs:8, checkbox:true, checkValue:'both' },
+  { id:'dxBProcIII',       key:'dxBProcIII',       page:1, top:66.8, left:32.81, w:18.59, fs:7 },
+  { id:'dxBRvsIII',        key:'dxBRvsIII',        page:1, top:66.8, left:53.30, w:9.62,  fs:7 },
+  { id:'dxBDateIII',       key:'dxBDateIII',       page:1, top:66.8, left:64.67, w:10.26, fs:7, computed:'dxBDateIII' },
+  { id:'dxBLatIIILeft', key:'dxBLatIII', page:1, top:66.8, left:77.34, w:2.0, fs:8, checkbox:true, checkValue:'left' },
+  { id:'dxBLatIIIRight', key:'dxBLatIII', page:1, top:66.8, left:83.15, w:2.0, fs:8, checkbox:true, checkValue:'right' },
+  { id:'dxBLatIIIBoth', key:'dxBLatIII', page:1, top:66.8, left:89.54, w:2.0, fs:8, checkbox:true, checkValue:'both' },
+
+  // ═══ PAGE 2 ═══
+
+  // Item 10 – Accreditation/Signature/Date Signed + Co-pay (3 rows)
+  { id:'cf2Prof1AccredNoD1', key:'cf2Prof1AccredNoD1', page:2, top:7.81, left:16.29, w:2.0, fs:7, digit:0, digitKey:'cf2Prof1AccredNo' },
+  { id:'cf2Prof1AccredNoD2', key:'cf2Prof1AccredNoD2', page:2, top:7.81, left:18.3, w:2.0, fs:7, digit:1, digitKey:'cf2Prof1AccredNo' },
+  { id:'cf2Prof1AccredNoD3', key:'cf2Prof1AccredNoD3', page:2, top:7.81, left:20.31, w:2.0, fs:7, digit:2, digitKey:'cf2Prof1AccredNo' },
+  { id:'cf2Prof1AccredNoD4', key:'cf2Prof1AccredNoD4', page:2, top:7.81, left:22.32, w:2.0, fs:7, digit:3, digitKey:'cf2Prof1AccredNo' },
+  { id:'cf2Prof1AccredNoD5', key:'cf2Prof1AccredNoD5', page:2, top:7.81, left:25.49, w:2.0, fs:7, digit:4, digitKey:'cf2Prof1AccredNo' },
+  { id:'cf2Prof1AccredNoD6', key:'cf2Prof1AccredNoD6', page:2, top:7.81, left:27.5, w:2.0, fs:7, digit:5, digitKey:'cf2Prof1AccredNo' },
+  { id:'cf2Prof1AccredNoD7', key:'cf2Prof1AccredNoD7', page:2, top:7.81, left:29.51, w:2.0, fs:7, digit:6, digitKey:'cf2Prof1AccredNo' },
+  { id:'cf2Prof1AccredNoD8', key:'cf2Prof1AccredNoD8', page:2, top:7.81, left:31.52, w:2.0, fs:7, digit:7, digitKey:'cf2Prof1AccredNo' },
+  { id:'cf2Prof1AccredNoD9', key:'cf2Prof1AccredNoD9', page:2, top:7.81, left:33.53, w:2.0, fs:7, digit:8, digitKey:'cf2Prof1AccredNo' },
+  { id:'cf2Prof1AccredNoD10', key:'cf2Prof1AccredNoD10', page:2, top:7.81, left:35.54, w:2.0, fs:7, digit:9, digitKey:'cf2Prof1AccredNo' },
+  { id:'cf2Prof1AccredNoD11', key:'cf2Prof1AccredNoD11', page:2, top:7.81, left:37.55, w:2.0, fs:7, digit:10, digitKey:'cf2Prof1AccredNo' },
+  { id:'cf2Prof1AccredNoD12', key:'cf2Prof1AccredNoD12', page:2, top:7.81, left:40.72, w:2.0, fs:7, digit:11, digitKey:'cf2Prof1AccredNo' },
+  { id:'cf2Prof1Name',     key:'cf2Prof1Name',     page:2, top:9.7, left:9.35, w:38.45, fs:7 },
+  { id:'cf2Prof1DateSignedD1', key:'cf2Prof1DateSignedD1', page:2, top:12.58, left:20.51, w:2.0, fs:7, digit:0, digitKey:'cf2Prof1DateSigned', digitOrder:'mmddyyyy' },
+  { id:'cf2Prof1DateSignedD2', key:'cf2Prof1DateSignedD2', page:2, top:12.58, left:22.52, w:2.0, fs:7, digit:1, digitKey:'cf2Prof1DateSigned', digitOrder:'mmddyyyy' },
+  { id:'cf2Prof1DateSignedD3', key:'cf2Prof1DateSignedD3', page:2, top:12.58, left:25.69, w:2.0, fs:7, digit:2, digitKey:'cf2Prof1DateSigned', digitOrder:'mmddyyyy' },
+  { id:'cf2Prof1DateSignedD4', key:'cf2Prof1DateSignedD4', page:2, top:12.58, left:27.7, w:2.0, fs:7, digit:3, digitKey:'cf2Prof1DateSigned', digitOrder:'mmddyyyy' },
+  { id:'cf2Prof1DateSignedD5', key:'cf2Prof1DateSignedD5', page:2, top:12.58, left:30.87, w:2.0, fs:7, digit:4, digitKey:'cf2Prof1DateSigned', digitOrder:'mmddyyyy' },
+  { id:'cf2Prof1DateSignedD6', key:'cf2Prof1DateSignedD6', page:2, top:12.58, left:32.88, w:2.0, fs:7, digit:5, digitKey:'cf2Prof1DateSigned', digitOrder:'mmddyyyy' },
+  { id:'cf2Prof1DateSignedD7', key:'cf2Prof1DateSignedD7', page:2, top:12.58, left:34.89, w:2.0, fs:7, digit:6, digitKey:'cf2Prof1DateSigned', digitOrder:'mmddyyyy' },
+  { id:'cf2Prof1DateSignedD8', key:'cf2Prof1DateSignedD8', page:2, top:12.58, left:36.9, w:2.0, fs:7, digit:7, digitKey:'cf2Prof1DateSigned', digitOrder:'mmddyyyy' },
+  { id:'cf2Prof1CopayNo', key:'cf2Prof1Copay', page:2, top:9.97, left:54.33, w:2.0, fs:8, checkbox:true, checkValue:'No' },
+  { id:'cf2Prof1CopayYes', key:'cf2Prof1Copay', page:2, top:11.51, left:54.33, w:2.0, fs:8, checkbox:true, checkValue:'Yes' },
+  { id:'cf2Prof1CopayAmount', key:'cf2Prof1CopayAmount', page:2, top:11.52, left:80.67, w:14.1, fs:7 },
+
+  { id:'cf2Prof2AccredNoD1', key:'cf2Prof2AccredNoD1', page:2, top:15.11, left:16.29, w:2.0, fs:7, digit:0, digitKey:'cf2Prof2AccredNo' },
+  { id:'cf2Prof2AccredNoD2', key:'cf2Prof2AccredNoD2', page:2, top:15.11, left:18.3, w:2.0, fs:7, digit:1, digitKey:'cf2Prof2AccredNo' },
+  { id:'cf2Prof2AccredNoD3', key:'cf2Prof2AccredNoD3', page:2, top:15.11, left:20.31, w:2.0, fs:7, digit:2, digitKey:'cf2Prof2AccredNo' },
+  { id:'cf2Prof2AccredNoD4', key:'cf2Prof2AccredNoD4', page:2, top:15.11, left:22.32, w:2.0, fs:7, digit:3, digitKey:'cf2Prof2AccredNo' },
+  { id:'cf2Prof2AccredNoD5', key:'cf2Prof2AccredNoD5', page:2, top:15.11, left:25.49, w:2.0, fs:7, digit:4, digitKey:'cf2Prof2AccredNo' },
+  { id:'cf2Prof2AccredNoD6', key:'cf2Prof2AccredNoD6', page:2, top:15.11, left:27.5, w:2.0, fs:7, digit:5, digitKey:'cf2Prof2AccredNo' },
+  { id:'cf2Prof2AccredNoD7', key:'cf2Prof2AccredNoD7', page:2, top:15.11, left:29.51, w:2.0, fs:7, digit:6, digitKey:'cf2Prof2AccredNo' },
+  { id:'cf2Prof2AccredNoD8', key:'cf2Prof2AccredNoD8', page:2, top:15.11, left:31.52, w:2.0, fs:7, digit:7, digitKey:'cf2Prof2AccredNo' },
+  { id:'cf2Prof2AccredNoD9', key:'cf2Prof2AccredNoD9', page:2, top:15.11, left:33.53, w:2.0, fs:7, digit:8, digitKey:'cf2Prof2AccredNo' },
+  { id:'cf2Prof2AccredNoD10', key:'cf2Prof2AccredNoD10', page:2, top:15.11, left:35.54, w:2.0, fs:7, digit:9, digitKey:'cf2Prof2AccredNo' },
+  { id:'cf2Prof2AccredNoD11', key:'cf2Prof2AccredNoD11', page:2, top:15.11, left:37.55, w:2.0, fs:7, digit:10, digitKey:'cf2Prof2AccredNo' },
+  { id:'cf2Prof2AccredNoD12', key:'cf2Prof2AccredNoD12', page:2, top:15.11, left:40.72, w:2.0, fs:7, digit:11, digitKey:'cf2Prof2AccredNo' },
+  { id:'cf2Prof2Name',     key:'cf2Prof2Name',     page:2, top:16.3, left:9.35, w:38.45, fs:7 },
+  { id:'cf2Prof2DateSignedD1', key:'cf2Prof2DateSignedD1', page:2, top:19.14, left:20.51, w:2.0, fs:7, digit:0, digitKey:'cf2Prof2DateSigned', digitOrder:'mmddyyyy' },
+  { id:'cf2Prof2DateSignedD2', key:'cf2Prof2DateSignedD2', page:2, top:19.14, left:22.52, w:2.0, fs:7, digit:1, digitKey:'cf2Prof2DateSigned', digitOrder:'mmddyyyy' },
+  { id:'cf2Prof2DateSignedD3', key:'cf2Prof2DateSignedD3', page:2, top:19.14, left:25.69, w:2.0, fs:7, digit:2, digitKey:'cf2Prof2DateSigned', digitOrder:'mmddyyyy' },
+  { id:'cf2Prof2DateSignedD4', key:'cf2Prof2DateSignedD4', page:2, top:19.14, left:27.7, w:2.0, fs:7, digit:3, digitKey:'cf2Prof2DateSigned', digitOrder:'mmddyyyy' },
+  { id:'cf2Prof2DateSignedD5', key:'cf2Prof2DateSignedD5', page:2, top:19.14, left:30.87, w:2.0, fs:7, digit:4, digitKey:'cf2Prof2DateSigned', digitOrder:'mmddyyyy' },
+  { id:'cf2Prof2DateSignedD6', key:'cf2Prof2DateSignedD6', page:2, top:19.14, left:32.88, w:2.0, fs:7, digit:5, digitKey:'cf2Prof2DateSigned', digitOrder:'mmddyyyy' },
+  { id:'cf2Prof2DateSignedD7', key:'cf2Prof2DateSignedD7', page:2, top:19.14, left:34.89, w:2.0, fs:7, digit:6, digitKey:'cf2Prof2DateSigned', digitOrder:'mmddyyyy' },
+  { id:'cf2Prof2DateSignedD8', key:'cf2Prof2DateSignedD8', page:2, top:19.14, left:36.9, w:2.0, fs:7, digit:7, digitKey:'cf2Prof2DateSigned', digitOrder:'mmddyyyy' },
+  { id:'cf2Prof2CopayNo', key:'cf2Prof2Copay', page:2, top:16.67, left:54.33, w:2.0, fs:8, checkbox:true, checkValue:'No' },
+  { id:'cf2Prof2CopayYes', key:'cf2Prof2Copay', page:2, top:18.21, left:54.33, w:2.0, fs:8, checkbox:true, checkValue:'Yes' },
+  { id:'cf2Prof2CopayAmount', key:'cf2Prof2CopayAmount', page:2, top:18.23, left:80.67, w:14.1, fs:7 },
+
+  { id:'cf2Prof3AccredNoD1', key:'cf2Prof3AccredNoD1', page:2, top:21.5, left:16.29, w:2.0, fs:7, digit:0, digitKey:'cf2Prof3AccredNo' },
+  { id:'cf2Prof3AccredNoD2', key:'cf2Prof3AccredNoD2', page:2, top:21.5, left:18.3, w:2.0, fs:7, digit:1, digitKey:'cf2Prof3AccredNo' },
+  { id:'cf2Prof3AccredNoD3', key:'cf2Prof3AccredNoD3', page:2, top:21.5, left:20.31, w:2.0, fs:7, digit:2, digitKey:'cf2Prof3AccredNo' },
+  { id:'cf2Prof3AccredNoD4', key:'cf2Prof3AccredNoD4', page:2, top:21.5, left:22.32, w:2.0, fs:7, digit:3, digitKey:'cf2Prof3AccredNo' },
+  { id:'cf2Prof3AccredNoD5', key:'cf2Prof3AccredNoD5', page:2, top:21.5, left:25.49, w:2.0, fs:7, digit:4, digitKey:'cf2Prof3AccredNo' },
+  { id:'cf2Prof3AccredNoD6', key:'cf2Prof3AccredNoD6', page:2, top:21.5, left:27.5, w:2.0, fs:7, digit:5, digitKey:'cf2Prof3AccredNo' },
+  { id:'cf2Prof3AccredNoD7', key:'cf2Prof3AccredNoD7', page:2, top:21.5, left:29.51, w:2.0, fs:7, digit:6, digitKey:'cf2Prof3AccredNo' },
+  { id:'cf2Prof3AccredNoD8', key:'cf2Prof3AccredNoD8', page:2, top:21.5, left:31.52, w:2.0, fs:7, digit:7, digitKey:'cf2Prof3AccredNo' },
+  { id:'cf2Prof3AccredNoD9', key:'cf2Prof3AccredNoD9', page:2, top:21.5, left:33.53, w:2.0, fs:7, digit:8, digitKey:'cf2Prof3AccredNo' },
+  { id:'cf2Prof3AccredNoD10', key:'cf2Prof3AccredNoD10', page:2, top:21.5, left:35.54, w:2.0, fs:7, digit:9, digitKey:'cf2Prof3AccredNo' },
+  { id:'cf2Prof3AccredNoD11', key:'cf2Prof3AccredNoD11', page:2, top:21.5, left:37.55, w:2.0, fs:7, digit:10, digitKey:'cf2Prof3AccredNo' },
+  { id:'cf2Prof3AccredNoD12', key:'cf2Prof3AccredNoD12', page:2, top:21.5, left:40.72, w:2.0, fs:7, digit:11, digitKey:'cf2Prof3AccredNo' },
+  { id:'cf2Prof3Name',     key:'cf2Prof3Name',     page:2, top:23.21, left:9.35, w:38.45, fs:7 },
+  { id:'cf2Prof3DateSignedD1', key:'cf2Prof3DateSignedD1', page:2, top:25.71, left:20.51, w:2.0, fs:7, digit:0, digitKey:'cf2Prof3DateSigned', digitOrder:'mmddyyyy' },
+  { id:'cf2Prof3DateSignedD2', key:'cf2Prof3DateSignedD2', page:2, top:25.71, left:22.52, w:2.0, fs:7, digit:1, digitKey:'cf2Prof3DateSigned', digitOrder:'mmddyyyy' },
+  { id:'cf2Prof3DateSignedD3', key:'cf2Prof3DateSignedD3', page:2, top:25.71, left:25.69, w:2.0, fs:7, digit:2, digitKey:'cf2Prof3DateSigned', digitOrder:'mmddyyyy' },
+  { id:'cf2Prof3DateSignedD4', key:'cf2Prof3DateSignedD4', page:2, top:25.71, left:27.7, w:2.0, fs:7, digit:3, digitKey:'cf2Prof3DateSigned', digitOrder:'mmddyyyy' },
+  { id:'cf2Prof3DateSignedD5', key:'cf2Prof3DateSignedD5', page:2, top:25.71, left:30.87, w:2.0, fs:7, digit:4, digitKey:'cf2Prof3DateSigned', digitOrder:'mmddyyyy' },
+  { id:'cf2Prof3DateSignedD6', key:'cf2Prof3DateSignedD6', page:2, top:25.71, left:32.88, w:2.0, fs:7, digit:5, digitKey:'cf2Prof3DateSigned', digitOrder:'mmddyyyy' },
+  { id:'cf2Prof3DateSignedD7', key:'cf2Prof3DateSignedD7', page:2, top:25.71, left:34.89, w:2.0, fs:7, digit:6, digitKey:'cf2Prof3DateSigned', digitOrder:'mmddyyyy' },
+  { id:'cf2Prof3DateSignedD8', key:'cf2Prof3DateSignedD8', page:2, top:25.71, left:36.9, w:2.0, fs:7, digit:7, digitKey:'cf2Prof3DateSigned', digitOrder:'mmddyyyy' },
+  { id:'cf2Prof3CopayNo', key:'cf2Prof3Copay', page:2, top:23.24, left:54.33, w:2.0, fs:8, checkbox:true, checkValue:'No' },
+  { id:'cf2Prof3CopayYes', key:'cf2Prof3Copay', page:2, top:24.78, left:54.33, w:2.0, fs:8, checkbox:true, checkValue:'Yes' },
+  { id:'cf2Prof3CopayAmount', key:'cf2Prof3CopayAmount', page:2, top:24.81, left:80.67, w:14.1, fs:7 },
+
+  // Part III-B – Consent to Access Patient Record/s
+  { id:'cf2PatientRepName', key:'cf2PatientRepName', page:2, top:78.1, left:5.31, w:39.08, fs:7 },
+  { id:'cf2PatientRepSignedDateD1', key:'cf2PatientRepSignedDateD1', page:2, top:81.17, left:20.51, w:2.0, fs:7, digit:0, digitKey:'cf2PatientRepSignedDate', digitOrder:'mmddyyyy' },
+  { id:'cf2PatientRepSignedDateD2', key:'cf2PatientRepSignedDateD2', page:2, top:81.17, left:22.52, w:2.0, fs:7, digit:1, digitKey:'cf2PatientRepSignedDate', digitOrder:'mmddyyyy' },
+  { id:'cf2PatientRepSignedDateD3', key:'cf2PatientRepSignedDateD3', page:2, top:81.17, left:25.69, w:2.0, fs:7, digit:2, digitKey:'cf2PatientRepSignedDate', digitOrder:'mmddyyyy' },
+  { id:'cf2PatientRepSignedDateD4', key:'cf2PatientRepSignedDateD4', page:2, top:81.17, left:27.7, w:2.0, fs:7, digit:3, digitKey:'cf2PatientRepSignedDate', digitOrder:'mmddyyyy' },
+  { id:'cf2PatientRepSignedDateD5', key:'cf2PatientRepSignedDateD5', page:2, top:81.17, left:30.87, w:2.0, fs:7, digit:4, digitKey:'cf2PatientRepSignedDate', digitOrder:'mmddyyyy' },
+  { id:'cf2PatientRepSignedDateD6', key:'cf2PatientRepSignedDateD6', page:2, top:81.17, left:32.88, w:2.0, fs:7, digit:5, digitKey:'cf2PatientRepSignedDate', digitOrder:'mmddyyyy' },
+  { id:'cf2PatientRepSignedDateD7', key:'cf2PatientRepSignedDateD7', page:2, top:81.17, left:34.89, w:2.0, fs:7, digit:6, digitKey:'cf2PatientRepSignedDate', digitOrder:'mmddyyyy' },
+  { id:'cf2PatientRepSignedDateD8', key:'cf2PatientRepSignedDateD8', page:2, top:81.17, left:36.9, w:2.0, fs:7, digit:7, digitKey:'cf2PatientRepSignedDate', digitOrder:'mmddyyyy' },
+  { id:'cf2PatientRepRelSpouse', key:'cf2PatientRepRelationship', page:2, top:84.14, left:26.16, w:2.0, fs:8, checkbox:true, checkValue:'Spouse' },
+  { id:'cf2PatientRepRelChild', key:'cf2PatientRepRelationship', page:2, top:84.14, left:33.58, w:2.0, fs:8, checkbox:true, checkValue:'Child' },
+  { id:'cf2PatientRepRelParent', key:'cf2PatientRepRelationship', page:2, top:84.14, left:40.42, w:2.0, fs:8, checkbox:true, checkValue:'Parent' },
+  { id:'cf2PatientRepRelSibling', key:'cf2PatientRepRelationship', page:2, top:85.34, left:26.16, w:2.0, fs:8, checkbox:true, checkValue:'Sibling' },
+  { id:'cf2PatientRepRelOthers', key:'cf2PatientRepRelationship', page:2, top:85.34, left:33.58, w:2.0, fs:8, checkbox:true, checkValue:'Others' },
+  { id:'cf2PatientRepRelationshipOther', key:'cf2PatientRepRelationshipOther', page:2, top:85.34, left:44.23, w:12.17, fs:7 },
+  { id:'cf2PatientReasonIncap', key:'cf2PatientReason', page:2, top:86.78, left:58.33, w:2.0, fs:8, checkbox:true, checkValue:'Incapacitated' },
+  { id:'cf2PatientReasonOther', key:'cf2PatientReason', page:2, top:88.06, left:58.33, w:2.0, fs:8, checkbox:true, checkValue:'Other' },
+  { id:'cf2PatientReasonOtherText', key:'cf2PatientReasonOther', page:2, top:88.02, left:36.58, w:19.87, fs:7 },
+
+  // Part IV – Certification of Consumption of Health Care Institution
+  { id:'cf2ProviderRepName', key:'cf2ProviderRepName', page:2, top:95.18, left:5.31, w:33.32, fs:7 },
+  { id:'cf2ProviderCapacity', key:'cf2ProviderCapacity', page:2, top:95.18, left:40.29, w:26.91, fs:7 },
+  { id:'cf2ProviderSignedDateD1', key:'cf2ProviderSignedDateD1', page:2, top:95.11, left:76.81, w:2.0, fs:7, digit:0, digitKey:'cf2ProviderSignedDate', digitOrder:'mmddyyyy' },
+  { id:'cf2ProviderSignedDateD2', key:'cf2ProviderSignedDateD2', page:2, top:95.11, left:78.82, w:2.0, fs:7, digit:1, digitKey:'cf2ProviderSignedDate', digitOrder:'mmddyyyy' },
+  { id:'cf2ProviderSignedDateD3', key:'cf2ProviderSignedDateD3', page:2, top:95.11, left:81.99, w:2.0, fs:7, digit:2, digitKey:'cf2ProviderSignedDate', digitOrder:'mmddyyyy' },
+  { id:'cf2ProviderSignedDateD4', key:'cf2ProviderSignedDateD4', page:2, top:95.11, left:84.0, w:2.0, fs:7, digit:3, digitKey:'cf2ProviderSignedDate', digitOrder:'mmddyyyy' },
+  { id:'cf2ProviderSignedDateD5', key:'cf2ProviderSignedDateD5', page:2, top:95.11, left:87.16, w:2.0, fs:7, digit:4, digitKey:'cf2ProviderSignedDate', digitOrder:'mmddyyyy' },
+  { id:'cf2ProviderSignedDateD6', key:'cf2ProviderSignedDateD6', page:2, top:95.11, left:89.18, w:2.0, fs:7, digit:5, digitKey:'cf2ProviderSignedDate', digitOrder:'mmddyyyy' },
+  { id:'cf2ProviderSignedDateD7', key:'cf2ProviderSignedDateD7', page:2, top:95.11, left:91.18, w:2.0, fs:7, digit:6, digitKey:'cf2ProviderSignedDate', digitOrder:'mmddyyyy' },
+  { id:'cf2ProviderSignedDateD8', key:'cf2ProviderSignedDateD8', page:2, top:95.11, left:93.19, w:2.0, fs:7, digit:7, digitKey:'cf2ProviderSignedDate', digitOrder:'mmddyyyy' },
 ];

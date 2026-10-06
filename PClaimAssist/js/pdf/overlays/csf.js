@@ -1,36 +1,258 @@
 /* ═══════════════════════════════════════════════════════════
    Overlay field coordinate map – CSF (612×936 pt)
    top/left are % of rendered page (0–100).
-   Coordinates derived from actual PDF text/rect extraction.
-   (NOTE: All top% values have been corrected using the 100-X rule)
+   Coordinates derived from actual PDF text/rect extraction
+   (page.get_drawings() + get_text('words') via PyMuPDF).
+   PIN/PAN/date fields use the generic `digit` resolver (see
+   pdf-overlay.js resolveOverlayFieldValue) to place one character
+   per printed digit box.
 ═══════════════════════════════════════════════════════════ */
 window.PDF_OVERLAY_CSF = [
-  // Member PIN
-  { id:'memberPIN',        key:'memberPIN',        page:1, top:19.7, left:29,  w:68, fs:8 },
-  // Member name row
-  { id:'memberLastName',   key:'memberLastName',   page:1, top:21.2, left:4,   w:19, fs:8 },
-  { id:'memberFirstName',  key:'memberFirstName',  page:1, top:21.2, left:24,  w:19, fs:8 },
-  { id:'memberNameExt',    key:'memberNameExt',    page:1, top:21.2, left:44,  w:7,  fs:8 },
-  { id:'memberMiddleName', key:'memberMiddleName', page:1, top:21.2, left:52,  w:21, fs:8 },
-  // Member DOB
-  { id:'memberDOB',        key:'memberDOB',        page:1, top:20.9, left:75,  w:22, fs:8, computed:'memberDOB' },
-  // Patient PIN row
-  { id:'patientPIN',       key:'patientPIN',       page:1, top:25.9, left:29,  w:68, fs:8 },
-  // Patient name row
-  { id:'patientLastName',  key:'patientLastName',  page:1, top:28.1, left:4,   w:19, fs:8 },
-  { id:'patientFirstName', key:'patientFirstName', page:1, top:28.1, left:24,  w:19, fs:8 },
-  { id:'patientNameExt',   key:'patientNameExt',   page:1, top:28.1, left:44,  w:7,  fs:8 },
-  { id:'patientMiddleName',key:'patientMiddleName',page:1, top:28.1, left:52,  w:21, fs:8 },
-  // Relationship
-  { id:'relationship',     key:'relationship',     page:1, top:27.8, left:75,  w:22, fs:8 },
-  // Confinement dates
-  { id:'dateAdmitted',     key:'dateAdmitted',     page:1, top:34.5, left:10,  w:26, fs:8, computed:'dateAdmitted' },
-  { id:'dateDischarge',    key:'dateDischarge',    page:1, top:34.5, left:40,  w:26, fs:8, computed:'dateDischarge' },
-  // Patient DOB
-  { id:'patientDOB',       key:'patientDOB',       page:1, top:34.5, left:76,  w:21, fs:8, computed:'patientDOB' },
-  // Employer section
-  { id:'employerPEN',      key:'employerPEN',      page:1, top:53.5, left:27,  w:36, fs:8 },
-  { id:'employerPhone',    key:'employerPhone',    page:1, top:53.5, left:66,  w:32, fs:8 },
-  // Business name
-  { id:'employerName',     key:'employerName',     page:1, top:55.2, left:21,  w:76, fs:8 },
+  // 1. PhilHealth Identification Number (PIN) of Member — 12 digit boxes
+  { id:'memberPINc1', key:'memberPINc1', page:1, top:18.06, left:42.39, w:2, fs:8, digit:0, digitKey:'memberPIN' },
+  { id:'memberPINc2', key:'memberPINc2', page:1, top:18.06, left:44.4,  w:2, fs:8, digit:1, digitKey:'memberPIN' },
+  { id:'memberPINc3', key:'memberPINc3', page:1, top:18.06, left:47.68, w:2, fs:8, digit:2, digitKey:'memberPIN' },
+  { id:'memberPINc4', key:'memberPINc4', page:1, top:18.06, left:49.69, w:2, fs:8, digit:3, digitKey:'memberPIN' },
+  { id:'memberPINc5', key:'memberPINc5', page:1, top:18.06, left:51.69, w:2, fs:8, digit:4, digitKey:'memberPIN' },
+  { id:'memberPINc6', key:'memberPINc6', page:1, top:18.06, left:53.7,  w:2, fs:8, digit:5, digitKey:'memberPIN' },
+  { id:'memberPINc7', key:'memberPINc7', page:1, top:18.06, left:55.7,  w:2, fs:8, digit:6, digitKey:'memberPIN' },
+  { id:'memberPINc8', key:'memberPINc8', page:1, top:18.06, left:57.71, w:2, fs:8, digit:7, digitKey:'memberPIN' },
+  { id:'memberPINc9', key:'memberPINc9', page:1, top:18.06, left:59.71, w:2, fs:8, digit:8, digitKey:'memberPIN' },
+  { id:'memberPINc10', key:'memberPINc10', page:1, top:18.06, left:61.72, w:2, fs:8, digit:9, digitKey:'memberPIN' },
+  { id:'memberPINc11', key:'memberPINc11', page:1, top:18.06, left:63.72, w:2, fs:8, digit:10, digitKey:'memberPIN' },
+  { id:'memberPINc12', key:'memberPINc12', page:1, top:18.06, left:66.89, w:2, fs:8, digit:11, digitKey:'memberPIN' },
+
+  // 2. Name of Member
+  { id:'memberLastName',   key:'memberLastName',   page:1, top:21.04, left:4.13,  w:16.26, fs:8 },
+  { id:'memberFirstName',  key:'memberFirstName',  page:1, top:21.04, left:22.22, w:16.26, fs:8 },
+  { id:'memberNameExt',    key:'memberNameExt',    page:1, top:21.26, left:40.11, w:16.26, fs:8 },
+  { id:'memberMiddleName', key:'memberMiddleName', page:1, top:21.04, left:58.16, w:13.46, fs:8 },
+
+  // 3. Member Date of Birth — 8 digit boxes (mm mm dd dd yyyy yyyy yyyy yyyy)
+  { id:'memberDOBd1', key:'memberDOBd1', page:1, top:21.39, left:74.86, w:2, fs:8, digit:0, digitKey:'memberDOB', digitOrder:'mmddyyyy' },
+  { id:'memberDOBd2', key:'memberDOBd2', page:1, top:21.39, left:76.9,  w:2, fs:8, digit:1, digitKey:'memberDOB', digitOrder:'mmddyyyy' },
+  { id:'memberDOBd3', key:'memberDOBd3', page:1, top:21.39, left:80.04, w:2, fs:8, digit:2, digitKey:'memberDOB', digitOrder:'mmddyyyy' },
+  { id:'memberDOBd4', key:'memberDOBd4', page:1, top:21.39, left:82.05, w:2, fs:8, digit:3, digitKey:'memberDOB', digitOrder:'mmddyyyy' },
+  { id:'memberDOBd5', key:'memberDOBd5', page:1, top:21.39, left:85.22, w:2, fs:8, digit:4, digitKey:'memberDOB', digitOrder:'mmddyyyy' },
+  { id:'memberDOBd6', key:'memberDOBd6', page:1, top:21.39, left:87.23, w:2, fs:8, digit:5, digitKey:'memberDOB', digitOrder:'mmddyyyy' },
+  { id:'memberDOBd7', key:'memberDOBd7', page:1, top:21.39, left:89.24, w:2, fs:8, digit:6, digitKey:'memberDOB', digitOrder:'mmddyyyy' },
+  { id:'memberDOBd8', key:'memberDOBd8', page:1, top:21.39, left:91.25, w:2, fs:8, digit:7, digitKey:'memberDOB', digitOrder:'mmddyyyy' },
+
+  // 4. PhilHealth Identification Number (PIN) of Dependent — 12 digit boxes
+  { id:'patientPINc1', key:'patientPINc1', page:1, top:25.14, left:44.24, w:2, fs:8, digit:0, digitKey:'patientPIN' },
+  { id:'patientPINc2', key:'patientPINc2', page:1, top:25.14, left:46.25, w:2, fs:8, digit:1, digitKey:'patientPIN' },
+  { id:'patientPINc3', key:'patientPINc3', page:1, top:25.14, left:49.53, w:2, fs:8, digit:2, digitKey:'patientPIN' },
+  { id:'patientPINc4', key:'patientPINc4', page:1, top:25.14, left:51.54, w:2, fs:8, digit:3, digitKey:'patientPIN' },
+  { id:'patientPINc5', key:'patientPINc5', page:1, top:25.14, left:53.54, w:2, fs:8, digit:4, digitKey:'patientPIN' },
+  { id:'patientPINc6', key:'patientPINc6', page:1, top:25.14, left:55.55, w:2, fs:8, digit:5, digitKey:'patientPIN' },
+  { id:'patientPINc7', key:'patientPINc7', page:1, top:25.14, left:57.56, w:2, fs:8, digit:6, digitKey:'patientPIN' },
+  { id:'patientPINc8', key:'patientPINc8', page:1, top:25.14, left:59.56, w:2, fs:8, digit:7, digitKey:'patientPIN' },
+  { id:'patientPINc9', key:'patientPINc9', page:1, top:25.14, left:61.56, w:2, fs:8, digit:8, digitKey:'patientPIN' },
+  { id:'patientPINc10', key:'patientPINc10', page:1, top:25.14, left:63.57, w:2, fs:8, digit:9, digitKey:'patientPIN' },
+  { id:'patientPINc11', key:'patientPINc11', page:1, top:25.14, left:65.57, w:2, fs:8, digit:10, digitKey:'patientPIN' },
+  { id:'patientPINc12', key:'patientPINc12', page:1, top:25.14, left:68.74, w:2, fs:8, digit:11, digitKey:'patientPIN' },
+
+  // 5. Name of Patient
+  { id:'patientLastName',  key:'patientLastName',  page:1, top:27.9, left:4.13,  w:16.26, fs:8 },
+  { id:'patientFirstName', key:'patientFirstName', page:1, top:27.9, left:22.22, w:16.26, fs:8 },
+  { id:'patientNameExt',   key:'patientNameExt',   page:1, top:28.23, left:40.11, w:16.26, fs:8 },
+  { id:'patientMiddleName',key:'patientMiddleName',page:1, top:28.01, left:58.16, w:13.46, fs:8 },
+
+  // 6. Relationship to Member — checkboxes (share the "relationship" field)
+  { id:'relChild',  key:'relationship', page:1, top:28.33, left:73.23, w:2, fs:8, checkbox:true, checkValue:'Child' },
+  { id:'relParent', key:'relationship', page:1, top:28.33, left:80.08, w:2, fs:8, checkbox:true, checkValue:'Parent' },
+  { id:'relSpouse', key:'relationship', page:1, top:28.22, left:87.47, w:2, fs:8, checkbox:true, checkValue:'Spouse' },
+
+  // 7. Confinement Period — 8 digit boxes each (mm mm dd dd yyyy yyyy yyyy yyyy)
+  { id:'dateAdmittedD1', key:'dateAdmittedD1', page:1, top:33.45, left:14.63, w:2, fs:8, digit:0, digitKey:'dateAdmitted', digitOrder:'mmddyyyy' },
+  { id:'dateAdmittedD2', key:'dateAdmittedD2', page:1, top:33.45, left:16.64, w:2, fs:8, digit:1, digitKey:'dateAdmitted', digitOrder:'mmddyyyy' },
+  { id:'dateAdmittedD3', key:'dateAdmittedD3', page:1, top:33.45, left:19.81, w:2, fs:8, digit:2, digitKey:'dateAdmitted', digitOrder:'mmddyyyy' },
+  { id:'dateAdmittedD4', key:'dateAdmittedD4', page:1, top:33.45, left:21.82, w:2, fs:8, digit:3, digitKey:'dateAdmitted', digitOrder:'mmddyyyy' },
+  { id:'dateAdmittedD5', key:'dateAdmittedD5', page:1, top:33.45, left:24.98, w:2, fs:8, digit:4, digitKey:'dateAdmitted', digitOrder:'mmddyyyy' },
+  { id:'dateAdmittedD6', key:'dateAdmittedD6', page:1, top:33.45, left:27,  w:2, fs:8, digit:5, digitKey:'dateAdmitted', digitOrder:'mmddyyyy' },
+  { id:'dateAdmittedD7', key:'dateAdmittedD7', page:1, top:33.45, left:29,  w:2, fs:8, digit:6, digitKey:'dateAdmitted', digitOrder:'mmddyyyy' },
+  { id:'dateAdmittedD8', key:'dateAdmittedD8', page:1, top:33.45, left:31.02, w:2, fs:8, digit:7, digitKey:'dateAdmitted', digitOrder:'mmddyyyy' },
+
+  { id:'dateDischargeD1', key:'dateDischargeD1', page:1, top:33.45, left:47.92, w:2, fs:8, digit:0, digitKey:'dateDischarge', digitOrder:'mmddyyyy' },
+  { id:'dateDischargeD2', key:'dateDischargeD2', page:1, top:33.45, left:49.93, w:2, fs:8, digit:1, digitKey:'dateDischarge', digitOrder:'mmddyyyy' },
+  { id:'dateDischargeD3', key:'dateDischargeD3', page:1, top:33.45, left:53.1,  w:2, fs:8, digit:2, digitKey:'dateDischarge', digitOrder:'mmddyyyy' },
+  { id:'dateDischargeD4', key:'dateDischargeD4', page:1, top:33.45, left:55.11, w:2, fs:8, digit:3, digitKey:'dateDischarge', digitOrder:'mmddyyyy' },
+  { id:'dateDischargeD5', key:'dateDischargeD5', page:1, top:33.45, left:58.28, w:2, fs:8, digit:4, digitKey:'dateDischarge', digitOrder:'mmddyyyy' },
+  { id:'dateDischargeD6', key:'dateDischargeD6', page:1, top:33.45, left:60.29, w:2, fs:8, digit:5, digitKey:'dateDischarge', digitOrder:'mmddyyyy' },
+  { id:'dateDischargeD7', key:'dateDischargeD7', page:1, top:33.45, left:62.29, w:2, fs:8, digit:6, digitKey:'dateDischarge', digitOrder:'mmddyyyy' },
+  { id:'dateDischargeD8', key:'dateDischargeD8', page:1, top:33.45, left:64.31, w:2, fs:8, digit:7, digitKey:'dateDischarge', digitOrder:'mmddyyyy' },
+
+  // 8. Patient Date of Birth — 8 digit boxes
+  { id:'patientDOBd1', key:'patientDOBd1', page:1, top:33.45, left:74.86, w:2, fs:8, digit:0, digitKey:'patientDOB', digitOrder:'mmddyyyy' },
+  { id:'patientDOBd2', key:'patientDOBd2', page:1, top:33.45, left:76.9,  w:2, fs:8, digit:1, digitKey:'patientDOB', digitOrder:'mmddyyyy' },
+  { id:'patientDOBd3', key:'patientDOBd3', page:1, top:33.45, left:80.04, w:2, fs:8, digit:2, digitKey:'patientDOB', digitOrder:'mmddyyyy' },
+  { id:'patientDOBd4', key:'patientDOBd4', page:1, top:33.45, left:82.05, w:2, fs:8, digit:3, digitKey:'patientDOB', digitOrder:'mmddyyyy' },
+  { id:'patientDOBd5', key:'patientDOBd5', page:1, top:33.45, left:85.22, w:2, fs:8, digit:4, digitKey:'patientDOB', digitOrder:'mmddyyyy' },
+  { id:'patientDOBd6', key:'patientDOBd6', page:1, top:33.45, left:87.23, w:2, fs:8, digit:5, digitKey:'patientDOB', digitOrder:'mmddyyyy' },
+  { id:'patientDOBd7', key:'patientDOBd7', page:1, top:33.45, left:89.24, w:2, fs:8, digit:6, digitKey:'patientDOB', digitOrder:'mmddyyyy' },
+  { id:'patientDOBd8', key:'patientDOBd8', page:1, top:33.45, left:91.25, w:2, fs:8, digit:7, digitKey:'patientDOB', digitOrder:'mmddyyyy' },
+
+  // PART II — 1. PhilHealth Employer Number (PEN) — 12 digit boxes
+  { id:'employerPENc1', key:'employerPENc1', page:1, top:52.42, left:31.77, w:2, fs:8, digit:0, digitKey:'employerPEN' },
+  { id:'employerPENc2', key:'employerPENc2', page:1, top:52.42, left:33.78, w:2, fs:8, digit:1, digitKey:'employerPEN' },
+  { id:'employerPENc3', key:'employerPENc3', page:1, top:52.42, left:37.05, w:2, fs:8, digit:2, digitKey:'employerPEN' },
+  { id:'employerPENc4', key:'employerPENc4', page:1, top:52.42, left:39.06, w:2, fs:8, digit:3, digitKey:'employerPEN' },
+  { id:'employerPENc5', key:'employerPENc5', page:1, top:52.42, left:41.06, w:2, fs:8, digit:4, digitKey:'employerPEN' },
+  { id:'employerPENc6', key:'employerPENc6', page:1, top:52.42, left:43.07, w:2, fs:8, digit:5, digitKey:'employerPEN' },
+  { id:'employerPENc7', key:'employerPENc7', page:1, top:52.42, left:45.24, w:2, fs:8, digit:6, digitKey:'employerPEN' },
+  { id:'employerPENc8', key:'employerPENc8', page:1, top:52.42, left:47.08, w:2, fs:8, digit:7, digitKey:'employerPEN' },
+  { id:'employerPENc9', key:'employerPENc9', page:1, top:52.42, left:49.08, w:2, fs:8, digit:8, digitKey:'employerPEN' },
+  { id:'employerPENc10', key:'employerPENc10', page:1, top:52.42, left:51.09, w:2, fs:8, digit:9, digitKey:'employerPEN' },
+  { id:'employerPENc11', key:'employerPENc11', page:1, top:52.42, left:53.1, w:2, fs:8, digit:10, digitKey:'employerPEN' },
+  { id:'employerPENc12', key:'employerPENc12', page:1, top:52.42, left:56.26, w:2, fs:8, digit:11, digitKey:'employerPEN' },
+
+  // 2. Contact No.
+  { id:'employerPhone', key:'employerPhone', page:1, top:52.21, left:74.95, w:21.31, fs:8 },
+
+  // 3. Business Name
+  { id:'employerName', key:'employerName', page:1, top:53.81, left:20.1, w:75.68, fs:8 },
+
+  // ═══ Part I – Certification of Member (signature block) ═══
+  { id:'memberSignedDateD1', key:'memberSignedDateD1', page:1, top:41.8, left:20.12, w:2, fs:7, digit:0, digitKey:'memberSignedDate', digitOrder:'mmddyyyy' },
+  { id:'memberSignedDateD2', key:'memberSignedDateD2', page:1, top:41.8, left:22.15, w:2, fs:7, digit:1, digitKey:'memberSignedDate', digitOrder:'mmddyyyy' },
+  { id:'memberSignedDateD3', key:'memberSignedDateD3', page:1, top:41.8, left:25.32, w:2, fs:7, digit:2, digitKey:'memberSignedDate', digitOrder:'mmddyyyy' },
+  { id:'memberSignedDateD4', key:'memberSignedDateD4', page:1, top:41.8, left:27.33, w:2, fs:7, digit:3, digitKey:'memberSignedDate', digitOrder:'mmddyyyy' },
+  { id:'memberSignedDateD5', key:'memberSignedDateD5', page:1, top:41.8, left:30.48, w:2, fs:7, digit:4, digitKey:'memberSignedDate', digitOrder:'mmddyyyy' },
+  { id:'memberSignedDateD6', key:'memberSignedDateD6', page:1, top:41.8, left:32.32, w:2, fs:7, digit:5, digitKey:'memberSignedDate', digitOrder:'mmddyyyy' },
+  { id:'memberSignedDateD7', key:'memberSignedDateD7', page:1, top:41.8, left:34.5, w:2, fs:7, digit:6, digitKey:'memberSignedDate', digitOrder:'mmddyyyy' },
+  { id:'memberSignedDateD8', key:'memberSignedDateD8', page:1, top:41.8, left:36.51, w:2, fs:7, digit:7, digitKey:'memberSignedDate', digitOrder:'mmddyyyy' },
+  { id:'repSignedDateD1', key:'repSignedDateD1', page:1, top:41.69, left:64.44, w:2, fs:7, digit:0, digitKey:'repSignedDate', digitOrder:'mmddyyyy' },
+  { id:'repSignedDateD2', key:'repSignedDateD2', page:1, top:41.69, left:66.45, w:2, fs:7, digit:1, digitKey:'repSignedDate', digitOrder:'mmddyyyy' },
+  { id:'repSignedDateD3', key:'repSignedDateD3', page:1, top:41.69, left:69.62, w:2, fs:7, digit:2, digitKey:'repSignedDate', digitOrder:'mmddyyyy' },
+  { id:'repSignedDateD4', key:'repSignedDateD4', page:1, top:41.69, left:71.64, w:2, fs:7, digit:3, digitKey:'repSignedDate', digitOrder:'mmddyyyy' },
+  { id:'repSignedDateD5', key:'repSignedDateD5', page:1, top:41.69, left:74.8, w:2, fs:7, digit:4, digitKey:'repSignedDate', digitOrder:'mmddyyyy' },
+  { id:'repSignedDateD6', key:'repSignedDateD6', page:1, top:41.69, left:76.81, w:2, fs:7, digit:5, digitKey:'repSignedDate', digitOrder:'mmddyyyy' },
+  { id:'repSignedDateD7', key:'repSignedDateD7', page:1, top:41.69, left:78.82, w:2, fs:7, digit:6, digitKey:'repSignedDate', digitOrder:'mmddyyyy' },
+  { id:'repSignedDateD8', key:'repSignedDateD8', page:1, top:41.69, left:80.83, w:2, fs:7, digit:7, digitKey:'repSignedDate', digitOrder:'mmddyyyy' },
+  { id:'memberSignerTypeMember', key:'memberSignerType', page:1, top:48.36, left:4.19, w:2, fs:9, checkbox:true, checkValue:'Member' },
+  { id:'memberSignerTypeRep', key:'memberSignerType', page:1, top:48.36, left:12.2, w:2, fs:9, checkbox:true, checkValue:'Representative' },
+  { id:'repRelSpouse', key:'repRelationship', page:1, top:44, left:64.8, w:2, fs:8, checkbox:true, checkValue:'Spouse' },
+  { id:'repRelChild', key:'repRelationship', page:1, top:44, left:72.38, w:2, fs:8, checkbox:true, checkValue:'Child' },
+  { id:'repRelParent', key:'repRelationship', page:1, top:44, left:78.85, w:2, fs:8, checkbox:true, checkValue:'Parent' },
+  { id:'repRelSibling', key:'repRelationship', page:1, top:45.57, left:64.8, w:2, fs:8, checkbox:true, checkValue:'Sibling' },
+  { id:'repRelOthers', key:'repRelationship', page:1, top:45.57, left:72.54, w:2, fs:8, checkbox:true, checkValue:'Others' },
+  { id:'repRelationshipOther', key:'repRelationshipOther', page:1, top:45.16, left:82.58, w:12.17, fs:7 },
+  { id:'repReasonIncap', key:'repReason', page:1, top:47.14, left:64.8, w:2, fs:8, checkbox:true, checkValue:'Incapacitated' },
+  { id:'repReasonOther', key:'repReason', page:1, top:48.68, left:64.8, w:2, fs:8, checkbox:true, checkValue:'Other' },
+  { id:'repReasonOtherText', key:'repReasonOther', page:1, top:48.68, left:74.91, w:19.87, fs:7 },
+
+  // ═══ Part II – Employer's Certification (signature) ═══
+  { id:'employerRepName',  key:'employerRepName',  page:1, top:61.97, left:4.89,  w:38.69, fs:7 },
+  { id:'employerCapacity', key:'employerCapacity', page:1, top:61.97, left:45.07, w:22.99, fs:7 },
+  { id:'employerSignedDateD1', key:'employerSignedDateD1', page:1, top:62.03, left:76.4, w:2, fs:7, digit:0, digitKey:'employerSignedDate', digitOrder:'mmddyyyy' },
+  { id:'employerSignedDateD2', key:'employerSignedDateD2', page:1, top:62.03, left:78.41, w:2, fs:7, digit:1, digitKey:'employerSignedDate', digitOrder:'mmddyyyy' },
+  { id:'employerSignedDateD3', key:'employerSignedDateD3', page:1, top:62.03, left:81.74, w:2, fs:7, digit:2, digitKey:'employerSignedDate', digitOrder:'mmddyyyy' },
+  { id:'employerSignedDateD4', key:'employerSignedDateD4', page:1, top:62.03, left:83.75, w:2, fs:7, digit:3, digitKey:'employerSignedDate', digitOrder:'mmddyyyy' },
+  { id:'employerSignedDateD5', key:'employerSignedDateD5', page:1, top:62.03, left:86.76, w:2, fs:7, digit:4, digitKey:'employerSignedDate', digitOrder:'mmddyyyy' },
+  { id:'employerSignedDateD6', key:'employerSignedDateD6', page:1, top:62.03, left:88.77, w:2, fs:7, digit:5, digitKey:'employerSignedDate', digitOrder:'mmddyyyy' },
+  { id:'employerSignedDateD7', key:'employerSignedDateD7', page:1, top:62.03, left:90.78, w:2, fs:7, digit:6, digitKey:'employerSignedDate', digitOrder:'mmddyyyy' },
+  { id:'employerSignedDateD8', key:'employerSignedDateD8', page:1, top:62.03, left:92.95, w:2, fs:7, digit:7, digitKey:'employerSignedDate', digitOrder:'mmddyyyy' },
+
+  // ═══ Part III – Consent to Access Patient Record/s ═══
+  { id:'patientRepName',   key:'patientRepName',   page:1, top:70.78, left:9.99, w:40.93, fs:7 },
+  { id:'patientRepSignedDateD1', key:'patientRepSignedDateD1', page:1, top:70.77, left:65.35, w:2, fs:7, digit:0, digitKey:'patientRepSignedDate', digitOrder:'mmddyyyy' },
+  { id:'patientRepSignedDateD2', key:'patientRepSignedDateD2', page:1, top:70.77, left:67.36, w:2, fs:7, digit:1, digitKey:'patientRepSignedDate', digitOrder:'mmddyyyy' },
+  { id:'patientRepSignedDateD3', key:'patientRepSignedDateD3', page:1, top:70.77, left:70.69, w:2, fs:7, digit:2, digitKey:'patientRepSignedDate', digitOrder:'mmddyyyy' },
+  { id:'patientRepSignedDateD4', key:'patientRepSignedDateD4', page:1, top:70.77, left:72.7, w:2, fs:7, digit:3, digitKey:'patientRepSignedDate', digitOrder:'mmddyyyy' },
+  { id:'patientRepSignedDateD5', key:'patientRepSignedDateD5', page:1, top:70.77, left:75.71, w:2, fs:7, digit:4, digitKey:'patientRepSignedDate', digitOrder:'mmddyyyy' },
+  { id:'patientRepSignedDateD6', key:'patientRepSignedDateD6', page:1, top:70.77, left:77.72, w:2, fs:7, digit:5, digitKey:'patientRepSignedDate', digitOrder:'mmddyyyy' },
+  { id:'patientRepSignedDateD7', key:'patientRepSignedDateD7', page:1, top:70.77, left:79.73, w:2, fs:7, digit:6, digitKey:'patientRepSignedDate', digitOrder:'mmddyyyy' },
+  { id:'patientRepSignedDateD8', key:'patientRepSignedDateD8', page:1, top:70.77, left:81.9, w:2, fs:7, digit:7, digitKey:'patientRepSignedDate', digitOrder:'mmddyyyy' },
+  { id:'patientSignerTypePatient', key:'patientSignerType', page:1, top:77.6, left:4.19, w:2, fs:9, checkbox:true, checkValue:'Patient' },
+  { id:'patientSignerTypeRep', key:'patientSignerType', page:1, top:77.6, left:11.61, w:2, fs:9, checkbox:true, checkValue:'Representative' },
+  { id:'patientRepRelSpouse', key:'patientRepRelationship', page:1, top:73.42, left:64.96, w:2, fs:8, checkbox:true, checkValue:'Spouse' },
+  { id:'patientRepRelChild', key:'patientRepRelationship', page:1, top:73.42, left:72.54, w:2, fs:8, checkbox:true, checkValue:'Child' },
+  { id:'patientRepRelParent', key:'patientRepRelationship', page:1, top:73.53, left:78.85, w:2, fs:8, checkbox:true, checkValue:'Parent' },
+  { id:'patientRepRelSibling', key:'patientRepRelationship', page:1, top:74.96, left:64.96, w:2, fs:8, checkbox:true, checkValue:'Sibling' },
+  { id:'patientRepRelOthers', key:'patientRepRelationship', page:1, top:75.07, left:72.54, w:2, fs:8, checkbox:true, checkValue:'Others' },
+  { id:'patientRepRelationshipOther', key:'patientRepRelationshipOther', page:1, top:74.58, left:82.41, w:12.19, fs:7 },
+  { id:'patientReasonIncap', key:'patientReason', page:1, top:76.62, left:64.96, w:2, fs:8, checkbox:true, checkValue:'Incapacitated' },
+  { id:'patientReasonOther', key:'patientReason', page:1, top:78.16, left:64.96, w:2, fs:8, checkbox:true, checkValue:'Other' },
+  { id:'patientReasonOtherText', key:'patientReasonOther', page:1, top:78.21, left:75.16, w:19.87, fs:7 },
+
+  // ═══ Part IV – Health Care Professional Information (up to 3 rows) ═══
+  { id:'hciProf1AccredNoD1', key:'hciProf1AccredNoD1', page:1, top:81.76, left:13.77, w:2, fs:7, digit:0, digitKey:'hciProf1AccredNo' },
+  { id:'hciProf1AccredNoD2', key:'hciProf1AccredNoD2', page:1, top:81.76, left:15.76, w:2, fs:7, digit:1, digitKey:'hciProf1AccredNo' },
+  { id:'hciProf1AccredNoD3', key:'hciProf1AccredNoD3', page:1, top:81.76, left:17.77, w:2, fs:7, digit:2, digitKey:'hciProf1AccredNo' },
+  { id:'hciProf1AccredNoD4', key:'hciProf1AccredNoD4', page:1, top:81.76, left:19.78, w:2, fs:7, digit:3, digitKey:'hciProf1AccredNo' },
+  { id:'hciProf1AccredNoD5', key:'hciProf1AccredNoD5', page:1, top:81.76, left:23.07, w:2, fs:7, digit:4, digitKey:'hciProf1AccredNo' },
+  { id:'hciProf1AccredNoD6', key:'hciProf1AccredNoD6', page:1, top:81.76, left:25.08, w:2, fs:7, digit:5, digitKey:'hciProf1AccredNo' },
+  { id:'hciProf1AccredNoD7', key:'hciProf1AccredNoD7', page:1, top:81.76, left:27.07, w:2, fs:7, digit:6, digitKey:'hciProf1AccredNo' },
+  { id:'hciProf1AccredNoD8', key:'hciProf1AccredNoD8', page:1, top:81.76, left:29.08, w:2, fs:7, digit:7, digitKey:'hciProf1AccredNo' },
+  { id:'hciProf1AccredNoD9', key:'hciProf1AccredNoD9', page:1, top:81.76, left:31.07, w:2, fs:7, digit:8, digitKey:'hciProf1AccredNo' },
+  { id:'hciProf1AccredNoD10', key:'hciProf1AccredNoD10', page:1, top:81.76, left:33.08, w:2, fs:7, digit:9, digitKey:'hciProf1AccredNo' },
+  { id:'hciProf1AccredNoD11', key:'hciProf1AccredNoD11', page:1, top:81.76, left:35.09, w:2, fs:7, digit:10, digitKey:'hciProf1AccredNo' },
+  { id:'hciProf1AccredNoD12', key:'hciProf1AccredNoD12', page:1, top:81.76, left:38.26, w:2, fs:7, digit:11, digitKey:'hciProf1AccredNo' },
+  { id:'hciProf1Name',     key:'hciProf1Name',     page:1, top:81.82, left:43.04, w:25.23, fs:7 },
+  { id:'hciProf1DateSignedD1', key:'hciProf1DateSignedD1', page:1, top:81.87, left:76.4, w:2, fs:7, digit:0, digitKey:'hciProf1DateSigned', digitOrder:'mmddyyyy' },
+  { id:'hciProf1DateSignedD2', key:'hciProf1DateSignedD2', page:1, top:81.87, left:78.24, w:2, fs:7, digit:1, digitKey:'hciProf1DateSigned', digitOrder:'mmddyyyy' },
+  { id:'hciProf1DateSignedD3', key:'hciProf1DateSignedD3', page:1, top:81.76, left:81.74, w:2, fs:7, digit:2, digitKey:'hciProf1DateSigned', digitOrder:'mmddyyyy' },
+  { id:'hciProf1DateSignedD4', key:'hciProf1DateSignedD4', page:1, top:81.76, left:83.75, w:2, fs:7, digit:3, digitKey:'hciProf1DateSigned', digitOrder:'mmddyyyy' },
+  { id:'hciProf1DateSignedD5', key:'hciProf1DateSignedD5', page:1, top:81.76, left:86.76, w:2, fs:7, digit:4, digitKey:'hciProf1DateSigned', digitOrder:'mmddyyyy' },
+  { id:'hciProf1DateSignedD6', key:'hciProf1DateSignedD6', page:1, top:81.76, left:88.93, w:2, fs:7, digit:5, digitKey:'hciProf1DateSigned', digitOrder:'mmddyyyy' },
+  { id:'hciProf1DateSignedD7', key:'hciProf1DateSignedD7', page:1, top:81.76, left:90.94, w:2, fs:7, digit:6, digitKey:'hciProf1DateSigned', digitOrder:'mmddyyyy' },
+  { id:'hciProf1DateSignedD8', key:'hciProf1DateSignedD8', page:1, top:81.76, left:92.95, w:2, fs:7, digit:7, digitKey:'hciProf1DateSigned', digitOrder:'mmddyyyy' },
+
+  { id:'hciProf2AccredNoD1', key:'hciProf2AccredNoD1', page:1, top:84.31, left:13.77, w:2, fs:7, digit:0, digitKey:'hciProf2AccredNo' },
+  { id:'hciProf2AccredNoD2', key:'hciProf2AccredNoD2', page:1, top:84.31, left:15.76, w:2, fs:7, digit:1, digitKey:'hciProf2AccredNo' },
+  { id:'hciProf2AccredNoD3', key:'hciProf2AccredNoD3', page:1, top:84.31, left:17.77, w:2, fs:7, digit:2, digitKey:'hciProf2AccredNo' },
+  { id:'hciProf2AccredNoD4', key:'hciProf2AccredNoD4', page:1, top:84.31, left:19.78, w:2, fs:7, digit:3, digitKey:'hciProf2AccredNo' },
+  { id:'hciProf2AccredNoD5', key:'hciProf2AccredNoD5', page:1, top:84.31, left:23.07, w:2, fs:7, digit:4, digitKey:'hciProf2AccredNo' },
+  { id:'hciProf2AccredNoD6', key:'hciProf2AccredNoD6', page:1, top:84.31, left:25.08, w:2, fs:7, digit:5, digitKey:'hciProf2AccredNo' },
+  { id:'hciProf2AccredNoD7', key:'hciProf2AccredNoD7', page:1, top:84.31, left:27.07, w:2, fs:7, digit:6, digitKey:'hciProf2AccredNo' },
+  { id:'hciProf2AccredNoD8', key:'hciProf2AccredNoD8', page:1, top:84.31, left:29.24, w:2, fs:7, digit:7, digitKey:'hciProf2AccredNo' },
+  { id:'hciProf2AccredNoD9', key:'hciProf2AccredNoD9', page:1, top:84.31, left:31.23, w:2, fs:7, digit:8, digitKey:'hciProf2AccredNo' },
+  { id:'hciProf2AccredNoD10', key:'hciProf2AccredNoD10', page:1, top:84.31, left:33.24, w:2, fs:7, digit:9, digitKey:'hciProf2AccredNo' },
+  { id:'hciProf2AccredNoD11', key:'hciProf2AccredNoD11', page:1, top:84.31, left:35.09, w:2, fs:7, digit:10, digitKey:'hciProf2AccredNo' },
+  { id:'hciProf2AccredNoD12', key:'hciProf2AccredNoD12', page:1, top:84.31, left:38.26, w:2, fs:7, digit:11, digitKey:'hciProf2AccredNo' },
+  { id:'hciProf2Name',     key:'hciProf2Name',     page:1, top:84.41, left:43.04, w:25.23, fs:7 },
+  { id:'hciProf2DateSignedD1', key:'hciProf2DateSignedD1', page:1, top:84.42, left:76.56, w:2, fs:7, digit:0, digitKey:'hciProf2DateSigned', digitOrder:'mmddyyyy' },
+  { id:'hciProf2DateSignedD2', key:'hciProf2DateSignedD2', page:1, top:84.42, left:78.41, w:2, fs:7, digit:1, digitKey:'hciProf2DateSigned', digitOrder:'mmddyyyy' },
+  { id:'hciProf2DateSignedD3', key:'hciProf2DateSignedD3', page:1, top:84.31, left:81.74, w:2, fs:7, digit:2, digitKey:'hciProf2DateSigned', digitOrder:'mmddyyyy' },
+  { id:'hciProf2DateSignedD4', key:'hciProf2DateSignedD4', page:1, top:84.31, left:83.59, w:2, fs:7, digit:3, digitKey:'hciProf2DateSigned', digitOrder:'mmddyyyy' },
+  { id:'hciProf2DateSignedD5', key:'hciProf2DateSignedD5', page:1, top:84.42, left:86.76, w:2, fs:7, digit:4, digitKey:'hciProf2DateSigned', digitOrder:'mmddyyyy' },
+  { id:'hciProf2DateSignedD6', key:'hciProf2DateSignedD6', page:1, top:84.42, left:88.77, w:2, fs:7, digit:5, digitKey:'hciProf2DateSigned', digitOrder:'mmddyyyy' },
+  { id:'hciProf2DateSignedD7', key:'hciProf2DateSignedD7', page:1, top:84.42, left:90.78, w:2, fs:7, digit:6, digitKey:'hciProf2DateSigned', digitOrder:'mmddyyyy' },
+  { id:'hciProf2DateSignedD8', key:'hciProf2DateSignedD8', page:1, top:84.42, left:92.79, w:2, fs:7, digit:7, digitKey:'hciProf2DateSigned', digitOrder:'mmddyyyy' },
+
+  { id:'hciProf3AccredNoD1', key:'hciProf3AccredNoD1', page:1, top:87.04, left:13.77, w:2, fs:7, digit:0, digitKey:'hciProf3AccredNo' },
+  { id:'hciProf3AccredNoD2', key:'hciProf3AccredNoD2', page:1, top:87.04, left:15.76, w:2, fs:7, digit:1, digitKey:'hciProf3AccredNo' },
+  { id:'hciProf3AccredNoD3', key:'hciProf3AccredNoD3', page:1, top:87.04, left:17.77, w:2, fs:7, digit:2, digitKey:'hciProf3AccredNo' },
+  { id:'hciProf3AccredNoD4', key:'hciProf3AccredNoD4', page:1, top:87.04, left:19.78, w:2, fs:7, digit:3, digitKey:'hciProf3AccredNo' },
+  { id:'hciProf3AccredNoD5', key:'hciProf3AccredNoD5', page:1, top:87.04, left:23.07, w:2, fs:7, digit:4, digitKey:'hciProf3AccredNo' },
+  { id:'hciProf3AccredNoD6', key:'hciProf3AccredNoD6', page:1, top:87.04, left:25.08, w:2, fs:7, digit:5, digitKey:'hciProf3AccredNo' },
+  { id:'hciProf3AccredNoD7', key:'hciProf3AccredNoD7', page:1, top:87.04, left:27.07, w:2, fs:7, digit:6, digitKey:'hciProf3AccredNo' },
+  { id:'hciProf3AccredNoD8', key:'hciProf3AccredNoD8', page:1, top:87.04, left:29.08, w:2, fs:7, digit:7, digitKey:'hciProf3AccredNo' },
+  { id:'hciProf3AccredNoD9', key:'hciProf3AccredNoD9', page:1, top:87.04, left:31.07, w:2, fs:7, digit:8, digitKey:'hciProf3AccredNo' },
+  { id:'hciProf3AccredNoD10', key:'hciProf3AccredNoD10', page:1, top:87.04, left:33.08, w:2, fs:7, digit:9, digitKey:'hciProf3AccredNo' },
+  { id:'hciProf3AccredNoD11', key:'hciProf3AccredNoD11', page:1, top:87.04, left:35.25, w:2, fs:7, digit:10, digitKey:'hciProf3AccredNo' },
+  { id:'hciProf3AccredNoD12', key:'hciProf3AccredNoD12', page:1, top:86.93, left:38.26, w:2, fs:7, digit:11, digitKey:'hciProf3AccredNo' },
+  { id:'hciProf3Name',     key:'hciProf3Name',     page:1, top:86.92, left:43.04, w:25.23, fs:7 },
+  { id:'hciProf3DateSignedD1', key:'hciProf3DateSignedD1', page:1, top:86.92, left:76.56, w:2, fs:7, digit:0, digitKey:'hciProf3DateSigned', digitOrder:'mmddyyyy' },
+  { id:'hciProf3DateSignedD2', key:'hciProf3DateSignedD2', page:1, top:86.92, left:78.41, w:2, fs:7, digit:1, digitKey:'hciProf3DateSigned', digitOrder:'mmddyyyy' },
+  { id:'hciProf3DateSignedD3', key:'hciProf3DateSignedD3', page:1, top:86.92, left:81.74, w:2, fs:7, digit:2, digitKey:'hciProf3DateSigned', digitOrder:'mmddyyyy' },
+  { id:'hciProf3DateSignedD4', key:'hciProf3DateSignedD4', page:1, top:86.92, left:83.59, w:2, fs:7, digit:3, digitKey:'hciProf3DateSigned', digitOrder:'mmddyyyy' },
+  { id:'hciProf3DateSignedD5', key:'hciProf3DateSignedD5', page:1, top:86.92, left:86.76, w:2, fs:7, digit:4, digitKey:'hciProf3DateSigned', digitOrder:'mmddyyyy' },
+  { id:'hciProf3DateSignedD6', key:'hciProf3DateSignedD6', page:1, top:86.92, left:88.77, w:2, fs:7, digit:5, digitKey:'hciProf3DateSigned', digitOrder:'mmddyyyy' },
+  { id:'hciProf3DateSignedD7', key:'hciProf3DateSignedD7', page:1, top:86.92, left:90.94, w:2, fs:7, digit:6, digitKey:'hciProf3DateSigned', digitOrder:'mmddyyyy' },
+  { id:'hciProf3DateSignedD8', key:'hciProf3DateSignedD8', page:1, top:86.92, left:92.79, w:2, fs:7, digit:7, digitKey:'hciProf3DateSigned', digitOrder:'mmddyyyy' },
+
+  // ═══ Part V – Provider Information and Certification ═══
+  { id:'csfFirstCaseRate',  key:'csfFirstCaseRate',  page:1, top:91.93, left:46.1, w:16.81, fs:7 },
+  { id:'csfSecondCaseRate', key:'csfSecondCaseRate', page:1, top:91.82, left:75.83, w:20.2, fs:7 },
+  { id:'providerRepName',   key:'providerRepName',   page:1, top:94.9, left:3.9,  w:38.69, fs:7 },
+  { id:'providerCapacity',  key:'providerCapacity',  page:1, top:95.01, left:44.24, w:22.99, fs:7 },
+  { id:'providerSignedDateD1', key:'providerSignedDateD1', page:1, top:95.07, left:76.56, w:2, fs:7, digit:0, digitKey:'providerSignedDate', digitOrder:'mmddyyyy' },
+  { id:'providerSignedDateD2', key:'providerSignedDateD2', page:1, top:95.07, left:78.41, w:2, fs:7, digit:1, digitKey:'providerSignedDate', digitOrder:'mmddyyyy' },
+  { id:'providerSignedDateD3', key:'providerSignedDateD3', page:1, top:95.07, left:81.74, w:2, fs:7, digit:2, digitKey:'providerSignedDate', digitOrder:'mmddyyyy' },
+  { id:'providerSignedDateD4', key:'providerSignedDateD4', page:1, top:95.07, left:83.59, w:2, fs:7, digit:3, digitKey:'providerSignedDate', digitOrder:'mmddyyyy' },
+  { id:'providerSignedDateD5', key:'providerSignedDateD5', page:1, top:94.96, left:86.92, w:2, fs:7, digit:4, digitKey:'providerSignedDate', digitOrder:'mmddyyyy' },
+  { id:'providerSignedDateD6', key:'providerSignedDateD6', page:1, top:94.96, left:88.77, w:2, fs:7, digit:5, digitKey:'providerSignedDate', digitOrder:'mmddyyyy' },
+  { id:'providerSignedDateD7', key:'providerSignedDateD7', page:1, top:94.96, left:90.78, w:2, fs:7, digit:6, digitKey:'providerSignedDate', digitOrder:'mmddyyyy' },
+  { id:'providerSignedDateD8', key:'providerSignedDateD8', page:1, top:94.96, left:92.95, w:2, fs:7, digit:7, digitKey:'providerSignedDate', digitOrder:'mmddyyyy' },
 ];

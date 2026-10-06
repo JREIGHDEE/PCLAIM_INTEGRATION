@@ -637,6 +637,61 @@ body {
   margin-top: .25rem;
 }
 
+/* ── Segmented "box" inputs — mirror the PDF's ruled boxes
+   (date Month/Day/Year cells, PAN digit cells) ───────────── */
+.pca-box-group {
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+  flex-wrap: nowrap;
+}
+.pca-box {
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+  background: #FAFAFA;
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: 700;
+  text-align: center;
+  padding: .55rem 0;
+  transition: var(--transition);
+  min-width: 0;
+}
+.pca-box:focus {
+  border-color: var(--primary);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+  outline: none;
+}
+.pca-box-sep {
+  color: var(--text-muted);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.pca-box-group--date .pca-box[data-part="MM"],
+.pca-box-group--date .pca-box[data-part="DD"] {
+  flex: 1 1 0;
+  font-size: .875rem;
+}
+.pca-box-group--date .pca-box[data-part="YYYY"] {
+  flex: 1.6 1 0;
+  font-size: .875rem;
+}
+.pca-box-group--pan,
+.pca-box-group--digits {
+  gap: .25rem;
+}
+.pca-box-group--pan .pca-box,
+.pca-box-group--digits .pca-box {
+  flex: 1 1 0;
+  aspect-ratio: 1 / 1;
+  font-size: .9rem;
+  padding: .5rem 0;
+}
+.pca-box-gap {
+  width: .5rem;
+  flex-shrink: 0;
+}
+
 .pca-radio .form-check-input:checked { background-color: var(--primary); border-color: var(--primary); }
 
 /* ── CF3 Page 2: sub-headings, checkbox groups, prenatal grid, postpartum list ── */
@@ -1279,6 +1334,7 @@ body {
   font-weight: 700;
   color: #1a3a6e;
   line-height: 1;
+  min-height: 1em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: clip;
@@ -1289,6 +1345,58 @@ body {
 .pdf-field--filled {
   color: #003399;
   text-shadow: 0 0 1px rgba(0,51,153,.15);
+}
+/* Fields with real vertical room in the printed box (chief complaint,
+   brief history, course in the wards, lab findings, etc.) wrap instead
+   of clipping — matches pdf-lib's own maxWidth wrapping on export. */
+.pdf-field--wrap {
+  white-space: normal;
+  overflow-wrap: break-word;
+  overflow: hidden;
+  max-height: 8em;
+}
+/* Per-character digit boxes (PAN, some date groups) centered within their
+   printed cell instead of hugging the left edge */
+.pdf-field--center {
+  justify-content: center;
+  text-align: center;
+}
+
+/* ── Boxed field: wrapper is a plain positioning context;        ── */
+/* ── each digit is its own absolutely-positioned span inside it. ── */
+.pdf-field-boxed {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.pdf-field-digit {
+  position: absolute;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 7px;
+  font-weight: 700;
+  color: #1a3a6e;
+  line-height: 1;
+  text-align: center;
+  pointer-events: none;
+  transition: color .15s;
+}
+.pdf-field-boxed.pdf-field--filled .pdf-field-digit {
+  color: #003399;
+  text-shadow: 0 0 1px rgba(0,51,153,.15);
+}
+
+.pdf-field-check {
+  position: absolute;
+  color: #003399;
+  line-height: 1;
+  text-align: center;
+  pointer-events: none;
+  display: none;
+}
+.pdf-field-check.pdf-field-check--active {
+  display: block;
 }
 
 /* ── RIGHT: Data entry panel ─────────────────────────────── */
@@ -1405,12 +1513,333 @@ body {
     max-height: none;
   }
 }
-/* Add to css/style.css - REMOVE BEFORE CAPSTONE DEFENSE */
+/* Debug guide only — REMOVE BEFORE CAPSTONE DEFENSE */
 .pdf-field {
   border: 1px dashed red !important;
   background-color: rgba(255, 0, 0, 0.1) !important;
-  display: flex !important;
-  align-items: flex-end !important; /* Forces text to sit at the bottom line */
+}
+
+/* ═══════════════════════════════════════════════════════════
+   USER PROFILE DROPDOWN (navbar)
+═══════════════════════════════════════════════════════════ */
+.user-profile-wrap {
+  border: none;
+  background: transparent;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+.user-profile-wrap:hover,
+.user-profile-wrap:active,
+.user-profile-wrap:focus {
+  background: var(--body-bg);
+  color: inherit;
+}
+.user-profile-wrap:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.profile-chevron {
+  font-size: .7rem;
+  color: var(--text-muted);
+  margin-left: -.15rem;
+  transition: var(--transition);
+}
+.user-profile-wrap[aria-expanded="true"] .profile-chevron { transform: rotate(180deg); }
+
+.profile-dropdown-menu {
+  min-width: 230px;
+  padding: .4rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-hover);
+  margin-top: .5rem !important;
+}
+.profile-dropdown-header {
+  padding: .6rem .75rem .5rem;
+}
+.profile-dropdown-header .user-name { font-size: .88rem; }
+.profile-dropdown-header .user-email {
+  font-size: .72rem;
+  color: var(--text-muted);
+  word-break: break-all;
+}
+.profile-dropdown-menu hr.dropdown-divider {
+  margin: .35rem 0;
+  border-color: var(--border);
+}
+.profile-dropdown-menu .dropdown-item {
+  border-radius: var(--radius-sm);
+  padding: .5rem .75rem;
+  font-size: .85rem;
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  color: var(--text);
+  transition: var(--transition);
+}
+.profile-dropdown-menu .dropdown-item i { font-size: 1rem; color: var(--text-muted); width: 1.1rem; }
+.profile-dropdown-menu .dropdown-item:hover,
+.profile-dropdown-menu .dropdown-item:focus {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+.profile-dropdown-menu .dropdown-item:hover i,
+.profile-dropdown-menu .dropdown-item:focus i { color: var(--primary); }
+.profile-dropdown-menu .dropdown-item.text-danger:hover,
+.profile-dropdown-menu .dropdown-item.text-danger:focus {
+  background: #FEF2F2;
+  color: var(--danger);
+}
+.profile-dropdown-menu .dropdown-item.text-danger:hover i,
+.profile-dropdown-menu .dropdown-item.text-danger:focus i { color: var(--danger); }
+
+/* ═══════════════════════════════════════════════════════════
+   LOGIN PAGE
+═══════════════════════════════════════════════════════════ */
+.login-body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(circle at 15% 15%, rgba(37,99,235,.10), transparent 45%),
+    radial-gradient(circle at 85% 85%, rgba(124,58,237,.10), transparent 45%),
+    var(--body-bg);
+  display: flex;
+  align-items: center;
+  padding: 2.5rem 1rem;
+}
+
+.brand-logo--lg {
+  width: 56px;
+  height: 56px;
+  font-size: 1.5rem;
+  border-radius: 14px;
+}
+
+.login-brand-name {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -.02em;
+  line-height: 1.2;
+}
+.login-brand-sub {
+  font-size: .78rem;
+  color: var(--text-muted);
+  margin-top: .1rem;
+}
+
+.login-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 .3rem;
+  min-height: 1.5em;
+}
+.typewriter-cursor {
+  display: inline-block;
+  color: var(--primary);
+  font-weight: 400;
+  margin-left: 2px;
+  animation: typewriter-blink 0.85s step-end infinite;
+}
+@keyframes typewriter-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+#signInBtn .btn-spinner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-body .input-group-text {
+  border-color: var(--border);
+}
+.login-body .form-control {
+  border-color: var(--border);
+}
+.login-body .form-control:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 .2rem rgba(37,99,235,.12);
+}
+.login-body #togglePassword {
+  cursor: pointer;
+}
+.login-body #togglePassword:hover {
+  color: var(--primary);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SEGMENTED BOX INPUTS (PIN / PEN / date fields)
+═══════════════════════════════════════════════════════════ */
+.box-input,
+.box-input-date {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-wrap: nowrap;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.box-input-time {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex: 0 0 auto;
+}
+.box-input-time .box-input-cell {
+  width: 1.5rem;
+  flex: 0 0 auto;
+}
+
+.box-input-cell {
+  flex: 1 1 auto;
+  width: 1.3rem;
+  min-width: 1.05rem;
+  max-width: 1.5rem;
+  height: 2.1rem;
+  padding: 0;
+  text-align: center;
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--text);
+  background: #FAFAFA;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  transition: var(--transition);
+  box-sizing: border-box;
+}
+.box-input-cell:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+}
+.box-input-cell:not(:placeholder-shown) {
+  border-color: var(--primary-mid);
+  background: #fff;
+}
+
+.box-input-dash {
+  color: var(--text-muted);
+  font-weight: 700;
+  padding: 0 .3rem;
+  flex: 0 0 auto;
+}
+
+.box-input-group-label {
+  font-size: .68rem;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: .2rem;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BUTTON-CHECK GROUP (child / parent / spouse style selectors)
+═══════════════════════════════════════════════════════════ */
+.btn-check-group {
+  display: flex;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+
+.btn-check-option {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .5rem .9rem;
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: #FAFAFA;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.btn-check-option i {
+  font-size: .85rem;
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+  transition: var(--transition);
+}
+.btn-check-option:hover {
+  border-color: var(--primary-mid);
+  color: var(--text);
+}
+.btn-check-option.active {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.btn-check-option.active i {
+  opacity: 1;
+  width: 1rem;
+}
+
+.btn-check-option--sm {
+  padding: .4rem .65rem;
+  font-size: .78rem;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CF2 DISCHARGE DIAGNOSIS TABLE (Diagnosis A/B + procedures)
+═══════════════════════════════════════════════════════════ */
+.dx-group-card {
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: .75rem;
+  background: #FAFAFA;
+}
+.dx-group-label {
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  margin-bottom: .5rem;
+}
+.dx-proc-row {
+  display: grid;
+  grid-template-columns: minmax(0,1.4fr) minmax(0,.9fr) minmax(0,1fr) auto;
+  gap: .4rem;
+  align-items: center;
+  margin-top: .4rem;
+  position: relative;
+  padding-left: 1.1rem;
+}
+.dx-proc-row::before {
+  content: attr(data-roman);
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: .72rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.dx-proc-row .form-control {
+  font-size: .82rem;
+  padding: .4rem .6rem;
+}
+.dx-lat-group {
+  gap: .25rem;
+  flex-wrap: nowrap;
+}
+.dx-lat-group .btn-check-option--sm {
+  padding: .35rem .5rem;
+  font-size: .72rem;
+}
+
+@media (max-width: 1400px) {
+  .dx-proc-row {
+    grid-template-columns: 1fr;
+  }
 }
 /* The debug rule above forces every field visible via !important, which
    defeats the per-page show/hide (multi-page forms need fields from other
