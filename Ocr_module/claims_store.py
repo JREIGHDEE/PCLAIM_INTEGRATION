@@ -8,11 +8,16 @@ fixed column names.
 """
 import config
 from db import get_db_cursor
-from errors import ClaimNotFoundError, InvalidRequestError
+from errors import ClaimNotFoundError, InvalidRequestError, ReviewIncompleteError, SessionNotFoundError
 from philhealth import case_bridge
+
+# claims.status's three values, in forward order - used to make status
+# transitions monotonic (see _advance_status).
+_STATUS_ORDER = ("draft", "ready", "exported")
 
 PATIENT_EDITABLE_COLUMNS = {
     "last_name", "first_name", "middle_name", "name_ext", "date_of_birth", "sex", "pin",
+    "address",
 }
 ENCOUNTER_EDITABLE_COLUMNS = {
     "date_admitted", "time_admitted", "am_pm_admitted",
@@ -24,6 +29,7 @@ CLAIMS_EDITABLE_COLUMNS = {
     "member_dob", "member_sex", "member_pin", "relationship",
     "hci_pan", "hci_name", "hci_street", "hci_city", "hci_province",
     "employer_pen", "employer_phone", "employer_name",
+    "delivery_date", "delivery_time", "am_pm_delivery",
 }
 
 
@@ -64,7 +70,7 @@ def _find_encounter_by_case_session(cursor, case_session_id):
     return cursor.fetchone()
 
 
-def _insert_claim_with_hci_defaults(cursor, encounter_id):
+def _insert_claim_with_hci_defaults(cursor, encounter_id, claims_fields=None):
     return _insert_row(cursor, "claims", {
         "encounter_id": encounter_id,
         "hci_pan": config.DEFAULT_HCI_PAN,
@@ -72,6 +78,7 @@ def _insert_claim_with_hci_defaults(cursor, encounter_id):
         "hci_street": config.DEFAULT_HCI_STREET,
         "hci_city": config.DEFAULT_HCI_CITY,
         "hci_province": config.DEFAULT_HCI_PROVINCE,
+        **(claims_fields or {}),
     })
 
 
@@ -98,8 +105,35 @@ def create_or_update_claim_from_case_session(case_id):
     session = get_reviewed_session(case_id)
     if session is None:
         raise InvalidRequestError(f"No reviewed OCR case session found for case ID '{case_id}'.")
+    return _create_or_update_claim_from_session(session)
 
-    patient_fields, encounter_fields, warnings = case_bridge.draft_patient_and_encounter(session["values"])
+
+def create_or_update_claim_from_session_id(session_id):
+    """Same as create_or_update_claim_from_case_session(), addressed by
+    case_sessions.id - the only reliable key for sessions created per
+    logbook row by an upload, whose OCR'd CASE # may be blank or repeated."""
+    from case_session_store import get_session
+
+    session = get_session(session_id)
+    if session is None:
+        raise SessionNotFoundError(f"No case session found with id {session_id}.")
+    return _create_or_update_claim_from_session(session)
+
+
+def _create_or_update_claim_from_session(session):
+    if session["review_status"] == "pending":
+        raise ReviewIncompleteError(
+            "This case session still has unreviewed OCR fields - submit its review "
+            "before generating a claim."
+        )
+
+    reviewed_parts = {
+        f["category"]: f["parts"]
+        for f in ((session.get("ocr_data") or {}).get("fields") or [])
+        if f.get("parts_reviewed") and f.get("parts")
+    }
+    patient_fields, encounter_fields, claims_fields, warnings = case_bridge.draft_patient_and_encounter(
+        session["values"], reviewed_parts)
 
     with get_db_cursor(commit=True) as cursor:
         existing = _find_encounter_by_case_session(cursor, session["id"])
@@ -121,7 +155,7 @@ def create_or_update_claim_from_case_session(case_id):
                 "case_session_id": session["id"],
                 **encounter_fields,
             })
-            claim_id = _insert_claim_with_hci_defaults(cursor, encounter_id)
+            claim_id = _insert_claim_with_hci_defaults(cursor, encounter_id, claims_fields)
         else:
             encounter_id = existing["id"]
             patient_id = existing["patient_id"]
@@ -131,8 +165,13 @@ def create_or_update_claim_from_case_session(case_id):
 
             cursor.execute("SELECT id FROM claims WHERE encounter_id = %s", (encounter_id,))
             claim_row = cursor.fetchone()
-            claim_id = claim_row["id"] if claim_row else _insert_claim_with_hci_defaults(cursor, encounter_id)
+            if claim_row:
+                claim_id = claim_row["id"]
+                _update_row(cursor, "claims", claim_id, claims_fields)
+            else:
+                claim_id = _insert_claim_with_hci_defaults(cursor, encounter_id, claims_fields)
 
+    advance_status_if_forms_complete(claim_id)
     return {"claim_id": claim_id, "warnings": warnings}
 
 
@@ -161,6 +200,30 @@ def get_claim(claim_id):
     return {"claim": claims_row, "encounter": encounter_row, "patient": patient_row}
 
 
+def get_claim_form_source(claim_id):
+    """Everything philhealth/form_prefill.build_form_data() needs for one
+    claim: its rows, CF3 prenatal visits and postpartum care rows, and the
+    OCR case session it was generated from (None for a manual claim).
+    Returns None if the claim doesn't exist."""
+    from case_session_store import get_session
+
+    rows = get_claim(claim_id)
+    if rows is None:
+        return None
+    with get_db_cursor() as cursor:
+        cursor.execute("SELECT * FROM claim_prenatal_visits WHERE claim_id = %s", (claim_id,))
+        prenatal_visits = cursor.fetchall()
+        cursor.execute("SELECT * FROM claim_postpartum_care WHERE claim_id = %s", (claim_id,))
+        postpartum_care = cursor.fetchall()
+    session_id = (rows["encounter"] or {}).get("case_session_id")
+    return {
+        "rows": rows,
+        "prenatal_visits": prenatal_visits,
+        "postpartum_care": postpartum_care,
+        "session": get_session(session_id) if session_id else None,
+    }
+
+
 def update_claim_fields(claim_id, patient_fields=None, encounter_fields=None, claims_fields=None):
     """Applies manual corrections. Every field name is checked against a
     fixed whitelist before being used in any SQL - never built from
@@ -183,3 +246,48 @@ def update_claim_fields(claim_id, patient_fields=None, encounter_fields=None, cl
             cursor.execute("SELECT patient_id FROM encounters WHERE id = %s", (encounter_id,))
             patient_id = cursor.fetchone()["patient_id"]
             _update_row(cursor, "patients", patient_id, patient_fields)
+
+    advance_status_if_forms_complete(claim_id)
+
+
+def _advance_status(claim_id, new_status):
+    """Moves claims.status forward along _STATUS_ORDER only - never
+    regresses an already-'ready'/'exported' claim back to an earlier status,
+    even if whatever triggered this call would otherwise point that way (a
+    later edit making a required field blank again does not un-export a
+    claim that was already exported; re-export is always available
+    regardless of the stored status label, since export itself re-validates
+    required fields every time - see routes/claims_routes.py export_claim()).
+    No-op if the claim doesn't exist or is already at/past `new_status`.
+    """
+    with get_db_cursor(commit=True) as cursor:
+        cursor.execute("SELECT status FROM claims WHERE id = %s", (claim_id,))
+        row = cursor.fetchone()
+        if row is None or _STATUS_ORDER.index(new_status) <= _STATUS_ORDER.index(row["status"]):
+            return
+        cursor.execute("UPDATE claims SET status = %s WHERE id = %s", (new_status, claim_id))
+
+
+def advance_status_if_forms_complete(claim_id):
+    """Moves a 'draft' claim to 'ready' once its CF2 and CSF forms (the only
+    two forms this backend currently maps/exports - see
+    philhealth/overlays/__init__.py) are both complete per
+    mapping_service.map_claim(). Called after every write that could change
+    completeness (claim generation/sync, manual field correction). No-op if
+    the forms aren't complete yet, or the claim is already 'ready'/'exported'.
+    """
+    from philhealth import mapping_service
+
+    rows = get_claim(claim_id)
+    if rows is None:
+        return
+    mapped = mapping_service.map_claim(rows["patient"], rows["encounter"], rows["claim"])
+    if mapped["forms"]["cf2"]["complete"] and mapped["forms"]["csf"]["complete"]:
+        _advance_status(claim_id, "ready")
+
+
+def mark_exported(claim_id):
+    """Moves a claim to 'exported' - called once a PDF export has actually
+    succeeded (see routes/claims_routes.py export_claim()). Idempotent;
+    never regresses an already-'exported' claim."""
+    _advance_status(claim_id, "exported")

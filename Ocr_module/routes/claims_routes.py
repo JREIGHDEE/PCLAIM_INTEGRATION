@@ -16,7 +16,7 @@ from flask import Blueprint, jsonify, request, send_file
 
 import claims_store
 from errors import ClaimIncompleteError, InvalidRequestError
-from philhealth import mapping_service, pdf_export
+from philhealth import form_prefill, mapping_service, pdf_export
 
 logger = logging.getLogger(__name__)
 
@@ -39,11 +39,18 @@ def _mapped_view(claim_id, rows):
 @claims_bp.route("/generate", methods=["POST"])
 def generate_claim():
     payload = request.get_json(silent=True) or {}
+    session_id = payload.get("session_id")
     case_id = str(payload.get("case_id", "")).strip()
-    if not case_id:
-        raise InvalidRequestError("Provide a non-empty 'case_id'")
-
-    result = claims_store.create_or_update_claim_from_case_session(case_id)
+    if session_id not in (None, ""):
+        try:
+            session_id = int(session_id)
+        except (TypeError, ValueError):
+            raise InvalidRequestError("'session_id' must be an integer")
+        result = claims_store.create_or_update_claim_from_session_id(session_id)
+    elif case_id:
+        result = claims_store.create_or_update_claim_from_case_session(case_id)
+    else:
+        raise InvalidRequestError("Provide a 'session_id' or a non-empty 'case_id'")
     logger.info("Generated/updated claim %s from case session", result["claim_id"])
 
     return jsonify({
@@ -59,6 +66,29 @@ def get_claim(claim_id):
     if rows is None:
         return jsonify({"success": False, "error": f"No claim found with id {claim_id}."}), 404
     return jsonify(_mapped_view(claim_id, rows))
+
+
+@claims_bp.route("/<int:claim_id>/form-data", methods=["GET"])
+def get_claim_form_data(claim_id):
+    """The claim as PClaimAssist form values (PMRF, CSF, CF2, CF3), keyed by
+    form key, with each OCR-sourced field's review status - see
+    philhealth/form_prefill.py. PClaimAssist loads this by claim id; patient
+    data never travels in a URL."""
+    source = claims_store.get_claim_form_source(claim_id)
+    if source is None:
+        return jsonify({"success": False, "error": f"No claim found with id {claim_id}."}), 404
+    prefill = form_prefill.build_form_data(
+        source["rows"], source["prenatal_visits"], source["postpartum_care"], source["session"]
+    )
+    session = source["session"]
+    return jsonify({
+        "success": True,
+        "claim_id": claim_id,
+        "status": source["rows"]["claim"]["status"],
+        "session_id": session["id"] if session else None,
+        "image_quality": ((session or {}).get("ocr_data") or {}).get("image_quality"),
+        **prefill,
+    })
 
 
 @claims_bp.route("/<int:claim_id>", methods=["PUT"])
@@ -90,6 +120,7 @@ def export_claim(claim_id, form_key):
         raise ClaimIncompleteError(mapping_service.missing_fields_message(form_status))
 
     pdf_bytes = pdf_export.export_claim_pdf(form_key, rows["patient"], rows["encounter"], rows["claim"])
+    claims_store.mark_exported(claim_id)
     logger.info("Exported claim %s as %s PDF", claim_id, form_key.upper())
 
     filename = f"PHILHEALTH_CLAIM_{claim_id}_{form_key.upper()}.pdf"

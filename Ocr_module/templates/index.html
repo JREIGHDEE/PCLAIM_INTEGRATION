@@ -278,6 +278,7 @@ button.primary:hover{
 <body>
 
 <h1>PClaimAssist OCR</h1>
+<p class="hint">Calibrate templates here. To turn a scanned logbook page into per-patient review sessions, use <a href="/review">Logbook Review</a>.</p>
 
 <div class="container">
 
@@ -438,6 +439,7 @@ button.primary:hover{
     <summary>Raw OCR Output (diagnostic)</summary>
     <textarea id="output" readonly></textarea>
     <div id="ocrCategorySummary" class="hint" style="margin:8px 0;"></div>
+    <div id="imageQualityBanner" style="margin:8px 0;"></div>
     <div id="confidenceLegend" class="toolbar hint">
         <span><span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#22c55e; margin-right:6px;"></span>High confidence</span>
         <span><span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#f59e0b; margin-right:6px;"></span>Medium confidence</span>
@@ -2776,6 +2778,10 @@ function normalizeConfidence(value){
     return Number.isFinite(num) ? num : null;
 }
 
+// Confidence routing thresholds come from config.py (rendered by app.py) so
+// the badge colours here match the routing in logbook_pipeline.py.
+const OCR_CONFIDENCE = {accept: {{ accept }}, review: {{ review }}};
+
 function getConfidenceHeatmap(value){
     const confidence = normalizeConfidence(value);
     if(confidence === null){
@@ -2786,7 +2792,7 @@ function getConfidenceHeatmap(value){
         };
     }
 
-    if(confidence >= 0.85){
+    if(confidence >= OCR_CONFIDENCE.accept){
         return {
             label: "High",
             color: "#166534",
@@ -2794,7 +2800,7 @@ function getConfidenceHeatmap(value){
         };
     }
 
-    if(confidence >= 0.65){
+    if(confidence >= OCR_CONFIDENCE.review){
         return {
             label: "Medium",
             color: "#92400e",
@@ -2813,6 +2819,23 @@ function renderConfidenceCell(value){
     const heatmap = getConfidenceHeatmap(value);
     const displayValue = value === null || value === undefined || value === "" ? "—" : String(value);
     return `<span title="${escapeHtml(displayValue)}" style="display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; background:${heatmap.background}; color:${heatmap.color}; font-weight:bold;">${escapeHtml(displayValue)} <span style="font-size:11px;">●</span></span>`;
+}
+
+function renderImageQualityBanner(imageQuality){
+    // Advisory only - mirrors getConfidenceHeatmap's color convention.
+    // Never blocks anything; just lets the reviewer know a rescan might
+    // help before they spend time correcting OCR output by hand.
+    const el = document.getElementById("imageQualityBanner");
+    if(!el) return;
+    if(!imageQuality || !imageQuality.warnings || !imageQuality.warnings.length){
+        el.innerHTML = "";
+        return;
+    }
+    const items = imageQuality.warnings.map(w => `<li>${escapeHtml(w)}</li>`).join("");
+    el.innerHTML = `<div style="padding:8px 12px; border-radius:8px; background:#fef3c7; color:#92400e;">
+        <strong>Image quality warning</strong>
+        <ul style="margin:4px 0 0 18px; padding:0;">${items}</ul>
+    </div>`;
 }
 
 function populateReviewTableFromTokens(tokens, defaultCategory){
@@ -2991,6 +3014,7 @@ async function sendToOCR(file, options = {}){
 
         const summaryEl = document.getElementById("ocrCategorySummary");
         summaryEl.textContent = `Field type: ${escapeHtml(data.category || category)} | Engine: ${escapeHtml(data.engine || "paddle")}`;
+        renderImageQualityBanner(data.image_quality);
 
         // If preserve flag is set and review table already has rows, do not overwrite editable table.
         const preserve = options && options.preserveReviewTable;

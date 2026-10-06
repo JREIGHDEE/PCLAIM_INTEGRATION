@@ -1,6 +1,9 @@
 /* ═══════════════════════════════════════════════════════════
    PClaimAssist – Application Logic  |  Phase 1 Prototype
-   Privacy-by-design: no storage, no server calls.
+   This file keeps form data in memory only and makes no API calls
+   itself; OCR, claim storage (MariaDB) and server-side PDF export are
+   handled by the Ocr_module Flask backend (see js/ocr.js). A claim
+   reviewed there is loaded into these forms by js/claim-loader.js.
 ═══════════════════════════════════════════════════════════ */
 
 /* ── Auth guard: bounce to login if no active session ──────── */
@@ -608,6 +611,8 @@ function updateFormPreviews() {
   });
   // Sync all duplicate data-autofill elements (e.g. split-screen right panels)
   syncAllAutofillElements();
+  // Keep the three-box PIN inputs in step (js/pin-input.js)
+  if (typeof refreshPinBoxes === 'function') refreshPinBoxes();
   // Sync segmented box-group inputs (dates, PAN) from state
   syncBoxGroupsFromState();
   // Update PDF canvas overlays
@@ -917,34 +922,46 @@ function updateDashboardStats() {
 /* ══════════════════════════════════════════════════════════
    SAMPLE DATA
 ══════════════════════════════════════════════════════════ */
-function loadSampleData(opts) {
-  const stayOnPage = !!(opts && opts.stayOnPage);
-  Object.assign(state.data, SAMPLE_DATA);
+/* Set state.data and every bound input from `values` (form key -> value);
+   keys not in `values` are left as they are. Shared by the sample data
+   loader and js/claim-loader.js (claims loaded from the OCR review). */
+function applyFormData(values) {
+  Object.assign(state.data, values);
   document.querySelectorAll('[data-autofill]').forEach(el => {
     const key = el.dataset.autofill;
-    if (!(key in SAMPLE_DATA)) return;
-    if (el.type === 'radio') el.checked = el.value === SAMPLE_DATA[key];
-    else if (el.type === 'checkbox') el.checked = !!SAMPLE_DATA[key];
-    else el.value = SAMPLE_DATA[key];
+    if (!(key in values)) return;
+    if (el.type === 'radio') el.checked = el.value === values[key];
+    else if (el.type === 'checkbox') el.checked = !!values[key];
+    else el.value = values[key];
   });
   updateFormPreviews();
+}
+
+/* Blank every field (AM/PM radios back to their AM default). */
+function resetFormData() {
+  const AM_DEFAULTS = { amPmAdmitted:'AM', amPmDischarge:'AM', amPmDelivery:'AM' };
+  Object.keys(state.data).forEach(k => {
+    state.data[k] = AM_DEFAULTS[k] || (typeof state.data[k] === 'boolean' ? false : '');
+  });
+  document.querySelectorAll('[data-autofill]').forEach(el => {
+    const key = el.dataset.autofill;
+    if (el.type === 'radio') el.checked = el.value === AM_DEFAULTS[key];
+    else if (el.type === 'checkbox') el.checked = false;
+    else el.value = '';
+  });
+  updateFormPreviews();
+}
+
+function loadSampleData() {
+  applyFormData(SAMPLE_DATA);
   showToast('Sample data loaded', 'All fields populated with fictional demo data.', 'success');
   logActivity('Sample data loaded for demonstration', 'success');
-  if (!stayOnPage) navigateTo('patient');
+  navigateTo('patient');
 }
 
 
 document.getElementById('clearFormBtn').addEventListener('click', () => {
-  const AM_DEFAULTS = { amPmAdmitted:'AM', amPmDischarge:'AM', amPmDelivery:'AM' };
-  Object.keys(state.data).forEach(k => { state.data[k] = AM_DEFAULTS[k] || ''; });
-  document.querySelectorAll('[data-autofill]').forEach(el => {
-    const key = el.dataset.autofill;
-    if (el.type === 'radio') el.checked = false;
-    else if (el.type === 'checkbox') el.checked = false;
-    else if (AM_DEFAULTS[key]) el.value = AM_DEFAULTS[key];
-    else el.value = '';
-  });
-  updateFormPreviews();
+  resetFormData();
   showToast('Form cleared', 'All patient information has been cleared.', 'info');
   logActivity('Patient information cleared', 'warning');
 });

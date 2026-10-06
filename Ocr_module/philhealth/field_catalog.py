@@ -12,54 +12,222 @@ Pure data + pure functions only - no DB/Flask imports, so this (and anything
 built on top of it) can be unit tested with plain dicts.
 """
 import re
+from collections import namedtuple
 from datetime import date
 
 # ---------------------------------------------------------------------------
-# Where each field ultimately lives (table, column). Used both to build the
-# mapping-table "Internal Field" column and by claims_store to know which
-# table a manual correction belongs to.
+# THE field mapping - single source of truth for both the Python backend and
+# the PClaimAssist forms. Every key is a PClaimAssist form key (js/app.js
+# state.data - the `data-autofill` key on each input), mapped to where its
+# value is stored. The browser never maps database columns itself: it loads
+# GET /api/claims/<id>/form-data, which is built from this table and returns
+# values already keyed by form key (philhealth/form_prefill.py).
+# test_form_prefill.py fails if a key here is missing from js/app.js.
+#
+# FormField.kind drives serialization: "text" | "date" (ISO YYYY-MM-DD) |
+# "time" (24h HH:MM) | "bool" | "number". FormField.row is the child-table
+# row a field lives in (prenatal visit number / postpartum care item).
 # ---------------------------------------------------------------------------
-KEY_SOURCE = {
+FormField = namedtuple("FormField", "table column kind row", defaults=("text", None))
+
+
+def _claims(column, kind="text"):
+    return FormField("claims", column, kind)
+
+
+FORM_FIELDS = {
     # patients
-    "patientLastName": ("patients", "last_name"),
-    "patientFirstName": ("patients", "first_name"),
-    "patientMiddleName": ("patients", "middle_name"),
-    "patientNameExt": ("patients", "name_ext"),
-    "patientDOB": ("patients", "date_of_birth"),
-    "patientSex": ("patients", "sex"),
-    "patientPIN": ("patients", "pin"),
+    "patientLastName": FormField("patients", "last_name"),
+    "patientFirstName": FormField("patients", "first_name"),
+    "patientMiddleName": FormField("patients", "middle_name"),
+    "patientNameExt": FormField("patients", "name_ext"),
+    "patientDOB": FormField("patients", "date_of_birth", "date"),
+    "patientSex": FormField("patients", "sex"),
+    "patientPIN": FormField("patients", "pin"),
+    # Free-text logbook address. Not a form key: the forms split the address
+    # into addrStreet/addrBarangay/... (PMRF member address), and the OCR
+    # text is never split by guessing - it is shown to staff as a reference.
+    "patientAddress": FormField("patients", "address"),
     # encounters
-    "dateAdmitted": ("encounters", "date_admitted"),
-    "timeAdmitted": ("encounters", "time_admitted"),
-    "amPmAdmitted": ("encounters", "am_pm_admitted"),
-    "dateDischarge": ("encounters", "date_discharge"),
-    "timeDischarge": ("encounters", "time_discharge"),
-    "amPmDischarge": ("encounters", "am_pm_discharge"),
-    "disposition": ("encounters", "disposition"),
-    "accommodation": ("encounters", "accommodation"),
-    "chiefComplaint": ("encounters", "chief_complaint"),
-    "admissionDx": ("encounters", "admission_dx"),
-    "dischargeDx": ("encounters", "discharge_dx"),
+    "dateAdmitted": FormField("encounters", "date_admitted", "date"),
+    "timeAdmitted": FormField("encounters", "time_admitted", "time"),
+    "amPmAdmitted": FormField("encounters", "am_pm_admitted"),
+    "dateDischarge": FormField("encounters", "date_discharge", "date"),
+    "timeDischarge": FormField("encounters", "time_discharge", "time"),
+    "amPmDischarge": FormField("encounters", "am_pm_discharge"),
+    "disposition": FormField("encounters", "disposition"),
+    "accommodation": FormField("encounters", "accommodation"),
+    "chiefComplaint": FormField("encounters", "chief_complaint"),
+    "admissionDx": FormField("encounters", "admission_dx"),
+    "dischargeDx": FormField("encounters", "discharge_dx"),
     # claims - HCI
-    "hciPAN": ("claims", "hci_pan"),
-    "hciName": ("claims", "hci_name"),
-    "hciStreet": ("claims", "hci_street"),
-    "hciCity": ("claims", "hci_city"),
-    "hciProvince": ("claims", "hci_province"),
+    "hciPAN": _claims("hci_pan"),
+    "hciName": _claims("hci_name"),
+    "hciStreet": _claims("hci_street"),
+    "hciCity": _claims("hci_city"),
+    "hciProvince": _claims("hci_province"),
     # claims - member
-    "memberPIN": ("claims", "member_pin"),
-    "memberLastName": ("claims", "member_last_name"),
-    "memberFirstName": ("claims", "member_first_name"),
-    "memberMiddleName": ("claims", "member_middle_name"),
-    "memberNameExt": ("claims", "member_name_ext"),
-    "memberDOB": ("claims", "member_dob"),
-    "memberSex": ("claims", "member_sex"),
-    "relationship": ("claims", "relationship"),
-    # claims - employer
-    "employerPEN": ("claims", "employer_pen"),
-    "employerPhone": ("claims", "employer_phone"),
-    "employerName": ("claims", "employer_name"),
+    "memberPIN": _claims("member_pin"),
+    "memberLastName": _claims("member_last_name"),
+    "memberFirstName": _claims("member_first_name"),
+    "memberMiddleName": _claims("member_middle_name"),
+    "memberNameExt": _claims("member_name_ext"),
+    "memberDOB": _claims("member_dob", "date"),
+    "memberSex": _claims("member_sex"),
+    "relationship": _claims("relationship"),
+    # claims - employer (CSF)
+    "employerPEN": _claims("employer_pen"),
+    "employerPhone": _claims("employer_phone"),
+    "employerName": _claims("employer_name"),
+    # claims - member profile (PMRF)
+    "civilStatus": _claims("civil_status"),
+    "placeOfBirth": _claims("place_of_birth"),
+    "citizenship": _claims("citizenship"),
+    "motherLastName": _claims("mother_last_name"),
+    "motherFirstName": _claims("mother_first_name"),
+    "motherMiddleName": _claims("mother_middle_name"),
+    "spouseLastName": _claims("spouse_last_name"),
+    "spouseFirstName": _claims("spouse_first_name"),
+    "spouseMiddleName": _claims("spouse_middle_name"),
+    "memberType": _claims("member_type"),
+    "profession": _claims("profession"),
+    "monthlyIncome": _claims("monthly_income"),
+    # claims - member address & contact (PMRF)
+    "addrUnit": _claims("addr_unit"),
+    "addrBuilding": _claims("addr_building"),
+    "addrLot": _claims("addr_lot"),
+    "addrStreet": _claims("addr_street"),
+    "addrSubdivision": _claims("addr_subdivision"),
+    "addrBarangay": _claims("addr_barangay"),
+    "addrCity": _claims("addr_city"),
+    "addrProvince": _claims("addr_province"),
+    "addrZip": _claims("addr_zip"),
+    "mobile": _claims("mobile"),
+    "homePhone": _claims("home_phone"),
+    "email": _claims("email"),
+    # claims - maternity / delivery (CF3)
+    "lmp": _claims("lmp", "date"),
+    "ageOfMenarche": _claims("age_of_menarche", "number"),
+    "gravida": _claims("gravida", "number"),
+    "para": _claims("para", "number"),
+    "expectedDD": _claims("expected_dd", "date"),
+    "deliveryDate": _claims("delivery_date", "date"),
+    "deliveryTime": _claims("delivery_time", "time"),
+    "amPmDelivery": _claims("am_pm_delivery"),
+    "mannerOfDelivery": _claims("manner_of_delivery"),
+    "fetalOutcome": _claims("fetal_outcome"),
+    "babySex": _claims("baby_sex"),
+    "birthWeight": _claims("birth_weight"),
+    "apgarScore": _claims("apgar_score", "number"),
+    "briefHistory": _claims("brief_history"),
+    # claims - physical exam, course, labs (CF3 part I)
+    "vitalBP": _claims("vital_bp"),
+    "vitalCR": _claims("vital_cr"),
+    "vitalRR": _claims("vital_rr"),
+    "vitalTemp": _claims("vital_temp"),
+    "peHEENT": _claims("pe_heent"),
+    "peAbdomen": _claims("pe_abdomen"),
+    "peChestLungs": _claims("pe_chest_lungs"),
+    "peGU": _claims("pe_gu"),
+    "peCVS": _claims("pe_cvs"),
+    "peSkinExtremities": _claims("pe_skin_extremities"),
+    "peNeuroExam": _claims("pe_neuro_exam"),
+    "courseInWards": _claims("course_in_wards"),
+    "labFindings": _claims("lab_findings"),
+    # claims - maternity care package (CF3 part II)
+    "initialPrenatalDate": _claims("initial_prenatal_date", "date"),
+    "vitalSignsNormal": _claims("vital_signs_normal", "bool"),
+    "pregnancyLowRisk": _claims("pregnancy_low_risk", "bool"),
+    "obTerm": _claims("ob_term", "number"),
+    "obPreterm": _claims("ob_preterm", "number"),
+    "obAbortion": _claims("ob_abortion", "number"),
+    "obLiving": _claims("ob_living", "number"),
+    "riskMultiplePregnancy": _claims("risk_multiple_pregnancy", "bool"),
+    "riskOvarianCyst": _claims("risk_ovarian_cyst", "bool"),
+    "riskMyomaUteri": _claims("risk_myoma_uteri", "bool"),
+    "riskPlacentaPrevia": _claims("risk_placenta_previa", "bool"),
+    "riskMiscarriages": _claims("risk_miscarriages", "bool"),
+    "riskStillbirth": _claims("risk_stillbirth", "bool"),
+    "riskPreeclampsia": _claims("risk_preeclampsia", "bool"),
+    "riskEclampsia": _claims("risk_eclampsia", "bool"),
+    "riskPrematureContraction": _claims("risk_premature_contraction", "bool"),
+    "riskHypertension": _claims("risk_hypertension", "bool"),
+    "riskHeartDisease": _claims("risk_heart_disease", "bool"),
+    "riskDiabetes": _claims("risk_diabetes", "bool"),
+    "riskThyroidDisorder": _claims("risk_thyroid_disorder", "bool"),
+    "riskObesity": _claims("risk_obesity", "bool"),
+    "riskAsthma": _claims("risk_asthma", "bool"),
+    "riskEpilepsy": _claims("risk_epilepsy", "bool"),
+    "riskRenalDisease": _claims("risk_renal_disease", "bool"),
+    "riskBleedingDisorders": _claims("risk_bleeding_disorders", "bool"),
+    "riskPrevCesarian": _claims("risk_prev_cesarian", "bool"),
+    "riskUterineMyomectomy": _claims("risk_uterine_myomectomy", "bool"),
+    "mcpOrientation": _claims("mcp_orientation"),
+    "obstetricIndex": _claims("obstetric_index"),
+    "pregnancyUterineAOG": _claims("pregnancy_uterine_aog"),
+    "presentation": _claims("presentation"),
+    "postpartumFollowupDate": _claims("postpartum_followup_date", "date"),
+    "attendingPhysicianName": _claims("attending_physician_name"),
+    "dateSigned": _claims("date_signed", "date"),
 }
+
+# CF3 follow-up prenatal visits 2-12: pncDate2..pncTemp12 -> one
+# claim_prenatal_visits row per visit number.
+_PRENATAL_COLUMNS = {
+    "Date": ("visit_date", "date"), "Aog": ("aog", "text"), "Weight": ("weight", "number"),
+    "Cr": ("cr", "text"), "Rr": ("rr", "text"), "Bp": ("bp", "text"), "Temp": ("temp", "number"),
+}
+for _visit in range(2, 13):
+    for _suffix, (_column, _kind) in _PRENATAL_COLUMNS.items():
+        FORM_FIELDS[f"pnc{_suffix}{_visit}"] = FormField("claim_prenatal_visits", _column, _kind, _visit)
+
+# CF3 postpartum care checklist: pp<Item>Done / pp<Item>Remarks -> one
+# claim_postpartum_care row per care_item.
+_POSTPARTUM_ITEMS = {
+    "Perineal": "perineal", "Complications": "complications", "Breastfeeding": "breastfeeding",
+    "FamilyPlanning": "family_planning", "FPService": "fp_service",
+    "ReferredVSS": "referred_vss", "ScheduleNext": "schedule_next",
+}
+for _item, _care_item in _POSTPARTUM_ITEMS.items():
+    FORM_FIELDS[f"pp{_item}Done"] = FormField("claim_postpartum_care", "done", "bool", _care_item)
+    FORM_FIELDS[f"pp{_item}Remarks"] = FormField("claim_postpartum_care", "remarks", "text", _care_item)
+
+# Keys that are not PClaimAssist form inputs (see patientAddress above).
+NON_FORM_KEYS = {"patientAddress"}
+
+# The CF2/CSF subset the server-side claim review/export works on
+# (mapping_service.map_claim, GET /api/claims/<id>), in display order.
+_CLAIM_REVIEW_KEYS = (
+    "patientLastName", "patientFirstName", "patientMiddleName", "patientNameExt",
+    "patientDOB", "patientSex", "patientPIN", "patientAddress",
+    "dateAdmitted", "timeAdmitted", "amPmAdmitted", "dateDischarge", "timeDischarge",
+    "amPmDischarge", "disposition", "accommodation", "chiefComplaint", "admissionDx",
+    "dischargeDx",
+    "hciPAN", "hciName", "hciStreet", "hciCity", "hciProvince",
+    "memberPIN", "memberLastName", "memberFirstName", "memberMiddleName", "memberNameExt",
+    "memberDOB", "memberSex", "relationship",
+    "employerPEN", "employerPhone", "employerName",
+    "deliveryDate", "deliveryTime", "amPmDelivery",
+)
+KEY_SOURCE = {key: (FORM_FIELDS[key].table, FORM_FIELDS[key].column) for key in _CLAIM_REVIEW_KEYS}
+
+# Which form keys each OCR'd logbook column fills (case_bridge.py drafts
+# these; the logbook review shows them as each field's target). CASE # is
+# lookup-only - it keys the case session, not a form field.
+OCR_CATEGORY_KEYS = {
+    "NAME": ("patientLastName", "patientFirstName", "patientMiddleName"),
+    "BDAY": ("patientDOB",),
+    "ADDRESS": ("patientAddress",),
+    "DATE & TIME OF ADMISSION": ("dateAdmitted", "timeAdmitted", "amPmAdmitted"),
+    "DATE & TIME OF DISCHARGE": ("dateDischarge", "timeDischarge", "amPmDischarge"),
+    "DATE & TIME OF DELIVERY": ("deliveryDate", "deliveryTime", "amPmDelivery"),
+    "ADMITTING DIAGNOSIS": ("admissionDx",),
+    "FINAL DIAGNOSIS": ("dischargeDx",),
+}
+# Logbook columns a claim can't be created without (the NOT NULL patient/
+# encounter columns) - staff must type these in the OCR review itself;
+# any other "manual encoding required" field may be left for the forms.
+OCR_CLAIM_REQUIRED_CATEGORIES = ("NAME", "BDAY", "DATE & TIME OF ADMISSION")
 
 # Human labels for every leaf field this catalog knows about (used for the
 # review table's "PhilHealth Field" column). Required-field labels below in
@@ -77,6 +245,7 @@ FIELD_LABELS = {
     "patientDOB": "Patient Date of Birth",
     "patientSex": "Patient Sex",
     "patientPIN": "Patient / Dependent PIN",
+    "patientAddress": "Patient Address",
     "dateAdmitted": "Date Admitted",
     "timeAdmitted": "Time Admitted",
     "dateDischarge": "Date Discharged",
@@ -95,6 +264,8 @@ FIELD_LABELS = {
     "employerPEN": "Employer PEN",
     "employerPhone": "Employer Phone",
     "employerName": "Employer / Business Name",
+    "deliveryDate": "Date of Delivery",
+    "deliveryTime": "Time of Delivery",
 }
 
 # Ported verbatim from PClaimAssist/js/app.js VAL_FIELDS (cf2/csf only - the
@@ -124,9 +295,12 @@ VAL_FIELDS = {
     ],
 }
 
-# Ported from PClaimAssist/js/app.js DATE_FIELDS (CF3-only entries -
-# deliveryDate/expectedDD/lmp - omitted, out of v1 scope).
-DATE_FIELDS = {"memberDOB", "patientDOB", "dateAdmitted", "dateDischarge"}
+# Ported from PClaimAssist/js/app.js DATE_FIELDS, plus deliveryDate (added
+# once case_bridge.py started capturing "DATE & TIME OF DELIVERY" from the
+# OCR logbook - see field_catalog KEY_SOURCE above). expectedDD/lmp remain
+# CF3-only entries omitted here - out of v1 scope (no OCR source and no
+# backend route reads/writes them yet).
+DATE_FIELDS = {"memberDOB", "patientDOB", "dateAdmitted", "dateDischarge", "deliveryDate"}
 
 # Schema ENUM columns this catalog validates against (database/schema.sql).
 ENUM_CHOICES = {
@@ -139,11 +313,7 @@ ENUM_CHOICES = {
 # vs. keys defaulted from a fixed facility config, vs. everything else - which
 # requires manual/provider input because no source data exists anywhere in
 # the system for it. Used to annotate the review UI's "Source" column.
-AUTO_OCR_KEYS = {
-    "patientLastName", "patientFirstName", "patientMiddleName", "patientNameExt",
-    "patientDOB", "dateAdmitted", "timeAdmitted", "amPmAdmitted",
-    "dateDischarge", "timeDischarge", "amPmDischarge", "admissionDx", "dischargeDx",
-}
+AUTO_OCR_KEYS = {key for keys in OCR_CATEGORY_KEYS.values() for key in keys}
 AUTO_CONFIG_KEYS = {"hciPAN", "hciName", "hciStreet", "hciCity", "hciProvince"}
 
 

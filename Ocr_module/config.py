@@ -77,6 +77,10 @@ CORS_ORIGINS = _env_list(
     ["http://127.0.0.1:5500", "http://localhost:5500"],
 )
 
+# The PClaimAssist data-entry page that "Send to Forms" (logbook review)
+# opens with ?claim=<id> - Live Server serves PClaimAssist/ at its root.
+PCLAIMASSIST_FORMS_URL = os.environ.get("PCLAIMASSIST_FORMS_URL", "http://127.0.0.1:5500/index.html")
+
 # ── Database (MariaDB/MySQL via XAMPP) ──────────────────────────────────────
 # Used so far only by case_sessions persistence (Phase 1). Grid templates,
 # training crops, and every other OCR storage path stay file-based.
@@ -117,6 +121,49 @@ ALLOWED_UPLOAD_EXTENSIONS = ALLOWED_IMAGE_EXTENSIONS | ALLOWED_PDF_EXTENSIONS
 
 # ── Template matching ────────────────────────────────────────────────────
 TEMPLATE_MATCH_THRESHOLD = _env_float("OCR_TEMPLATE_MATCH_THRESHOLD", 0.55)
+
+# ── Image quality assessment (advisory only - see image_quality.py) ────────
+# Variance-of-Laplacian sharpness score below which an image is flagged as
+# blurry. ~100 is the commonly cited rule-of-thumb cutoff for this metric on
+# ordinary document/photo content - a reasonable starting default, not a
+# value derived from this project's own scanned logbooks yet.
+IMAGE_QUALITY_BLUR_THRESHOLD = _env_float("OCR_IMAGE_QUALITY_BLUR_THRESHOLD", 100.0)
+# Mean grayscale pixel intensity (0-255) outside which an image is flagged
+# as too dark / too bright (overexposed). Same "reasonable starting
+# default" caveat as the blur threshold above.
+IMAGE_QUALITY_BRIGHTNESS_LOW = _env_float("OCR_IMAGE_QUALITY_BRIGHTNESS_LOW", 60.0)
+IMAGE_QUALITY_BRIGHTNESS_HIGH = _env_float("OCR_IMAGE_QUALITY_BRIGHTNESS_HIGH", 200.0)
+# A document page is mostly white paper, so a high mean alone is normal (a
+# clean, sharp logbook scan measures ~225-236). "Overexposed" therefore also
+# requires the ink itself to be washed out: the darkest 0.1% of pixels must
+# be lighter than this gray level. Clean logbook scans measured ~53-58 here;
+# the same pages blended 65% toward white measured ~184-186.
+IMAGE_QUALITY_INK_MAX = _env_float("OCR_IMAGE_QUALITY_INK_MAX", 150.0)
+
+# ── OCR field confidence routing (see logbook_pipeline.route_confidence) ──
+# Per-field PaddleOCR confidence (0-1; the lowest token confidence in the
+# cell) decides how the review UI treats each field:
+#   >= ACCEPT            -> "accepted"   (pre-filled, no check required)
+#   >= REVIEW, < ACCEPT  -> "needs_check" (pre-filled, flagged for checking)
+#   <  REVIEW / no text  -> "manual_encoding_required" (left empty, must be typed)
+# Starting values from the thesis design - calibrate against real logbook
+# scans and override via env without touching code.
+OCR_CONFIDENCE_ACCEPT = _env_float("OCR_CONFIDENCE_ACCEPT", 0.85)
+OCR_CONFIDENCE_REVIEW = _env_float("OCR_CONFIDENCE_REVIEW", 0.65)
+# Share of a cell's handwriting that may fall outside every box PaddleOCR
+# read before the reading counts as possibly incomplete (it then gets one
+# retry with a white margin, and is never auto-accepted if still short).
+# PaddleOCR can skip a whole handwritten line - typically one touching the
+# crop edge - while scoring the lines it did read 0.95+.
+OCR_MISSED_INK_LIMIT = _env_float("OCR_MISSED_INK_LIMIT", 0.2)
+
+# ── Logbook upload -> per-row review sessions (see logbook_pipeline.py) ──
+# Cell crops shown next to each field in the review UI.
+REVIEW_CROPS_FOLDER = UPLOAD_FOLDER / "review_crops"
+# A logbook row needs at least this many non-empty OCR'd fields (across both
+# pages of a spread) to count as a patient entry - filters out blank rows and
+# stray marks such as page numbers or footer notes.
+REVIEW_MIN_FILLED_FIELDS = _env_int("OCR_REVIEW_MIN_FILLED_FIELDS", 2)
 
 # ── Tesseract OCR (benchmarking only - see benchmarks/) ─────────────────
 # Path to tesseract.exe. Leave unset to rely on Tesseract being on PATH.
@@ -166,6 +213,7 @@ def ensure_directories():
         TRAINING_FOLDER,
         GRID_TEMPLATES_FOLDER,
         OCR_TESTING_WORKBOOK.parent,
+        REVIEW_CROPS_FOLDER,
     ):
         os.makedirs(folder, exist_ok=True)
     for folder in CATEGORY_FOLDERS.values():

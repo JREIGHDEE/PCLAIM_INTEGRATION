@@ -148,19 +148,19 @@ class MappingServiceTests(unittest.TestCase):
 
 class CaseBridgeTests(unittest.TestCase):
     def test_name_with_comma_splits_confidently_with_no_warning(self):
-        patient_fields, _, warnings = case_bridge.draft_patient_and_encounter({"NAME": "Dela Cruz, Maria Santos"})
+        patient_fields, _, _, warnings = case_bridge.draft_patient_and_encounter({"NAME": "Dela Cruz, Maria Santos"})
         self.assertEqual(patient_fields["last_name"], "Dela Cruz")
         self.assertEqual(patient_fields["first_name"], "Maria")
         self.assertEqual(patient_fields["middle_name"], "Santos")
         self.assertEqual(warnings, [])
 
     def test_name_without_comma_guesses_and_warns(self):
-        patient_fields, _, warnings = case_bridge.draft_patient_and_encounter({"NAME": "Maria Santos Dela Cruz"})
+        patient_fields, _, _, warnings = case_bridge.draft_patient_and_encounter({"NAME": "Maria Santos Dela Cruz"})
         self.assertEqual(patient_fields["last_name"], "Dela Cruz")
         self.assertTrue(any("no comma" in w for w in warnings))
 
     def test_blank_name_produces_no_fields_and_a_warning(self):
-        patient_fields, _, warnings = case_bridge.draft_patient_and_encounter({"NAME": ""})
+        patient_fields, _, _, warnings = case_bridge.draft_patient_and_encounter({"NAME": ""})
         self.assertNotIn("last_name", patient_fields)
         self.assertTrue(warnings)
 
@@ -169,18 +169,26 @@ class CaseBridgeTests(unittest.TestCase):
         # that alone produces its own "name was blank" warning, so this
         # checks for the absence of a birth-date warning specifically
         # rather than asserting an empty warnings list.
-        patient_fields, _, warnings = case_bridge.draft_patient_and_encounter({"BDAY": "03/15/1995"})
+        patient_fields, _, _, warnings = case_bridge.draft_patient_and_encounter({"BDAY": "03/15/1995"})
         self.assertEqual(patient_fields["date_of_birth"], "1995-03-15")
         self.assertFalse(any("birth date" in w for w in warnings))
 
     def test_unparseable_bday_is_left_out_and_warned_not_guessed(self):
-        patient_fields, _, warnings = case_bridge.draft_patient_and_encounter({"BDAY": "sometime in March"})
+        patient_fields, _, _, warnings = case_bridge.draft_patient_and_encounter({"BDAY": "sometime in March"})
         self.assertNotIn("date_of_birth", patient_fields)
         self.assertTrue(any("Could not parse birth date" in w for w in warnings))
 
+    def test_address_passes_through_as_is(self):
+        patient_fields, _, _, _ = case_bridge.draft_patient_and_encounter({"ADDRESS": "  123 Rizal St., Quezon City  "})
+        self.assertEqual(patient_fields["address"], "123 Rizal St., Quezon City")
+
+    def test_blank_address_produces_no_field(self):
+        patient_fields, _, _, _ = case_bridge.draft_patient_and_encounter({"ADDRESS": "   "})
+        self.assertNotIn("address", patient_fields)
+
     def test_admission_datetime_splits_date_and_time(self):
         # NAME is intentionally omitted (see test_bday_parses_common_format).
-        _, encounter_fields, warnings = case_bridge.draft_patient_and_encounter(
+        _, encounter_fields, _, warnings = case_bridge.draft_patient_and_encounter(
             {"DATE & TIME OF ADMISSION": "06/10/2026 8:30 AM"}
         )
         self.assertEqual(encounter_fields["date_admitted"], "2026-06-10")
@@ -188,8 +196,25 @@ class CaseBridgeTests(unittest.TestCase):
         self.assertEqual(encounter_fields["am_pm_admitted"], "AM")
         self.assertFalse(any("admission" in w.lower() for w in warnings))
 
+    def test_delivery_datetime_splits_date_and_time_into_claims_fields(self):
+        # NAME is intentionally omitted (see test_bday_parses_common_format).
+        _, _, claims_fields, warnings = case_bridge.draft_patient_and_encounter(
+            {"DATE & TIME OF DELIVERY": "06/10/2026 9:45 AM"}
+        )
+        self.assertEqual(claims_fields["delivery_date"], "2026-06-10")
+        self.assertEqual(claims_fields["delivery_time"], "09:45")
+        self.assertEqual(claims_fields["am_pm_delivery"], "AM")
+        self.assertFalse(any("delivery" in w.lower() for w in warnings))
+
+    def test_unparseable_delivery_date_is_left_out_and_warned_not_guessed(self):
+        _, _, claims_fields, warnings = case_bridge.draft_patient_and_encounter(
+            {"DATE & TIME OF DELIVERY": "sometime in June"}
+        )
+        self.assertNotIn("delivery_date", claims_fields)
+        self.assertTrue(any("Could not parse delivery date" in w for w in warnings))
+
     def test_diagnosis_fields_pass_through_as_is(self):
-        _, encounter_fields, _ = case_bridge.draft_patient_and_encounter({
+        _, encounter_fields, _, _ = case_bridge.draft_patient_and_encounter({
             "ADMITTING DIAGNOSIS": "Term pregnancy in active labor",
             "FINAL DIAGNOSIS": "NSD, live birth",
         })
@@ -248,8 +273,38 @@ def _claims_not_null_relaxed():
         return False
 
 
+def _patient_address_column_exists():
+    """True once database/migrations/002_add_patient_address.sql has been
+    applied - needed only by the test that exercises the ADDRESS/delivery
+    OCR-to-claim mapping. Same reasoning as _claims_not_null_relaxed(): the
+    app's own DB user cannot run that ALTER itself."""
+    try:
+        from db import get_db_cursor
+        with get_db_cursor() as cursor:
+            cursor.execute("SHOW COLUMNS FROM patients WHERE Field = 'address'")
+            return bool(cursor.fetchone())
+    except Exception:
+        return False
+
+
+def _case_session_review_columns_exist():
+    """True once database/migrations/003_case_session_ocr_review.sql has
+    been applied - case_session_store reads its columns on every lookup."""
+    try:
+        from db import get_db_cursor
+        with get_db_cursor() as cursor:
+            cursor.execute("SHOW COLUMNS FROM case_sessions WHERE Field = 'review_status'")
+            return bool(cursor.fetchone())
+    except Exception:
+        return False
+
+
 @unittest.skipUnless(_database_available(), "MariaDB is not reachable in this environment")
 @unittest.skipUnless(_claims_not_null_relaxed(), "Apply database/migrations/001_relax_pmrf_cf3_not_null.sql first")
+@unittest.skipUnless(
+    _case_session_review_columns_exist(),
+    "Apply database/migrations/003_case_session_ocr_review.sql first",
+)
 class ClaimsStoreIntegrationTests(unittest.TestCase):
     """Touches the real database. Creates its own case_sessions/patients/
     encounters/claims rows under a unique test case id and deletes
@@ -264,14 +319,14 @@ class ClaimsStoreIntegrationTests(unittest.TestCase):
         self._created_ids = None
 
     def tearDown(self):
-        if not self._created_ids:
-            return
         from db import get_db_cursor
         with get_db_cursor(commit=True) as cursor:
-            cursor.execute("DELETE FROM claims WHERE id = %s", (self._created_ids["claim_id"],))
-            cursor.execute("DELETE FROM encounters WHERE id = %s", (self._created_ids["encounter_id"],))
-            cursor.execute("DELETE FROM patients WHERE id = %s", (self._created_ids["patient_id"],))
-            cursor.execute("DELETE FROM case_sessions WHERE id = %s", (self._created_ids["case_session_id"],))
+            if self._created_ids:
+                cursor.execute("DELETE FROM claims WHERE id = %s", (self._created_ids["claim_id"],))
+                cursor.execute("DELETE FROM encounters WHERE id = %s", (self._created_ids["encounter_id"],))
+                cursor.execute("DELETE FROM patients WHERE id = %s", (self._created_ids["patient_id"],))
+            # Also covers tests whose session never became a claim.
+            cursor.execute("DELETE FROM case_sessions WHERE logbook_case_number = %s", (self.case_id,))
 
     def _record_created_ids(self, claim_id):
         from db import get_db_cursor
@@ -287,7 +342,40 @@ class ClaimsStoreIntegrationTests(unittest.TestCase):
             "case_session_id": enc_row["case_session_id"],
         }
 
+    @unittest.skipUnless(
+        _patient_address_column_exists(),
+        "Apply database/migrations/002_add_patient_address.sql first",
+    )
     def test_generate_from_case_session_then_fetch_mapped_view(self):
+        self.case_session_store.save_reviewed_session(self.case_id, "Test Case", {
+            "NAME": "Dela Cruz, Maria Santos",
+            "BDAY": "03/15/1995",
+            "ADDRESS": "123 Rizal St., Quezon City",
+            "DATE & TIME OF ADMISSION": "06/10/2026 8:30 AM",
+            "DATE & TIME OF DISCHARGE": "06/13/2026 10:00 AM",
+            "DATE & TIME OF DELIVERY": "06/10/2026 9:45 AM",
+            "ADMITTING DIAGNOSIS": "Term pregnancy in active labor",
+            "FINAL DIAGNOSIS": "NSD, live birth",
+        })
+
+        result = self.claims_store.create_or_update_claim_from_case_session(self.case_id)
+        self._record_created_ids(result["claim_id"])
+
+        rows = self.claims_store.get_claim(result["claim_id"])
+        self.assertIsNotNone(rows)
+        self.assertEqual(rows["patient"]["last_name"], "Dela Cruz")
+        self.assertEqual(rows["patient"]["address"], "123 Rizal St., Quezon City")
+        self.assertEqual(rows["encounter"]["date_admitted"].isoformat(), "2026-06-10")
+        self.assertEqual(rows["claim"]["delivery_date"].isoformat(), "2026-06-10")
+        self.assertEqual(rows["claim"]["delivery_time"], "09:45")
+        self.assertEqual(rows["claim"]["am_pm_delivery"], "AM")
+
+        mapped = mapping_service.map_claim(rows["patient"], rows["encounter"], rows["claim"])
+        # Disposition/accommodation/member info have no OCR source - expected missing.
+        self.assertFalse(mapped["forms"]["cf2"]["complete"])
+        self.assertIn("Patient Disposition", mapped["forms"]["cf2"]["missing_required"])
+
+    def test_status_advances_draft_to_ready_to_exported_and_never_regresses(self):
         self.case_session_store.save_reviewed_session(self.case_id, "Test Case", {
             "NAME": "Dela Cruz, Maria Santos",
             "BDAY": "03/15/1995",
@@ -299,16 +387,40 @@ class ClaimsStoreIntegrationTests(unittest.TestCase):
 
         result = self.claims_store.create_or_update_claim_from_case_session(self.case_id)
         self._record_created_ids(result["claim_id"])
+        claim_id = result["claim_id"]
 
-        rows = self.claims_store.get_claim(result["claim_id"])
-        self.assertIsNotNone(rows)
-        self.assertEqual(rows["patient"]["last_name"], "Dela Cruz")
-        self.assertEqual(rows["encounter"]["date_admitted"].isoformat(), "2026-06-10")
+        # OCR alone never supplies disposition/accommodation/member info/PINs/
+        # HCI defaults (this dev environment has no PHILHEALTH_HCI_* set) -
+        # cf2/csf are both incomplete, so status stays 'draft'.
+        rows = self.claims_store.get_claim(claim_id)
+        self.assertEqual(rows["claim"]["status"], "draft")
 
-        mapped = mapping_service.map_claim(rows["patient"], rows["encounter"], rows["claim"])
-        # Disposition/accommodation/member info have no OCR source - expected missing.
-        self.assertFalse(mapped["forms"]["cf2"]["complete"])
-        self.assertIn("Patient Disposition", mapped["forms"]["cf2"]["missing_required"])
+        # Manually supply everything OCR couldn't - CF2 and CSF both become
+        # complete, so status should advance to 'ready'.
+        self.claims_store.update_claim_fields(
+            claim_id,
+            patient_fields={"pin": "12-345678901-3"},
+            encounter_fields={"disposition": "Improved", "accommodation": "Non-Private"},
+            claims_fields={
+                "hci_pan": "000001234", "hci_name": "Mapagpala Maternity Clinic",
+                "member_pin": "12-345678901-2", "member_last_name": "Dela Cruz",
+                "member_first_name": "Pedro", "member_dob": "1992-07-22",
+                "relationship": "Spouse",
+            },
+        )
+        rows = self.claims_store.get_claim(claim_id)
+        self.assertEqual(rows["claim"]["status"], "ready")
+
+        # A successful export moves it to 'exported'.
+        self.claims_store.mark_exported(claim_id)
+        rows = self.claims_store.get_claim(claim_id)
+        self.assertEqual(rows["claim"]["status"], "exported")
+
+        # A later edit that makes a required field blank again must not
+        # un-export the claim - status is monotonic.
+        self.claims_store.update_claim_fields(claim_id, encounter_fields={"disposition": None})
+        rows = self.claims_store.get_claim(claim_id)
+        self.assertEqual(rows["claim"]["status"], "exported")
 
     def test_missing_ocr_data_blocks_generation_with_a_clear_error(self):
         self.case_session_store.save_reviewed_session(self.case_id, "Test Case", {"NAME": ""})

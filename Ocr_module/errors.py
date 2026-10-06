@@ -74,6 +74,45 @@ class ClaimIncompleteError(OCRAppError):
     error_code = "claim_incomplete"
 
 
+class SessionNotFoundError(OCRAppError):
+    """Requested case session id does not exist."""
+
+    status_code = 404
+    error_code = "session_not_found"
+
+
+class ReviewIncompleteError(OCRAppError):
+    """A review was submitted (or a claim requested) while fields that must
+    be typed by hand are still empty, or the session is still pending."""
+
+    status_code = 400
+    error_code = "review_incomplete"
+
+
+class ReviewCheckError(OCRAppError):
+    """A submitted review failed the logbook-review safeguards
+    (philhealth/review_fields.check). Lists every problem and/or warning
+    per field so the review screen can show each one next to its box:
+    400 "review_problems" - must be fixed;
+    409 "review_needs_confirmation" - unusual answers, resend with
+        "confirm_warnings": true once staff confirm they're correct."""
+
+    status_code = 400
+    error_code = "review_problems"
+
+    def __init__(self, message, problems=(), warnings=(), needs_confirmation=False):
+        super().__init__(
+            message,
+            status_code=409 if needs_confirmation else 400,
+            error_code="review_needs_confirmation" if needs_confirmation else "review_problems",
+        )
+        self.problems = list(problems)
+        self.warnings = list(warnings)
+
+    def to_response_body(self):
+        return {**super().to_response_body(), "problems": self.problems, "warnings": self.warnings}
+
+
 class OCRProcessingError(OCRAppError):
     """OCR or image/PDF processing failed for a reason worth surfacing."""
 

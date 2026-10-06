@@ -212,6 +212,13 @@ research_ocr_results
 If you see fewer than 8, the import failed partway — check phpMyAdmin's
 message after clicking Go, fix the reported error, and re-import.
 
+**Already imported an older `schema.sql`?** Don't re-import it (that would
+fail on the existing tables). Instead, run each file in
+`database/migrations/` that your database doesn't have yet, in number
+order, from phpMyAdmin's **SQL** tab as root: paste the file's contents and
+click **Go**. Each file's header says what it adds. `003_case_session_ocr_review.sql`
+is required for the Logbook Review page (`/review`).
+
 ### 4.5 Create the application database user
 
 The Flask backend connects as a dedicated (non-root) MariaDB user rather
