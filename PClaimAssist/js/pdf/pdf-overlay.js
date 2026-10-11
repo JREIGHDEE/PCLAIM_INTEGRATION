@@ -15,8 +15,14 @@ const pdfState = {
   csf:  { doc: null, page: 1, totalPages: 1, rendered: false },
   cf2:  { doc: null, page: 1, totalPages: 2, rendered: false },
   cf3:  { doc: null, page: 1, totalPages: 2, rendered: false },
+  cf4:  { doc: null, page: 1, totalPages: 2, rendered: false },
   pmrf: { doc: null, page: 1, totalPages: 2, rendered: false },
 };
+
+/* Every form the PDF layer manages. CF4 is included ahead of the file
+   being supplied; until forms/CF4.pdf exists its panel shows the
+   standard "PDF not found" state. */
+const PDF_FORM_KEYS = ['csf', 'cf2', 'cf3', 'cf4', 'pmrf'];
 
 /* ── Overlay field coordinate maps ──────────────────────────
    OVERLAY_MAP itself is defined in js/pdf/overlays/index.js,
@@ -29,6 +35,7 @@ const PDF_PATHS = {
   csf:  'forms/CSF.pdf',
   cf2:  'forms/CF2.pdf',
   cf3:  'forms/CF3.pdf',
+  cf4:  'forms/CF4.pdf',
   pmrf: 'forms/PMRF.pdf',
 };
 
@@ -124,7 +131,7 @@ function injectOverlaySpans(formKey) {
   if (!overlay) return;
   overlay.innerHTML = '';
 
-  const PAGE_H = { csf: 936, cf2: 936, cf3: 1008, pmrf: 841.5 };
+  const PAGE_H = { csf: 936, cf2: 936, cf3: 1008, cf4: 1008, pmrf: 841.5 };
   const refH = PAGE_H[formKey] || 936;
 
   (OVERLAY_MAP[formKey] || []).forEach(f => {
@@ -177,6 +184,15 @@ function resolveOverlayFieldValue(f) {
     const raw = data[f.key];
     const match = f.checkValue !== undefined ? raw === f.checkValue : !!raw;
     return match ? '✓' : '';
+  }
+
+  // checkboxMulti: one box out of a tick-all-that-apply group, where
+  // state.data[f.key] is an array of the selected labels (CF4's signs &
+  // symptoms and physical-examination findings).
+  if (f.checkboxMulti) {
+    const raw = data[f.key];
+    const list = Array.isArray(raw) ? raw : (raw ? [raw] : []);
+    return list.includes(f.checkValue) ? '✓' : '';
   }
 
   if (f.dateComponent) {
@@ -242,7 +258,7 @@ function updateOverlayForForm(formKey) {
 
 /* ── Update all form overlays ────────────────────────────── */
 function updateAllOverlays() {
-  ['csf', 'cf2', 'cf3', 'pmrf'].forEach(key => {
+  PDF_FORM_KEYS.forEach(key => {
     if (pdfState[key].rendered) updateOverlayForForm(key);
   });
 }
@@ -274,6 +290,20 @@ function onFormSectionActivated(formKey) {
 async function exportFilledPDF(formKey) {
   if (!window.PDFLib) {
     showToast('Export unavailable', 'pdf-lib did not load. Check your connection.', 'danger');
+    return;
+  }
+
+  // Research design §3.4.2.5 step 10: PDFs are generated only when all
+  // critical (block_submission) errors have been resolved.
+  const v = window.lastValidationResult;
+  if (v && !v.canGeneratePDF) {
+    const ids = v.critical.map(c => c.id).join(', ');
+    showToast(
+      'Cannot generate PDF',
+      `${v.critical.length} critical error${v.critical.length === 1 ? '' : 's'} must be fixed first (${ids}). ` +
+      'Open the Validation Checker to review.',
+      'danger');
+    if (typeof navigateTo === 'function') navigateTo('validation');
     return;
   }
   const btn = document.getElementById('export-' + formKey + '-btn');
@@ -339,14 +369,14 @@ async function exportFilledPDF(formKey) {
 
 /* ── Init: setup nav buttons + resize handler ────────────── */
 document.addEventListener('DOMContentLoaded', () => {
-  ['csf', 'cf2', 'cf3', 'pmrf'].forEach(setupPageNav);
+  PDF_FORM_KEYS.forEach(setupPageNav);
 });
 
 let _resizeTimer;
 window.addEventListener('resize', () => {
   clearTimeout(_resizeTimer);
   _resizeTimer = setTimeout(() => {
-    ['csf', 'cf2', 'cf3', 'pmrf'].forEach(key => {
+    PDF_FORM_KEYS.forEach(key => {
       if (pdfState[key].rendered) renderPDFPage(key, pdfState[key].page);
     });
   }, 150);

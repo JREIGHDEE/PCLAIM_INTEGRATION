@@ -242,4 +242,39 @@ window.PDF_OVERLAY_CF2 = [
   { id:'cf2ProviderSignedDateD6', key:'cf2ProviderSignedDateD6', page:2, top:95.11, left:89.18, w:2.0, fs:7, digit:5, digitKey:'cf2ProviderSignedDate', digitOrder:'mmddyyyy' },
   { id:'cf2ProviderSignedDateD7', key:'cf2ProviderSignedDateD7', page:2, top:95.11, left:91.18, w:2.0, fs:7, digit:6, digitKey:'cf2ProviderSignedDate', digitOrder:'mmddyyyy' },
   { id:'cf2ProviderSignedDateD8', key:'cf2ProviderSignedDateD8', page:2, top:95.11, left:93.19, w:2.0, fs:7, digit:7, digitKey:'cf2ProviderSignedDate', digitOrder:'mmddyyyy' },
+
+  // Series # — 13 digit boxes (top right of the form)
+  { id:'cf2SeriesD1', key:'cf2SeriesD1', page:1, top:12.0, left:70.74, w:2.0, fs:7, digit:0, digitKey:'cf2Series' },
+  { id:'cf2SeriesD2', key:'cf2SeriesD2', page:1, top:12.0, left:72.66, w:2.0, fs:7, digit:1, digitKey:'cf2Series' },
+  { id:'cf2SeriesD3', key:'cf2SeriesD3', page:1, top:12.0, left:74.59, w:2.0, fs:7, digit:2, digitKey:'cf2Series' },
+  { id:'cf2SeriesD4', key:'cf2SeriesD4', page:1, top:12.0, left:76.54, w:2.0, fs:7, digit:3, digitKey:'cf2Series' },
+  { id:'cf2SeriesD5', key:'cf2SeriesD5', page:1, top:12.0, left:78.48, w:2.0, fs:7, digit:4, digitKey:'cf2Series' },
+  { id:'cf2SeriesD6', key:'cf2SeriesD6', page:1, top:12.0, left:80.41, w:2.0, fs:7, digit:5, digitKey:'cf2Series' },
+  { id:'cf2SeriesD7', key:'cf2SeriesD7', page:1, top:12.0, left:82.37, w:2.0, fs:7, digit:6, digitKey:'cf2Series' },
+  { id:'cf2SeriesD8', key:'cf2SeriesD8', page:1, top:12.0, left:84.3, w:2.0, fs:7, digit:7, digitKey:'cf2Series' },
+  { id:'cf2SeriesD9', key:'cf2SeriesD9', page:1, top:12.0, left:86.23, w:2.0, fs:7, digit:8, digitKey:'cf2Series' },
+  { id:'cf2SeriesD10', key:'cf2SeriesD10', page:1, top:12.0, left:88.2, w:2.0, fs:7, digit:9, digitKey:'cf2Series' },
+  { id:'cf2SeriesD11', key:'cf2SeriesD11', page:1, top:12.0, left:90.13, w:2.0, fs:7, digit:10, digitKey:'cf2Series' },
+  { id:'cf2SeriesD12', key:'cf2SeriesD12', page:1, top:12.0, left:92.06, w:2.0, fs:7, digit:11, digitKey:'cf2Series' },
+  { id:'cf2SeriesD13', key:'cf2SeriesD13', page:1, top:12.0, left:94.04, w:2.0, fs:7, digit:12, digitKey:'cf2Series' },
+
+  // Special procedures / packages — tick all that apply
+  { id:'cf2Proc1', key:'cf2SpecialProcedures', page:1, top:72.07, left:6.82, w:2.0, fs:8, checkboxMulti:true, checkValue:'Hemodialysis' },
+  { id:'cf2Proc2', key:'cf2SpecialProcedures', page:1, top:72.07, left:51.94, w:2.0, fs:8, checkboxMulti:true, checkValue:'Blood Transfusion' },
+  { id:'cf2Proc3', key:'cf2SpecialProcedures', page:1, top:73.69, left:6.82, w:2.0, fs:8, checkboxMulti:true, checkValue:'Peritoneal Dialysis' },
+  { id:'cf2Proc4', key:'cf2SpecialProcedures', page:1, top:73.69, left:51.94, w:2.0, fs:8, checkboxMulti:true, checkValue:'Brachytherapy' },
+  { id:'cf2Proc5', key:'cf2SpecialProcedures', page:1, top:75.3, left:6.82, w:2.0, fs:8, checkboxMulti:true, checkValue:'Radiotherapy (LINAC)' },
+  { id:'cf2Proc6', key:'cf2SpecialProcedures', page:1, top:75.3, left:51.94, w:2.0, fs:8, checkboxMulti:true, checkValue:'Chemotherapy' },
+  { id:'cf2Proc7', key:'cf2SpecialProcedures', page:1, top:76.92, left:6.82, w:2.0, fs:8, checkboxMulti:true, checkValue:'Radiotherapy (COBALT)' },
+  { id:'cf2Proc8', key:'cf2SpecialProcedures', page:1, top:76.92, left:51.94, w:2.0, fs:8, checkboxMulti:true, checkValue:'Simple Debridement' },
+  { id:'cf2ProcDetail', key:'cf2SpecialProcedureDetail', page:1, top:78.60, left:6.82, w:86.0, fs:6.5 },
+
+  // TB-DOTS package phase
+  { id:'cf2TbIntensive', key:'cf2TbPhase', page:1, top:83.30, left:21.25, w:2.0, fs:8, checkbox:true, checkValue:'Intensive Phase' },
+  { id:'cf2TbMaintenance', key:'cf2TbPhase', page:1, top:83.30, left:36.84, w:2.0, fs:8, checkbox:true, checkValue:'Maintenance Phase' },
+
+  // Newborn care package — tick all that apply
+  { id:'cf2Newborn1', key:'cf2NewbornCare', page:1, top:88.07, left:24.42, w:2.0, fs:8, checkboxMulti:true, checkValue:'Essential Newborn Care' },
+  { id:'cf2Newborn2', key:'cf2NewbornCare', page:1, top:88.07, left:39.89, w:2.0, fs:8, checkboxMulti:true, checkValue:'Newborn Hearing Screening Test' },
+  { id:'cf2Newborn3', key:'cf2NewbornCare', page:1, top:88.07, left:60.62, w:2.0, fs:8, checkboxMulti:true, checkValue:'Newborn Screening Test' },
 ];

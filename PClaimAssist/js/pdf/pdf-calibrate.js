@@ -7,7 +7,7 @@
    updateOverlayForForm) having already loaded.
 ═══════════════════════════════════════════════════════════ */
 
-const FORM_KEYS = ['csf', 'cf2', 'cf3', 'pmrf'];
+const FORM_KEYS = ['csf', 'cf2', 'cf3', 'cf4', 'pmrf'];
 const calibrate = {
   active:    {},   // formKey -> bool
   overrides: {},   // formKey -> { fieldId: {top,left,w} }

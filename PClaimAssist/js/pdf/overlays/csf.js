@@ -255,4 +255,19 @@ window.PDF_OVERLAY_CSF = [
   { id:'providerSignedDateD6', key:'providerSignedDateD6', page:1, top:94.96, left:88.77, w:2, fs:7, digit:5, digitKey:'providerSignedDate', digitOrder:'mmddyyyy' },
   { id:'providerSignedDateD7', key:'providerSignedDateD7', page:1, top:94.96, left:90.78, w:2, fs:7, digit:6, digitKey:'providerSignedDate', digitOrder:'mmddyyyy' },
   { id:'providerSignedDateD8', key:'providerSignedDateD8', page:1, top:94.96, left:92.95, w:2, fs:7, digit:7, digitKey:'providerSignedDate', digitOrder:'mmddyyyy' },
+
+  // Series # — 13 digit boxes (top right of the form)
+  { id:'csfSeriesD1', key:'csfSeriesD1', page:1, top:11.89, left:70.74, w:2.0, fs:7, digit:0, digitKey:'csfSeries' },
+  { id:'csfSeriesD2', key:'csfSeriesD2', page:1, top:11.89, left:72.66, w:2.0, fs:7, digit:1, digitKey:'csfSeries' },
+  { id:'csfSeriesD3', key:'csfSeriesD3', page:1, top:11.89, left:74.59, w:2.0, fs:7, digit:2, digitKey:'csfSeries' },
+  { id:'csfSeriesD4', key:'csfSeriesD4', page:1, top:11.89, left:76.54, w:2.0, fs:7, digit:3, digitKey:'csfSeries' },
+  { id:'csfSeriesD5', key:'csfSeriesD5', page:1, top:11.89, left:78.48, w:2.0, fs:7, digit:4, digitKey:'csfSeries' },
+  { id:'csfSeriesD6', key:'csfSeriesD6', page:1, top:11.89, left:80.41, w:2.0, fs:7, digit:5, digitKey:'csfSeries' },
+  { id:'csfSeriesD7', key:'csfSeriesD7', page:1, top:11.89, left:82.37, w:2.0, fs:7, digit:6, digitKey:'csfSeries' },
+  { id:'csfSeriesD8', key:'csfSeriesD8', page:1, top:11.89, left:84.3, w:2.0, fs:7, digit:7, digitKey:'csfSeries' },
+  { id:'csfSeriesD9', key:'csfSeriesD9', page:1, top:11.89, left:86.23, w:2.0, fs:7, digit:8, digitKey:'csfSeries' },
+  { id:'csfSeriesD10', key:'csfSeriesD10', page:1, top:11.89, left:88.2, w:2.0, fs:7, digit:9, digitKey:'csfSeries' },
+  { id:'csfSeriesD11', key:'csfSeriesD11', page:1, top:11.89, left:90.13, w:2.0, fs:7, digit:10, digitKey:'csfSeries' },
+  { id:'csfSeriesD12', key:'csfSeriesD12', page:1, top:11.89, left:92.06, w:2.0, fs:7, digit:11, digitKey:'csfSeries' },
+  { id:'csfSeriesD13', key:'csfSeriesD13', page:1, top:11.89, left:94.04, w:2.0, fs:7, digit:12, digitKey:'csfSeries' },
 ];

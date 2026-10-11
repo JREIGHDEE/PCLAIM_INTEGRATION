@@ -28,6 +28,16 @@ _jobs_lock = threading.Lock()
 OCR_LOCK = threading.Lock()
 
 
+def _is_actionable(exc):
+    """True when the person waiting can actually do something about this —
+    chiefly "the database isn't running", which otherwise hides behind a
+    generic "try again" that never helps."""
+    name = type(exc).__name__
+    if "Database" in name or "Connection" in name or "Operational" in name:
+        return True
+    return "database" in str(exc).lower()
+
+
 def _update(job_id, **changes):
     with _jobs_lock:
         job = _jobs.get(job_id)
@@ -66,10 +76,15 @@ def start(work, path):
             _update(job_id, state="done", progress=1.0, message="Done", result=result)
         except ValueError as exc:
             _update(job_id, state="failed", message="Could not read the scan", error=str(exc))
-        except Exception:
+        except Exception as exc:
             logger.exception("Logbook reading job %s failed", job_id)
+            # Report the kind of failure rather than a blanket message: the scan
+            # usually read fine and it was saving the result that broke, and
+            # "try again" is the wrong advice when the database is down.
             _update(job_id, state="failed", message="Could not read the scan",
-                    error="Something went wrong while reading the scan. Please try again.")
+                    error=f"{type(exc).__name__}: {exc}"
+                          if _is_actionable(exc) else
+                          "Something went wrong while reading the scan. Please try again.")
         finally:
             if os.path.exists(path):
                 os.remove(path)

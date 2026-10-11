@@ -37,6 +37,45 @@ const state = {
     dateAdmitted:'', timeAdmitted:'', amPmAdmitted:'AM',
     dateDischarge:'', timeDischarge:'', amPmDischarge:'AM',
     disposition:'', accommodation:'', chiefComplaint:'', admissionDx:'', dischargeDx:'',
+    /* Series numbers (printed top-right of each claim form) */
+    csfSeries:'', cf2Series:'',
+    /* CF2 – special procedures, TB-DOTS and newborn care packages */
+    cf2SpecialProcedures:[], cf2SpecialProcedureDetail:'',
+    cf2TbPhase:'', cf2NewbornCare:[],
+    /* CF4 – Clinical Record (encoded manually; the logbook does not record these) */
+    patientAge:'', cf4Series:'',
+    hciBldg:'', hciZip:'',
+    cf4ChiefComplaint:'', cf4HistoryPresentIllness:'', cf4PastMedicalHistory:'',
+    cf4FinalDiagnosis:'', cf4IcdCode:'', cf4RvsCode:'',
+    cf4TimeAdmittedDigits:'', cf4TimeDischargeDigits:'',
+    /* CF4 – OB/GYN history */
+    obTerm:'', obPreterm:'', obAbortion:'', obLiving:'', cf4LmpNA:false,
+    /* CF4 – signs & symptoms (tick all that apply) */
+    cf4Symptoms:[], cf4PainSite:'', cf4SymptomOther:'',
+    /* CF4 – referral */
+    cf4Referred:'', cf4ReferralReason:'', cf4ReferralHci:'',
+    /* CF4 – physical examination on admission */
+    cf4GeneralSurvey:'', cf4AlteredSensorium:'',
+    cf4VitalBP:'', cf4VitalHR:'', cf4VitalRR:'', cf4VitalTemp:'',
+    cf4Heent:[], cf4HeentOthers:'',
+    /* CF4 – physical examination continued (page 2) */
+    cf4Chest:[],   cf4ChestOthers:'',
+    cf4Cvs:[],     cf4CvsOthers:'',
+    cf4Abdomen:[], cf4AbdomenOthers:'',
+    cf4Gu:[],      cf4GuOthers:'',
+    cf4Skin:[],    cf4SkinOthers:'',
+    cf4Neuro:[],   cf4NeuroOthers:'',
+    /* CF4 – course in the ward (15 rows) + surgical procedure */
+    cf4CourseExtraSheet:false, cf4SurgicalProcedure:'',
+    /* CF4 – drugs / medicines (7 rows x 2 column groups) */
+    cf4DrugsExtraSheet:false,
+    /* CF4 – outcome + certification */
+    cf4TransferReason:'',
+    cf4AttendingProvider:'', cf4ProviderPAN:'', cf4ProviderSignedDate:'',
+    /* CF4 course-in-ward rows */
+    cf4CourseDate1:'', cf4CourseOrder1:'', cf4CourseDate2:'', cf4CourseOrder2:'', cf4CourseDate3:'', cf4CourseOrder3:'', cf4CourseDate4:'', cf4CourseOrder4:'', cf4CourseDate5:'', cf4CourseOrder5:'', cf4CourseDate6:'', cf4CourseOrder6:'', cf4CourseDate7:'', cf4CourseOrder7:'', cf4CourseDate8:'', cf4CourseOrder8:'', cf4CourseDate9:'', cf4CourseOrder9:'', cf4CourseDate10:'', cf4CourseOrder10:'', cf4CourseDate11:'', cf4CourseOrder11:'', cf4CourseDate12:'', cf4CourseOrder12:'', cf4CourseDate13:'', cf4CourseOrder13:'', cf4CourseDate14:'', cf4CourseOrder14:'', cf4CourseDate15:'', cf4CourseOrder15:'',
+    /* CF4 drug rows */
+    cf4DrugName1:'', cf4DrugDose1:'', cf4DrugCost1:'', cf4DrugName1b:'', cf4DrugDose1b:'', cf4DrugCost1b:'', cf4DrugName2:'', cf4DrugDose2:'', cf4DrugCost2:'', cf4DrugName2b:'', cf4DrugDose2b:'', cf4DrugCost2b:'', cf4DrugName3:'', cf4DrugDose3:'', cf4DrugCost3:'', cf4DrugName3b:'', cf4DrugDose3b:'', cf4DrugCost3b:'', cf4DrugName4:'', cf4DrugDose4:'', cf4DrugCost4:'', cf4DrugName4b:'', cf4DrugDose4b:'', cf4DrugCost4b:'', cf4DrugName5:'', cf4DrugDose5:'', cf4DrugCost5:'', cf4DrugName5b:'', cf4DrugDose5b:'', cf4DrugCost5b:'', cf4DrugName6:'', cf4DrugDose6:'', cf4DrugCost6:'', cf4DrugName6b:'', cf4DrugDose6b:'', cf4DrugCost6b:'', cf4DrugName7:'', cf4DrugDose7:'', cf4DrugCost7:'', cf4DrugName7b:'', cf4DrugDose7b:'', cf4DrugCost7b:'',
     /* CF2 – Referral */
     referredByHCI:'', referralHciName:'', referralStreet:'', referralCity:'',
     referralProvince:'', referralZip:'',
@@ -198,7 +237,30 @@ const SAMPLE_DATA = {
   chiefComplaint:'Labor pains, full-term pregnancy',
   admissionDx:'Term Pregnancy in Active Labor, 39 weeks AOG',
   dischargeDx:'Normal Spontaneous Delivery, Full Term, Live Birth',
+  patientAge:'31',
+  cf4ChiefComplaint:'Labor pains, full-term pregnancy',
+  cf4HistoryPresentIllness:'G2P1 at 39 weeks AOG presented with regular uterine contractions '
+    + 'every 5 minutes onset 6 hours prior to admission, with watery vaginal discharge. '
+    + 'No bleeding, no fever. Prenatal care complete with 8 visits.',
+  cf4PhysicalExam:'BP 120/80, HR 88, RR 18, T 36.8C. Abdomen gravid, fundic height 34 cm, '
+    + 'FHT 142 bpm. Internal exam: 6 cm dilated, 80% effaced, station -1, intact membranes.',
+  cf4CourseInWard:'Admitted and monitored with partograph. Progressed to full dilatation after '
+    + '5 hours. Delivered a live term baby boy via normal spontaneous delivery. '
+    + 'Placenta delivered complete. Perineum intact. Stable post-partum, '
+    + 'ambulatory and tolerating diet. Discharged improved on the third hospital day.',
+  cf4DrugsAdministered:'Oxytocin 10 units IM post-delivery; Mefenamic acid 500 mg PO q6h PRN; '
+    + 'Ferrous sulfate + folic acid 1 tab PO OD',
+  cf4FinalDiagnosis:'Normal Spontaneous Delivery, Full Term, Live Birth',
+  cf4LaboratoryFindings:'CBC: Hgb 118 g/L, WBC 9.2; Urinalysis: normal; HBsAg non-reactive',
+  cf4IcdCode:'O80', cf4RvsCode:'59400',
+  cf4AttendingProvider:'ROSARIO M. ALCANTARA, RM',
+  cf4ProviderPAN:'000005678', cf4ProviderSignedDate:'2026-06-13',
+  dxADiagnosis:'Normal Spontaneous Delivery, Full Term, Live Birth',
+  dxAIcd10:'O80',
   hciPAN:'000001234', hciName:'Mapagpala Maternity Clinic',
+  csfSeries:'2026000123456', cf2Series:'2026000123457',
+  cf2SpecialProcedures:[], cf2SpecialProcedureDetail:'',
+  cf2TbPhase:'', cf2NewbornCare:['Essential Newborn Care','Newborn Screening Test'],
   hciStreet:'456 Bonifacio Avenue', hciCity:'Quezon City', hciProvince:'Metro Manila',
   employerPEN:'', employerPhone:'', employerName:'',
   civilStatus:'Married', placeOfBirth:'Quezon City, Metro Manila', citizenship:'FILIPINO',
@@ -458,60 +520,13 @@ const PREVIEW_MAP = [
   ['pmrf-monthlyIncome','monthlyIncome'],
 ];
 
-/* ══════════════════════════════════════════════════════════
-   VALIDATION FIELDS PER FORM
-══════════════════════════════════════════════════════════ */
-const VAL_FIELDS = {
-  csf: [
-    { key:'memberPIN',     label:'Member PhilHealth PIN' },
-    { key:'memberName',    label:'Member Name' },
-    { key:'memberDOB',     label:'Member Date of Birth' },
-    { key:'patientPIN',    label:'Patient / Dependent PIN' },
-    { key:'patientName',   label:'Patient Name' },
-    { key:'relationship',  label:'Relationship to Member' },
-    { key:'dateAdmitted',  label:'Date Admitted' },
-    { key:'dateDischarge', label:'Date Discharged' },
-    { key:'patientDOB',    label:'Patient Date of Birth' },
-  ],
-  cf2: [
-    { key:'hciPAN',        label:'HCI Accreditation No. (PAN)' },
-    { key:'hciName',       label:'Health Care Institution Name' },
-    { key:'patientName',   label:'Patient Name' },
-    { key:'dateAdmitted',  label:'Date Admitted' },
-    { key:'dateDischarge', label:'Date Discharged' },
-    { key:'disposition',   label:'Patient Disposition' },
-    { key:'accommodation', label:'Type of Accommodation' },
-    { key:'admissionDx',   label:'Admission Diagnosis' },
-    { key:'dxADiagnosis',  label:'Discharge Diagnosis' },
-  ],
-  cf3: [
-    { key:'hciPAN',           label:'HCI Accreditation No. (PAN)' },
-    { key:'patientName',      label:'Patient Name' },
-    { key:'chiefComplaint',   label:'Chief Complaint / Reason for Admission' },
-    { key:'dateAdmitted',     label:'Date Admitted' },
-    { key:'lmp',              label:'Last Menstrual Period (LMP)' },
-    { key:'deliveryDate',     label:'Date of Delivery' },
-    { key:'mannerOfDelivery', label:'Manner of Delivery' },
-    { key:'fetalOutcome',     label:'Fetal Outcome' },
-    { key:'birthWeight',      label:'Birth Weight (grams)' },
-  ],
-  pmrf: [
-    { key:'memberPIN',     label:'PhilHealth Identification Number (PIN)' },
-    { key:'memberName',    label:'Member Name' },
-    { key:'memberDOB',     label:'Member Date of Birth' },
-    { key:'civilStatus',   label:'Civil Status' },
-    { key:'citizenship',   label:'Citizenship' },
-    { key:'fullAddress',   label:'Permanent Home Address' },
-    { key:'mobile',        label:'Mobile Number' },
-    { key:'memberType',    label:'Member Type' },
-    { key:'patientName',   label:'Dependent Name' },
-  ],
-};
+/* VAL_FIELDS, VAL_FORM_KEYS and the rule tables live in js/validation-rules.js,
+   which loads before this file. */
 
 /* ══════════════════════════════════════════════════════════
    NAVIGATION
 ══════════════════════════════════════════════════════════ */
-const VALID_SECTIONS = ['dashboard','patient','documents','csf','cf2','cf3','pmrf','validation','settings'];
+const VALID_SECTIONS = ['dashboard','patient','documents','csf','cf2','cf3','cf4','pmrf','validation','settings'];
 
 function navigateTo(section, opts) {
   opts = opts || {};
@@ -533,7 +548,7 @@ function navigateTo(section, opts) {
   }
   window.scrollTo({ top: 0, behavior: 'smooth' });
   // Trigger PDF rendering when entering a form section
-  if (['csf','cf2','cf3','pmrf'].includes(section) && typeof onFormSectionActivated === 'function') {
+  if (VAL_FORM_KEYS.includes(section) && typeof onFormSectionActivated === 'function') {
     // Small delay lets the section become visible (display:block) before measuring width
     setTimeout(() => onFormSectionActivated(section), 60);
   }
@@ -634,6 +649,9 @@ function syncAllAutofillElements() {
       if (sibling === document.activeElement) return; // don't clobber the field being typed in
       if (sibling.type === 'radio') {
         sibling.checked = sibling.value === val;
+      } else if (sibling.type === 'checkbox' && sibling.dataset.multi !== undefined) {
+        const list = Array.isArray(state.data[key]) ? state.data[key] : [];
+        sibling.checked = list.includes(sibling.value);
       } else if (sibling.type === 'checkbox') {
         sibling.checked = !!state.data[key];
       } else if (sibling.tagName === 'SELECT' || sibling.tagName === 'TEXTAREA' || sibling.tagName === 'INPUT') {
@@ -713,13 +731,44 @@ function time12hDigits(hhmm) {
   return `${String(h).padStart(2, '0')}${mStr}`;
 }
 
+/* Fields that describe the same clinical fact on more than one form.
+   Editing the source propagates to each target that is still empty or
+   still holds the previous source value, so the five forms stay
+   consistent and IC-08 (CF2 vs CF4 diagnosis) does not fire spuriously.
+   A target the user has deliberately edited is left alone. */
+const MIRRORED_FIELDS = {
+  dischargeDx: ['dxADiagnosis', 'cf4FinalDiagnosis'],
+  chiefComplaint: ['cf4ChiefComplaint'],
+};
+
+function propagateMirroredField(key, prevValue) {
+  const targets = MIRRORED_FIELDS[key];
+  if (!targets) return;
+  const next = state.data[key];
+  targets.forEach(t => {
+    const cur = state.data[t];
+    if (!cur || cur === prevValue) state.data[t] = next;
+  });
+}
+
 function bindInputListeners() {
   document.querySelectorAll('[data-autofill]').forEach(el => {
     const key = el.dataset.autofill;
     const handler = () => {
+      const prev = state.data[key];
       if (el.type === 'radio') { if (el.checked) state.data[key] = el.value; }
+      else if (el.type === 'checkbox' && el.dataset.multi !== undefined) {
+        // Tick-all-that-apply group (CF4 signs & symptoms, PE findings):
+        // state.data[key] is the array of selected labels.
+        const list = Array.isArray(state.data[key]) ? state.data[key].slice() : [];
+        const i = list.indexOf(el.value);
+        if (el.checked && i === -1) list.push(el.value);
+        if (!el.checked && i !== -1) list.splice(i, 1);
+        state.data[key] = list;
+      }
       else if (el.type === 'checkbox') state.data[key] = el.checked;
       else state.data[key] = el.value.trim ? el.value.trim() : el.value;
+      propagateMirroredField(key, prev);
       updateFormPreviews();
     };
     el.addEventListener('input', handler);
@@ -837,12 +886,64 @@ function updateSyncFieldChecks() {
 /* ══════════════════════════════════════════════════════════
    VALIDATION
 ══════════════════════════════════════════════════════════ */
+/* Latest engine result, shared with the PDF export gate. */
+let lastValidationResult = null;
+
+/* ══════════════════════════════════════════════════════════
+   VALIDATION CHECKLIST MARKUP
+   Built from VAL_FIELDS so the checklist can never drift out of
+   sync with the keys the engine actually evaluates.
+══════════════════════════════════════════════════════════ */
+const VAL_FORM_META = {
+  csf:  { title:'Claim Signature Form (CSF)',        icon:'bi-file-earmark-text',    tone:'text-primary' },
+  cf2:  { title:'Confinement Form 2 (CF2)',          icon:'bi-file-earmark-medical', tone:'text-teal'    },
+  cf3:  { title:'Confinement Form 3 (CF3)',          icon:'bi-file-earmark-check',   tone:'text-orange'  },
+  cf4:  { title:'Clinical Record (CF4)',             icon:'bi-file-earmark-plus',    tone:'text-danger'  },
+  pmrf: { title:'Member Registration Form (PMRF)',   icon:'bi-person-lines-fill',    tone:'text-purple'  },
+};
+
+function buildValidationAccordion() {
+  const host = document.getElementById('valAccordion');
+  if (!host) return;
+
+  host.innerHTML = VAL_FORM_KEYS.map((form, i) => {
+    const meta   = VAL_FORM_META[form];
+    const fields = VAL_FIELDS[form];
+    const items  = fields.map(({ key, label }) => `
+      <div class="val-item" data-field="${key}" data-form="${form}">
+        <i class="bi bi-x-circle-fill text-danger val-icon"></i>
+        ${label}
+        <span class="val-status ms-auto text-danger">Missing</span>
+      </div>`).join('');
+
+    return `
+      <div class="pca-accordion-item accordion-item" data-aos="fade-up">
+        <h2 class="accordion-header">
+          <button class="accordion-button pca-accordion-btn${i === 0 ? '' : ' collapsed'}"
+                  type="button" data-bs-toggle="collapse" data-bs-target="#val-${form}-panel">
+            <i class="bi ${meta.icon} me-2 ${meta.tone}"></i>
+            ${meta.title}
+            <span class="ms-auto me-3 val-score" id="val-${form}-score-2">0/${fields.length} Fields</span>
+          </button>
+        </h2>
+        <div id="val-${form}-panel" class="accordion-collapse collapse${i === 0 ? ' show' : ''}">
+          <div class="accordion-body p-3"><div class="val-list">${items}</div></div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
 function updateValidation() {
   let totalComplete = 0;
   let totalFields   = 0;
   let formsComplete = 0;
 
-  ['csf','cf2','cf3','pmrf'].forEach(form => {
+  // Step 1–2: feature extraction + rule application
+  const result = runValidationRules(getComputedValue, state.data);
+  lastValidationResult = result;
+  window.lastValidationResult = result;
+
+  VAL_FORM_KEYS.forEach(form => {
     const fields = VAL_FIELDS[form];
     let formComplete = 0;
     totalFields += fields.length;
@@ -865,8 +966,11 @@ function updateValidation() {
       }
     });
 
-    const scoreEl  = document.getElementById(`val-${form}-score`);
-    if (scoreEl)   scoreEl.textContent = `${formComplete}/${fields.length} Fields`;
+    const scoreText = `${formComplete}/${fields.length} Fields`;
+    const scoreEl   = document.getElementById(`val-${form}-score`);
+    if (scoreEl)    scoreEl.textContent = scoreText;
+    const scoreEl2  = document.getElementById(`val-${form}-score-2`);
+    if (scoreEl2)   scoreEl2.textContent = scoreText;
 
     const statusEl = document.getElementById(`status-${form}`);
     if (statusEl) {
@@ -903,9 +1007,154 @@ function updateValidation() {
   if (progBar)     progBar.style.width   = overall + '%';
   if (progPct)     progPct.textContent   = overall + '%';
   if (scoreCircle) scoreCircle.classList.toggle('good', overall >= 75);
-  if (statForms)   statForms.textContent = `${formsComplete} / 4`;
+  if (statForms)   statForms.textContent = `${formsComplete} / ${VAL_FORM_KEYS.length}`;
   if (statVal)     statVal.textContent   =
     overall === 0 ? 'Pending' : overall < 50 ? 'In Progress' : overall < 100 ? 'Partial' : 'Complete';
+
+  // Steps 7–8: compile and dispatch rule feedback
+  renderRuleFeedback(result);
+  applyInlineFieldFlags(result);
+  updateExportGate(result);
+  renderSigningChecklist(result);
+}
+
+/* ══════════════════════════════════════════════════════════
+   RULE FEEDBACK — critical errors first, then warnings
+══════════════════════════════════════════════════════════ */
+function renderRuleFeedback(result) {
+  const host = document.getElementById('ruleFeedback');
+  if (!host) return;
+
+  const { critical, warnings } = result;
+
+  if (!critical.length && !warnings.length) {
+    host.innerHTML =
+      '<div class="rule-ok"><i class="bi bi-check-circle-fill me-2"></i>' +
+      'No validation issues found. All required fields are complete and consistent.</div>';
+    return;
+  }
+
+  const row = v => `
+    <div class="rule-item rule-${v.severity.cls}" data-rule="${v.id}">
+      <div class="rule-item-head">
+        <span class="rule-badge rule-badge-${v.severity.cls}">${v.severity.label}</span>
+        <code class="rule-id">${v.id}</code>
+        <span class="rule-category">${v.category}</span>
+      </div>
+      <div class="rule-message">${v.message}</div>
+      ${v.field ? `<button class="rule-fix-btn" data-fix-field="${v.field}">Fix this <i class="bi bi-arrow-right"></i></button>` : ''}
+    </div>`;
+
+  host.innerHTML = `
+    ${critical.length ? `
+      <div class="rule-group-label text-danger">
+        <i class="bi bi-exclamation-octagon-fill me-1"></i>
+        Critical errors — these block PDF generation (${critical.length})
+      </div>
+      ${critical.map(row).join('')}` : ''}
+    ${warnings.length ? `
+      <div class="rule-group-label text-warning-emphasis mt-3">
+        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+        Warnings — review before printing (${warnings.length})
+      </div>
+      ${warnings.map(row).join('')}` : ''}
+  `;
+
+  host.querySelectorAll('[data-fix-field]').forEach(btn => {
+    btn.addEventListener('click', () => focusField(btn.dataset.fixField));
+  });
+}
+
+/* Jump to the first input bound to a key and highlight it. */
+function focusField(key) {
+  const el = document.querySelector(`[data-autofill="${key}"]`) ||
+             document.querySelector(`[data-box-key="${key}"]`);
+  if (!el) return;
+  const section = el.closest('.content-section');
+  if (section && !section.classList.contains('active')) {
+    navigateTo(section.id.replace('section-', ''));
+  }
+  setTimeout(() => {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const target = el.matches('input,select,textarea') ? el : el.querySelector('input,select,textarea');
+    if (target) target.focus({ preventScroll: true });
+    el.classList.add('field-flash');
+    setTimeout(() => el.classList.remove('field-flash'), 1600);
+  }, 120);
+}
+
+/* ══════════════════════════════════════════════════════════
+   INLINE FIELD FLAGS — mark offending inputs where they live,
+   so staff see problems during encoding and not only on the
+   Validation Checker page.
+══════════════════════════════════════════════════════════ */
+function applyInlineFieldFlags(result) {
+  document.querySelectorAll('.field-invalid, .field-warn').forEach(el => {
+    el.classList.remove('field-invalid', 'field-warn');
+    el.removeAttribute('title');
+  });
+  document.querySelectorAll('.field-rule-note').forEach(n => n.remove());
+
+  result.violations.forEach(v => {
+    if (!v.field) return;
+    const targets = document.querySelectorAll(
+      `[data-autofill="${v.field}"], [data-box-key="${v.field}"]`);
+    targets.forEach(el => {
+      el.classList.add(v.severity.critical ? 'field-invalid' : 'field-warn');
+      el.setAttribute('title', `${v.id}: ${v.message}`);
+      const anchor = el.closest('.col-12, .col-4, .col-6, .col-md-6, .col-md-4') || el.parentElement;
+      if (anchor && !anchor.querySelector('.field-rule-note')) {
+        const note = document.createElement('div');
+        note.className = 'field-rule-note ' +
+          (v.severity.critical ? 'field-rule-note--danger' : 'field-rule-note--warn');
+        note.innerHTML =
+          `<i class="bi ${v.severity.critical ? 'bi-exclamation-circle-fill' : 'bi-exclamation-triangle-fill'} me-1"></i>` +
+          `<code>${v.id}</code> ${v.message}`;
+        anchor.appendChild(note);
+      }
+    });
+  });
+}
+
+/* ══════════════════════════════════════════════════════════
+   EXPORT GATE — PDFs generate only once every critical error
+   is resolved (research design §3.4.2.5, step 10).
+══════════════════════════════════════════════════════════ */
+function updateExportGate(result) {
+  const blocked = !result.canGeneratePDF;
+  const reason  = blocked
+    ? 'Resolve ' + result.critical.length + ' critical error' +
+      (result.critical.length === 1 ? '' : 's') + ' before generating the PDF'
+    : '';
+
+  VAL_FORM_KEYS.forEach(form => {
+    const btn = document.getElementById('export-' + form + '-btn');
+    if (!btn) return;
+    btn.classList.toggle('is-blocked', blocked);
+    btn.setAttribute('title', reason || 'Export the filled, print-ready PDF');
+  });
+
+  const banner = document.getElementById('exportGateBanner');
+  if (banner) {
+    banner.style.display = blocked ? '' : 'none';
+    const txt = document.getElementById('exportGateText');
+    if (txt) txt.textContent = reason;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   SIGNING CHECKLIST — produced before printing; lists the
+   wet-ink signatures the claim requires.
+══════════════════════════════════════════════════════════ */
+function renderSigningChecklist(result) {
+  const host = document.getElementById('signingChecklist');
+  if (!host) return;
+  host.innerHTML = result.signingChecklist.map(item => `
+    <div class="signing-item">
+      <i class="bi bi-pen me-2 text-primary"></i>
+      <span>${item.text}</span>
+      <code class="rule-id ms-auto">${item.id}</code>
+    </div>`).join('');
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -1139,6 +1388,7 @@ function escHtml(str) {
 /* ══════════════════════════════════════════════════════════
    INIT
 ══════════════════════════════════════════════════════════ */
+buildValidationAccordion();
 bindInputListeners();
 bindBoxGroupListeners();
 updateFormPreviews();
