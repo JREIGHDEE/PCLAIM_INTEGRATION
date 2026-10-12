@@ -7,6 +7,7 @@ in ocr_engine.py; image/PDF template algorithms live in template_engine.py
 and batch_processor.py (both unchanged from the original project).
 """
 import logging
+from datetime import timedelta
 
 from flask import Flask, jsonify, render_template
 from flask_cors import CORS
@@ -30,7 +31,25 @@ def create_app():
     # stack trace is never sent to the client — only ever logged server-side.
     app.config["PROPAGATE_EXCEPTIONS"] = False
 
-    CORS(app, resources={r"/*": {"origins": config.CORS_ORIGINS}})
+    # Session cookie settings (see auth.py). SameSite=Lax with
+    # supports_credentials lets the :5500 frontend send its session cookie to
+    # this :5000 API; HttpOnly keeps the cookie out of reach of JavaScript, so
+    # a scripting bug cannot steal someone's session.
+    app.secret_key = config.SECRET_KEY
+    app.config.update(
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE="Lax",
+        # Set SESSION_COOKIE_SECURE=True once the pilot runs over HTTPS;
+        # a secure cookie is never sent over plain http://127.0.0.1.
+        SESSION_COOKIE_SECURE=False,
+        PERMANENT_SESSION_LIFETIME=timedelta(hours=config.SESSION_LIFETIME_HOURS),
+    )
+
+    # supports_credentials is required for the browser to send the session
+    # cookie on cross-origin requests (frontend :5500 -> API :5000).
+    CORS(app,
+         resources={r"/*": {"origins": config.CORS_ORIGINS}},
+         supports_credentials=True)
 
     config.ensure_directories()
 

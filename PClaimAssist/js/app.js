@@ -1,16 +1,48 @@
 /* ═══════════════════════════════════════════════════════════
-   PClaimAssist – Application Logic  |  Phase 1 Prototype
+   PClaimAssist – Application Logic
    This file keeps form data in memory only and makes no API calls
    itself; OCR, claim storage (MariaDB) and server-side PDF export are
    handled by the Ocr_module Flask backend (see js/ocr.js). A claim
    reviewed there is loaded into these forms by js/claim-loader.js.
 ═══════════════════════════════════════════════════════════ */
 
-/* ── Auth guard: bounce to login if no active session ──────── */
-(function requireLogin() {
-  if (!sessionStorage.getItem('pca_logged_in')) {
-    window.location.replace('login.html');
-  }
+/* ── Auth guard ──────────────────────────────────────────────
+   Asks the backend whether this browser holds a valid session and
+   bounces to the login page if not. The check is deliberately made
+   server-side: a flag kept in the browser could be set by anyone
+   with the developer tools open (research design §3.4.2.9, §3.8).
+   The signed-in user's name, role and email fill the navbar here.
+───────────────────────────────────────────────────────────── */
+(async function requireLogin() {
+  if (typeof PCAAuth === 'undefined') return; // auth-client.js not loaded
+  const user = await PCAAuth.requireLogin();
+  if (!user) return;                          // redirecting to login.html
+
+  window.currentUser = user;
+
+  const set = (id, text) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+  };
+  set('navUserName',     user.full_name);
+  set('navUserNameFull', user.full_name);
+  set('navUserEmail',    user.email);
+  document.querySelectorAll('.user-role').forEach(el => {
+    el.textContent = PCAAuth.roleLabel(user.role);
+  });
+
+  // Admin-only controls stay hidden for an encoder.
+  document.querySelectorAll('[data-requires-role]').forEach(el => {
+    const allowed = el.dataset.requiresRole.split(',').map(r => r.trim());
+    el.hidden = !allowed.includes(user.role);
+  });
+
+  // These are defined further down the file, so they only exist once the
+  // whole script has run — hence the deferred call.
+  setTimeout(() => {
+    if (typeof fillProfileSection === 'function') fillProfileSection(user);
+    if (typeof loadClinicSettings === 'function') loadClinicSettings();
+  }, 0);
 })();
 
 AOS.init({ duration: 500, once: true, offset: 30 });
@@ -526,7 +558,7 @@ const PREVIEW_MAP = [
 /* ══════════════════════════════════════════════════════════
    NAVIGATION
 ══════════════════════════════════════════════════════════ */
-const VALID_SECTIONS = ['dashboard','patient','documents','csf','cf2','cf3','cf4','pmrf','validation','settings'];
+const VALID_SECTIONS = ['dashboard','patient','documents','csf','cf2','cf3','cf4','pmrf','validation','profile','settings'];
 
 function navigateTo(section, opts) {
   opts = opts || {};
@@ -573,11 +605,12 @@ document.querySelectorAll('.sidebar-item').forEach(item =>
 
   const logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) {
-    logoutBtn.addEventListener('click', e => {
+    logoutBtn.addEventListener('click', async e => {
       e.preventDefault();
-      sessionStorage.removeItem('pca_logged_in');
-      sessionStorage.removeItem('pca_user_email');
-      window.location.href = 'login.html';
+      // Ask the backend to destroy the session. Clearing only the browser
+      // would leave the server-side session valid and still usable.
+      if (typeof PCAAuth !== 'undefined') await PCAAuth.logout();
+      window.location.replace('login.html');
     });
   }
 })();
@@ -1405,3 +1438,122 @@ window.addEventListener('hashchange', () => {
 
 // Add this at the very bottom of js/app.js
 window.state = state;
+/* ══════════════════════════════════════════════════════════
+   MY PROFILE
+   Account details are read-only (an administrator sets them,
+   §3.8); the password is the one thing a user changes here.
+══════════════════════════════════════════════════════════ */
+function fillProfileSection(user) {
+  if (!user) return;
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+  set('profileFullName', user.full_name);
+  set('profileEmail',    user.email);
+  set('profileRole',     PCAAuth.roleLabel(user.role));
+  set('profileLastLogin',
+      user.last_login_at ? new Date(user.last_login_at).toLocaleString() : 'First sign-in');
+}
+
+(function setupPasswordChange() {
+  const btn = document.getElementById('changePasswordBtn');
+  if (!btn) return;
+
+  btn.addEventListener('click', async () => {
+    const current = document.getElementById('pwCurrent').value;
+    const next    = document.getElementById('pwNew').value;
+    const confirm = document.getElementById('pwConfirm').value;
+
+    if (!current || !next) {
+      showToast('Missing details', 'Enter your current and new password.', 'warning');
+      return;
+    }
+    if (next !== confirm) {
+      showToast('Passwords do not match', 'The new password and its confirmation differ.', 'warning');
+      return;
+    }
+
+    btn.disabled = true;
+    const result = await PCAAuth.changePassword(current, next);
+    btn.disabled = false;
+
+    if (!result.ok) {
+      showToast('Could not update password', result.error, 'danger');
+      return;
+    }
+    ['pwCurrent', 'pwNew', 'pwConfirm'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    showToast('Password updated', 'Use your new password the next time you sign in.', 'success');
+    logActivity('Account password changed', 'success');
+  });
+})();
+
+/* ══════════════════════════════════════════════════════════
+   CLINIC SETTINGS
+   Table 3.1 lists clinic name, accreditation number and address as
+   "System settings (entered once)". Loading them here fills the same
+   fields on CF2/CF3/CF4, so they are never retyped per claim.
+══════════════════════════════════════════════════════════ */
+const CLINIC_FIELDS = {
+  clinicName:     'hciName',
+  clinicPAN:      'hciPAN',
+  clinicBldg:     'hciBldg',
+  clinicStreet:   'hciStreet',
+  clinicCity:     'hciCity',
+  clinicProvince: 'hciProvince',
+  clinicZip:      'hciZip',
+};
+
+async function loadClinicSettings() {
+  if (typeof PCAAuth === 'undefined') return;
+  const settings = await PCAAuth.getClinicSettings();
+  if (!settings) return;
+
+  // Fill the Settings inputs...
+  Object.entries(CLINIC_FIELDS).forEach(([inputId, key]) => {
+    const el = document.getElementById(inputId);
+    if (el) el.value = settings[key] || '';
+  });
+  const savedAt = document.getElementById('clinicSavedAt');
+  if (savedAt && settings.updated_at) {
+    savedAt.textContent = 'Last saved ' + new Date(settings.updated_at).toLocaleString();
+  }
+
+  // ...and seed the claim forms, without overwriting anything already typed.
+  let changed = false;
+  Object.values(CLINIC_FIELDS).forEach(key => {
+    if (settings[key] && !state.data[key]) { state.data[key] = settings[key]; changed = true; }
+  });
+  if (changed) updateFormPreviews();
+}
+
+(function setupClinicSettings() {
+  const btn = document.getElementById('saveClinicBtn');
+  if (!btn) return;
+
+  btn.addEventListener('click', async () => {
+    const payload = {};
+    Object.entries(CLINIC_FIELDS).forEach(([inputId, key]) => {
+      const el = document.getElementById(inputId);
+      if (el) payload[key] = el.value.trim();
+    });
+
+    btn.disabled = true;
+    const result = await PCAAuth.saveClinicSettings(payload);
+    btn.disabled = false;
+
+    if (!result.ok) {
+      showToast('Could not save', result.error, 'danger');
+      return;
+    }
+    // Apply immediately so the open forms pick the new details up.
+    Object.entries(CLINIC_FIELDS).forEach(([, key]) => {
+      if (result.settings[key]) state.data[key] = result.settings[key];
+    });
+    updateFormPreviews();
+    const savedAt = document.getElementById('clinicSavedAt');
+    if (savedAt) savedAt.textContent = 'Last saved just now';
+    showToast('Clinic details saved',
+              'These now fill in automatically on CF2, CF3 and CF4.', 'success');
+    logActivity('Clinic details updated', 'success');
+  });
+})();

@@ -165,3 +165,28 @@ def register_error_handlers(app):
             "error": "An unexpected error occurred while processing the request.",
             "error_code": "internal_error",
         }), 500
+
+
+class AuthenticationRequiredError(OCRAppError):
+    """No valid session - the caller must sign in first."""
+
+    status_code = 401
+    error_code = "authentication_required"
+
+
+class InvalidCredentialsError(OCRAppError):
+    """Email/password did not match an active account.
+
+    The message is deliberately vague: saying which half was wrong would
+    let someone probe for valid clinic email addresses.
+    """
+
+    status_code = 401
+    error_code = "invalid_credentials"
+
+
+class PermissionDeniedError(OCRAppError):
+    """Signed in, but this role may not perform the action."""
+
+    status_code = 403
+    error_code = "permission_denied"

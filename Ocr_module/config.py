@@ -8,6 +8,7 @@ directory, so behavior is identical whether the app is started via
 `run_ocr.bat`, `python app.py`, or `flask run` from any directory.
 """
 import os
+import secrets
 from pathlib import Path
 
 from werkzeug.utils import secure_filename
@@ -95,6 +96,39 @@ DB_USER = os.environ.get("DB_USER", "root")
 # password here.
 DB_PASSWORD = os.environ.get("DB_PASSWORD", "")
 DB_CONNECT_TIMEOUT = _env_int("DB_CONNECT_TIMEOUT", 5)
+
+# ── Sessions / authentication ─────────────────────────────────────────────
+# SECRET_KEY signs the session cookie so a browser cannot forge or edit it.
+# It must stay the same across restarts, otherwise every signed-in user is
+# logged out whenever the server restarts. A random key is generated on
+# first run and saved to .secret_key (git-ignored) so a fresh clone works
+# without setup; set SECRET_KEY in the environment for a real deployment.
+_SECRET_KEY_FILE = BASE_DIR / ".secret_key"
+
+
+def _load_or_create_secret_key():
+    from_env = os.environ.get("SECRET_KEY")
+    if from_env:
+        return from_env
+    try:
+        if _SECRET_KEY_FILE.exists():
+            key = _SECRET_KEY_FILE.read_text(encoding="utf-8").strip()
+            if key:
+                return key
+        key = secrets.token_urlsafe(48)
+        _SECRET_KEY_FILE.write_text(key, encoding="utf-8")
+        _SECRET_KEY_FILE.chmod(0o600)
+        return key
+    except OSError:
+        # Read-only checkout: fall back to a per-process key. Sessions then
+        # last only until the next restart, which is safe, just less handy.
+        return secrets.token_urlsafe(48)
+
+
+SECRET_KEY = _load_or_create_secret_key()
+
+# How long a sign-in lasts without activity.
+SESSION_LIFETIME_HOURS = _env_int("SESSION_LIFETIME_HOURS", 12)
 
 # ── Storage paths (always relative to this project's folder) ───────────────
 UPLOAD_FOLDER = Path(os.environ.get("OCR_UPLOAD_DIR", BASE_DIR / "uploads"))

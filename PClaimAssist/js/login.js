@@ -76,30 +76,47 @@ document.getElementById('togglePassword').addEventListener('click', function () 
   this.title = showing ? 'Show password' : 'Hide password';
 });
 
-// Submit: no credential check in this prototype — just proceed
-document.getElementById('loginForm').addEventListener('submit', function (e) {
+// Submit: credentials are checked by the Flask backend against the bcrypt
+// hash in the users table. The browser never decides whether the password
+// was right — it only shows the answer.
+document.getElementById('loginForm').addEventListener('submit', async function (e) {
   e.preventDefault();
 
   const signInBtn = document.getElementById('signInBtn');
   if (signInBtn.disabled) return;
 
-  signInBtn.disabled = true;
-  signInBtn.querySelector('.btn-label').classList.add('d-none');
-  signInBtn.querySelector('.btn-spinner').classList.remove('d-none');
-
-  const email = document.getElementById('loginEmail').value.trim();
+  const email    = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
   const remember = document.getElementById('rememberMe').checked;
 
-  if (remember && email) {
-    localStorage.setItem('pca_remembered_email', email);
-  } else {
-    localStorage.removeItem('pca_remembered_email');
+  if (!email || !password) {
+    showToast('Missing details', 'Enter both your email and password.', 'warning');
+    return;
   }
 
-  sessionStorage.setItem('pca_logged_in', '1');
-  sessionStorage.setItem('pca_user_email', email || 'staff@clinic.ph');
+  function setBusy(busy) {
+    signInBtn.disabled = busy;
+    signInBtn.querySelector('.btn-label').classList.toggle('d-none', busy);
+    signInBtn.querySelector('.btn-spinner').classList.toggle('d-none', !busy);
+  }
+  setBusy(true);
 
-  setTimeout(() => { window.location.href = 'index.html'; }, 2000);
+  // "Remember me" stores only the email so it can be pre-filled next time.
+  // The password is never written to the browser.
+  if (remember) localStorage.setItem('pca_remembered_email', email);
+  else          localStorage.removeItem('pca_remembered_email');
+
+  const result = await PCAAuth.login(email, password);
+
+  if (!result.ok) {
+    setBusy(false);
+    document.getElementById('loginPassword').value = '';
+    showToast('Sign-in failed', result.error, 'danger');
+    return;
+  }
+
+  showToast('Welcome back', `Signed in as ${result.user.full_name}.`, 'success');
+  setTimeout(() => { window.location.href = 'index.html'; }, 600);
 });
 
 // Forgot password modal
@@ -108,8 +125,13 @@ document.getElementById('forgotPasswordLink').addEventListener('click', function
   new bootstrap.Modal(document.getElementById('forgotPasswordModal')).show();
 });
 
+// Accounts are created and reset by a clinic administrator (research design
+// §3.8), so there is no self-service reset to perform here. Say so plainly
+// rather than implying an email was sent.
 document.getElementById('sendResetBtn').addEventListener('click', function () {
   const modalEl = document.getElementById('forgotPasswordModal');
   bootstrap.Modal.getInstance(modalEl).hide();
-  showToast('Request Sent', 'If an account exists, a reset link has been sent.', 'success');
+  showToast('Ask your administrator',
+            'Passwords are reset by your clinic administrator. Please contact them to regain access.',
+            'info');
 });
