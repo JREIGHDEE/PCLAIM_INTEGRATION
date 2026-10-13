@@ -7,17 +7,20 @@
    is sitting at the machine (research design §3.4.2.9: the backend
    owns the logic, the frontend only captures input and displays).
 
-   `credentials: 'include'` is what sends the session cookie to the
-   API on a different port (:5500 page -> :5000 API). Without it the
-   browser silently omits the cookie and every call looks signed out.
+   The backend serves these pages as well as the API, so every call
+   below is same-origin and the session cookie rides along with
+   `credentials: 'include'` regardless of which port the server uses.
 ═══════════════════════════════════════════════════════════ */
 
 /* js/claim-loader.js also declares a top-level PCA_API_BASE. Both files
    load on index.html, and two `const` declarations of the same name in
    classic scripts is a syntax error that stops everything after it, so
    this one keeps its base URL private and only publishes the shared
-   window value when nothing has set it yet. */
-const PCA_AUTH_API_BASE = 'http://127.0.0.1:5000';
+   window value when nothing has set it yet.
+
+   Empty string = same origin. Hard-coding a port here is what made the
+   app break when the page was opened from anywhere else. */
+const PCA_AUTH_API_BASE = '';
 
 const PCAAuth = (function () {
 

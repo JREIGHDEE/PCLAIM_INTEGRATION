@@ -17,7 +17,8 @@
    couldn't reach any of that even by accident.
 ═══════════════════════════════════════════════════════════ */
 
-const OCR_APP_URL = 'http://127.0.0.1:5000/review';
+/* Root-relative: the backend serves this page, so the iframe is same-origin. */
+const OCR_APP_URL = '/review';
 const OCR_LOAD_TIMEOUT_MS = 10000;
 
 /* ── Iframe load / error state ───────────────────────────── */

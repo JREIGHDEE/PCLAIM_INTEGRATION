@@ -19,7 +19,8 @@
    showToast, logActivity, escHtml, OVERLAY_MAP, VAL_FIELDS).
 ═══════════════════════════════════════════════════════════ */
 
-const PCA_API_BASE = 'http://127.0.0.1:5000';
+/* Empty string = same origin; the backend serves this page too. */
+const PCA_API_BASE = '';
 
 const OCR_TAGS = {
   accepted:    { label: 'From scan',                hint: 'Filled from the logbook scan; the computer was sure. Take a quick look.' },

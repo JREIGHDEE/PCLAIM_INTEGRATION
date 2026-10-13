@@ -9,7 +9,7 @@ and batch_processor.py (both unchanged from the original project).
 import logging
 from datetime import timedelta
 
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, send_from_directory
 from flask_cors import CORS
 
 import config
@@ -56,8 +56,23 @@ def create_app():
     register_error_handlers(app)
     register_routes(app)
 
+    # ── PClaimAssist frontend ─────────────────────────────────────────
+    # Served from this same server so the clinic runs one process on one
+    # address. Because the page and the API share an origin, the session
+    # cookie is sent on every request and CORS never applies — opening the
+    # HTML from the filesystem is what used to break sign-in.
     @app.route("/")
-    def home():
+    def pclaimassist_home():
+        return send_from_directory(config.PCLAIMASSIST_DIR, "login.html")
+
+    @app.route("/<path:filename>")
+    def pclaimassist_file(filename):
+        return send_from_directory(config.PCLAIMASSIST_DIR, filename)
+
+    # The OCR calibration/template workspace. This used to sit at "/"; the
+    # clinic-facing app now owns that address.
+    @app.route("/ocr-workspace")
+    def ocr_workspace():
         return render_template(
             "index.html",
             accept=config.OCR_CONFIDENCE_ACCEPT,

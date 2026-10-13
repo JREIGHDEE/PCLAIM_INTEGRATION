@@ -309,9 +309,33 @@ limits) already has a working default — you don't need to touch it.
 
 ---
 
-## PART 6 — Starting the Backend
+## PART 6 — Starting the System
 
-From `Ocr_module/`:
+### 6.0 The normal way — one double-click
+
+From the repo root, double-click **`PClaimAssist.bat`** (or the
+**PClaimAssist** shortcut on the Desktop).
+
+It starts MariaDB and the application if they are not already running,
+waits until the system answers, then opens it in your browser at:
+
+```
+http://127.0.0.1:5000/
+```
+
+That one address serves **everything** — the login page, the claim forms,
+and the OCR workspace. There is no second server and no Live Server.
+Leave the two minimised windows in the taskbar running while you work.
+
+> **Do not open the HTML files by double-clicking them.** A page opened
+> from the filesystem has a `file://` origin, which the browser refuses to
+> let call the backend — sign-in then fails with "Cannot reach the server.
+> Is the OCR backend running?" even though the backend is running fine.
+> Always reach the app through `http://127.0.0.1:5000/`.
+
+### 6.1 Starting the backend by itself (development)
+
+If you only want the Flask server, from `Ocr_module/`:
 
 ```powershell
 .\run_ocr.bat
@@ -423,13 +447,14 @@ approach), and that exporting still works from that database data.
 
 ### 8.1 Open the OCR workspace
 
-Two ways to reach it (both require `run_ocr.bat` to be running):
+Two ways to reach it (both require the system to be running — see Part 6):
 
-- **Through PClaimAssist:** open `PClaimAssist/index.html` with Live Server,
-  then click **OCR Extraction** in the sidebar. It loads the OCR workspace
+- **Through PClaimAssist:** open `http://127.0.0.1:5000/`, sign in, then
+  click **Read Logbook Scan** in the sidebar. It loads the OCR workspace
   live inside the page.
-- **Directly:** open `http://127.0.0.1:5000/` in a browser — this is the
-  exact same workspace, served straight from the Flask backend.
+- **Directly:** open `http://127.0.0.1:5000/review` in a browser — the same
+  workspace, served straight from the Flask backend. The calibration and
+  grid-template tools are at `http://127.0.0.1:5000/ocr-workspace`.
 
 ### 8.2 Process a case and review results
 

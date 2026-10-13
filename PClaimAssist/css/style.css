@@ -231,6 +231,12 @@ body {
   overflow: hidden;
 }
 
+/* `display:flex` above (and Bootstrap's `display:block` on .dropdown-item)
+   outranks the browser's own [hidden] rule, so the role gate that hides
+   admin-only links needs this to actually take. */
+.sidebar-item[hidden],
+.dropdown-item[hidden] { display: none !important; }
+
 .sidebar-item i { font-size: 1rem; flex-shrink: 0; }
 .sidebar-item span:not(.sidebar-badge) { flex: 1; overflow: hidden; text-overflow: ellipsis; }
 
@@ -365,39 +371,19 @@ body {
   position: relative;
   overflow: hidden;
 }
-.stat-card::before {
-  content: '';
-  position: absolute;
-  top: 0; right: 0;
-  width: 80px; height: 80px;
-  border-radius: 50%;
-  opacity: .06;
-}
+.stat-card { border-color: var(--border); border-left-width: 5px; }
 .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
 
-.stat-card--blue { border-color: var(--primary-mid); }
-.stat-card--blue::before { background: var(--primary); }
-.stat-card--teal { border-color: #99F6E4; }
-.stat-card--teal::before { background: var(--teal); }
-.stat-card--orange { border-color: #FED7AA; }
-.stat-card--orange::before { background: var(--orange); }
-.stat-card--purple { border-color: #DDD6FE; }
-.stat-card--purple::before { background: var(--purple); }
-
-.stat-icon {
-  width: 52px; height: 52px;
-  border-radius: 14px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.4rem;
-  flex-shrink: 0;
-}
-.stat-card--blue .stat-icon { background: var(--primary-light); color: var(--primary); }
-.stat-card--teal .stat-icon { background: var(--teal-light); color: var(--teal); }
-.stat-card--orange .stat-icon { background: var(--orange-light); color: var(--orange); }
-.stat-card--purple .stat-icon { background: var(--purple-light); color: var(--purple); }
+/* A coloured edge tells the three tiles apart at a glance without
+   adding an icon for the reader to decode. */
+.stat-card--blue   { border-left-color: var(--primary); }
+.stat-card--teal   { border-left-color: var(--teal); }
+.stat-card--purple { border-left-color: var(--purple); }
 
 .stat-body { flex: 1; }
 .stat-value { font-size: 1.85rem; font-weight: 800; line-height: 1; color: var(--text); }
+/* A word rather than a number: the numeric size reads as shouting. */
+.stat-value--text { font-size: 1.25rem; font-weight: 700; }
 .stat-label { font-size: .78rem; color: var(--text-muted); font-weight: 500; margin-top: .25rem; }
 .stat-trend { font-size: 1.1rem; }
 
@@ -406,47 +392,23 @@ body {
   border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--card-bg);
-  padding: .9rem .5rem;
+  padding: .75rem 1rem;
   cursor: pointer;
   transition: var(--transition);
-  display: flex; flex-direction: column;
-  align-items: center; gap: .4rem;
+  display: flex;
+  align-items: center;
   color: var(--text);
-  font-size: .8rem;
+  font-size: .875rem;
   font-weight: 600;
+  text-align: left;
 }
-.quick-action-btn i { font-size: 1.4rem; color: var(--primary); }
 .quick-action-btn:hover {
   border-color: var(--primary);
   background: var(--primary-light);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(37,99,235,.15);
 }
 
 /* ── Progress ───────────────────────────────────────────────── */
 .pca-progress { border-radius: 99px; background: var(--border); }
-
-.mini-progress-card {
-  text-align: center;
-  padding: .75rem .5rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--body-bg);
-  transition: var(--transition);
-}
-.mini-progress-card:hover { border-color: var(--primary); }
-.mini-prog-icon { font-size: 1.1rem; margin-bottom: .2rem; }
-.mini-prog-label { font-size: .7rem; font-weight: 600; color: var(--text-muted); margin-bottom: .4rem; }
-.mini-prog-bar {
-  height: 5px; background: var(--border);
-  border-radius: 99px; overflow: hidden;
-}
-.mini-prog-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--primary), #60A5FA);
-  border-radius: 99px;
-  transition: width .5s ease;
-}
 
 /* ── Activity Feed ──────────────────────────────────────────── */
 .activity-feed { list-style: none; padding: 0; margin: 0; }
@@ -455,18 +417,18 @@ body {
   display: flex; align-items: flex-start; gap: .75rem;
   padding: .8rem 1.25rem;
   border-bottom: 1px solid var(--border);
+  border-left: 3px solid transparent;
   transition: var(--transition);
 }
 .activity-item:last-child { border-bottom: none; }
 .activity-item:hover { background: var(--body-bg); }
 
-.activity-icon {
-  width: 34px; height: 34px;
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: .85rem;
-  flex-shrink: 0;
-}
+/* The left edge carries the status that the old icon used to. */
+.activity-item--info    { border-left-color: var(--primary); }
+.activity-item--success { border-left-color: #16A34A; }
+.activity-item--warning { border-left-color: #D97706; }
+.activity-item--danger  { border-left-color: #DC2626; }
+
 .bg-primary-soft { background: var(--primary-light); }
 .bg-success-soft { background: #F0FDF4; }
 .bg-warning-soft { background: #FFFBEB; }
@@ -475,26 +437,69 @@ body {
 .activity-text { font-size: .85rem; font-weight: 500; }
 .activity-time { font-size: .72rem; color: var(--text-muted); }
 
-/* ── Form Status Cards ──────────────────────────────────────── */
+/* ── Form Readiness ─────────────────────────────────────────── */
+/* The dashboard's main panel: the five forms, side by side, each with
+   its own colour so staff can find one by sight rather than by reading
+   every label. Five equal columns that drop to two, then one, on
+   narrower screens. */
+.readiness-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: .75rem;
+}
+@media (max-width: 1200px) { .readiness-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 575px)  { .readiness-grid { grid-template-columns: 1fr; } }
+
 .form-status-card {
+  --fs-color: var(--primary);
   border: 1.5px solid var(--border);
+  border-top: 5px solid var(--fs-color);
   border-radius: var(--radius);
-  padding: 1.25rem;
+  padding: 1.5rem 1rem;
   text-align: center;
   cursor: pointer;
   transition: var(--transition);
   background: var(--card-bg);
 }
 .form-status-card:hover {
-  border-color: var(--primary);
-  box-shadow: 0 4px 16px rgba(37,99,235,.12);
-  transform: translateY(-2px);
+  border-color: var(--border);
+  border-top-color: var(--fs-color);
+  box-shadow: 0 6px 20px rgba(0,0,0,.10);
+  transform: translateY(-3px);
 }
-.fs-icon { font-size: 2rem; margin-bottom: .4rem; }
-.fs-name { font-size: .75rem; color: var(--text-muted); font-weight: 500; margin-bottom: .2rem; }
-.fs-abbr { font-size: 1.1rem; font-weight: 700; margin-bottom: .5rem; }
-.fs-status { margin-bottom: .5rem; }
-.fs-action { font-size: .75rem; color: var(--primary); font-weight: 600; }
+
+.fs-abbr {
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--fs-color);
+  margin-bottom: .4rem;
+}
+.fs-name { font-size: .8rem; color: var(--text-muted); font-weight: 600; margin-bottom: .6rem; min-height: 2.1em; }
+.fs-status { margin-bottom: .7rem; }
+
+.fs-bar {
+  height: 6px;
+  background: var(--border);
+  border-radius: 99px;
+  overflow: hidden;
+  margin-bottom: .7rem;
+}
+.fs-bar-fill {
+  height: 100%;
+  width: 0;
+  background: var(--fs-color);
+  border-radius: 99px;
+  transition: width .5s ease;
+}
+
+.fs-action { font-size: .78rem; color: var(--fs-color); font-weight: 700; }
+
+.fs--csf  { --fs-color: var(--primary); }
+.fs--cf2  { --fs-color: var(--teal); }
+.fs--cf3  { --fs-color: var(--purple); }
+.fs--cf4  { --fs-color: var(--orange); }
+.fs--pmrf { --fs-color: #DB2777; }
 
 .badge-pending { background: #FEF9C3; color: #854D0E; border: 1px solid #FDE68A; font-size: .72rem; }
 .badge-ready   { background: #F0FDF4; color: #166534; border: 1px solid #86EFAC; font-size: .72rem; }
@@ -519,75 +524,6 @@ body {
   font-size: .875rem;
   white-space: nowrap;
 }
-
-/* ── Upload / Drop Zone ─────────────────────────────────────── */
-.drop-zone {
-  border: 2.5px dashed var(--primary-mid);
-  border-radius: var(--radius);
-  padding: 3rem 1.5rem;
-  text-align: center;
-  cursor: pointer;
-  transition: var(--transition);
-  background: var(--primary-light);
-  position: relative;
-}
-.drop-zone:hover,
-.drop-zone.drag-over {
-  border-color: var(--primary);
-  background: #DBEAFE;
-  transform: scale(1.01);
-}
-
-.drop-icon { font-size: 3.5rem; color: var(--primary); margin-bottom: .75rem; line-height: 1; }
-.drop-title { font-size: 1.1rem; font-weight: 700; color: var(--text); margin-bottom: .25rem; }
-.drop-sub { color: var(--text-muted); font-size: .875rem; margin-bottom: .75rem; }
-.drop-types { display: flex; gap: .4rem; justify-content: center; flex-wrap: wrap; margin-bottom: .6rem; }
-.drop-note { font-size: .78rem; color: var(--text-muted); margin: 0; }
-
-.file-badge {
-  background: var(--primary);
-  color: #fff;
-  font-size: .68rem;
-  font-weight: 700;
-  padding: .2rem .5rem;
-  border-radius: 4px;
-}
-
-/* ── File List ──────────────────────────────────────────────── */
-.file-list { list-style: none; padding: 0; margin: 0; }
-
-.file-list-empty {
-  padding: 2rem;
-  text-align: center;
-  color: var(--text-muted);
-  font-size: .875rem;
-}
-
-.file-item {
-  display: flex; align-items: center; gap: .75rem;
-  padding: .8rem 1.25rem;
-  border-bottom: 1px solid var(--border);
-  animation: slideIn .3s ease;
-}
-.file-item:last-child { border-bottom: none; }
-
-@keyframes slideIn {
-  from { opacity: 0; transform: translateX(-12px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-
-.file-item-icon { font-size: 1.5rem; flex-shrink: 0; }
-.file-item-name { font-size: .875rem; font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.file-item-size { font-size: .75rem; color: var(--text-muted); white-space: nowrap; }
-.file-item-remove {
-  border: none; background: none; cursor: pointer;
-  color: var(--text-muted);
-  font-size: 1rem;
-  padding: .2rem;
-  border-radius: 4px;
-  transition: var(--transition);
-}
-.file-item-remove:hover { color: var(--danger); background: #FEF2F2; }
 
 /* ── Guide List ─────────────────────────────────────────────── */
 .guide-list { list-style: none; padding: 0; margin: 0; }
@@ -1000,9 +936,34 @@ body {
 .pca-accordion-btn:not(.collapsed) { background: #F8FAFF !important; }
 .pca-accordion-btn::after { filter: none; }
 
+/* Same hover affordance as .pca-disclosure, so it reads as clickable. */
+.pca-accordion-btn { cursor: pointer; }
+.pca-accordion-btn:hover {
+  background: var(--body-bg) !important;
+  color: var(--fs-color, var(--primary)) !important;
+}
+
+/* Each form keeps the colour it has on the dashboard, on a left edge.
+   --fs-color comes from the .fs--<form> class; no default is set here,
+   or it would outrank those rules and paint every form the same. */
+.pca-accordion-item { border-left: 5px solid var(--fs-color, var(--primary)); }
+
+.val-chip {
+  background: var(--fs-color, var(--primary));
+  color: #fff;
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .02em;
+  padding: .2rem .5rem;
+  border-radius: 5px;
+  margin-right: .7rem;
+  flex-shrink: 0;
+}
+.val-title { font-weight: 600; }
+
 .val-score {
   font-size: .78rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-muted);
   white-space: nowrap;
 }
@@ -1014,45 +975,131 @@ body {
   padding: .55rem .75rem;
   border-radius: var(--radius-sm);
   font-size: .85rem;
-  background: var(--body-bg);
-  border: 1px solid var(--border);
-  transition: var(--transition);
+  background: #FFF7F7;
+  border: 1px solid #FECACA;
+  color: #7F1D1D;
+  transition: background .2s, border-color .2s, color .2s;
 }
+.val-dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: var(--danger);
+  flex-shrink: 0;
+}
+.val-label { flex: 1; min-width: 0; }
+.val-status { font-size: .75rem; font-weight: 700; }
+
 .val-item.complete {
   background: #F0FDF4;
   border-color: #86EFAC;
   color: #166534;
 }
+.val-item.complete .val-dot { background: var(--success); }
+
 .val-item.val-warning {
   background: #FFFBEB;
   border-color: #FDE68A;
   color: #78350F;
 }
-.val-icon { font-size: 1rem; flex-shrink: 0; }
-.val-status { font-size: .75rem; font-weight: 600; }
+.val-item.val-warning .val-dot { background: var(--warning); }
 
-/* ── Validation Summary ─────────────────────────────────────── */
-.val-summary-score { text-align: center; }
-
-.score-circle {
-  width: 100px; height: 100px;
-  border-radius: 50%;
-  border: 8px solid var(--border);
-  display: flex; align-items: center; justify-content: center;
-  margin: 0 auto .75rem;
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: var(--primary);
-  background: var(--primary-light);
-  transition: var(--transition);
+/* ── Overall score hero ─────────────────────────────────────── */
+.score-hero { padding: 1.5rem; }
+.score-hero-main {
+  display: flex;
+  align-items: center;
+  gap: 1.75rem;
+  flex-wrap: wrap;
 }
-.score-circle.good { border-color: var(--success); background: #F0FDF4; color: var(--success); }
-.score-label { font-size: .85rem; color: var(--text-muted); font-weight: 500; }
+.score-hero-text { flex: 1; min-width: 240px; }
+.score-hero-label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: .6rem;
+}
+.score-hero-bar { height: 12px; border-radius: 99px; overflow: hidden; }
+.score-hero-bar .progress-bar { background: var(--score-color, var(--primary)); }
 
-.val-legend { display: flex; flex-direction: column; gap: .4rem; }
-.legend-item {
-  display: flex; align-items: center; gap: .55rem;
+/* The ring fills clockwise with --score (0-100), set by app.js. */
+.score-ring {
+  --score: 0;
+  --score-color: var(--primary);
+  width: 150px; height: 150px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: conic-gradient(var(--score-color) calc(var(--score) * 1%), var(--border) 0);
+  transition: background .5s ease;
+}
+.score-ring::before {
+  content: '';
+  position: absolute;
+  width: 114px; height: 114px;
+  border-radius: 50%;
+  background: var(--card-bg);
+}
+.score-ring { position: relative; }
+.score-ring span {
+  position: relative;
+  font-size: 2.6rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--score-color);
+}
+.score-ring.is-low  { --score-color: var(--danger); }
+.score-ring.is-mid  { --score-color: var(--warning); }
+.score-ring.is-good { --score-color: var(--primary); }
+.score-ring.is-done { --score-color: var(--success); }
+
+.score-counts {
+  display: flex; flex-wrap: wrap; gap: 1.25rem;
+  margin-top: .9rem;
   font-size: .85rem;
+  color: var(--text-muted);
+}
+.score-count strong { font-size: 1.1rem; margin-right: .2rem; }
+.score-count--done  strong { color: var(--success); }
+.score-count--miss  strong { color: var(--danger); }
+.score-count--total strong { color: var(--text); }
+
+@media (max-width: 575px) {
+  .score-hero-main { gap: 1.25rem; justify-content: center; }
+  .score-ring { width: 120px; height: 120px; }
+  .score-ring::before { width: 92px; height: 92px; }
+  .score-ring span { font-size: 2rem; }
+}
+
+/* ── Disclosure (collapsible card header) ───────────────────── */
+.pca-disclosure {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  background: none;
+  border: none;
+  padding: 1rem 1.25rem;
+  font-weight: 700;
+  font-size: .9rem;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.pca-disclosure::after {
+  content: '';
+  margin-left: auto;
+  width: .55rem; height: .55rem;
+  border-right: 2px solid var(--text-muted);
+  border-bottom: 2px solid var(--text-muted);
+  transform: rotate(45deg);
+  transition: transform .25s ease;
+}
+.pca-disclosure.collapsed::after { transform: rotate(-45deg); }
+.pca-disclosure:hover { color: var(--primary); }
+.pca-disclosure-note {
+  font-weight: 500;
+  font-size: .76rem;
+  color: var(--text-muted);
 }
 
 .next-steps-list {
@@ -1065,20 +1112,6 @@ body {
 .next-steps-list li { font-size: .875rem; color: var(--text); }
 
 /* ── Settings ────────────────────────────────────────────────── */
-.setting-item {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 1rem;
-  padding: .85rem 0;
-  border-bottom: 1px solid var(--border);
-}
-.setting-item:last-child { border-bottom: none; }
-.setting-label { font-weight: 600; font-size: .875rem; }
-.setting-desc { font-size: .78rem; color: var(--text-muted); }
-
-.about-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
-.about-table td { padding: .4rem .5rem; }
-.about-table td:first-child { font-weight: 600; color: var(--text-muted); width: 110px; white-space: nowrap; }
-
 /* ── Toast ───────────────────────────────────────────────────── */
 .pca-toast {
   border-radius: var(--radius-sm);

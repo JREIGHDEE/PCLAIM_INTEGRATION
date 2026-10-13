@@ -52,7 +52,6 @@ AOS.init({ duration: 500, once: true, offset: 30 });
 ══════════════════════════════════════════════════════════ */
 const state = {
   currentSection: 'dashboard',
-  uploadedFiles: [],
   data: {
     /* Patient (dependent / person confined) */
     patientLastName:'', patientFirstName:'', patientMiddleName:'', patientNameExt:'',
@@ -558,7 +557,7 @@ const PREVIEW_MAP = [
 /* ══════════════════════════════════════════════════════════
    NAVIGATION
 ══════════════════════════════════════════════════════════ */
-const VALID_SECTIONS = ['dashboard','patient','documents','csf','cf2','cf3','cf4','pmrf','validation','profile','settings'];
+const VALID_SECTIONS = ['dashboard','patient','csf','cf2','cf3','cf4','pmrf','validation','profile','settings'];
 
 function navigateTo(section, opts) {
   opts = opts || {};
@@ -928,13 +927,16 @@ let lastValidationResult = null;
    sync with the keys the engine actually evaluates.
 ══════════════════════════════════════════════════════════ */
 const VAL_FORM_META = {
-  csf:  { title:'Claim Signature Form (CSF)',        icon:'bi-file-earmark-text',    tone:'text-primary' },
-  cf2:  { title:'Confinement Form 2 (CF2)',          icon:'bi-file-earmark-medical', tone:'text-teal'    },
-  cf3:  { title:'Confinement Form 3 (CF3)',          icon:'bi-file-earmark-check',   tone:'text-orange'  },
-  cf4:  { title:'Clinical Record (CF4)',             icon:'bi-file-earmark-plus',    tone:'text-danger'  },
-  pmrf: { title:'Member Registration Form (PMRF)',   icon:'bi-person-lines-fill',    tone:'text-purple'  },
+  csf:  { title:'Claim Signature Form',      abbr:'CSF'  },
+  cf2:  { title:'Confinement Form 2',        abbr:'CF2'  },
+  cf3:  { title:'Confinement Form 3',        abbr:'CF3'  },
+  cf4:  { title:'Clinical Record',           abbr:'CF4'  },
+  pmrf: { title:'Member Registration Form',  abbr:'PMRF' },
 };
 
+/* One form open at a time (data-bs-parent), so staff work through the
+   five forms one by one instead of facing every missing field at once.
+   The colour matches the form's card on the dashboard. */
 function buildValidationAccordion() {
   const host = document.getElementById('valAccordion');
   if (!host) return;
@@ -944,22 +946,24 @@ function buildValidationAccordion() {
     const fields = VAL_FIELDS[form];
     const items  = fields.map(({ key, label }) => `
       <div class="val-item" data-field="${key}" data-form="${form}">
-        <i class="bi bi-x-circle-fill text-danger val-icon"></i>
-        ${label}
-        <span class="val-status ms-auto text-danger">Missing</span>
+        <span class="val-dot"></span>
+        <span class="val-label">${label}</span>
+        <span class="val-status ms-auto">Missing</span>
       </div>`).join('');
 
     return `
-      <div class="pca-accordion-item accordion-item" data-aos="fade-up">
+      <div class="pca-accordion-item accordion-item fs--${form}">
         <h2 class="accordion-header">
           <button class="accordion-button pca-accordion-btn${i === 0 ? '' : ' collapsed'}"
                   type="button" data-bs-toggle="collapse" data-bs-target="#val-${form}-panel">
-            <i class="bi ${meta.icon} me-2 ${meta.tone}"></i>
-            ${meta.title}
+            <span class="val-chip">${meta.abbr}</span>
+            <span class="val-title">${meta.title}</span>
             <span class="ms-auto me-3 val-score" id="val-${form}-score-2">0/${fields.length} Fields</span>
           </button>
         </h2>
-        <div id="val-${form}-panel" class="accordion-collapse collapse${i === 0 ? ' show' : ''}">
+        <div id="val-${form}-panel"
+             class="accordion-collapse collapse${i === 0 ? ' show' : ''}"
+             data-bs-parent="#valAccordion">
           <div class="accordion-body p-3"><div class="val-list">${items}</div></div>
         </div>
       </div>`;
@@ -985,17 +989,17 @@ function updateValidation() {
       const val  = getComputedValue(key);
       const item = document.querySelector(`.val-item[data-field="${key}"][data-form="${form}"]`);
       if (!item) return;
-      const icon   = item.querySelector('.val-icon');
       const status = item.querySelector('.val-status');
       if (val) {
         formComplete++; totalComplete++;
         item.classList.add('complete');
-        if (icon)   icon.className   = 'bi bi-check-circle-fill text-success val-icon';
-        if (status) { status.textContent = 'Complete'; status.className = 'val-status ms-auto text-success'; }
+        // Done items sink below the ones still needing attention.
+        item.style.order = '1';
+        if (status) status.textContent = 'Complete';
       } else {
         item.classList.remove('complete');
-        if (icon)   icon.className   = 'bi bi-x-circle-fill text-danger val-icon';
-        if (status) { status.textContent = 'Missing';  status.className = 'val-status ms-auto text-danger'; }
+        item.style.order = '0';
+        if (status) status.textContent = 'Missing';
       }
     });
 
@@ -1039,7 +1043,15 @@ function updateValidation() {
   if (legTotal)    legTotal.textContent  = totalFields;
   if (progBar)     progBar.style.width   = overall + '%';
   if (progPct)     progPct.textContent   = overall + '%';
-  if (scoreCircle) scoreCircle.classList.toggle('good', overall >= 75);
+  if (scoreCircle) {
+    // --score drives the ring's conic-gradient; the state class picks the
+    // colour so the number is never the only thing carrying the message.
+    scoreCircle.style.setProperty('--score', overall);
+    scoreCircle.classList.remove('is-low', 'is-mid', 'is-good', 'is-done');
+    scoreCircle.classList.add(
+      overall === 100 ? 'is-done' : overall >= 75 ? 'is-good'
+      : overall >= 40 ? 'is-mid' : 'is-low');
+  }
   if (statForms)   statForms.textContent = `${formsComplete} / ${VAL_FORM_KEYS.length}`;
   if (statVal)     statVal.textContent   =
     overall === 0 ? 'Pending' : overall < 50 ? 'In Progress' : overall < 100 ? 'Partial' : 'Complete';
@@ -1249,108 +1261,18 @@ document.getElementById('clearFormBtn').addEventListener('click', () => {
 });
 
 /* ══════════════════════════════════════════════════════════
-   FILE UPLOAD
-══════════════════════════════════════════════════════════ */
-(function setupUpload() {
-  const dropZone  = document.getElementById('dropZone');
-  const fileInput = document.getElementById('fileInput');
-  const fileList  = document.getElementById('fileList');
-  const fileEmpty = document.getElementById('fileListEmpty');
-  const fileCount = document.getElementById('fileCount');
-  const statDocs  = document.getElementById('statDocs');
-
-  dropZone.addEventListener('click', () => fileInput.click());
-  ['dragenter','dragover'].forEach(e =>
-    dropZone.addEventListener(e, ev => { ev.preventDefault(); dropZone.classList.add('drag-over'); }));
-  ['dragleave','drop'].forEach(e =>
-    dropZone.addEventListener(e, ev => { ev.preventDefault(); dropZone.classList.remove('drag-over'); }));
-  dropZone.addEventListener('drop', e => { e.preventDefault(); handleFiles(e.dataTransfer.files); });
-  fileInput.addEventListener('change', () => { handleFiles(fileInput.files); fileInput.value = ''; });
-
-  function handleFiles(files) {
-    const allowedExt = ['.pdf','.jpg','.jpeg','.png'];
-    let added = 0;
-    Array.from(files).forEach(f => {
-      const ext = '.' + f.name.split('.').pop().toLowerCase();
-      if (!allowedExt.includes(ext)) {
-        showToast('Invalid file type', `${escHtml(f.name)} is not supported.`, 'danger'); return;
-      }
-      if (f.size > 10*1024*1024) {
-        showToast('File too large', `${escHtml(f.name)} exceeds 10 MB.`, 'danger'); return;
-      }
-      state.uploadedFiles.push({ name: f.name, size: f.size });
-      added++;
-    });
-    if (added) {
-      renderFileList(); simulateProgress();
-      logActivity(`${added} document(s) added`, 'success');
-      showToast('Files added', `${added} file(s) ready for demonstration.`, 'success');
-    }
-  }
-
-  function renderFileList() {
-    Array.from(fileList.querySelectorAll('.file-item')).forEach(el => el.remove());
-    fileEmpty.style.display = state.uploadedFiles.length ? 'none' : '';
-    if (fileCount) fileCount.textContent = state.uploadedFiles.length;
-    if (statDocs)  statDocs.textContent  = state.uploadedFiles.length;
-    state.uploadedFiles.forEach((f, i) => {
-      const li = document.createElement('li');
-      li.className = 'file-item';
-      li.innerHTML = `<span class="file-item-icon">${fileIcon(f.name)}</span>
-        <span class="file-item-name">${escHtml(f.name)}</span>
-        <span class="file-item-size">${fmtBytes(f.size)}</span>
-        <button class="file-item-remove" data-index="${i}" title="Remove"><i class="bi bi-x-lg"></i></button>`;
-      fileList.appendChild(li);
-    });
-    fileList.querySelectorAll('.file-item-remove').forEach(btn =>
-      btn.addEventListener('click', () => {
-        state.uploadedFiles.splice(+btn.dataset.index, 1);
-        renderFileList();
-        showToast('File removed', 'File removed from the list.', 'info');
-      }));
-  }
-
-  function simulateProgress() {
-    const wrap = document.getElementById('uploadProgressWrap');
-    const bar  = document.getElementById('uploadProgressBar');
-    const pct  = document.getElementById('uploadPct');
-    if (!wrap) return;
-    wrap.style.display = ''; let p = 0;
-    const t = setInterval(() => {
-      p += Math.random()*18+8;
-      if (p >= 100) { p=100; clearInterval(t); setTimeout(() => { wrap.style.display='none'; }, 600); }
-      bar.style.width = p+'%'; pct.textContent = Math.round(p)+'%';
-    }, 100);
-  }
-
-  function fileIcon(name) {
-    const ext = name.split('.').pop().toLowerCase();
-    return { pdf:'📄', jpg:'🖼️', jpeg:'🖼️', png:'🖼️' }[ext] || '📎';
-  }
-  function fmtBytes(b) {
-    if (b < 1024) return b+' B';
-    if (b < 1048576) return (b/1024).toFixed(1)+' KB';
-    return (b/1048576).toFixed(1)+' MB';
-  }
-})();
-
-/* ══════════════════════════════════════════════════════════
    ACTIVITY FEED
 ══════════════════════════════════════════════════════════ */
 function logActivity(text, type = 'info') {
   const feed = document.getElementById('activityFeed');
   if (!feed) return;
-  const map = {
-    success:{ cls:'bg-success-soft', icon:'bi-check-circle-fill text-success' },
-    warning:{ cls:'bg-warning-soft', icon:'bi-exclamation-circle-fill text-warning' },
-    info:   { cls:'bg-primary-soft', icon:'bi-info-circle-fill text-primary' },
-    danger: { cls:'bg-warning-soft', icon:'bi-x-circle-fill text-danger' },
-  };
-  const { cls, icon } = map[type] || map.info;
+  // A coloured left edge replaces the old status icon: the same four states
+  // stay distinguishable without adding another symbol to read.
+  const states = ['success', 'warning', 'info', 'danger'];
   const li = document.createElement('li');
-  li.className = 'activity-item';
-  li.innerHTML = `<div class="activity-icon ${cls}"><i class="bi ${icon}"></i></div>
-    <div class="activity-body">
+  li.className = 'activity-item activity-item--' +
+                 (states.includes(type) ? type : 'info');
+  li.innerHTML = `<div class="activity-body">
       <div class="activity-text">${escHtml(text)}</div>
       <div class="activity-time">Just now</div>
     </div>`;
@@ -1381,32 +1303,9 @@ function showToast(title, message, type = 'info') {
   setTimeout(() => div.remove(), 4500);
 }
 
-/* ══════════════════════════════════════════════════════════
-   SETTINGS
-══════════════════════════════════════════════════════════ */
-document.getElementById('compactMode').addEventListener('change', function () {
-  document.getElementById('sidebar').classList.toggle('collapsed', this.checked);
-});
-document.getElementById('animationsToggle').addEventListener('change', function () {
-  if (this.checked) AOS.init({ duration:500, once:true, offset:30 });
-  else document.querySelectorAll('[data-aos]').forEach(el => {
-    el.removeAttribute('data-aos'); el.style.opacity=1; el.style.transform='none';
-  });
-});
-document.getElementById('themeSelect').addEventListener('change', function () {
-  const themes = {
-    light:{ '--primary':'#2563EB', '--sidebar-bg':'#0F172A' },
-    blue: { '--primary':'#1D4ED8', '--sidebar-bg':'#1E3A5F' },
-    teal: { '--primary':'#0D9488', '--sidebar-bg':'#0F2027' },
-  };
-  Object.entries(themes[this.value] || themes.light).forEach(([k,v]) =>
-    document.documentElement.style.setProperty(k, v));
-  showToast('Theme changed', `Switched to ${this.value} theme.`, 'info');
-});
-
 document.getElementById('notifBtn').addEventListener('click', () =>
   showToast('Notifications',
-    '3 pending items: Missing admission date, missing physician signature, document upload required.',
+    '2 pending items: Missing admission date, missing physician signature.',
     'warning'));
 
 /* ══════════════════════════════════════════════════════════

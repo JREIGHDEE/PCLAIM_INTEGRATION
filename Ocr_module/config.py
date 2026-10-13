@@ -78,9 +78,15 @@ CORS_ORIGINS = _env_list(
     ["http://127.0.0.1:5500", "http://localhost:5500"],
 )
 
+# This server also serves the PClaimAssist frontend, so clinic staff need only
+# one address and one running process. Same origin means the browser sends the
+# session cookie on every call without CORS being involved at all.
+PCLAIMASSIST_DIR = Path(
+    os.environ.get("PCLAIMASSIST_DIR", BASE_DIR.parent / "PClaimAssist"))
+
 # The PClaimAssist data-entry page that "Send to Forms" (logbook review)
-# opens with ?claim=<id> - Live Server serves PClaimAssist/ at its root.
-PCLAIMASSIST_FORMS_URL = os.environ.get("PCLAIMASSIST_FORMS_URL", "http://127.0.0.1:5500/index.html")
+# opens with ?claim=<id>. Root-relative: same origin as this server.
+PCLAIMASSIST_FORMS_URL = os.environ.get("PCLAIMASSIST_FORMS_URL", "/index.html")
 
 # ── Database (MariaDB/MySQL via XAMPP) ──────────────────────────────────────
 # Used so far only by case_sessions persistence (Phase 1). Grid templates,

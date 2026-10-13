@@ -61,7 +61,8 @@
         </li>
         <li><hr class="dropdown-divider"></li>
         <li><a class="dropdown-item" href="#" data-section="profile" id="profileMenuProfile"><i class="bi bi-person-vcard"></i>My Profile</a></li>
-        <li><a class="dropdown-item" href="#" data-section="settings"><i class="bi bi-gear"></i>Settings</a></li>
+        <li><a class="dropdown-item" href="#" data-section="settings"
+               data-requires-role="admin" hidden><i class="bi bi-hospital"></i>Clinic Details</a></li>
         <li><hr class="dropdown-divider"></li>
         <li><a class="dropdown-item text-danger" href="login.html#" id="logoutBtn"><i class="bi bi-box-arrow-right"></i>Log Out</a></li>
       </ul>
@@ -75,58 +76,10 @@
 <div class="layout-wrapper">
 
 <!-- ── SIDEBAR ─────────────────────────────────────────────── -->
+<!-- Built by js/sidebar.js, which ocr.html shares, so the menu is
+     identical on both pages. -->
 <aside class="sidebar" id="sidebar">
-  <nav class="sidebar-nav">
-
-    <div class="sidebar-section-label">Overview</div>
-    <a href="#" class="sidebar-item active" data-section="dashboard">
-      <i class="bi bi-grid-1x2-fill"></i><span>Dashboard</span>
-    </a>
-
-    <div class="sidebar-section-label mt-3">Data Entry</div>
-    <a href="#" class="sidebar-item" data-section="patient">
-      <i class="bi bi-person-vcard-fill"></i><span>Patient Information</span>
-      <span class="sidebar-badge">Step 1</span>
-    </a>
-    <a href="#" class="sidebar-item" data-section="documents">
-      <i class="bi bi-cloud-upload-fill"></i><span>Document Upload</span>
-    </a>
-
-    <div class="sidebar-section-label mt-3">Form Previews</div>
-    <a href="#" class="sidebar-item" data-section="csf">
-      <i class="bi bi-file-earmark-text-fill"></i><span>Claim Signature Form</span>
-      <span class="sidebar-badge">CSF</span>
-    </a>
-    <a href="#" class="sidebar-item" data-section="cf2">
-      <i class="bi bi-file-earmark-medical-fill text-teal"></i><span>Confinement Form 2</span>
-      <span class="sidebar-badge">CF2</span>
-    </a>
-    <a href="#" class="sidebar-item" data-section="cf3">
-      <i class="bi bi-file-earmark-check-fill text-orange"></i><span>Confinement Form 3</span>
-      <span class="sidebar-badge">CF3</span>
-    </a>
-    <a href="#" class="sidebar-item" data-section="cf4">
-      <i class="bi bi-file-earmark-plus-fill text-danger"></i><span>Confinement Form 4</span>
-      <span class="sidebar-badge">CF4</span>
-    </a>
-    <a href="#" class="sidebar-item" data-section="pmrf">
-      <i class="bi bi-person-lines-fill text-purple"></i><span>Member Reg. Form</span>
-      <span class="sidebar-badge">PMRF</span>
-    </a>
-
-    <div class="sidebar-section-label mt-3">OCR</div>
-    <a href="ocr.html" class="sidebar-item">
-      <i class="bi bi-camera-fill text-info"></i><span>Read Logbook Scan</span>
-    </a>
-
-    <div class="sidebar-section-label mt-3">Tools</div>
-    <a href="#" class="sidebar-item" data-section="validation">
-      <i class="bi bi-clipboard2-check-fill"></i><span>Validation Checker</span>
-    </a>
-    <a href="#" class="sidebar-item" data-section="settings">
-      <i class="bi bi-gear-fill"></i><span>Settings</span>
-    </a>
-  </nav>
+  <nav class="sidebar-nav" id="sidebarNav"></nav>
 
   <div class="sidebar-footer">
     <div class="d-flex align-items-center gap-2">
@@ -150,66 +103,104 @@
     </div>
   </div>
 
-  <!-- Stat Cards -->
-  <div class="row g-3 mb-4">
-    <div class="col-6 col-lg-3" data-aos="fade-up" data-aos-delay="0">
-      <div class="stat-card stat-card--blue">
-        <div class="stat-icon"><i class="bi bi-cloud-upload-fill"></i></div>
-        <div class="stat-body">
-          <div class="stat-value" id="statDocs">0</div>
-          <div class="stat-label">Documents Uploaded</div>
+  <!-- ── Form Readiness — the main panel: what staff check first ── -->
+  <div class="pca-card mb-4 readiness-card" data-aos="fade-up">
+    <div class="pca-card-header">Form Readiness</div>
+    <div class="p-3">
+      <div class="readiness-grid">
+
+        <div class="form-status-card fs--csf" onclick="navigateTo('csf')">
+          <div class="fs-abbr">CSF</div>
+          <div class="fs-name">Claim Signature Form</div>
+          <div class="fs-status" id="status-csf"><span class="badge badge-pending">Pending</span></div>
+          <div class="fs-bar"><div class="fs-bar-fill" id="prog-csf-bar" style="width:0%"></div></div>
+          <div class="fs-action">View Form</div>
         </div>
+
+        <div class="form-status-card fs--cf2" onclick="navigateTo('cf2')">
+          <div class="fs-abbr">CF2</div>
+          <div class="fs-name">Confinement Form 2</div>
+          <div class="fs-status" id="status-cf2"><span class="badge badge-pending">Pending</span></div>
+          <div class="fs-bar"><div class="fs-bar-fill" id="prog-cf2-bar" style="width:0%"></div></div>
+          <div class="fs-action">View Form</div>
+        </div>
+
+        <div class="form-status-card fs--cf3" onclick="navigateTo('cf3')">
+          <div class="fs-abbr">CF3</div>
+          <div class="fs-name">Confinement Form 3</div>
+          <div class="fs-status" id="status-cf3"><span class="badge badge-pending">Pending</span></div>
+          <div class="fs-bar"><div class="fs-bar-fill" id="prog-cf3-bar" style="width:0%"></div></div>
+          <div class="fs-action">View Form</div>
+        </div>
+
+        <div class="form-status-card fs--cf4" onclick="navigateTo('cf4')">
+          <div class="fs-abbr">CF4</div>
+          <div class="fs-name">Confinement Form 4</div>
+          <div class="fs-status" id="status-cf4"><span class="badge badge-pending">Pending</span></div>
+          <div class="fs-bar"><div class="fs-bar-fill" id="prog-cf4-bar" style="width:0%"></div></div>
+          <div class="fs-action">View Form</div>
+        </div>
+
+        <div class="form-status-card fs--pmrf" onclick="navigateTo('pmrf')">
+          <div class="fs-abbr">PMRF</div>
+          <div class="fs-name">Member Reg. Form</div>
+          <div class="fs-status" id="status-pmrf"><span class="badge badge-pending">Pending</span></div>
+          <div class="fs-bar"><div class="fs-bar-fill" id="prog-pmrf-bar" style="width:0%"></div></div>
+          <div class="fs-action">View Form</div>
+        </div>
+
       </div>
     </div>
-    <div class="col-6 col-lg-3" data-aos="fade-up" data-aos-delay="60">
-      <div class="stat-card stat-card--teal">
-        <div class="stat-icon"><i class="bi bi-arrow-repeat"></i></div>
+  </div>
+
+  <!-- Stat Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-lg-4" data-aos="fade-up" data-aos-delay="0">
+      <div class="stat-card stat-card--blue">
         <div class="stat-body">
           <div class="stat-value" id="statFields">0</div>
           <div class="stat-label">Fields Synced</div>
         </div>
       </div>
     </div>
-    <div class="col-6 col-lg-3" data-aos="fade-up" data-aos-delay="120">
-      <div class="stat-card stat-card--orange">
-        <div class="stat-icon"><i class="bi bi-file-earmark-check-fill"></i></div>
+    <div class="col-6 col-lg-4" data-aos="fade-up" data-aos-delay="60">
+      <div class="stat-card stat-card--teal">
         <div class="stat-body">
-          <div class="stat-value" id="statForms">0 / 4</div>
+          <div class="stat-value" id="statForms">0 / 5</div>
           <div class="stat-label">Forms Ready</div>
         </div>
       </div>
     </div>
-    <div class="col-6 col-lg-3" data-aos="fade-up" data-aos-delay="180">
+    <div class="col-6 col-lg-4" data-aos="fade-up" data-aos-delay="120">
       <div class="stat-card stat-card--purple">
-        <div class="stat-icon"><i class="bi bi-shield-check-fill"></i></div>
         <div class="stat-body">
-          <div class="stat-value" id="statValidation">Pending</div>
+          <div class="stat-value stat-value--text" id="statValidation">Pending</div>
           <div class="stat-label">Validation Status</div>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="row g-3 mb-4">
+  <div class="row g-3">
     <!-- Quick Actions -->
     <div class="col-lg-4" data-aos="fade-up">
       <div class="pca-card h-100">
-        <div class="pca-card-header"><i class="bi bi-lightning-charge me-2 text-primary"></i>Quick Actions</div>
+        <div class="pca-card-header">Quick Actions</div>
         <div class="p-3">
           <div class="row g-2">
-            <div class="col-6">
+            <div class="col-12">
               <button class="quick-action-btn w-100" onclick="navigateTo('patient')">
-                <i class="bi bi-person-vcard-fill"></i>Enter Patient Info
+                Enter Patient Info
               </button>
             </div>
-            <div class="col-6">
-              <button class="quick-action-btn w-100" onclick="navigateTo('documents')">
-                <i class="bi bi-cloud-upload-fill"></i>Upload Documents
+            <div class="col-12">
+              <button class="quick-action-btn w-100" onclick="location.href='ocr.html'">
+                Read Logbook Scan
               </button>
             </div>
-            <div class="col-6">
+            <div class="col-12">
               <button class="quick-action-btn w-100" onclick="navigateTo('validation')">
-                <i class="bi bi-clipboard2-check-fill"></i>Check Validation
+                Check Validation
               </button>
             </div>
           </div>
@@ -217,105 +208,18 @@
       </div>
     </div>
 
-    <!-- Form Status -->
+    <!-- Activity Feed -->
     <div class="col-lg-8" data-aos="fade-up" data-aos-delay="60">
       <div class="pca-card h-100">
-        <div class="pca-card-header"><i class="bi bi-file-earmark-text me-2 text-primary"></i>Form Readiness</div>
-        <div class="p-3">
-          <div class="row g-2">
-            <div class="col-6 col-md-3">
-              <div class="form-status-card" onclick="navigateTo('csf')">
-                <div class="fs-icon">📋</div>
-                <div class="fs-name">Claim Signature Form</div>
-                <div class="fs-abbr">CSF</div>
-                <div class="fs-status" id="status-csf"><span class="badge badge-pending">Pending</span></div>
-                <div class="fs-action">View Form →</div>
-              </div>
-            </div>
-            <div class="col-6 col-md-3">
-              <div class="form-status-card" onclick="navigateTo('cf2')">
-                <div class="fs-icon">🏥</div>
-                <div class="fs-name">Confinement Form 2</div>
-                <div class="fs-abbr">CF2</div>
-                <div class="fs-status" id="status-cf2"><span class="badge badge-pending">Pending</span></div>
-                <div class="fs-action">View Form →</div>
-              </div>
-            </div>
-            <div class="col-6 col-md-3">
-              <div class="form-status-card" onclick="navigateTo('cf3')">
-                <div class="fs-icon">👶</div>
-                <div class="fs-name">Confinement Form 3</div>
-                <div class="fs-abbr">CF3</div>
-                <div class="fs-status" id="status-cf3"><span class="badge badge-pending">Pending</span></div>
-                <div class="fs-action">View Form →</div>
-              </div>
-            </div>
-            <div class="col-6 col-md-3">
-              <div class="form-status-card" onclick="navigateTo('pmrf')">
-                <div class="fs-icon">📝</div>
-                <div class="fs-name">Member Reg. Form</div>
-                <div class="fs-abbr">PMRF</div>
-                <div class="fs-status" id="status-pmrf"><span class="badge badge-pending">Pending</span></div>
-                <div class="fs-action">View Form →</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Activity Feed + Progress -->
-  <div class="row g-3">
-    <div class="col-lg-8" data-aos="fade-up">
-      <div class="pca-card">
-        <div class="pca-card-header"><i class="bi bi-activity me-2 text-primary"></i>Activity Feed</div>
+        <div class="pca-card-header">Activity Feed</div>
         <ul class="activity-feed" id="activityFeed">
-          <li class="activity-item">
-            <div class="activity-icon bg-primary-soft"><i class="bi bi-info-circle-fill text-primary"></i></div>
+          <li class="activity-item activity-item--info">
             <div class="activity-body">
               <div class="activity-text">Session started — no data saved between sessions</div>
               <div class="activity-time">Just now</div>
             </div>
           </li>
         </ul>
-      </div>
-    </div>
-    <div class="col-lg-4" data-aos="fade-up" data-aos-delay="60">
-      <div class="pca-card h-100">
-        <div class="pca-card-header"><i class="bi bi-bar-chart-fill me-2 text-primary"></i>Progress</div>
-        <div class="p-3">
-          <div class="row g-2">
-            <div class="col-6">
-              <div class="mini-progress-card">
-                <div class="mini-prog-icon">📋</div>
-                <div class="mini-prog-label">CSF</div>
-                <div class="mini-prog-bar"><div class="mini-prog-fill" id="prog-csf-bar" style="width:0%"></div></div>
-              </div>
-            </div>
-            <div class="col-6">
-              <div class="mini-progress-card">
-                <div class="mini-prog-icon">🏥</div>
-                <div class="mini-prog-label">CF2</div>
-                <div class="mini-prog-bar"><div class="mini-prog-fill" id="prog-cf2-bar" style="width:0%"></div></div>
-              </div>
-            </div>
-            <div class="col-6">
-              <div class="mini-progress-card">
-                <div class="mini-prog-icon">👶</div>
-                <div class="mini-prog-label">CF3</div>
-                <div class="mini-prog-bar"><div class="mini-prog-fill" id="prog-cf3-bar" style="width:0%"></div></div>
-              </div>
-            </div>
-            <div class="col-6">
-              <div class="mini-progress-card">
-                <div class="mini-prog-icon">📝</div>
-                <div class="mini-prog-label">PMRF</div>
-                <div class="mini-prog-bar"><div class="mini-prog-fill" id="prog-pmrf-bar" style="width:0%"></div></div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   </div>
@@ -936,89 +840,6 @@
   </div>
 </section>
 
-<!-- ════════════════════════════════════════════════════════════
-     SECTION: DOCUMENT UPLOAD
-═════════════════════════════════════════════════════════════ -->
-<section id="section-documents" class="content-section">
-  <div class="section-header">
-    <div>
-      <h1 class="section-title">Document Upload</h1>
-      <p class="section-subtitle">Attach supporting documents for the PhilHealth claim</p>
-    </div>
-    <span class="badge bg-primary rounded-pill fs-6" id="fileCount">0</span>
-  </div>
-
-  <div class="row g-3">
-    <div class="col-lg-7" data-aos="fade-up">
-      <div class="pca-card">
-        <div class="pca-card-header"><i class="bi bi-cloud-upload me-2 text-primary"></i>Upload Documents</div>
-        <div class="p-3">
-          <div class="alert-warning-soft mb-3">
-            <i class="bi bi-shield-exclamation me-2"></i>
-            <strong>Privacy Reminder:</strong> Files are held in browser memory only and are never uploaded to any server.
-          </div>
-          <div class="drop-zone" id="dropZone">
-            <div class="drop-icon"><i class="bi bi-cloud-arrow-up"></i></div>
-            <div class="drop-title">Drag &amp; Drop Files Here</div>
-            <div class="drop-sub">or click to browse files</div>
-            <div class="drop-types">
-              <span class="file-badge">PDF</span>
-              <span class="file-badge">JPG</span>
-              <span class="file-badge">PNG</span>
-            </div>
-            <p class="drop-note">Maximum file size: 10 MB per file</p>
-            <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png" multiple hidden>
-          </div>
-          <div id="uploadProgressWrap" style="display:none;" class="mt-3">
-            <div class="d-flex justify-content-between mb-1">
-              <small class="text-muted">Processing…</small>
-              <small id="uploadPct" class="text-primary fw-bold">0%</small>
-            </div>
-            <div class="pca-progress" style="height:6px;">
-              <div id="uploadProgressBar" class="progress-bar bg-primary" style="width:0%;height:100%;border-radius:99px;"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-lg-5" data-aos="fade-up" data-aos-delay="60">
-      <div class="pca-card h-100">
-        <div class="pca-card-header">
-          <i class="bi bi-folder2-open me-2 text-primary"></i>Uploaded Files
-        </div>
-        <div id="fileListEmpty" class="file-list-empty">
-          <i class="bi bi-inbox fs-2 d-block mb-2 text-muted"></i>No files uploaded yet
-        </div>
-        <ul class="file-list" id="fileList"></ul>
-      </div>
-    </div>
-  </div>
-
-  <div class="pca-card mt-3" data-aos="fade-up">
-    <div class="pca-card-header"><i class="bi bi-list-check me-2 text-primary"></i>Required Documents – Maternity Claim</div>
-    <div class="p-3">
-      <div class="row g-3">
-        <div class="col-md-6">
-          <ul class="guide-list">
-            <li><i class="bi bi-check-circle-fill text-success"></i> Claim Signature Form (CSF) — signed by member</li>
-            <li><i class="bi bi-check-circle-fill text-success"></i> Confinement Form 2 (CF2) — signed by attending physician</li>
-            <li><i class="bi bi-check-circle-fill text-success"></i> Confinement Form 3 (CF3) — maternity record</li>
-            <li><i class="bi bi-check-circle-fill text-success"></i> PhilHealth Member Registration Form (PMRF)</li>
-          </ul>
-        </div>
-        <div class="col-md-6">
-          <ul class="guide-list">
-            <li><i class="bi bi-dot text-primary fs-4"></i> Official receipt from HCI</li>
-            <li><i class="bi bi-dot text-primary fs-4"></i> Hospital Statement of Account (SOA)</li>
-            <li><i class="bi bi-dot text-primary fs-4"></i> Newborn birth certificate (if applicable)</li>
-            <li><i class="bi bi-dot text-primary fs-4"></i> Valid government-issued ID of member</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
 
 <!-- ════════════════════════════════════════════════════════════
      SECTION: CSF – CLAIM SIGNATURE FORM
@@ -3888,105 +3709,108 @@
     </div>
   </div>
 
-  <div class="row g-3 mb-4">
-    <div class="col-md-4" data-aos="fade-up">
-      <div class="pca-card h-100">
-        <div class="pca-card-header"><i class="bi bi-speedometer2 me-2 text-primary"></i>Overall Score</div>
-        <div class="p-4 text-center">
-          <div class="score-circle" id="scoreCircle"><span id="scoreValue">0%</span></div>
-          <div class="score-label mb-3">Fields Complete</div>
-          <div class="val-legend">
-            <div class="legend-item">
-              <i class="bi bi-check-circle-fill text-success"></i>
-              <span class="text-muted" style="font-size:.82rem;">Complete:</span>
-              <strong id="legendComplete">0</strong>
-            </div>
-            <div class="legend-item">
-              <i class="bi bi-x-circle-fill text-danger"></i>
-              <span class="text-muted" style="font-size:.82rem;">Missing:</span>
-              <strong id="legendMissing">36</strong>
-            </div>
-            <div class="legend-item">
-              <i class="bi bi-circle text-muted"></i>
-              <span class="text-muted" style="font-size:.82rem;">Total:</span>
-              <strong id="legendTotal">36</strong>
-            </div>
-          </div>
-          <div class="mt-3">
-            <div class="d-flex justify-content-between mb-1" style="font-size:.78rem;">
-              <span class="text-muted">Overall Progress</span>
-              <span id="progressPct" class="fw-bold text-primary">0%</span>
-            </div>
-            <div class="pca-progress" style="height:8px;">
-              <div id="overallProgress" class="progress-bar bg-primary" style="width:0%;height:100%;border-radius:99px;transition:width .5s;"></div>
-            </div>
-          </div>
+  <!-- ── Overall score: one big number, readable across the room ── -->
+  <div class="pca-card score-hero mb-3" data-aos="fade-up">
+    <div class="score-hero-main">
+      <div class="score-ring" id="scoreCircle"><span id="scoreValue">0%</span></div>
+      <div class="score-hero-text">
+        <div class="score-hero-label">Fields Complete</div>
+        <div class="pca-progress score-hero-bar">
+          <div id="overallProgress" class="progress-bar" style="width:0%;height:100%;border-radius:99px;transition:width .5s;"></div>
         </div>
-      </div>
-    </div>
-
-    <div class="col-md-8" data-aos="fade-up" data-aos-delay="60">
-      <div class="pca-card h-100">
-        <div class="pca-card-header"><i class="bi bi-list-task me-2 text-primary"></i>Next Steps</div>
-        <div class="p-3">
-          <ol class="next-steps-list">
-            <li>Complete all patient and member information in <strong>Patient Information</strong></li>
-            <li>Upload supporting documents in <strong>Document Upload</strong></li>
-            <li>Review auto-populated previews in <strong>CSF, CF2, CF3, PMRF</strong></li>
-            <li>Print each form and obtain required signatures from physician and member</li>
-            <li>Submit complete package to PhilHealth office or accredited HCI</li>
-          </ol>
-          <div class="alert-info-soft mt-3">
-            <i class="bi bi-info-circle me-2"></i>
-            All 4 forms pull from the same data. Fill in Patient Information once and all forms update automatically.
-          </div>
+        <div class="score-counts">
+          <span class="score-count score-count--done">
+            <strong id="legendComplete">0</strong> complete
+          </span>
+          <span class="score-count score-count--miss">
+            <strong id="legendMissing">36</strong> missing
+          </span>
+          <span class="score-count score-count--total">
+            <strong id="legendTotal">36</strong> total
+          </span>
+          <span class="visually-hidden" id="progressPct">0%</span>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Rule-based validation results (deterministic IF-THEN rules) -->
+  <!-- Reference, not a task list: collapsed so it does not compete with
+       the forms that actually need attention. -->
   <div class="pca-card mb-4" data-aos="fade-up">
-    <div class="pca-card-header">
-      <i class="bi bi-shield-check me-2 text-primary"></i>Rule-Based Validation Results
-      <span class="ms-auto" style="font-size:.72rem;" class="text-muted">
-        Deterministic IF-THEN rules &middot; every result traces to a rule ID
-      </span>
+    <button class="pca-disclosure collapsed" type="button"
+            data-bs-toggle="collapse" data-bs-target="#nextStepsPanel">
+      How to finish a claim
+    </button>
+    <div id="nextStepsPanel" class="collapse">
+      <div class="p-3 pt-0">
+        <ol class="next-steps-list">
+          <li>Complete all patient and member information in <strong>Patient Information</strong></li>
+          <li>Read the logbook page in <strong>Read Logbook Scan</strong></li>
+          <li>Review auto-populated previews in <strong>CSF, CF2, CF3, CF4, PMRF</strong></li>
+          <li>Print each form and obtain required signatures from physician and member</li>
+          <li>Submit complete package to PhilHealth office or accredited HCI</li>
+        </ol>
+        <div class="alert-info-soft mt-3">
+          All five forms pull from the same data. Fill in Patient Information once and every form updates automatically.
+        </div>
+      </div>
     </div>
-    <div class="p-3" id="ruleFeedback"></div>
+  </div>
+
+  <!-- Per-form field checklist, generated from VAL_FIELDS. One form opens
+       at a time so staff work through them one by one. -->
+  <div class="pca-accordion mb-4" id="valAccordion"></div>
+
+  <!-- Rule-based validation results (deterministic IF-THEN rules).
+       Open by default: §3.4.2.5 puts critical errors in front of the user
+       first, warnings below them. -->
+  <div class="pca-card mb-3" data-aos="fade-up">
+    <button class="pca-disclosure" type="button"
+            data-bs-toggle="collapse" data-bs-target="#ruleFeedbackPanel">
+      Rule Check Results
+      <span class="pca-disclosure-note">every result traces to a rule ID</span>
+    </button>
+    <div id="ruleFeedbackPanel" class="collapse show">
+      <div class="p-3 pt-0" id="ruleFeedback"></div>
+    </div>
   </div>
 
   <!-- Post-OCR correction review: suggestions must be confirmed by a person -->
-  <div class="pca-card mb-4" data-aos="fade-up">
-    <div class="pca-card-header">
-      <i class="bi bi-magic me-2 text-primary"></i>Correction Review
-    </div>
-    <div class="p-3">
-      <p class="text-muted mb-3" style="font-size:.82rem;">
-        Each suggested correction is shown beside the original reading with the reason
-        it was proposed. Nothing is changed silently — until you choose Accept, Edit or
-        Reject, the original reading is what the validation rules and the printed form use.
-      </p>
-      <div id="ocrReviewList"></div>
+  <div class="pca-card mb-3" data-aos="fade-up">
+    <button class="pca-disclosure collapsed" type="button"
+            data-bs-toggle="collapse" data-bs-target="#ocrReviewPanel">
+      Correction Review
+      <span class="pca-disclosure-note">scan suggestions you have not confirmed yet</span>
+    </button>
+    <div id="ocrReviewPanel" class="collapse">
+      <div class="p-3 pt-0">
+        <p class="text-muted mb-3" style="font-size:.82rem;">
+          Each suggested correction is shown beside the original reading with the reason
+          it was proposed. Nothing is changed silently — until you choose Accept, Edit or
+          Reject, the original reading is what the validation rules and the printed form use.
+        </p>
+        <div id="ocrReviewList"></div>
+      </div>
     </div>
   </div>
 
   <!-- Signing checklist (wet-ink signatures required before submission) -->
   <div class="pca-card mb-4" data-aos="fade-up">
-    <div class="pca-card-header">
-      <i class="bi bi-pen me-2 text-primary"></i>Signing Checklist
-    </div>
-    <div class="p-3">
-      <p class="text-muted mb-3" style="font-size:.82rem;">
-        PhilHealth requires original hand-written signatures. Print the generated
-        PDFs and obtain each signature below before submitting.
-      </p>
-      <div id="signingChecklist"></div>
+    <button class="pca-disclosure collapsed" type="button"
+            data-bs-toggle="collapse" data-bs-target="#signingPanel">
+      Signing Checklist
+      <span class="pca-disclosure-note">who must sign before you submit</span>
+    </button>
+    <div id="signingPanel" class="collapse">
+      <div class="p-3 pt-0">
+        <p class="text-muted mb-3" style="font-size:.82rem;">
+          PhilHealth requires original hand-written signatures. Print the generated
+          PDFs and obtain each signature below before submitting.
+        </p>
+        <div id="signingChecklist"></div>
+      </div>
     </div>
   </div>
-
-  <!-- Per-form field checklist, generated from VAL_FIELDS -->
-  <div class="pca-accordion" id="valAccordion"></div>
 </section>
 
 <!-- ════════════════════════════════════════════════════════════
@@ -4077,8 +3901,8 @@
 <section id="section-settings" class="content-section">
   <div class="section-header">
     <div>
-      <h1 class="section-title">Settings</h1>
-      <p class="section-subtitle">Customize your PClaimAssist experience</p>
+      <h1 class="section-title">Clinic Details</h1>
+      <p class="section-subtitle">Entered once — used on CF2, CF3 and CF4 for every claim</p>
     </div>
   </div>
 
@@ -4089,7 +3913,7 @@
     <div class="col-12" data-aos="fade-up" data-requires-role="admin" hidden>
       <div class="pca-card">
         <div class="pca-card-header">
-          <i class="bi bi-hospital me-2 text-primary"></i>Clinic Details
+          Clinic Details
           <span class="badge badge-pending ms-2" style="font-size:.64rem;">Administrator only</span>
         </div>
         <div class="p-3">
@@ -4128,69 +3952,9 @@
               <input type="text" class="form-control pca-input" id="clinicZip" maxlength="10" placeholder="1100">
             </div>
             <div class="col-12 d-flex align-items-center gap-2 mt-2">
-              <button class="btn btn-primary" id="saveClinicBtn">
-                <i class="bi bi-save me-1"></i>Save Clinic Details
-              </button>
+              <button class="btn btn-primary" id="saveClinicBtn">Save Clinic Details</button>
               <span class="text-muted" id="clinicSavedAt" style="font-size:.76rem;"></span>
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-6" data-aos="fade-up">
-      <div class="pca-card">
-        <div class="pca-card-header"><i class="bi bi-palette me-2 text-primary"></i>Display</div>
-        <div class="p-3">
-          <div class="setting-item">
-            <div>
-              <div class="setting-label">Compact Sidebar</div>
-              <div class="setting-desc">Collapse sidebar to icon-only mode</div>
-            </div>
-            <div class="form-check form-switch mb-0">
-              <input class="form-check-input" type="checkbox" id="compactMode" role="switch">
-            </div>
-          </div>
-          <div class="setting-item">
-            <div>
-              <div class="setting-label">Animations</div>
-              <div class="setting-desc">Enable scroll-based entrance animations</div>
-            </div>
-            <div class="form-check form-switch mb-0">
-              <input class="form-check-input" type="checkbox" id="animationsToggle" checked role="switch">
-            </div>
-          </div>
-          <div class="setting-item">
-            <div>
-              <div class="setting-label">Color Theme</div>
-              <div class="setting-desc">Choose an accent color for the interface</div>
-            </div>
-            <select class="form-select" style="width:140px;" id="themeSelect">
-              <option value="light">Blue (Default)</option>
-              <option value="blue">Dark Blue</option>
-              <option value="teal">Teal</option>
-            </select>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-6" data-aos="fade-up" data-aos-delay="60">
-      <div class="pca-card">
-        <div class="pca-card-header"><i class="bi bi-info-circle me-2 text-primary"></i>About</div>
-        <div class="p-3">
-          <table class="about-table">
-            <tr><td>Application</td><td>PClaimAssist</td></tr>
-            <tr><td>Version</td><td>1.0.0</td></tr>
-            <tr><td>Purpose</td><td>PhilHealth Claims Preparation</td></tr>
-            <tr><td>Forms Covered</td><td>CSF, CF2, CF3, PMRF</td></tr>
-            <tr><td>Data Storage</td><td>Browser session only (no persistence)</td></tr>
-            <tr><td>Backend</td><td>None — frontend only</td></tr>
-            <tr><td>Privacy</td><td>No data saved, transmitted, or stored</td></tr>
-          </table>
-          <div class="alert-warning-soft mt-3">
-            <i class="bi bi-shield-exclamation me-2"></i>
-            <strong>Prototype Notice:</strong> This is a demonstration tool. All data is cleared when the page is refreshed.
           </div>
         </div>
       </div>
@@ -4219,6 +3983,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <!-- pdf-lib: write filled text onto PDF for export -->
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<!-- Shared sidebar (must load before app.js, which binds to .sidebar-item) -->
+<script src="js/sidebar.js?v=20261013a"></script>
+<script>PCASidebar.render({ page: 'app', active: 'dashboard' });</script>
 <!-- Authentication client (must load before app.js) -->
 <script src="js/auth-client.js?v=20261012c"></script>
 <!-- PDF overlay coordinate maps (must load before pdf-overlay.js) -->
