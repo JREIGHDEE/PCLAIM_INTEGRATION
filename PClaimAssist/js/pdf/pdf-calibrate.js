@@ -273,6 +273,15 @@ function setupCalibrationUI(formKey) {
   const wrap    = document.getElementById('pdf-wrap-' + formKey);
   if (!toolbar || !wrap) return;
 
+  // Developer tools, administrators only: the sample-data button would
+  // overwrite a real patient with fake data in one click. If the signed-in
+  // user is already known, decide now; otherwise app.js's role gate (which
+  // handles every [data-requires-role]) decides when it learns the role.
+  const adminOnly = el => {
+    el.dataset.requiresRole = 'admin';
+    el.hidden = !(window.currentUser && window.currentUser.role === 'admin');
+  };
+
   const fillBtn = document.createElement('button');
   fillBtn.className = 'pdf-nav-btn';
   fillBtn.id = formKey + '-autofill-btn';
@@ -282,6 +291,7 @@ function setupCalibrationUI(formKey) {
     loadSampleData({ stayOnPage: true });
     if (calibrate.active[formKey]) labelFieldsForCalibration(formKey);
   });
+  adminOnly(fillBtn);
   toolbar.appendChild(fillBtn);
 
   const btn = document.createElement('button');
@@ -290,6 +300,7 @@ function setupCalibrationUI(formKey) {
   btn.title = 'Calibrate overlay alignment';
   btn.innerHTML = '<i class="bi bi-bullseye"></i>';
   btn.addEventListener('click', () => toggleCalibrate(formKey));
+  adminOnly(btn);
   toolbar.appendChild(btn);
 
   const bar = document.createElement('div');

@@ -254,6 +254,29 @@ class ApplyReviewTests(unittest.TestCase):
             _field("BDAY", "03/15/1995", 0.7),
         ]}
 
+    def test_best_guess_fills_unreadable_fields_but_never_accepts_them(self):
+        rows = [{"fields": [
+            {"category": "ADDRESS", "raw_text": "Purok 3 Mabini", "status": MANUAL, "value": "", "ocr_error": None},
+            {"category": "BDAY", "raw_text": "", "status": MANUAL, "value": "", "ocr_error": None},
+            {"category": "NAME", "raw_text": "Dela Cruz, Maria", "status": ACCEPTED,
+             "value": "Dela Cruz, Maria", "ocr_error": None},
+        ]}]
+        logbook_pipeline.fill_best_guesses(rows)
+        address, bday, name = rows[0]["fields"]
+        self.assertEqual((address["value"], address["status"], address["best_guess"]),
+                         ("Purok 3 Mabini", NEEDS_CHECK, True))
+        self.assertEqual((bday["value"], bday["status"]), ("", MANUAL))  # nothing to guess from
+        self.assertNotIn("best_guess", name)
+
+    def test_cleared_best_guess_must_be_typed_or_deferred(self):
+        ocr_data = {"fields": [{"category": "ADDRESS", "raw_text": "Purok 3", "value": "Purok 3",
+                                "status": NEEDS_CHECK, "best_guess": True}]}
+        _, _, missing = logbook_pipeline.apply_review(ocr_data, {"ADDRESS": ""})
+        self.assertEqual(missing, ["ADDRESS"])
+        _, deferred, missing = logbook_pipeline.apply_review(ocr_data, {"ADDRESS": ""}, defer_manual=True)
+        self.assertEqual(missing, [])
+        self.assertTrue(deferred["fields"][0]["deferred_to_forms"])
+
     def test_manual_field_must_be_typed(self):
         _, _, missing = logbook_pipeline.apply_review(self._ocr_data(), {"NAME": "Dela Cruz, Maria"})
         self.assertEqual(missing, ["ADDRESS"])
@@ -445,6 +468,12 @@ class LogbookEndToEndTests(unittest.TestCase):
             mock.patch.object(config, "GRID_TEMPLATES_FOLDER", templates_dir),
             mock.patch.object(config, "REVIEW_CROPS_FOLDER", os.path.join(self.tmp, "crops")),
             mock.patch("routes.review_routes.extract_tokens_from_array", ocr),
+            # The test patients must never be learned into the real
+            # pattern/entry tables (paddle_assist.record_review / backfill).
+            mock.patch("pattern_store.add_patterns"),
+            mock.patch("pattern_store.remove_patterns"),
+            mock.patch("entry_store.add_entries"),
+            mock.patch("entry_store.remove_review_entries"),
         ]
         for patch in self.patches:
             patch.start()
@@ -523,10 +552,13 @@ class LogbookEndToEndTests(unittest.TestCase):
         # 65-84%: pre-filled but flagged for checking.
         self.assertEqual(first["ADDRESS"]["status"], NEEDS_CHECK)
         self.assertEqual(first["ADDRESS"]["value"], first["ADDRESS"]["raw_text"])
-        # <65%: OCR text kept for reference, value left empty to be typed.
-        self.assertEqual(second["ADDRESS"]["status"], MANUAL)
-        self.assertEqual(second["ADDRESS"]["value"], "")
+        # <65%: routed to manual encoding, but filled with the best guess
+        # and flagged to check carefully - never left empty, never accepted.
+        self.assertEqual(second["ADDRESS"]["routed_status"], MANUAL)
+        self.assertEqual(second["ADDRESS"]["status"], NEEDS_CHECK)
+        self.assertTrue(second["ADDRESS"]["best_guess"])
         self.assertIn("Mabini", second["ADDRESS"]["raw_text"])
+        self.assertIn("Mabini", second["ADDRESS"]["value"])
 
         # The upload can be reopened later with the same data.
         reopened = self.client.get(f"/api/review/uploads/{body['upload_id']}").get_json()
@@ -539,8 +571,9 @@ class LogbookEndToEndTests(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.get_json()["error_code"], "review_incomplete")
 
-        # Submitting without typing the manual-encoding field is refused.
-        response = self.client.put(f"/api/review/sessions/{session_id}", json={"values": {}})
+        # Clearing a wrong best guess makes it manual encoding again:
+        # submitting it blank is refused.
+        response = self.client.put(f"/api/review/sessions/{session_id}", json={"values": {"ADDRESS": ""}})
         self.assertEqual(response.status_code, 400)
         self.assertIn("ADDRESS", response.get_json()["error"])
 
@@ -573,12 +606,14 @@ class LogbookEndToEndTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200, body)
         session = body["sessions"][1]
         fields = {f["category"]: f for f in session["fields"]}
-        self.assertEqual(fields["ADDRESS"]["status"], MANUAL)
-        self.assertEqual(fields["DATE & TIME OF DELIVERY"]["status"], MANUAL)
+        for category in ("ADDRESS", "DATE & TIME OF DELIVERY"):
+            self.assertEqual(fields[category]["routed_status"], MANUAL)
+            self.assertTrue(fields[category]["best_guess"])
 
-        # The review page's "Send to Forms": submit what's on screen, leaving
-        # the manual-encoding fields blank for the forms...
+        # The review page's "Send to Forms": submit what's on screen, with
+        # the two wrong best guesses cleared to be typed on the forms...
         values = {f["category"]: f["value"] for f in session["fields"]}
+        values["ADDRESS"] = values["DATE & TIME OF DELIVERY"] = ""
         values["DATE & TIME OF DISCHARGE"] = SAMPLE_PATIENTS[1]["DATE & TIME OF DISCHARGE"]
         response = self.client.put(f"/api/review/sessions/{session['session_id']}",
                                    json={"values": values, "defer_manual": True})

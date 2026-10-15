@@ -578,6 +578,13 @@ function navigateTo(section, opts) {
     overlay && overlay.classList.remove('active');
   }
   window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Checking phase: once the Validation Checker shows no critical errors,
+  // teach the offline OCR AI the entries (js/entry-learning.js; sent once
+  // per patient, so a later PDF export doesn't count them again).
+  if (section === 'validation' && lastValidationResult && lastValidationResult.canGeneratePDF
+      && typeof PCALearning !== 'undefined') {
+    PCALearning.recordFormEntries();
+  }
   // Trigger PDF rendering when entering a form section
   if (VAL_FORM_KEYS.includes(section) && typeof onFormSectionActivated === 'function') {
     // Small delay lets the section become visible (display:block) before measuring width
@@ -897,10 +904,10 @@ function updateSyncIndicator() {
   if (!dot || !text) return;
   if (filled === 0) {
     dot.classList.remove('active');
-    text.textContent = 'Waiting for input…';
+    text.textContent = 'No patient details typed yet.';
   } else {
     dot.classList.add('active');
-    text.textContent = `Syncing ${filled} of ${total} fields across CSF, CF2, CF3 and PMRF`;
+    text.textContent = `${filled} boxes filled in. They are copied into every form.`;
   }
 }
 
@@ -927,11 +934,11 @@ let lastValidationResult = null;
    sync with the keys the engine actually evaluates.
 ══════════════════════════════════════════════════════════ */
 const VAL_FORM_META = {
-  csf:  { title:'Claim Signature Form',      abbr:'CSF'  },
-  cf2:  { title:'Confinement Form 2',        abbr:'CF2'  },
-  cf3:  { title:'Confinement Form 3',        abbr:'CF3'  },
+  csf:  { title:'CSF',      abbr:'CSF'  },
+  cf2:  { title:'CSF 2',        abbr:'CF2'  },
+  cf3:  { title:'CSF 3',        abbr:'CF3'  },
   cf4:  { title:'Clinical Record',           abbr:'CF4'  },
-  pmrf: { title:'Member Registration Form',  abbr:'PMRF' },
+  pmrf: { title:'PMRF',  abbr:'PMRF' },
 };
 
 /* One form open at a time (data-bs-parent), so staff work through the
@@ -995,15 +1002,15 @@ function updateValidation() {
         item.classList.add('complete');
         // Done items sink below the ones still needing attention.
         item.style.order = '1';
-        if (status) status.textContent = 'Complete';
+        if (status) status.textContent = 'Filled in';
       } else {
         item.classList.remove('complete');
         item.style.order = '0';
-        if (status) status.textContent = 'Missing';
+        if (status) status.textContent = 'Not filled in yet';
       }
     });
 
-    const scoreText = `${formComplete}/${fields.length} Fields`;
+    const scoreText = `${formComplete} of ${fields.length} filled in`;
     const scoreEl   = document.getElementById(`val-${form}-score`);
     if (scoreEl)    scoreEl.textContent = scoreText;
     const scoreEl2  = document.getElementById(`val-${form}-score-2`);
@@ -1013,11 +1020,11 @@ function updateValidation() {
     if (statusEl) {
       if (formComplete === fields.length) {
         formsComplete++;
-        statusEl.innerHTML = '<span class="badge badge-ready">Ready</span>';
+        statusEl.innerHTML = '<span class="badge badge-ready">Ready to print</span>';
       } else if (formComplete > 0) {
-        statusEl.innerHTML = `<span class="badge badge-pending">In Progress (${formComplete}/${fields.length})</span>`;
+        statusEl.innerHTML = `<span class="badge badge-pending">Not finished (${formComplete} of ${fields.length})</span>`;
       } else {
-        statusEl.innerHTML = '<span class="badge badge-pending">Pending</span>';
+        statusEl.innerHTML = '<span class="badge badge-pending">Not started</span>';
       }
     }
 
@@ -1054,7 +1061,7 @@ function updateValidation() {
   }
   if (statForms)   statForms.textContent = `${formsComplete} / ${VAL_FORM_KEYS.length}`;
   if (statVal)     statVal.textContent   =
-    overall === 0 ? 'Pending' : overall < 50 ? 'In Progress' : overall < 100 ? 'Partial' : 'Complete';
+    overall === 0 ? 'Not started' : overall < 50 ? 'Just started' : overall < 100 ? 'Almost done' : 'All done';
 
   // Steps 7–8: compile and dispatch rule feedback
   renderRuleFeedback(result);
@@ -1154,7 +1161,7 @@ function applyInlineFieldFlags(result) {
           (v.severity.critical ? 'field-rule-note--danger' : 'field-rule-note--warn');
         note.innerHTML =
           `<i class="bi ${v.severity.critical ? 'bi-exclamation-circle-fill' : 'bi-exclamation-triangle-fill'} me-1"></i>` +
-          `<code>${v.id}</code> ${v.message}`;
+          `${v.message}`;
         anchor.appendChild(note);
       }
     });
@@ -1168,15 +1175,15 @@ function applyInlineFieldFlags(result) {
 function updateExportGate(result) {
   const blocked = !result.canGeneratePDF;
   const reason  = blocked
-    ? 'Resolve ' + result.critical.length + ' critical error' +
-      (result.critical.length === 1 ? '' : 's') + ' before generating the PDF'
+    ? 'Not ready yet: ' + result.critical.length + ' important thing' +
+      (result.critical.length === 1 ? ' is' : 's are') + ' still missing or wrong'
     : '';
 
   VAL_FORM_KEYS.forEach(form => {
     const btn = document.getElementById('export-' + form + '-btn');
     if (!btn) return;
     btn.classList.toggle('is-blocked', blocked);
-    btn.setAttribute('title', reason || 'Export the filled, print-ready PDF');
+    btn.setAttribute('title', reason || 'Save the filled form as a PDF, ready to print');
   });
 
   const banner = document.getElementById('exportGateBanner');
@@ -1255,6 +1262,8 @@ function loadSampleData() {
 
 
 document.getElementById('clearFormBtn').addEventListener('click', () => {
+  if (!confirm('Start a new patient?\n\nThis clears everything typed for the current patient. ' +
+               'Press OK to clear, or Cancel to keep it.')) return;
   resetFormData();
   showToast('Form cleared', 'All patient information has been cleared.', 'info');
   logActivity('Patient information cleared', 'warning');
@@ -1300,13 +1309,10 @@ function showToast(title, message, type = 'info') {
     <button type="button" class="btn-close btn-close-sm ms-2" onclick="this.closest('.toast').remove()"></button>
   </div><div class="toast-body" style="color:${c.title};">${escHtml(message)}</div>`;
   container.appendChild(div);
-  setTimeout(() => div.remove(), 4500);
+  setTimeout(() => div.remove(), 10000);
 }
 
-document.getElementById('notifBtn').addEventListener('click', () =>
-  showToast('Notifications',
-    '2 pending items: Missing admission date, missing physician signature.',
-    'warning'));
+
 
 /* ══════════════════════════════════════════════════════════
    UTILITIES

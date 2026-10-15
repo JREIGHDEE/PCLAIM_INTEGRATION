@@ -39,35 +39,84 @@ const PDF_PATHS = {
   pmrf: 'forms/PMRF.pdf',
 };
 
-/* ── Render a PDF page to a canvas ──────────────────────── */
+/* ── Render a PDF page to a canvas ──────────────────────────
+   The canvas and its overlay are sized by CSS to the panel's full width
+   (canvas width:100%, overlay inset:0), so when the browser is zoomed or
+   the window resized the page scales at once - no dark gap opens around
+   it. This function then re-draws it sharp for the new size:
+     • drawn off-screen first and copied over when finished, so the
+       preview never flashes blank;
+     • a newer render cancels an unfinished one (pdf.js refuses two
+       renders on one canvas, which used to leave a stale, wrong-sized
+       page inside a bigger panel when zooming in several steps);
+     • a form whose page is hidden has no width - it is only marked
+       "stale" and re-drawn when its page is opened. */
 async function renderPDFPage(formKey, pageNum) {
   const st = pdfState[formKey];
   if (!st.doc) return;
+  const id = (st.renderId = (st.renderId || 0) + 1);
 
-  const page      = await st.doc.getPage(pageNum);
-  const canvas    = document.getElementById('canvas-' + formKey);
-  if (!canvas) return;
+  const canvas = document.getElementById('canvas-' + formKey);
+  const wrap   = document.getElementById('pdf-wrap-' + formKey);
+  if (!canvas || !wrap) return;
 
-  const ctx       = canvas.getContext('2d');
-  const scroller  = document.querySelector(`#pdf-wrap-${formKey}`).closest('.pdf-canvas-scroller');
-  const targetW   = scroller ? scroller.clientWidth - 32 : 600; 
-  const dpr       = window.devicePixelRatio || 1;
-  const viewport  = page.getViewport({ scale: 1 });
-  const scale     = targetW / viewport.width;
-  const scaled    = page.getViewport({ scale });
+  const targetW = wrap.clientWidth;
+  if (!targetW) {               // page not visible: draw it when it is opened
+    st.page  = pageNum;
+    st.stale = true;
+    return;
+  }
 
-  canvas.width  = Math.floor(scaled.width  * dpr);
-  canvas.height = Math.floor(scaled.height * dpr);
-  canvas.style.width  = Math.floor(scaled.width)  + 'px';
-  canvas.style.height = Math.floor(scaled.height) + 'px';
+  const page = await st.doc.getPage(pageNum);
+  if (id !== st.renderId) return;
 
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  await page.render({ canvasContext: ctx, viewport: scaled }).promise;
+  const dpr      = window.devicePixelRatio || 1;
+  // Never draw below 1x: zoomed out, devicePixelRatio drops under 1.
+  const res      = Math.max(dpr, 1);
+  const viewport = page.getViewport({ scale: 1 });
+  const scaled   = page.getViewport({ scale: targetW / viewport.width });
+
+  const offscreen  = document.createElement('canvas');
+  offscreen.width  = Math.floor(scaled.width  * res);
+  offscreen.height = Math.floor(scaled.height * res);
+  const offCtx = offscreen.getContext('2d');
+  // Paint the whole page white first. The zoom factor goes to pdf.js as
+  // its `transform` option, NOT via ctx.setTransform: pdf.js fills the
+  // page background in the context's own coordinates, so a pre-set scale
+  // below 1 left part of the page transparent - the dark panel showed
+  // through as a "black box" that grew the more the browser zoomed out.
+  offCtx.fillStyle = '#FFFFFF';
+  offCtx.fillRect(0, 0, offscreen.width, offscreen.height);
+
+  if (st.renderTask) st.renderTask.cancel();
+  const task = (st.renderTask = page.render({
+    canvasContext: offCtx,
+    viewport: scaled,
+    transform: res !== 1 ? [res, 0, 0, res, 0, 0] : null,
+  }));
+  try {
+    await task.promise;
+  } catch (err) {
+    if (err && err.name === 'RenderingCancelledException') return;
+    throw err;
+  } finally {
+    if (st.renderTask === task) st.renderTask = null;
+  }
+  if (id !== st.renderId) return;
+
+  canvas.width  = offscreen.width;
+  canvas.height = offscreen.height;
+  canvas.style.width  = '100%';
+  canvas.style.height = 'auto';
+  canvas.getContext('2d').drawImage(offscreen, 0, 0);
+  st.drawnWidth = targetW;
+  st.drawnDpr   = dpr;
+  st.stale      = false;
 
   const overlay = document.getElementById('overlay-' + formKey);
   if (overlay) {
-    overlay.style.width  = Math.floor(scaled.width)  + 'px';
-    overlay.style.height = Math.floor(scaled.height) + 'px';
+    overlay.style.width  = '100%';
+    overlay.style.height = '100%';
   }
 
   const pageLabel = document.getElementById(formKey + '-page-info');
@@ -154,7 +203,8 @@ function injectOverlaySpans(formKey) {
 function scaleOverlayFonts(formKey) {
   const overlay = document.getElementById('overlay-' + formKey);
   if (!overlay) return;
-  const h = parseFloat(overlay.style.height) || overlay.getBoundingClientRect().height || 800;
+  // The overlay is sized by CSS (100% of the page), so measure it.
+  const h = overlay.getBoundingClientRect().height || 800;
   overlay.querySelectorAll('.pdf-field').forEach(span => {
     const fsPct = parseFloat(span.dataset.fsPct) || (8 / 936);
     span.style.fontSize = Math.max(5, Math.round(fsPct * h)) + 'px';
@@ -279,17 +329,31 @@ function setupPageNav(formKey) {
 
 /* ── Lazy load: only render PDF when its section opens ───── */
 function onFormSectionActivated(formKey) {
-  if (!pdfState[formKey].rendered) {
+  const st = pdfState[formKey];
+  if (!st.rendered) {
     loadFormPDF(formKey);
+  } else if (needsRedraw(formKey)) {
+    // Zoomed or resized while this form's page was hidden.
+    renderPDFPage(formKey, st.page);
   } else {
     updateOverlayForForm(formKey);
   }
 }
 
+/* True when the form's page is visible and was drawn for a different
+   width or zoom level than it has now. */
+function needsRedraw(formKey) {
+  const st   = pdfState[formKey];
+  const wrap = document.getElementById('pdf-wrap-' + formKey);
+  if (!st.doc || !wrap || !wrap.clientWidth) return false;
+  return st.stale || Math.abs(wrap.clientWidth - (st.drawnWidth || 0)) >= 2
+      || (window.devicePixelRatio || 1) !== st.drawnDpr;
+}
+
 /* ── Export: filled PDF via pdf-lib ─────────────────────── */
 async function exportFilledPDF(formKey) {
   if (!window.PDFLib) {
-    showToast('Export unavailable', 'pdf-lib did not load. Check your connection.', 'danger');
+    showToast('Cannot make the PDF right now', 'Check that the computer is connected to the internet, then reload the page.', 'danger');
     return;
   }
 
@@ -297,17 +361,17 @@ async function exportFilledPDF(formKey) {
   // critical (block_submission) errors have been resolved.
   const v = window.lastValidationResult;
   if (v && !v.canGeneratePDF) {
-    const ids = v.critical.map(c => c.id).join(', ');
+    const n = v.critical.length;
     showToast(
-      'Cannot generate PDF',
-      `${v.critical.length} critical error${v.critical.length === 1 ? '' : 's'} must be fixed first (${ids}). ` +
-      'Open the Validation Checker to review.',
+      'Not ready to print yet',
+      `${n} important thing${n === 1 ? ' is' : 's are'} still missing or wrong. ` +
+      'The list is shown now - fix those boxes, then try again.',
       'danger');
     if (typeof navigateTo === 'function') navigateTo('validation');
     return;
   }
   const btn = document.getElementById('export-' + formKey + '-btn');
-  if (btn) { btn.disabled = true; btn.textContent = 'Generating…'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Making the PDF, please wait…'; }
 
   try {
     const bytes = await fetch(PDF_PATHS[formKey]).then(r => {
@@ -358,12 +422,14 @@ async function exportFilledPDF(formKey) {
     a.click();
     
     setTimeout(() => URL.revokeObjectURL(url), 5000);
-    showToast('PDF exported', `${formKey.toUpperCase()} downloaded with filled data.`, 'success');
+    showToast('PDF saved', `The filled ${formKey.toUpperCase()} was saved to your Downloads folder. Open it there to print.`, 'success');
+    // Teach the offline OCR AI which entries are common (js/entry-learning.js).
+    if (typeof PCALearning !== 'undefined') PCALearning.recordFormEntries();
   } catch (err) {
-    showToast('Export failed', err.message || 'Could not generate PDF.', 'danger');
+    showToast('The PDF could not be made', 'Please try again. If it keeps happening, tell the clinic administrator.', 'danger');
     console.error('[PCA] Export error:', err);
   } finally {
-    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-download me-1"></i>Export PDF'; }
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-printer me-2"></i>Save as PDF to print'; }
   }
 }
 
@@ -373,11 +439,14 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 let _resizeTimer;
+// Browser zoom fires 'resize' too. Only the visible form is re-drawn;
+// hidden ones are re-drawn when their page is opened (needsRedraw).
 window.addEventListener('resize', () => {
   clearTimeout(_resizeTimer);
   _resizeTimer = setTimeout(() => {
     PDF_FORM_KEYS.forEach(key => {
-      if (pdfState[key].rendered) renderPDFPage(key, pdfState[key].page);
+      if (needsRedraw(key)) renderPDFPage(key, pdfState[key].page);
+      else if (pdfState[key].rendered) scaleOverlayFonts(key);
     });
   }, 150);
 });

@@ -613,3 +613,55 @@ These do not exist in the codebase yet — don't assume they work:
 - Tesseract/research integration (`research_ground_truth` and
   `research_ocr_results` tables exist in the schema for future OCR-accuracy
   research, but no code reads or writes them yet)
+
+---
+
+## PART 12 — Optional Extras
+
+### 12.1 Offline AI for OCR (free)
+
+PaddleOCR reads every logbook cell. Cells it is unsure about get a second
+look from the offline AI (`Ocr_module/paddle_assist.py`), and staff still
+confirm every AI answer. It's free, runs on the clinic PC, and sends
+nothing anywhere.
+
+- **Ensemble voting:** PaddleOCR re-reads the cell from 4 enhanced
+  versions of the picture, and the readings vote.
+- **Pattern recognition:** known PaddleOCR mistakes are fixed using the
+  `ocr_correction_patterns` table. Apply
+  `database/migrations/006_ocr_correction_patterns.sql` (same way as the
+  other migrations). It starts with built-in "starter" patterns, and every
+  submitted logbook review adds "learned" ones automatically.
+- **Common entries:** a vocabulary of names, addresses and diagnoses staff
+  actually enter, in the `ocr_known_entries` table. Apply
+  `database/migrations/007_ocr_known_entries.sql`. It learns from every
+  submitted logbook review and every form exported as PDF, and the AI
+  suggests the common entry when PaddleOCR misreads one.
+
+To switch off a pattern that does more harm than good, set its `is_active`
+to 0 in phpMyAdmin. To turn the AI off entirely, set
+`AI_CORRECTION_ENABLED=false` in `Ocr_module/.env` and restart the app.
+
+### 12.2 Changelog screenshots on commit
+
+When a commit changes UI files, a git hook screenshots the changed pages
+into `docs/screenshots/` and adds an entry to `CHANGELOG.md`. Set up once
+per computer, from the project root:
+
+```
+git config core.hooksPath .githooks
+Ocr_module/venv/Scripts/python -m pip install playwright
+Ocr_module/venv/Scripts/python -m playwright install chromium
+```
+
+(On Mac, use `Ocr_module/venv/bin/python`.) Then add an account for it to
+sign in with to `Ocr_module/.env`:
+
+```
+SCREENSHOT_EMAIL=admin@clinic.ph
+SCREENSHOT_PASSWORD=your-password
+```
+
+The app must be running (`PClaimAssist.bat`) when you commit; if it isn't,
+the commit still goes through, just without screenshots. To skip it for one
+commit, use `git commit --no-verify`.

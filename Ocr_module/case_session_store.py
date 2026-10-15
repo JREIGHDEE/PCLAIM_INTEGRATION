@@ -148,6 +148,21 @@ def get_session(session_id):
         return _row_to_session(cursor.fetchone())
 
 
+def list_reviewed_ocr_fields(limit=2000):
+    """OCR fields of the most recently reviewed logbook sessions - each has
+    PaddleOCR's reading (raw_text) and the value staff confirmed (value).
+    Training data for paddle_assist.CorrectionModel."""
+    with get_db_cursor() as cursor:
+        cursor.execute(
+            "SELECT ocr_data FROM case_sessions "
+            "WHERE review_status = 'reviewed' AND ocr_data IS NOT NULL "
+            "ORDER BY id DESC LIMIT %s",
+            (limit,),
+        )
+        rows = cursor.fetchall()
+    return [field for row in rows for field in _parse_json_dict(row["ocr_data"]).get("fields", [])]
+
+
 def list_upload_sessions(upload_id):
     """Every session created from one upload, in logbook row order."""
     with get_db_cursor() as cursor:

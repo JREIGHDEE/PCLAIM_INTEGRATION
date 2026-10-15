@@ -193,6 +193,8 @@ input.big{
 .field-help strong{ color:var(--check); }
 .chip .sure{ font-weight:500; }
 .field-help{ color:var(--muted); }
+.field-ai{ color:var(--muted); font-size:.95rem; margin:4px 0 0; }
+.field.is-empty .field-ai{ display:none; }
 .scan-label{ font-size:.9rem; color:var(--muted); margin:8px 0 4px; }
 .scan{ display:block; border:1px solid var(--line); border-radius:8px; background:#fafafa; padding:6px; overflow-x:auto; }
 .scan img{ display:block; max-width:100%; height:auto; min-height:48px; }
@@ -344,6 +346,12 @@ const STATUS = {
     manual_encoding_required: {
         icon: "✎", label: "Please type",
         help: "The computer could not read this. Look at the picture and type what you see.",
+    },
+    // A field the computer found hard to read, filled with its best guess
+    // (logbook_pipeline.fill_best_guesses / paddle_assist.apply_reading).
+    best_guess: {
+        icon: "?", label: "Best guess",
+        help: "The writing was hard to read, so this is the computer's best guess. Compare it with the picture carefully and fix anything that is wrong.",
     },
     empty: {
         icon: "–", label: "Empty in the logbook",
@@ -642,8 +650,19 @@ function setEmpty(field, empty){
     }
 }
 
+// The offline AI's second look (paddle_assist.py). Shown as a hint; staff still confirm.
+function renderAiNote(f){
+    if(!f.ai || !f.ai.text || f.ai.text === f.raw_text) return "";
+    if(f.ai.sure)
+        return `<p class="field-ai">AI double-checked the picture and filled in <strong>${escapeHtml(f.ai.text)}</strong>. Please confirm it matches.</p>`;
+    // Not sure: the box holds the best guess; show the AI's other reading
+    // only when it differs from what was filled in.
+    if(f.ai.text === f.value) return "";
+    return `<p class="field-ai">Another possible reading: <strong>${escapeHtml(f.ai.text)}</strong></p>`;
+}
+
 function renderField(session, f, index){
-    const status = STATUS[f.status] || STATUS.needs_check;
+    const status = (f.best_guess && f.status === "needs_check" ? STATUS.best_guess : STATUS[f.status]) || STATUS.needs_check;
     const id = `f-${session.session_id}-${index}`;
     const sure = percent(f.confidence);
     const sureText = sure === null ? "" : ` <span class="sure">(computer is ${sure}% sure)</span>`;
@@ -660,6 +679,7 @@ function renderField(session, f, index){
             <span class="chip chip--${f.status}"><span aria-hidden="true">${status.icon}</span> ${status.label}${sureText}</span>
         </div>
         <p class="field-help">${status.help}${neededHere}${f.possibly_incomplete ? ` <strong>${MAYBE_MISSING}</strong>` : ""}</p>
+        ${renderAiNote(f)}
         <p class="scan-label">From the logbook (click the picture to make it bigger):</p>
         <a class="scan" href="${cropUrl}" target="_blank" rel="noopener">
             <img src="${cropUrl}" alt="Scanned logbook entry for ${escapeHtml(nameOf(f.category))}" onload="enlarge(this)">
@@ -673,6 +693,7 @@ function renderField(session, f, index){
         <details class="more"><summary>More details</summary><dl>
             <dt>Computer read</dt><dd>${f.raw_text ? escapeHtml(f.raw_text) : "(nothing)"}</dd>
             <dt>How sure</dt><dd>${sure === null ? "—" : sure + "%"} (looks good from ${Math.round(ACCEPT * 100)}%, please check from ${Math.round(REVIEW * 100)}%)</dd>
+            ${f.ai ? `<dt>AI read</dt><dd>${f.ai.text ? escapeHtml(f.ai.text) : "(nothing)"} (${f.ai.sure ? "sure" : "not sure"})${f.ai.note ? ` — ${escapeHtml(f.ai.note)}` : ""}</dd>` : ""}
             <dt>Goes to</dt><dd>${targets}</dd>
             ${f.ocr_error ? `<dt>Problem</dt><dd>${escapeHtml(f.ocr_error)}</dd>` : ""}
         </dl></details>

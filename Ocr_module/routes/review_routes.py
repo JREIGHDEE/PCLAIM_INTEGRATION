@@ -26,6 +26,7 @@ from werkzeug.utils import secure_filename
 import case_session_store
 import config
 import logbook_pipeline
+import paddle_assist
 import review_jobs
 from errors import InvalidRequestError, ReviewCheckError, ReviewIncompleteError, SessionNotFoundError
 from ocr_engine import extract_tokens_from_array
@@ -76,7 +77,8 @@ def _read_logbook(path, source_document, progress=None):
     per patient row. Returns the upload response payload. Raises
     ValueError (message for the user) if the file can't be read."""
     result = logbook_pipeline.build_review_rows(
-        path, extract_tokens_from_array, load_template_payloads(), progress=progress)
+        path, extract_tokens_from_array, load_template_payloads(), progress=progress,
+        corrector=paddle_assist.make_corrector(extract_tokens_from_array))
     if progress:
         progress(1.0, "Saving the patients")
     session_ids = logbook_pipeline.persist_review_rows(result, source_document)
@@ -184,6 +186,11 @@ def submit_review(session_id):
         session_id, values.get(case_bridge.CASE_NUMBER, "") or session["case_id"],
         values, ocr_data,
     )
+    # Teach the offline AI from every confirmation. On a re-submit only the
+    # difference from the last confirmation is learned, so the same patient
+    # never counts twice and a corrected answer replaces the old one.
+    previous = (session["ocr_data"] or {}).get("fields") if session["review_status"] == "reviewed" else None
+    paddle_assist.record_review(ocr_data.get("fields", []), previous_fields=previous)
     logger.info("Review submitted for case session %s", session_id)
     return jsonify({"success": True, **_session_view(case_session_store.get_session(session_id))})
 

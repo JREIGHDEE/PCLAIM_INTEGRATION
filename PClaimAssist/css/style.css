@@ -1339,22 +1339,29 @@ body {
 }
 
 /* ── Canvas wrapper (relative so overlay is positioned on top) */
+/* The page always spans the panel's width and keeps the PDF's shape, so
+   zooming the browser scales it at once instead of leaving a dark gap
+   (renderPDFPage then re-draws it sharp). The overlay covers the page
+   exactly; its fields are placed in % of it. */
 .pdf-canvas-wrap {
   position: relative;
-  display: inline-block;
+  display: block;
+  width: 100%;
   line-height: 0;
   box-shadow: 0 4px 24px rgba(0,0,0,.4);
   border-radius: 2px;
 }
 .pdf-canvas-wrap canvas {
   display: block;
+  width: 100%;
+  height: auto;
   border-radius: 2px;
 }
 
 /* ── Overlay container ───────────────────────────────────── */
 .pdf-overlay {
   position: absolute;
-  top: 0; left: 0;
+  inset: 0;
   pointer-events: none;
   overflow: hidden;
 }

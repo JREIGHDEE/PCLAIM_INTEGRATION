@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
    PClaimAssist – Login Page Logic
-   Prototype auth: no credential verification, no storage/server.
+   Sign-in is checked by the Flask backend (see js/auth-client.js).
 ═══════════════════════════════════════════════════════════ */
 
 function showToast(title, message, type = 'info') {
@@ -20,41 +20,8 @@ function showToast(title, message, type = 'info') {
     <button type="button" class="btn-close btn-close-sm ms-2" onclick="this.closest('.toast').remove()"></button>
   </div><div class="toast-body" style="color:${c.title};">${message}</div>`;
   container.appendChild(div);
-  setTimeout(() => div.remove(), 4000);
+  setTimeout(() => div.remove(), 10000);
 }
-
-// Typewriter effect on the heading — loops: type, pause, delete, repeat
-(function typewriter() {
-  const el = document.getElementById('typewriterText');
-  const text = 'Welcome back!';
-  const typeSpeed = 70;
-  const deleteSpeed = 40;
-  const holdMs = 1600;
-  const restartDelay = 400;
-  let i = 0;
-
-  function type() {
-    if (i <= text.length) {
-      el.textContent = text.slice(0, i);
-      i++;
-      setTimeout(type, typeSpeed);
-    } else {
-      setTimeout(erase, holdMs);
-    }
-  }
-
-  function erase() {
-    if (i > 0) {
-      i--;
-      el.textContent = text.slice(0, i);
-      setTimeout(erase, deleteSpeed);
-    } else {
-      setTimeout(type, restartDelay);
-    }
-  }
-
-  type();
-})();
 
 // Pre-fill remembered email, if any
 (function restoreRememberedEmail() {
@@ -73,6 +40,7 @@ document.getElementById('togglePassword').addEventListener('click', function () 
   input.type = showing ? 'password' : 'text';
   icon.classList.toggle('bi-eye', showing);
   icon.classList.toggle('bi-eye-slash', !showing);
+  this.querySelector('span').textContent = showing ? 'Show' : 'Hide';
   this.title = showing ? 'Show password' : 'Hide password';
 });
 

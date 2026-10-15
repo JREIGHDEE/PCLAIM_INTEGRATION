@@ -197,6 +197,17 @@ OCR_CONFIDENCE_REVIEW = _env_float("OCR_CONFIDENCE_REVIEW", 0.65)
 # crop edge - while scoring the lines it did read 0.95+.
 OCR_MISSED_INK_LIMIT = _env_float("OCR_MISSED_INK_LIMIT", 0.2)
 
+# ── Offline AI second look for unclear cells (see paddle_assist.py) ───────
+# Cells PaddleOCR routes to "needs_check" / "manual_encoding_required" are
+# re-read by PaddleOCR from enhanced versions of the image (ensemble voting)
+# and fixed with known mistake patterns (ocr_correction_patterns table).
+# Free, runs on this PC. An AI reading is never auto-accepted.
+AI_CORRECTION_ENABLED = _env_bool("AI_CORRECTION_ENABLED", True)
+# Enhanced image versions PaddleOCR re-reads per unclear cell (0-4). More
+# versions vote more reliably but take longer.
+AI_ENSEMBLE_VARIANTS = _env_int("AI_ENSEMBLE_VARIANTS", 4)
+AI_CORRECTION_MAX_FIELDS = _env_int("AI_CORRECTION_MAX_FIELDS", 300)  # per upload, caps the time
+
 # ── Logbook upload -> per-row review sessions (see logbook_pipeline.py) ──
 # Cell crops shown next to each field in the review UI.
 REVIEW_CROPS_FOLDER = UPLOAD_FOLDER / "review_crops"

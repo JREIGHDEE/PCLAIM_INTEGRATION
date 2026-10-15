@@ -7,22 +7,10 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" rel="stylesheet">
-  <link href="css/style.css?v=20261012c" rel="stylesheet">
+  <link href="css/style.css?v=20261015a" rel="stylesheet">
+  <link href="css/easy.css?v=20261015e" rel="stylesheet">
 </head>
-<body>
-
-<!-- ═══════════════════════════════════════════════════════════
-     PRIVACY BANNER
-════════════════════════════════════════════════════════════ -->
-<div class="privacy-banner d-flex align-items-center justify-content-between gap-2 flex-wrap">
-  <span><i class="bi bi-shield-lock-fill me-2 text-info"></i>
-    <strong>Privacy Notice:</strong> All information entered is temporary and exists only in this browser session.
-    No data is saved, transmitted, or stored. Refreshing clears all fields.
-  </span>
-  <button class="btn btn-outline-light btn-sm" onclick="this.closest('.privacy-banner').remove()">
-    <i class="bi bi-x me-1"></i>Dismiss
-  </button>
-</div>
+<body class="easy">
 
 <!-- ═══════════════════════════════════════════════════════════
      TOP NAVBAR
@@ -39,12 +27,6 @@
     </div>
   </div>
   <div class="navbar-right">
-    <div class="position-relative">
-      <button class="nav-icon-btn" id="notifBtn" title="Notifications">
-        <i class="bi bi-bell"></i>
-      </button>
-    </div>
-    <div class="nav-divider"></div>
     <div class="dropdown">
       <button class="user-profile-wrap btn" id="profileMenuBtn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
         <div class="user-avatar"><i class="bi bi-person-fill"></i></div>
@@ -98,55 +80,71 @@
 <section id="section-dashboard" class="content-section">
   <div class="section-header">
     <div>
-      <h1 class="section-title">Dashboard</h1>
-      <p class="section-subtitle">Overview of your PhilHealth claims preparation session</p>
+      <h1 class="section-title">Home</h1>
+      <p class="section-subtitle">What would you like to do? Press one of the big buttons.</p>
     </div>
+  </div>
+
+  <!-- ── The three things staff come here to do, in order ── -->
+  <div class="big-actions">
+    <button class="big-action" onclick="location.href='ocr.html'">
+      <span class="num">1</span>
+      <span>Read a logbook page<small>Take a photo or scan of the logbook and let the computer read it.</small></span>
+    </button>
+    <button class="big-action" onclick="navigateTo('patient')">
+      <span class="num">2</span>
+      <span>Type a patient&rsquo;s details<small>Fill in the patient&rsquo;s information by hand.</small></span>
+    </button>
+    <button class="big-action" onclick="navigateTo('validation')">
+      <span class="num">3</span>
+      <span>Check and print the forms<small>See what is still missing, then save the forms to print.</small></span>
+    </button>
   </div>
 
   <!-- ── Form Readiness — the main panel: what staff check first ── -->
   <div class="pca-card mb-4 readiness-card" data-aos="fade-up">
-    <div class="pca-card-header">Form Readiness</div>
+    <div class="pca-card-header">Your forms &mdash; press a form to open it</div>
     <div class="p-3">
       <div class="readiness-grid">
 
         <div class="form-status-card fs--csf" onclick="navigateTo('csf')">
           <div class="fs-abbr">CSF</div>
-          <div class="fs-name">Claim Signature Form</div>
-          <div class="fs-status" id="status-csf"><span class="badge badge-pending">Pending</span></div>
+          <div class="fs-name">Signatures</div>
+          <div class="fs-status" id="status-csf"><span class="badge badge-pending">Not started</span></div>
           <div class="fs-bar"><div class="fs-bar-fill" id="prog-csf-bar" style="width:0%"></div></div>
-          <div class="fs-action">View Form</div>
+          <div class="fs-action">Open this form &rarr;</div>
         </div>
 
         <div class="form-status-card fs--cf2" onclick="navigateTo('cf2')">
-          <div class="fs-abbr">CF2</div>
-          <div class="fs-name">Confinement Form 2</div>
-          <div class="fs-status" id="status-cf2"><span class="badge badge-pending">Pending</span></div>
+          <div class="fs-abbr">CSF 2</div>
+          <div class="fs-name">Stay at the clinic</div>
+          <div class="fs-status" id="status-cf2"><span class="badge badge-pending">Not started</span></div>
           <div class="fs-bar"><div class="fs-bar-fill" id="prog-cf2-bar" style="width:0%"></div></div>
-          <div class="fs-action">View Form</div>
+          <div class="fs-action">Open this form &rarr;</div>
         </div>
 
         <div class="form-status-card fs--cf3" onclick="navigateTo('cf3')">
-          <div class="fs-abbr">CF3</div>
-          <div class="fs-name">Confinement Form 3</div>
-          <div class="fs-status" id="status-cf3"><span class="badge badge-pending">Pending</span></div>
+          <div class="fs-abbr">CSF 3</div>
+          <div class="fs-name">Pregnancy &amp; delivery</div>
+          <div class="fs-status" id="status-cf3"><span class="badge badge-pending">Not started</span></div>
           <div class="fs-bar"><div class="fs-bar-fill" id="prog-cf3-bar" style="width:0%"></div></div>
-          <div class="fs-action">View Form</div>
+          <div class="fs-action">Open this form &rarr;</div>
         </div>
 
         <div class="form-status-card fs--cf4" onclick="navigateTo('cf4')">
-          <div class="fs-abbr">CF4</div>
-          <div class="fs-name">Confinement Form 4</div>
-          <div class="fs-status" id="status-cf4"><span class="badge badge-pending">Pending</span></div>
+          <div class="fs-abbr">CSF 4</div>
+          <div class="fs-name">Medical record</div>
+          <div class="fs-status" id="status-cf4"><span class="badge badge-pending">Not started</span></div>
           <div class="fs-bar"><div class="fs-bar-fill" id="prog-cf4-bar" style="width:0%"></div></div>
-          <div class="fs-action">View Form</div>
+          <div class="fs-action">Open this form &rarr;</div>
         </div>
 
         <div class="form-status-card fs--pmrf" onclick="navigateTo('pmrf')">
           <div class="fs-abbr">PMRF</div>
-          <div class="fs-name">Member Reg. Form</div>
-          <div class="fs-status" id="status-pmrf"><span class="badge badge-pending">Pending</span></div>
+          <div class="fs-name">Membership</div>
+          <div class="fs-status" id="status-pmrf"><span class="badge badge-pending">Not started</span></div>
           <div class="fs-bar"><div class="fs-bar-fill" id="prog-pmrf-bar" style="width:0%"></div></div>
-          <div class="fs-action">View Form</div>
+          <div class="fs-action">Open this form &rarr;</div>
         </div>
 
       </div>
@@ -159,7 +157,7 @@
       <div class="stat-card stat-card--blue">
         <div class="stat-body">
           <div class="stat-value" id="statFields">0</div>
-          <div class="stat-label">Fields Synced</div>
+          <div class="stat-label">Boxes filled in</div>
         </div>
       </div>
     </div>
@@ -174,48 +172,23 @@
     <div class="col-6 col-lg-4" data-aos="fade-up" data-aos-delay="120">
       <div class="stat-card stat-card--purple">
         <div class="stat-body">
-          <div class="stat-value stat-value--text" id="statValidation">Pending</div>
-          <div class="stat-label">Validation Status</div>
+          <div class="stat-value stat-value--text" id="statValidation">Not started</div>
+          <div class="stat-label">Missing information check</div>
         </div>
       </div>
     </div>
   </div>
 
   <div class="row g-3">
-    <!-- Quick Actions -->
-    <div class="col-lg-4" data-aos="fade-up">
+    <!-- Recent activity (the three big buttons above replace the old
+         Quick Actions box) -->
+    <div class="col-12" data-aos="fade-up">
       <div class="pca-card h-100">
-        <div class="pca-card-header">Quick Actions</div>
-        <div class="p-3">
-          <div class="row g-2">
-            <div class="col-12">
-              <button class="quick-action-btn w-100" onclick="navigateTo('patient')">
-                Enter Patient Info
-              </button>
-            </div>
-            <div class="col-12">
-              <button class="quick-action-btn w-100" onclick="location.href='ocr.html'">
-                Read Logbook Scan
-              </button>
-            </div>
-            <div class="col-12">
-              <button class="quick-action-btn w-100" onclick="navigateTo('validation')">
-                Check Validation
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Activity Feed -->
-    <div class="col-lg-8" data-aos="fade-up" data-aos-delay="60">
-      <div class="pca-card h-100">
-        <div class="pca-card-header">Activity Feed</div>
+        <div class="pca-card-header">What you did today</div>
         <ul class="activity-feed" id="activityFeed">
           <li class="activity-item activity-item--info">
             <div class="activity-body">
-              <div class="activity-text">Session started — no data saved between sessions</div>
+              <div class="activity-text">You signed in.</div>
               <div class="activity-time">Just now</div>
             </div>
           </li>
@@ -231,23 +204,32 @@
 <section id="section-patient" class="content-section">
   <div class="section-header">
     <div>
-      <h1 class="section-title">Patient Information</h1>
-      <p class="section-subtitle">Enter data once — all 4 PhilHealth forms auto-populate</p>
+      <h1 class="section-title">Patient Details</h1>
+      <p class="section-subtitle">Type the patient&rsquo;s details once. They are copied into every form for you.</p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
-      <button class="btn btn-outline-primary btn-sm" id="autofillSampleBtn" onclick="loadSampleData()">
-        <i class="bi bi-magic me-1"></i>Autofill Sample Data
+      <!-- Practice data is for training/demos only: administrators only, so
+           a real patient can't be filled with example data by accident. -->
+      <button class="btn btn-outline-primary btn-sm" id="autofillSampleBtn" onclick="loadSampleData()"
+              data-requires-role="admin" hidden>
+        <i class="bi bi-magic me-1"></i>Fill with practice data
       </button>
       <button class="btn btn-outline-danger btn-sm" id="clearFormBtn">
-        <i class="bi bi-trash me-1"></i>Clear All
+        <i class="bi bi-file-earmark-plus me-1"></i>Start a new patient
       </button>
     </div>
   </div>
 
-  <div class="alert-auto-populate mb-3" data-aos="fade-up">
-    <i class="bi bi-info-circle-fill me-2"></i>
-    <strong>Auto-Population Active:</strong> Data entered here instantly appears in all form previews (CSF, CF2, CF3, PMRF).
-    No data is saved when you leave or refresh this page.
+  <div class="how-to">
+    <i class="bi bi-lightbulb-fill"></i>
+    <div>
+      <strong>How to fill this in:</strong>
+      <ol>
+        <li>The details are split into parts. Start with <strong>Part 1</strong>.</li>
+        <li>Type in each box. Boxes with a red <span class="required-dot">*</span> must be filled in.</li>
+        <li>Press <strong>Next part</strong> at the bottom to go on. Your typing is kept when you switch parts.</li>
+      </ol>
+    </div>
   </div>
 
   <!-- Nav Pills -->
@@ -256,32 +238,32 @@
       <ul class="nav pca-nav-pills flex-nowrap gap-1" id="patientTabs" role="tablist">
         <li class="nav-item" role="presentation">
           <button class="nav-link active" id="tab-identity" data-bs-toggle="pill" data-bs-target="#pane-identity" type="button" role="tab">
-            <i class="bi bi-person-badge me-1"></i>Patient &amp; Member
+            1. Patient &amp; member
           </button>
         </li>
         <li class="nav-item" role="presentation">
           <button class="nav-link" id="tab-address" data-bs-toggle="pill" data-bs-target="#pane-address" type="button" role="tab">
-            <i class="bi bi-geo-alt me-1"></i>Address &amp; Contact
+            2. Address &amp; contact
           </button>
         </li>
         <li class="nav-item" role="presentation">
           <button class="nav-link" id="tab-confinement" data-bs-toggle="pill" data-bs-target="#pane-confinement" type="button" role="tab">
-            <i class="bi bi-hospital me-1"></i>Hospital / Confinement
+            3. Stay at the clinic
           </button>
         </li>
         <li class="nav-item" role="presentation">
           <button class="nav-link" id="tab-maternity" data-bs-toggle="pill" data-bs-target="#pane-maternity" type="button" role="tab">
-            <i class="bi bi-heart-pulse me-1"></i>Maternity &amp; Delivery
+            4. Pregnancy &amp; delivery
           </button>
         </li>
         <li class="nav-item" role="presentation">
           <button class="nav-link" id="tab-profile" data-bs-toggle="pill" data-bs-target="#pane-profile" type="button" role="tab">
-            <i class="bi bi-person-lines-fill me-1"></i>Member Profile
+            5. Member profile
           </button>
         </li>
         <li class="nav-item" role="presentation">
           <button class="nav-link" id="tab-employer" data-bs-toggle="pill" data-bs-target="#pane-employer" type="button" role="tab">
-            <i class="bi bi-building me-1"></i>Employer Info
+            6. Employer
           </button>
         </li>
       </ul>
@@ -847,15 +829,15 @@
 <section id="section-csf" class="content-section">
   <div class="section-header">
     <div>
-      <h1 class="section-title">Claim Signature Form <span class="form-badge-header">CSF</span></h1>
-      <p class="section-subtitle">PhilHealth hospital claim — member and patient identification</p>
+      <h1 class="section-title">CSF</h1>
+      <p class="section-subtitle">Claim Signature Form — the PhilHealth member, the patient, and their signatures.</p>
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
       <span id="val-csf-score" class="val-score">0/9 Fields</span>
       <button class="btn-export" id="export-csf-btn" onclick="exportFilledPDF('csf')">
-        <i class="bi bi-download me-1"></i>Export PDF
+        <i class="bi bi-printer me-2"></i>Save as PDF to print
       </button>
-      <div id="status-csf"><span class="badge badge-pending">Pending</span></div>
+      <div id="status-csf"><span class="badge badge-pending">Not started</span></div>
     </div>
   </div>
 
@@ -866,7 +848,7 @@
       <div class="pdf-panel-toolbar">
         <div class="pdf-panel-label">
           <i class="bi bi-file-earmark-pdf-fill me-1 text-danger"></i>
-          Live Preview — CSF
+          Form preview
         </div>
         <div class="d-flex align-items-center gap-1">
           <button class="pdf-nav-btn" id="csf-prev-page" title="Previous page"><i class="bi bi-chevron-left"></i></button>
@@ -893,7 +875,7 @@
     <!-- RIGHT: Data Entry Panel -->
     <div class="form-entry-panel">
       <div class="entry-panel-header">
-        <i class="bi bi-pencil-square me-1 text-success"></i>Data Entry
+        <i class="bi bi-pencil-square me-2 text-success"></i>Type the details here
         <span class="live-badge"><i class="bi bi-lightning-fill me-1"></i>Live Sync</span>
       </div>
       <div class="entry-panel-body">
@@ -1209,20 +1191,20 @@
 </section>
 
 <!-- ════════════════════════════════════════════════════════════
-     SECTION: CF2 – CONFINEMENT FORM 2
+     SECTION: CF2 – CSF 2
 ═════════════════════════════════════════════════════════════ -->
 <section id="section-cf2" class="content-section">
   <div class="section-header">
     <div>
-      <h1 class="section-title">Confinement Form 2 <span class="form-badge-header cf2">CF2</span></h1>
-      <p class="section-subtitle">To be accomplished by the Health Care Institution (HCI)</p>
+      <h1 class="section-title">CSF 2</h1>
+      <p class="section-subtitle">The patient&rsquo;s stay at the clinic — filled in by the clinic.</p>
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
       <span id="val-cf2-score" class="val-score">0/9 Fields</span>
       <button class="btn-export" id="export-cf2-btn" onclick="exportFilledPDF('cf2')">
-        <i class="bi bi-download me-1"></i>Export PDF
+        <i class="bi bi-printer me-2"></i>Save as PDF to print
       </button>
-      <div id="status-cf2"><span class="badge badge-pending">Pending</span></div>
+      <div id="status-cf2"><span class="badge badge-pending">Not started</span></div>
     </div>
   </div>
 
@@ -1233,7 +1215,7 @@
       <div class="pdf-panel-toolbar">
         <div class="pdf-panel-label">
           <i class="bi bi-file-earmark-pdf-fill me-1 text-danger"></i>
-          Live Preview — CF2
+          Form preview
         </div>
         <div class="d-flex align-items-center gap-1">
           <button class="pdf-nav-btn" id="cf2-prev-page" title="Previous page"><i class="bi bi-chevron-left"></i></button>
@@ -1260,7 +1242,7 @@
     <!-- RIGHT: Data Entry Panel -->
     <div class="form-entry-panel">
       <div class="entry-panel-header">
-        <i class="bi bi-pencil-square me-1 text-success"></i>Data Entry
+        <i class="bi bi-pencil-square me-2 text-success"></i>Type the details here
         <span class="live-badge"><i class="bi bi-lightning-fill me-1"></i>Live Sync</span>
       </div>
       <div class="entry-panel-body">
@@ -1724,20 +1706,20 @@
 </section>
 
 <!-- ════════════════════════════════════════════════════════════
-     SECTION: CF3 – CONFINEMENT FORM 3 (MATERNITY)
+     SECTION: CF3 – CSF 3 (MATERNITY)
 ═════════════════════════════════════════════════════════════ -->
 <section id="section-cf3" class="content-section">
   <div class="section-header">
     <div>
-      <h1 class="section-title">Confinement Form 3 <span class="form-badge-header cf3">CF3</span></h1>
-      <p class="section-subtitle">Maternity care — clinical and delivery record (2 pages)</p>
+      <h1 class="section-title">CSF 3</h1>
+      <p class="section-subtitle">Pregnancy and delivery record (2 pages).</p>
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
       <span id="val-cf3-score" class="val-score">0/9 Fields</span>
       <button class="btn-export" id="export-cf3-btn" onclick="exportFilledPDF('cf3')">
-        <i class="bi bi-download me-1"></i>Export PDF
+        <i class="bi bi-printer me-2"></i>Save as PDF to print
       </button>
-      <div id="status-cf3"><span class="badge badge-pending">Pending</span></div>
+      <div id="status-cf3"><span class="badge badge-pending">Not started</span></div>
     </div>
   </div>
 
@@ -1748,7 +1730,7 @@
       <div class="pdf-panel-toolbar">
         <div class="pdf-panel-label">
           <i class="bi bi-file-earmark-pdf-fill me-1 text-danger"></i>
-          Live Preview — CF3
+          Form preview
         </div>
         <div class="d-flex align-items-center gap-1">
           <button class="pdf-nav-btn" id="cf3-prev-page" title="Previous page"><i class="bi bi-chevron-left"></i></button>
@@ -1775,7 +1757,7 @@
     <!-- RIGHT: Data Entry Panel -->
     <div class="form-entry-panel">
       <div class="entry-panel-header">
-        <i class="bi bi-pencil-square me-1 text-success"></i>Data Entry
+        <i class="bi bi-pencil-square me-2 text-success"></i>Type the details here
         <span class="live-badge"><i class="bi bi-lightning-fill me-1"></i>Live Sync</span>
       </div>
       <div class="entry-panel-body">
@@ -2213,15 +2195,15 @@
 <section id="section-cf4" class="content-section">
   <div class="section-header">
     <div>
-      <h1 class="section-title">Confinement Form 4 <span class="form-badge-header cf4">CF4</span></h1>
+      <h1 class="section-title">CSF 4</h1>
       <p class="section-subtitle">Patient clinical record &mdash; history, examination, course in the ward, drugs and outcome</p>
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
       <span id="val-cf4-score" class="val-score">0/12 Fields</span>
       <button class="btn-export" id="export-cf4-btn" onclick="exportFilledPDF('cf4')">
-        <i class="bi bi-download me-1"></i>Export PDF
+        <i class="bi bi-printer me-2"></i>Save as PDF to print
       </button>
-      <div id="status-cf4"><span class="badge badge-pending">Pending</span></div>
+      <div id="status-cf4"><span class="badge badge-pending">Not started</span></div>
     </div>
   </div>
 
@@ -2238,7 +2220,7 @@
     <div class="pdf-preview-panel">
       <div class="pdf-panel-toolbar">
         <div class="pdf-panel-label">
-          <i class="bi bi-file-earmark-pdf-fill me-1 text-danger"></i>Live Preview &mdash; CF4
+          <i class="bi bi-file-earmark-pdf-fill me-1 text-danger"></i>Form preview
         </div>
         <div class="d-flex align-items-center gap-1">
           <button class="pdf-nav-btn" id="cf4-prev-page" title="Previous page"><i class="bi bi-chevron-left"></i></button>
@@ -2265,7 +2247,7 @@
     <!-- RIGHT: Data Entry Panel -->
     <div class="form-entry-panel">
       <div class="entry-panel-header">
-        <i class="bi bi-pencil-square me-1 text-success"></i>Data Entry
+        <i class="bi bi-pencil-square me-2 text-success"></i>Type the details here
         <span class="live-badge"><i class="bi bi-lightning-fill me-1"></i>Live Sync</span>
       </div>
       <div class="entry-panel-body">
@@ -3025,15 +3007,15 @@
 <section id="section-pmrf" class="content-section">
   <div class="section-header">
     <div>
-      <h1 class="section-title">Member Registration Form <span class="form-badge-header pmrf">PMRF</span></h1>
+      <h1 class="section-title">PMRF</h1>
       <p class="section-subtitle">PhilHealth membership and dependent registration</p>
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
       <span id="val-pmrf-score" class="val-score">0/9 Fields</span>
       <button class="btn-export" id="export-pmrf-btn" onclick="exportFilledPDF('pmrf')">
-        <i class="bi bi-download me-1"></i>Export PDF
+        <i class="bi bi-printer me-2"></i>Save as PDF to print
       </button>
-      <div id="status-pmrf"><span class="badge badge-pending">Pending</span></div>
+      <div id="status-pmrf"><span class="badge badge-pending">Not started</span></div>
     </div>
   </div>
 
@@ -3044,7 +3026,7 @@
       <div class="pdf-panel-toolbar">
         <div class="pdf-panel-label">
           <i class="bi bi-file-earmark-pdf-fill me-1 text-danger"></i>
-          Live Preview — PMRF
+          Form preview
         </div>
         <div class="d-flex align-items-center gap-1">
           <button class="pdf-nav-btn" id="pmrf-prev-page" title="Previous page"><i class="bi bi-chevron-left"></i></button>
@@ -3071,7 +3053,7 @@
     <!-- RIGHT: Data Entry Panel -->
     <div class="form-entry-panel">
       <div class="entry-panel-header">
-        <i class="bi bi-pencil-square me-1 text-success"></i>Data Entry
+        <i class="bi bi-pencil-square me-2 text-success"></i>Type the details here
         <span class="live-badge"><i class="bi bi-lightning-fill me-1"></i>Live Sync</span>
       </div>
       <div class="entry-panel-body">
@@ -3704,8 +3686,8 @@
 <section id="section-validation" class="content-section">
   <div class="section-header">
     <div>
-      <h1 class="section-title">Validation Checker</h1>
-      <p class="section-subtitle">Verify all required fields are complete before submitting to PhilHealth</p>
+      <h1 class="section-title">Check for Missing Information</h1>
+      <p class="section-subtitle">Before saving the forms, make sure nothing important is missing.</p>
     </div>
   </div>
 
@@ -3714,7 +3696,7 @@
     <div class="score-hero-main">
       <div class="score-ring" id="scoreCircle"><span id="scoreValue">0%</span></div>
       <div class="score-hero-text">
-        <div class="score-hero-label">Fields Complete</div>
+        <div class="score-hero-label">Boxes filled in</div>
         <div class="pca-progress score-hero-bar">
           <div id="overallProgress" class="progress-bar" style="width:0%;height:100%;border-radius:99px;transition:width .5s;"></div>
         </div>
@@ -3902,7 +3884,7 @@
   <div class="section-header">
     <div>
       <h1 class="section-title">Clinic Details</h1>
-      <p class="section-subtitle">Entered once — used on CF2, CF3 and CF4 for every claim</p>
+      <p class="section-subtitle">Type the clinic&rsquo;s details once. They are used on every claim.</p>
     </div>
   </div>
 
@@ -3984,7 +3966,7 @@
 <!-- pdf-lib: write filled text onto PDF for export -->
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <!-- Shared sidebar (must load before app.js, which binds to .sidebar-item) -->
-<script src="js/sidebar.js?v=20261013a"></script>
+<script src="js/sidebar.js?v=20261015b"></script>
 <script>PCASidebar.render({ page: 'app', active: 'dashboard' });</script>
 <!-- Authentication client (must load before app.js) -->
 <script src="js/auth-client.js?v=20261012c"></script>
@@ -3995,15 +3977,17 @@
 <script src="js/pdf/overlays/cf4.js?v=20261012c"></script>
 <script src="js/pdf/overlays/pmrf.js?v=20261012c"></script>
 <script src="js/pdf/overlays/index.js?v=20261012c"></script>
-<script src="js/pdf/pdf-overlay.js?v=20261012c"></script>
-<script src="js/pdf/pdf-calibrate.js?v=20261012c"></script>
+<script src="js/entry-learning.js?v=20261015a"></script>
+<script src="js/pdf/pdf-overlay.js?v=20261015d"></script>
+<script src="js/pdf/pdf-calibrate.js?v=20261015a"></script>
 <!-- Rule-based validation engine (must load before app.js) -->
 <script src="js/validation-rules.js?v=20261012c"></script>
 <script src="js/ocr-review.js?v=20261012c"></script>
 <!-- Segmented inputs: date/PAN boxes and the PhilHealth PIN (2-9-1) -->
 <script src="js/box-input.js?v=20261012c"></script>
 <script src="js/pin-input.js?v=20261012c"></script>
-<script src="js/app.js?v=20261012c"></script>
+<script src="js/app.js?v=20261015d"></script>
+<script src="js/easy.js?v=20261015a"></script>
 <!-- Loads a claim sent from the OCR review: index.html?claim=<id> -->
 <script src="js/claim-loader.js?v=20261012c"></script>
 

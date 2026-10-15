@@ -1,0 +1,225 @@
+/* ═══════════════════════════════════════════════════════════
+   PClaimAssist – Easy-to-use layer
+
+   Loaded AFTER style.css. The people using this system are mostly
+   older clinic staff who are not computer experts, so this file makes
+   things BIGGER and SIMPLER - it does not change the colour scheme:
+   every colour here is one style.css already uses.
+
+     • Bigger text (18px base on every page, so the size never jumps
+       between pages) and bigger boxes and buttons.
+     • Words instead of codes; no moving or fading animations.
+     • On the form pages: fill in on the LEFT, form preview on the RIGHT.
+
+   Page-content rules are scoped to body.easy (index.html, login.html);
+   the navbar/sidebar rules apply everywhere this file is loaded.
+   To undo the whole redesign, remove this file's <link> tags.
+═══════════════════════════════════════════════════════════ */
+
+:root {
+  --sidebar-w: 290px;
+  --navbar-h:  72px;
+}
+
+/* ── Base: one bigger size on every page, no animation ─────── */
+html { font-size: 112.5%; }               /* 18px base instead of 16px */
+body { font-size: 1rem; line-height: 1.65; }
+
+*, *::before, *::after {
+  animation-duration: 0s !important;
+  transition-duration: 0s !important;
+}
+[data-aos] { opacity: 1 !important; transform: none !important; }
+
+/* ── Top bar ─────────────────────────────────────────────── */
+.top-navbar { height: var(--navbar-h); }
+.brand-name { font-size: 1.25rem; }
+.brand-sub, .user-role { font-size: .85rem; }
+.user-name { font-size: 1rem; }
+.sidebar-toggle-btn { width: 52px; height: 52px; font-size: 1.5rem; }
+.profile-dropdown-menu .dropdown-item { font-size: 1rem; padding: .75rem 1rem; }
+
+/* ── Sidebar: bigger and easier to click, same colours ─────── */
+.sidebar-section-label {
+  font-size: .85rem;
+  margin: .25rem 0 .5rem;
+}
+.sidebar-item {
+  min-height: 56px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  white-space: normal;
+  line-height: 1.3;
+  margin-bottom: .3rem;
+}
+.sidebar-item i { font-size: 1.3rem; }
+.sidebar-badge { display: none; }   /* codes like "CF2" / "STEP 1" are noise */
+.sidebar-step {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: rgba(37,99,235,.35);
+  color: #93C5FD;
+  font-weight: 800; font-size: .95rem;
+}
+.sidebar-item.active .sidebar-step { background: var(--primary); color: #fff; }
+/* style.css lets every span in a menu item stretch; keep the number round. */
+.sidebar-item span.sidebar-step { flex: 0 0 30px; overflow: visible; }
+.sidebar-footer { font-size: .95rem; }
+#syncText { font-size: .95rem !important; }
+
+/* Buttons whose display is set by a class still need [hidden] to win. */
+.pdf-nav-btn[hidden], .btn[hidden] { display: none !important; }
+
+/* ═══════════════════════════════════════════════════════════
+   Page content
+═══════════════════════════════════════════════════════════ */
+
+body.easy .section-title { font-size: 2rem; font-weight: 800; }
+body.easy .section-subtitle { font-size: 1.1rem; }
+
+/* "What to do on this page" box at the top of each page. */
+body.easy .how-to {
+  display: flex; gap: 1rem; align-items: flex-start;
+  background: var(--primary-light);
+  border: 1.5px solid var(--primary-mid);
+  border-left: 5px solid var(--primary);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  font-size: 1.1rem;
+}
+body.easy .how-to i { font-size: 1.6rem; color: var(--primary); line-height: 1.2; }
+body.easy .how-to ol { margin: .25rem 0 0; padding-left: 1.4rem; }
+body.easy .how-to li { margin-bottom: .2rem; }
+
+/* Labels and fields: bigger, same colours. */
+body.easy .pca-label,
+body.easy .form-label,
+body.easy label { font-size: 1rem; font-weight: 600; }
+body.easy .pca-input,
+body.easy .form-control,
+body.easy .form-select {
+  min-height: 52px;
+  font-size: 1.05rem;
+}
+body.easy .form-check-input { width: 1.4em; height: 1.4em; }
+body.easy .form-check-label { font-size: 1.05rem; padding-left: .35rem; }
+body.easy .form-check { min-height: 2rem; display: flex; align-items: center; gap: .25rem; }
+body.easy .form-text,
+body.easy small { font-size: .9rem; }
+
+/* Section headings inside forms: normal case and bigger. */
+body.easy .entry-section-title,
+body.easy .pca-tab-section-label {
+  font-size: 1.05rem;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* Buttons: bigger, with words. */
+body.easy .btn,
+body.easy .btn-export,
+body.easy .quick-action-btn {
+  min-height: 52px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  padding: .6rem 1.25rem;
+}
+body.easy .btn-sm { min-height: 48px; font-size: 1rem; }
+
+/* Status badges and small counters. */
+body.easy .badge,
+body.easy .badge-pending,
+body.easy .badge-ready { font-size: .95rem; padding: .4rem .75rem; }
+body.easy .val-score,
+body.easy .val-status,
+body.easy .fs-action,
+body.easy .stat-label,
+body.easy .activity-time,
+body.easy .pdf-page-info { font-size: 1rem; }
+body.easy .stat-value { font-size: 2rem; }
+
+/* Codes like "MF-02" mean nothing to staff - the message says it all. */
+body.easy .rule-id { display: none; }
+
+/* Tabs on the Patient details page: big numbered parts. */
+body.easy .pca-nav-pills { flex-wrap: wrap !important; gap: .5rem !important; }
+body.easy .pca-nav-pills .nav-link {
+  min-height: 52px;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+body.easy .tab-step-nav {
+  display: flex; justify-content: space-between; gap: 1rem;
+  margin-top: 1.5rem; padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+/* Dashboard: three big "what do you want to do" buttons. */
+body.easy .big-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+body.easy .big-action {
+  display: flex; align-items: center; gap: 1rem;
+  text-align: left;
+  min-height: 110px;
+  padding: 1.1rem 1.25rem;
+  background: var(--card-bg);
+  border: 2px solid var(--primary-mid);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  font-size: 1.2rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+body.easy .big-action:hover { border-color: var(--primary); box-shadow: var(--shadow-hover); }
+body.easy .big-action .num {
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--primary); color: #fff; font-size: 1.5rem;
+}
+body.easy .big-action small {
+  display: block; font-weight: 500; font-size: 1rem; color: var(--text-muted); margin-top: .2rem;
+}
+
+/* Form cards on the dashboard. */
+body.easy .fs-abbr { font-size: 1.8rem; }
+body.easy .fs-name { font-size: 1rem; }
+body.easy .form-status-card { min-height: 190px; }
+
+/* ── Form pages: fill in LEFT, preview RIGHT ─────────────── */
+body.easy .form-split-layout { gap: 1.25rem; }
+body.easy .form-entry-panel   { order: 1; flex: 1 1 0; }
+body.easy .pdf-preview-panel  { order: 2; flex: 0 0 48%; max-width: 48%; }
+@media (max-width: 991.98px) {
+  body.easy .pdf-preview-panel { max-width: 100%; }
+}
+body.easy .entry-panel-header,
+body.easy .pdf-panel-label {
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+body.easy .entry-panel-header { padding: .9rem 1.1rem; }
+body.easy .entry-panel-body { padding: 1.1rem 1.25rem; gap: .9rem; }
+body.easy .pdf-nav-btn { width: 48px; height: 48px; font-size: 1.2rem; }
+body.easy .live-badge { display: none; }
+body.easy .pdf-panel-label { white-space: nowrap; }
+
+/* Login page: a wider box for the bigger text, and "Remember my email" /
+   "Forgot your password?" on their own lines instead of side by side. */
+body.login-body.easy .container > .row > div { flex: 0 0 auto; width: 100%; max-width: 560px; }
+body.login-body.easy .login-title { font-size: 2rem; }
+body.login-body.easy #loginForm .d-flex.justify-content-between {
+  flex-direction: column; align-items: flex-start !important; gap: .75rem;
+}
+body.login-body.easy #signInBtn { min-height: 60px; font-size: 1.2rem; }
+
+/* Pop-up messages: bigger, and they stay longer (see showToast). */
+.pca-toast { font-size: 1.05rem; min-width: 360px; }
+.pca-toast .toast-header { font-size: 1.1rem; }

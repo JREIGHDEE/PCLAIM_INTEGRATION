@@ -19,7 +19,10 @@ The full server-side flow for one uploaded logbook scan (image or PDF):
                          halves of one patient entry line up.
   5. PaddleOCR         - each cell crop OCR'd on its own.
   6. route             - each field routed by confidence (route_confidence).
-  7. group             - cells grouped into logbook rows (both pages of a
+  6b. AI second look   - fields Paddle was unsure about are re-read offline
+                         (paddle_assist.py), when a corrector is passed in.
+                         Never auto-accepts; Paddle's reading is kept.
+  7. group            - cells grouped into logbook rows (both pages of a
                          spread together); the printed header row and rows
                          with too little text are dropped.
 
@@ -41,6 +44,7 @@ import fitz
 import numpy as np
 
 import config
+import paddle_assist
 from image_quality import IQ_RULE_ID, assess_image_quality
 from philhealth import case_bridge, field_catalog, review_fields
 from template_engine import (
@@ -248,11 +252,15 @@ def _save_crop(crop, upload_id, page_number, row, column):
     return f"{upload_id}/{filename}"
 
 
-def build_review_rows(path, ocr_fn, templates, upload_id=None, progress=None):
+def build_review_rows(path, ocr_fn, templates, upload_id=None, progress=None, corrector=None):
     """Run steps 1-7 on one uploaded file. No database access.
 
     ocr_fn(image) -> [{"text", "confidence"}, ...]   (ocr_engine.extract_text_from_array)
     templates     -> saved grid template payloads    (template_store.load_template_payloads)
+    corrector     -> optional AI second look (paddle_assist.make_corrector),
+                     called once as corrector([(field, crop), ...], progress=
+                     fn(message, fraction)) with the fields Paddle was unsure
+                     about; updates them in place
 
     Returns {
       "upload_id", "thresholds",
@@ -266,9 +274,10 @@ def build_review_rows(path, ocr_fn, templates, upload_id=None, progress=None):
 
     where each field is {"category", "page", "row", "column", "bbox",
     "raw_text", "confidence", "tokens", "ocr_error", "possibly_incomplete",
-    "status", "value", "crop", "target_fields"}.
+    "status", "routed_status", "value", "best_guess", "crop", "target_fields", "ai"}.
     """
     upload_id = upload_id or uuid.uuid4().hex
+    unsure = []  # (field, crop) pairs for the AI second look
     detector = TemplateAutoDetector()
 
     iq_pages, page_reports = [], []
@@ -278,12 +287,15 @@ def build_review_rows(path, ocr_fn, templates, upload_id=None, progress=None):
     carried_rules = None  # odd page's rows in pixels + its ruled lines
 
     report_progress = progress or (lambda fraction, message: None)
+    # With an AI second look, reading the pages fills the first part of the
+    # progress bar and the AI the rest, so progress never goes backwards.
+    read_share = 0.85 if corrector else 1.0
     report_progress(0.0, "Opening the scan")
     pages = load_pages(path)
     page_count = len(pages)
 
     for page_index, (page_number, image, parity) in enumerate(pages):
-        report_progress(page_index / page_count, f"Finding the rows on page {page_number} of {page_count}")
+        report_progress(read_share * page_index / page_count, f"Finding the rows on page {page_number} of {page_count}")
         iq = assess_image_quality(image)
         iq_pages.append({"page": page_number, **iq})
         for warning in iq["warnings"]:
@@ -340,7 +352,7 @@ def build_review_rows(path, ocr_fn, templates, upload_id=None, progress=None):
 
         cell_count = max(1, len(placement["cells"]))
         for cell_index, cell_data in enumerate(placement["cells"]):
-            report_progress((page_index + (cell_index + 1) / cell_count) / page_count,
+            report_progress(read_share * (page_index + (cell_index + 1) / cell_count) / page_count,
                             f"Reading page {page_number} of {page_count}")
             category = _page_category_for_column(template, cell_data["column"])
             if category is None:
@@ -357,7 +369,7 @@ def build_review_rows(path, ocr_fn, templates, upload_id=None, progress=None):
             row = rows_by_key.setdefault(key, {"spread": spread, "row": cell.row, "pages": [], "fields": []})
             if page_number not in row["pages"]:
                 row["pages"].append(page_number)
-            row["fields"].append({
+            field = {
                 "category": category,
                 "page": page_number,
                 "row": cell.row,
@@ -369,14 +381,29 @@ def build_review_rows(path, ocr_fn, templates, upload_id=None, progress=None):
                 "ocr_error": ocr_error,
                 "possibly_incomplete": flags["incomplete"],
                 "status": status,
-                # Manual-encoding fields start empty: the reviewer must type
-                # them - low-confidence OCR text is shown, never pre-filled.
+                # The confidence routing before any best-guess filling, kept
+                # for the thesis's OCR statistics.
+                "routed_status": status,
+                # Manual-encoding fields start empty here; fill_best_guesses()
+                # (or the AI) fills in the best reading once OCR is done.
                 "value": "" if status == MANUAL else raw_text,
                 "crop": _save_crop(crop, upload_id, page_number, cell.row, cell.column),
                 "target_fields": case_bridge.target_fields(category),
-            })
+                # The offline AI's reading, when it re-read this cell (paddle_assist.py).
+                "ai": None,
+            }
+            row["fields"].append(field)
+            if corrector and paddle_assist.wants_second_look(field, flags):
+                unsure.append((field, crop))
 
     rows = _drop_non_patient_rows([rows_by_key[k] for k in sorted(rows_by_key)])
+    if corrector:
+        # Only rows that are real patients - not the header or stray rows.
+        kept = {id(f) for r in rows for f in r["fields"]}
+        corrector([pair for pair in unsure if id(pair[0]) in kept],
+                  progress=lambda message, fraction: report_progress(
+                      read_share + (1 - read_share) * fraction, message))
+    fill_best_guesses(rows)
     for report in page_reports:
         if report["error"]:
             logger.warning("Page %s skipped: %s", report["page"], report["error"])
@@ -394,6 +421,19 @@ def build_review_rows(path, ocr_fn, templates, upload_id=None, progress=None):
         "pages": page_reports,
         "rows": rows,
     }
+
+
+def fill_best_guesses(rows):
+    """Fill every field PaddleOCR read something for but routed to manual
+    encoding with that reading, as a best guess to check, rather than
+    leaving it empty. Fields the AI already filled are left as they are; a
+    field with no reading at all stays empty to be typed."""
+    for row in rows:
+        for field in row["fields"]:
+            if field["status"] == MANUAL and field["raw_text"] and not field.get("ocr_error"):
+                field["value"] = field["raw_text"]
+                field["status"] = NEEDS_CHECK
+                field["best_guess"] = True
 
 
 def _is_header_row(row):
@@ -488,7 +528,10 @@ def apply_review(ocr_data, submitted_values, defer_manual=False, submitted_parts
             field["value"] = new_value
         blank = not str(field.get("value") or "").strip()
         field["deferred_to_forms"] = False
-        if field["status"] == MANUAL and blank and not field.get("marked_empty"):
+        # A best guess (fill_best_guesses) the reviewer cleared counts as
+        # manual encoding again: type it here, or defer it to the forms.
+        manual = field["status"] == MANUAL or field.get("best_guess")
+        if manual and blank and not field.get("marked_empty"):
             if defer_manual and category not in field_catalog.OCR_CLAIM_REQUIRED_CATEGORIES:
                 field["deferred_to_forms"] = True
             else:

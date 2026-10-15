@@ -140,7 +140,8 @@ def build_form_data(rows, prenatal_visits=(), postpartum_care=(), session=None):
                 continue
             if status == REQUIRED:
                 reason = ("Manual encoding required - OCR confidence was too low; type it from the logbook"
-                          if ocr_field.get("status") == _OCR_MANUAL and _blank(ocr_field.get("value"))
+                          if (ocr_field.get("status") == _OCR_MANUAL or ocr_field.get("best_guess"))
+                          and _blank(ocr_field.get("value"))
                           else "The OCR text could not be read into this field - type it from the logbook")
             elif status == EMPTY:
                 reason = "Nothing is written here in the logbook - fill it in only if you know it"

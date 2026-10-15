@@ -4,6 +4,7 @@ from routes.claims_routes import claims_bp
 from routes.crop_routes import crop_bp
 from routes.diagnostic_routes import diagnostic_bp
 from routes.layout_routes import layout_bp
+from routes.learning_routes import learning_bp
 from routes.ocr_routes import ocr_bp
 from routes.review_routes import review_bp
 from routes.settings_routes import settings_bp
@@ -21,6 +22,7 @@ def register_routes(app):
     app.register_blueprint(claims_bp)
     app.register_blueprint(review_bp)
     app.register_blueprint(settings_bp)
+    app.register_blueprint(learning_bp)
     # TEMPORARY - Phase 1 DB integration diagnostic. Remove alongside
     # routes/diagnostic_routes.py once the patients CRUD test is done.
     app.register_blueprint(diagnostic_bp)

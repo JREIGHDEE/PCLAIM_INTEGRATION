@@ -15,25 +15,25 @@
    .sidebar-item at parse time, so the items have to exist first.
 ═══════════════════════════════════════════════════════════ */
 
+// Written for older clinic staff: plain words, the everyday job as
+// numbered steps, and no codes. `step` shows a big number instead of an icon.
 const PCA_SIDEBAR = [
-  { label: 'Overview', items: [
-    { key: 'dashboard', icon: 'bi-grid-1x2', text: 'Dashboard' },
+  { label: 'Start here', items: [
+    { key: 'dashboard', icon: 'bi-house-door-fill', text: 'Home' },
   ]},
-  { label: 'Data Entry', items: [
-    { key: 'patient', icon: 'bi-person-vcard', text: 'Patient Information', badge: 'Step 1' },
+  { label: 'Step by step', items: [
+    { key: 'ocr',        step: 1, text: 'Read a logbook page', href: 'ocr.html' },
+    { key: 'patient',    step: 2, text: 'Patient details' },
+    { key: 'validation', step: 3, text: 'Check for missing information' },
   ]},
-  { label: 'OCR', items: [
-    { key: 'ocr', icon: 'bi-camera', text: 'Read Logbook Scan', href: 'ocr.html' },
+  { label: 'The forms (open, check, print)', items: [
+    { key: 'csf',  icon: 'bi-file-earmark-text', text: 'CSF',   badge: 'CSF' },
+    { key: 'cf2',  icon: 'bi-file-earmark-text', text: 'CSF 2', badge: 'CF2' },
+    { key: 'cf3',  icon: 'bi-file-earmark-text', text: 'CSF 3', badge: 'CF3' },
+    { key: 'cf4',  icon: 'bi-file-earmark-text', text: 'CSF 4', badge: 'CF4' },
+    { key: 'pmrf', icon: 'bi-file-earmark-text', text: 'PMRF',  badge: 'PMRF' },
   ]},
-  { label: 'Form Previews', items: [
-    { key: 'csf',  icon: 'bi-file-earmark-text', text: 'Claim Signature Form', badge: 'CSF' },
-    { key: 'cf2',  icon: 'bi-file-earmark-text', text: 'Confinement Form 2',   badge: 'CF2' },
-    { key: 'cf3',  icon: 'bi-file-earmark-text', text: 'Confinement Form 3',   badge: 'CF3' },
-    { key: 'cf4',  icon: 'bi-file-earmark-text', text: 'Confinement Form 4',   badge: 'CF4' },
-    { key: 'pmrf', icon: 'bi-file-earmark-text', text: 'Member Reg. Form',     badge: 'PMRF' },
-  ]},
-  { label: 'Tools', items: [
-    { key: 'validation', icon: 'bi-clipboard-check', text: 'Validation Checker' },
+  { label: 'Clinic', items: [
     { key: 'settings',   icon: 'bi-hospital',        text: 'Clinic Details', role: 'admin' },
   ]},
 ];
@@ -52,14 +52,19 @@ const PCASidebar = {
         // On the OCR page every item except the OCR one is a link home;
         // on index.html they are section switches handled by app.js.
         const isLink = it.href || page !== 'app';
-        const href = it.href || (page === 'app' ? '#' : 'index.html');
+        // From the OCR page, link straight to the section (index.html#patient)
+        // so "Patient details" opens Patient details, not Home.
+        const href = it.href || (page === 'app' ? '#' : `index.html#${it.key}`);
         const section = (isLink && it.href) || page !== 'app'
           ? '' : ` data-section="${it.key}"`;
         const gate = it.role ? ` data-requires-role="${it.role}" hidden` : '';
         const badge = it.badge ? `<span class="sidebar-badge">${it.badge}</span>` : '';
         const on = it.key === active ? ' active' : '';
+        const mark = it.step
+          ? `<span class="sidebar-step" aria-hidden="true">${it.step}</span>`
+          : `<i class="bi ${it.icon}"></i>`;
         return `<a href="${href}" class="sidebar-item${on}"${section}${gate}>` +
-               `<i class="bi ${it.icon}"></i><span>${it.text}</span>${badge}</a>`;
+               `${mark}<span>${it.text}</span>${badge}</a>`;
       }).join('');
       return label + items;
     }).join('');

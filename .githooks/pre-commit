@@ -1,0 +1,17 @@
+#!/bin/sh
+# Adds screenshots + a CHANGELOG.md entry when a commit changes the UI.
+# See tools/changelog_screenshots.py. Never blocks the commit.
+# Enable once per clone:  git config core.hooksPath .githooks
+
+ROOT="$(git rev-parse --show-toplevel)"
+if [ -x "$ROOT/Ocr_module/venv/Scripts/python.exe" ]; then
+    PY="$ROOT/Ocr_module/venv/Scripts/python.exe"
+elif [ -x "$ROOT/Ocr_module/venv/bin/python" ]; then
+    PY="$ROOT/Ocr_module/venv/bin/python"
+else
+    echo "[changelog] Ocr_module/venv not found - skipping screenshots."
+    exit 0
+fi
+
+"$PY" "$ROOT/tools/changelog_screenshots.py"
+exit 0
