@@ -186,12 +186,22 @@ function injectOverlaySpans(formKey) {
     span.className     = 'pdf-field' + (f.wrap ? ' pdf-field--wrap' : '') + (f.center ? ' pdf-field--center' : '');
     span.id            = 'pof-' + formKey + '-' + f.id;
     span.dataset.page  = f.page;
-    span.dataset.fsPct = (f.fs || 8) / refH;
-    // translateY in em (not %) so the anchor stays put as text wraps to
-    // more lines — a % offset is relative to the span's own (growing)
-    // height and would shift multi-line text too far up.
+    const fs = f.fs || 8;
+    span.dataset.fsPct = fs / refH;
+    /* Line the preview up with what exportFilledPDF actually prints.
+       The exporter puts the text BASELINE at (top% of the page) + 6pt.
+       A span's baseline sits about 0.83em below its own top edge, so the
+       span has to shift by (6pt - 0.83em). Expressed in em — 6pt is
+       (6 / fs) em — the offset survives the font scaling that
+       scaleOverlayFonts() applies, and stays put as text wraps, which a
+       percentage offset would not (it is relative to the span's own
+       growing height).
+
+       This previously used a flat -0.7em, which drew the preview about
+       0.65em higher than the printed PDF for every form. */
+    const dy = (6 / fs) - 0.83;
     span.style.cssText =
-      `top:${f.top}%;left:${f.left}%;width:${f.w}%;transform:translateY(-0.7em);`;
+      `top:${f.top}%;left:${f.left}%;width:${f.w}%;transform:translateY(${dy.toFixed(3)}em);`;
     overlay.appendChild(span);
   });
   scaleOverlayFonts(formKey);

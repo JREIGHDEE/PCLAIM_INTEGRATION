@@ -75,7 +75,7 @@ window.PDF_OVERLAY_CF4 = [
   { id:'cf4DisPM', key:'amPmDischarge', page:1, top:39.5, left:84.15, w:2, fs:9, checkbox:true, checkValue:'PM' },
 
   // III. Reason for Admission
-  { id:'cf4HistoryPI',   key:'cf4HistoryPresentIllness', page:1, top:44.6, left:2.45, w:94.0, fs:8, wrap:true, maxLines:11 },
+  { id:'cf4HistoryPI',   key:'cf4HistoryPresentIllness', page:1, top:45.8, left:2.45, w:94.0, fs:8, wrap:true, maxLines:10 },
   { id:'cf4PastMedical', key:'cf4PastMedicalHistory',    page:1, top:54.97, left:2.45, w:94.0, fs:8, wrap:true, maxLines:7 },
 
   // 2.b OB/GYN history — G _ P _ ( _ - _ - _ - _ )  then LMP
