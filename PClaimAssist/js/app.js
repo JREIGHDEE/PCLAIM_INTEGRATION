@@ -1235,7 +1235,9 @@ function loadSampleData() {
   applyFormData(SAMPLE_DATA);
   showToast('Sample data loaded', 'All fields populated with fictional demo data.', 'success');
   logActivity('Sample data loaded for demonstration', 'success');
-  navigateTo('patient');
+  // Filling from a form page means you want to look at that form, so stay
+  // there. From anywhere else, open Patient Details as before.
+  if (!VAL_FORM_KEYS.includes(state.currentSection)) navigateTo('patient');
 }
 
 
