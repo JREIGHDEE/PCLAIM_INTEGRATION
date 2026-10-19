@@ -43,17 +43,6 @@ const VAL_FIELDS = {
     { key:'admissionDx',   label:'Admission Diagnosis' },
     { key:'dxADiagnosis',  label:'Discharge Diagnosis' },
   ],
-  cf3: [
-    { key:'hciPAN',           label:'HCI Accreditation No. (PAN)' },
-    { key:'patientName',      label:'Patient Name' },
-    { key:'chiefComplaint',   label:'Chief Complaint / Reason for Admission' },
-    { key:'dateAdmitted',     label:'Date Admitted' },
-    { key:'lmp',              label:'Last Menstrual Period (LMP)' },
-    { key:'deliveryDate',     label:'Date of Delivery' },
-    { key:'mannerOfDelivery', label:'Manner of Delivery' },
-    { key:'fetalOutcome',     label:'Fetal Outcome' },
-    { key:'birthWeight',      label:'Birth Weight (grams)' },
-  ],
   cf4: [
     { key:'memberPIN',            label:'Member PhilHealth PIN' },
     { key:'patientName',          label:'Patient Name' },
@@ -81,10 +70,10 @@ const VAL_FIELDS = {
   ],
 };
 
-const VAL_FORM_KEYS = ['csf', 'cf2', 'cf3', 'cf4', 'pmrf'];
+const VAL_FORM_KEYS = ['csf', 'cf2', 'cf4', 'pmrf'];
 
 const FORM_LABELS = {
-  csf: 'CSF', cf2: 'CF2', cf3: 'CF3', cf4: 'CF4', pmrf: 'PMRF',
+  csf: 'CSF', cf2: 'CF2', cf4: 'CF4', pmrf: 'PMRF',
 };
 
 /* ── Helpers ─────────────────────────────────────────────── */
@@ -318,7 +307,7 @@ const RULES = [
 
   { id:'IC-07', category:'Inconsistent Entry', action:'block_submission',
     test: f => f.dates_match_across_forms === 0,
-    message:'Admission and discharge dates are not the same across CSF, CF2, CF3, and CF4.',
+    message:'Admission and discharge dates are not the same across CSF, CF2, and CF4.',
     source:'Historical RTH analysis' },
 
   { id:'IC-08', category:'Inconsistent Entry', action:'block_submission',
@@ -337,8 +326,8 @@ const RULES = [
 
   { id:'SP-02', category:'Signature', action:'block_submission',
     test: f => f._signatureCheckActive && f.attending_midwife_signature_present === 0,
-    message:"Attending midwife's signature is missing on CF2/CF3.",
-    checklist:'Attending midwife / physician — CF2 and CF3',
+    message:"Attending midwife's signature is missing on CF2.",
+    checklist:'Attending midwife / physician — CF2',
     source:'PhilHealth Circular No. 21, s. 2014' },
 
   { id:'SP-03', category:'Signature', action:'block_submission',

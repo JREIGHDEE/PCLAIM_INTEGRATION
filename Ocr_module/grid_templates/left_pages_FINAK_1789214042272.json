@@ -1,10 +1,10 @@
 {
-  "name": "Template 22:38:06",
+  "name": "Template 1:22:10 PM",
   "gridLines": [
     0.01,
-    0.11739829396325453,
-    0.255521653543307,
-    0.42126985364698666,
+    0.13510421996520688,
+    0.26088578975644716,
+    0.43663538042365957,
     0.5704429133858266
   ],
   "segmentInfo": [
@@ -71,16 +71,16 @@
   "created_at": 1789214042272,
   "metadata": {
     "source": "manual",
-    "lastMatchedScore": 0,
+    "lastMatchedScore": 0.689,
     "pageParity": "odd",
-    "lastImprovedAt": 1791211087465,
+    "lastImprovedAt": 1792387332192,
     "lastLearnedOffsets": {
       "category": "",
       "gridLines": [
         0.01,
-        0.11739829396325453,
-        0.255521653543307,
-        0.42126985364698666,
+        0.13510421996520688,
+        0.26088578975644716,
+        0.43663538042365957,
         0.5704429133858266
       ],
       "rowTemplate": {
@@ -89,13 +89,13 @@
         "spacing": 5
       },
       "cropBoxPercent": null,
-      "imageWidth": 1527,
-      "imageHeight": 2526,
+      "imageWidth": 2443,
+      "imageHeight": 4041,
       "source": "ocr"
     }
   },
-  "imageWidth": 1527,
-  "imageHeight": 2526,
+  "imageWidth": 2443,
+  "imageHeight": 4041,
   "activeCropPreset": {
     "createdAt": "2026-07-07T10:38:48.000Z",
     "favorite": false,
@@ -164,6 +164,25 @@
       "cropBoxPercent": null,
       "imageWidth": 1527,
       "imageHeight": 2526,
+      "source": "ocr"
+    },
+    {
+      "category": "",
+      "gridLines": [
+        0.01,
+        0.13510421996520688,
+        0.26088578975644716,
+        0.43663538042365957,
+        0.5704429133858266
+      ],
+      "rowTemplate": {
+        "y": 36.47996948242201,
+        "height": 40,
+        "spacing": 5
+      },
+      "cropBoxPercent": null,
+      "imageWidth": 2443,
+      "imageHeight": 4041,
       "source": "ocr"
     }
   ]

@@ -92,6 +92,9 @@ def _session(*fields):
 
 class BuildFormDataTests(unittest.TestCase):
     def test_values_are_keyed_by_form_key_and_serialized(self):
+        # CF3 was removed from the product, so its prenatal-visit and
+        # postpartum rows no longer map to any form field. They are still
+        # accepted (and ignored) so an older claim row cannot break this.
         result = form_prefill.build_form_data(
             _rows(),
             prenatal_visits=[{"visit_number": 3, "visit_date": date(2026, 2, 1), "weight": Decimal("61.50"),
@@ -102,13 +105,10 @@ class BuildFormDataTests(unittest.TestCase):
         self.assertEqual(data["patientLastName"], "Dela Cruz")
         self.assertEqual(data["patientDOB"], "1995-03-15")
         self.assertEqual(data["timeAdmitted"], "08:30")
-        self.assertIs(data["riskAsthma"], True)
         self.assertEqual(data["ageOfMenarche"], "13")
-        self.assertEqual(data["pncDate3"], "2026-02-01")
-        self.assertEqual(data["pncWeight3"], "61.5")
-        self.assertEqual(data["pncBp3"], "110/70")
-        self.assertIs(data["ppBreastfeedingDone"], True)
-        self.assertEqual(data["ppBreastfeedingRemarks"], "Exclusive")
+        self.assertNotIn("riskAsthma", data)
+        self.assertNotIn("pncDate3", data)
+        self.assertNotIn("ppBreastfeedingDone", data)
         # Nulls are left out, and the logbook address is not a form field.
         self.assertNotIn("dateDischarge", data)
         self.assertNotIn("patientAddress", data)
@@ -172,7 +172,7 @@ class BuildFormDataTests(unittest.TestCase):
         no_source = set(form_prefill.build_form_data(_rows())["no_ocr_source"])
         self.assertIn("memberPIN", no_source)
         self.assertIn("disposition", no_source)
-        self.assertIn("pncTemp12", no_source)
+        self.assertIn("mannerOfDelivery", no_source)
         self.assertNotIn("patientLastName", no_source)
         self.assertNotIn("hciPAN", no_source)
         self.assertEqual(no_source | field_catalog.AUTO_OCR_KEYS | field_catalog.AUTO_CONFIG_KEYS,

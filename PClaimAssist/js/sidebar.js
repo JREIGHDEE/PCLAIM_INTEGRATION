@@ -27,11 +27,10 @@ const PCA_SIDEBAR = [
     { key: 'validation', step: 3, text: 'Check for missing information' },
   ]},
   { label: 'The forms (open, check, print)', items: [
-    { key: 'csf',  icon: 'bi-file-earmark-text', text: 'CSF',   badge: 'CSF' },
-    { key: 'cf2',  icon: 'bi-file-earmark-text', text: 'CSF 2', badge: 'CF2' },
-    { key: 'cf3',  icon: 'bi-file-earmark-text', text: 'CSF 3', badge: 'CF3' },
-    { key: 'cf4',  icon: 'bi-file-earmark-text', text: 'CSF 4', badge: 'CF4' },
-    { key: 'pmrf', icon: 'bi-file-earmark-text', text: 'PMRF',  badge: 'PMRF' },
+    { key: 'csf',  icon: 'bi-file-earmark-text', text: 'CSF',  badge: 'CSF' },
+    { key: 'cf2',  icon: 'bi-file-earmark-text', text: 'CF2',  badge: 'CF2' },
+    { key: 'cf4',  icon: 'bi-file-earmark-text', text: 'CF4',  badge: 'CF4' },
+    { key: 'pmrf', icon: 'bi-file-earmark-text', text: 'PMRF', badge: 'PMRF' },
   ]},
   { label: 'Clinic', items: [
     { key: 'settings',   icon: 'bi-hospital',        text: 'Clinic Details', role: 'admin' },

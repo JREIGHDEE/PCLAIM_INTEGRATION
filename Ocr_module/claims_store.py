@@ -202,7 +202,7 @@ def get_claim(claim_id):
 
 def get_claim_form_source(claim_id):
     """Everything philhealth/form_prefill.build_form_data() needs for one
-    claim: its rows, CF3 prenatal visits and postpartum care rows, and the
+    claim: its rows, prenatal visits and postpartum care rows, and the
     OCR case session it was generated from (None for a manual claim).
     Returns None if the claim doesn't exist."""
     from case_session_store import get_session

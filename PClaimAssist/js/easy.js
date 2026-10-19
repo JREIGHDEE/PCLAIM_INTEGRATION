@@ -17,7 +17,7 @@
     'When you are done, press the green <strong>Save as PDF to print</strong> button at the top.',
   ];
   const HOW_TO = {
-    csf: FORM_STEPS, cf2: FORM_STEPS, cf3: FORM_STEPS, cf4: FORM_STEPS, pmrf: FORM_STEPS,
+    csf: FORM_STEPS, cf2: FORM_STEPS, cf4: FORM_STEPS, pmrf: FORM_STEPS,
     validation: [
       'Each form below shows the boxes that are <strong>not filled in yet</strong>, in red.',
       'Open the form from the menu on the left and fill those boxes in.',

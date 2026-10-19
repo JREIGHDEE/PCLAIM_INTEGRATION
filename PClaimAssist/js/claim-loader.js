@@ -30,7 +30,7 @@ const OCR_TAGS = {
   default:     { label: 'Clinic default',           hint: 'Filled from the clinic settings.' },
   empty:       { label: 'Empty in logbook',         hint: 'Nothing is written here in the logbook. Fill it in only if you know it.' },
 };
-const FORM_NAMES = { pmrf: 'PMRF', csf: 'CSF', cf2: 'CF2', cf3: 'CF3' };
+const FORM_NAMES = { pmrf: 'PMRF', csf: 'CSF', cf2: 'CF2', cf4: 'CF4' };
 
 /* Label element for a bound input: the field's own label, not a radio
    option's ("AM"/"PM") or a checkbox's caption. */

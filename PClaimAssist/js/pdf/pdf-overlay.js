@@ -14,7 +14,6 @@ if (typeof pdfjsLib !== 'undefined') {
 const pdfState = {
   csf:  { doc: null, page: 1, totalPages: 1, rendered: false },
   cf2:  { doc: null, page: 1, totalPages: 2, rendered: false },
-  cf3:  { doc: null, page: 1, totalPages: 2, rendered: false },
   cf4:  { doc: null, page: 1, totalPages: 2, rendered: false },
   pmrf: { doc: null, page: 1, totalPages: 2, rendered: false },
 };
@@ -22,11 +21,11 @@ const pdfState = {
 /* Every form the PDF layer manages. CF4 is included ahead of the file
    being supplied; until forms/CF4.pdf exists its panel shows the
    standard "PDF not found" state. */
-const PDF_FORM_KEYS = ['csf', 'cf2', 'cf3', 'cf4', 'pmrf'];
+const PDF_FORM_KEYS = ['csf', 'cf2', 'cf4', 'pmrf'];
 
 /* ── Overlay field coordinate maps ──────────────────────────
    OVERLAY_MAP itself is defined in js/pdf/overlays/index.js,
-   built from the per-form maps in js/pdf/overlays/{csf,cf2,cf3,pmrf}.js.
+   built from the per-form maps in js/pdf/overlays/{csf,cf2,cf4,pmrf}.js.
    Those files must be loaded before this one (see index.html).
 ─────────────────────────────────────────────────────────── */
 
@@ -34,7 +33,6 @@ const PDF_FORM_KEYS = ['csf', 'cf2', 'cf3', 'cf4', 'pmrf'];
 const PDF_PATHS = {
   csf:  'forms/CSF.pdf',
   cf2:  'forms/CF2.pdf',
-  cf3:  'forms/CF3.pdf',
   cf4:  'forms/CF4.pdf',
   pmrf: 'forms/PMRF.pdf',
 };
@@ -180,7 +178,7 @@ function injectOverlaySpans(formKey) {
   if (!overlay) return;
   overlay.innerHTML = '';
 
-  const PAGE_H = { csf: 936, cf2: 936, cf3: 1008, cf4: 1008, pmrf: 841.5 };
+  const PAGE_H = { csf: 936, cf2: 936, cf4: 1008, pmrf: 841.5 };
   const refH = PAGE_H[formKey] || 936;
 
   (OVERLAY_MAP[formKey] || []).forEach(f => {

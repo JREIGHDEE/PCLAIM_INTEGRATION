@@ -157,18 +157,18 @@ const state = {
     motherLastName:'', motherFirstName:'', motherMiddleName:'',
     spouseLastName:'', spouseFirstName:'', spouseMiddleName:'',
     memberType:'', profession:'', monthlyIncome:'',
-    /* Maternity / Delivery – CF3 */
+    /* Maternity / Delivery */
     lmp:'', ageOfMenarche:'', gravida:'', para:'',
     expectedDD:'', deliveryDate:'', deliveryTime:'', amPmDelivery:'AM',
     mannerOfDelivery:'', fetalOutcome:'', babySex:'', birthWeight:'', apgarScore:'',
     briefHistory:'',
-    /* Physical Examination – CF3 Part I, Section 7 */
+    /* Physical Examination */
     vitalBP:'', vitalCR:'', vitalRR:'', vitalTemp:'',
     peHEENT:'', peAbdomen:'', peChestLungs:'', peGU:'', peCVS:'', peSkinExtremities:'', peNeuroExam:'',
-    /* Course in the Wards / Lab Findings – CF3 Part I, Sections 8–9 */
+    /* Course in the Wards / Lab Findings */
     courseInWards:'', labFindings:'',
 
-    /* CF3 Page 2 – Part II: Maternity Care Package */
+    /* Maternity Care Package */
     initialPrenatalDate:'', vitalSignsNormal:false, pregnancyLowRisk:false,
     obTerm:'', obPreterm:'', obAbortion:'', obLiving:'',
     /* Obstetric risk factors (section 3) */
@@ -218,7 +218,7 @@ const state = {
     memberNoMiddleName:false, memberMononym:false,
     motherNoMiddleName:false, motherMononym:false,
     spouseNoMiddleName:false, spouseMononym:false,
-    /* PMRF – Dependent 1 extras (shares patientLastName/FirstName/etc with CSF/CF2/CF3) */
+    /* PMRF – Dependent 1 extras (shares patientLastName/FirstName/etc with CSF/CF2/CF4) */
     patientCitizenship:'', dep1NoMiddleName:false, dep1Mononym:false, dep1Disability:false,
     /* PMRF – Dependents 2–4 */
     dep2LastName:'', dep2FirstName:'', dep2Ext:'', dep2MiddleName:'',
@@ -312,7 +312,7 @@ const SAMPLE_DATA = {
   courseInWards:'Patient tolerated labor well. Delivered via NSD with no complications. Stable vital signs post-partum.',
   labFindings:'CBC: Hgb 120 g/L, Hct 0.36, WBC 10.5, Platelet 250. Urinalysis: unremarkable.',
 
-  /* CF3 Page 2 – Part II: Maternity Care Package */
+  /* Maternity Care Package */
   initialPrenatalDate:'2025-11-15', vitalSignsNormal:true, pregnancyLowRisk:true,
   obTerm:'1', obPreterm:'0', obAbortion:'0', obLiving:'1',
   riskMultiplePregnancy:false, riskOvarianCyst:false, riskMyomaUteri:false,
@@ -431,7 +431,7 @@ function getComputedValue(key) {
       return time12hDigits(d.timeAdmitted);
     case 'timeDischargeDigits':
       return time12hDigits(d.timeDischarge);
-    /* CF3 Time Admitted/Discharged: the PDF has two ruled hh:mm boxes per
+    /* CF2 Time Admitted/Discharged: the PDF has two ruled hh:mm boxes per
        row, one before the printed "AM" label and one before "PM" — the
        box position itself indicates the period, so the value goes in
        whichever box matches (the other stays blank). */
@@ -439,14 +439,7 @@ function getComputedValue(key) {
     case 'timeAdmittedPM':   return isPMTime(d.timeAdmitted) === true  ? bareTime(d.timeAdmitted) : '';
     case 'timeDischargeAM':  return isPMTime(d.timeDischarge) === false ? bareTime(d.timeDischarge) : '';
     case 'timeDischargePM':  return isPMTime(d.timeDischarge) === true  ? bareTime(d.timeDischarge) : '';
-    /* CF3 Disposition on Discharge: a checkmark in whichever printed
-       checkbox matches the selected value, instead of writing the word */
-    case 'dispositionImproved':   return d.disposition === 'Improved'    ? '✓' : '';
-    case 'dispositionTransferred':return d.disposition === 'Transferred' ? '✓' : '';
-    case 'dispositionHAMA':       return d.disposition === 'HAMA'        ? '✓' : '';
-    case 'dispositionAbsconded':  return d.disposition === 'Absconded'   ? '✓' : '';
-    case 'dispositionExpired':    return d.disposition === 'Expired'     ? '✓' : '';
-    /* CF3 HCI Accreditation No. (PAN): one character per ruled digit box */
+    /* CF2 HCI Accreditation No. (PAN): one character per ruled digit box */
     case 'hciPANc1': return (d.hciPAN || '').charAt(0);
     case 'hciPANc2': return (d.hciPAN || '').charAt(1);
     case 'hciPANc3': return (d.hciPAN || '').charAt(2);
@@ -520,20 +513,6 @@ const PREVIEW_MAP = [
   ['cf2-dateDischarge','dateDischarge'],['cf2-timeDischarge','timeDischargeStr'],
   ['cf2-disposition','disposition'],   ['cf2-accommodation','accommodation'],
   ['cf2-admissionDx','admissionDx'],   ['cf2-dischargeDx','dischargeDx'],
-  /* CF3 – Part I: Patient Clinical Record */
-  ['cf3-hciPAN','hciPAN'],             ['cf3-patientName','patientName'],
-  ['cf3-chiefComplaint','chiefComplaint'],
-  ['cf3-dateAdmitted','dateAdmitted'], ['cf3-timeAdmitted','timeAdmittedStr'],
-  ['cf3-dateDischarge','dateDischarge'],['cf3-timeDischarge','timeDischargeStr'],
-  ['cf3-briefHistory','briefHistory'], ['cf3-disposition','disposition'],
-  /* CF3 – Part II: Maternity */
-  ['cf3-lmp','lmp'],                   ['cf3-ageOfMenarche','ageOfMenarche'],
-  ['cf3-obHistory','obHistory'],       ['cf3-expectedDD','expectedDD'],
-  ['cf3-admissionDx','admissionDx'],
-  ['cf3-deliveryDate','deliveryDate'], ['cf3-deliveryTime','deliveryTimeStr'],
-  ['cf3-mannerOfDelivery','mannerOfDelivery'],
-  ['cf3-fetalOutcome','fetalOutcome'], ['cf3-babySex','babySex'],
-  ['cf3-birthWeight','birthWeight'],   ['cf3-apgarScore','apgarScore'],
   /* PMRF – Section I: Personal Details */
   ['pmrf-memberPIN','memberPIN'],      ['pmrf-memberName','memberName'],
   ['pmrf-memberDOB','memberDOB'],      ['pmrf-memberSex','memberSex'],
@@ -557,7 +536,7 @@ const PREVIEW_MAP = [
 /* ══════════════════════════════════════════════════════════
    NAVIGATION
 ══════════════════════════════════════════════════════════ */
-const VALID_SECTIONS = ['dashboard','patient','csf','cf2','cf3','cf4','pmrf','validation','profile','settings'];
+const VALID_SECTIONS = ['dashboard','patient','csf','cf2','cf4','pmrf','validation','profile','settings'];
 
 function navigateTo(section, opts) {
   opts = opts || {};
@@ -817,7 +796,7 @@ function bindInputListeners() {
 
 /* ══════════════════════════════════════════════════════════
    SEGMENTED "BOX" INPUTS
-   Some CF3 fields (dates, HCI Accreditation No./PAN) print as
+   Some CF2 fields (dates, HCI Accreditation No./PAN) print as
    individual ruled boxes on the PDF. These groups render as
    separate per-character/segment boxes in the data-entry panel
    to match, while still feeding the same state.data[key] the
@@ -934,15 +913,14 @@ let lastValidationResult = null;
    sync with the keys the engine actually evaluates.
 ══════════════════════════════════════════════════════════ */
 const VAL_FORM_META = {
-  csf:  { title:'CSF',      abbr:'CSF'  },
-  cf2:  { title:'CSF 2',        abbr:'CF2'  },
-  cf3:  { title:'CSF 3',        abbr:'CF3'  },
-  cf4:  { title:'Clinical Record',           abbr:'CF4'  },
-  pmrf: { title:'PMRF',  abbr:'PMRF' },
+  csf:  { title:'Claim Signature Form',     abbr:'CSF'  },
+  cf2:  { title:'Claim Form 2',             abbr:'CF2'  },
+  cf4:  { title:'Clinical Record',          abbr:'CF4'  },
+  pmrf: { title:'Member Registration Form', abbr:'PMRF' },
 };
 
 /* One form open at a time (data-bs-parent), so staff work through the
-   five forms one by one instead of facing every missing field at once.
+   forms one by one instead of facing every missing field at once.
    The colour matches the form's card on the dashboard. */
 function buildValidationAccordion() {
   const host = document.getElementById('valAccordion');
@@ -1396,7 +1374,7 @@ function fillProfileSection(user) {
    CLINIC SETTINGS
    Table 3.1 lists clinic name, accreditation number and address as
    "System settings (entered once)". Loading them here fills the same
-   fields on CF2/CF3/CF4, so they are never retyped per claim.
+   fields on CF2 and CF4, so they are never retyped per claim.
 ══════════════════════════════════════════════════════════ */
 const CLINIC_FIELDS = {
   clinicName:     'hciName',
@@ -1458,7 +1436,7 @@ async function loadClinicSettings() {
     const savedAt = document.getElementById('clinicSavedAt');
     if (savedAt) savedAt.textContent = 'Last saved just now';
     showToast('Clinic details saved',
-              'These now fill in automatically on CF2, CF3 and CF4.', 'success');
+              'These now fill in automatically on CF2 and CF4.', 'success');
     logActivity('Clinic details updated', 'success');
   });
 })();
