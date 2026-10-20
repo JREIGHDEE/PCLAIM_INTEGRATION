@@ -9,7 +9,7 @@ fixed column names.
 import config
 from db import get_db_cursor
 from errors import ClaimNotFoundError, InvalidRequestError, ReviewIncompleteError, SessionNotFoundError
-from philhealth import case_bridge
+from philhealth import address_parser, case_bridge
 
 # claims.status's three values, in forward order - used to make status
 # transitions monotonic (see _advance_status).
@@ -120,6 +120,34 @@ def create_or_update_claim_from_session_id(session_id):
     return _create_or_update_claim_from_session(session)
 
 
+def _session_address(session):
+    """The ADDRESS a session's review ended with: typed in parts, or text."""
+    for field in (session.get("ocr_data") or {}).get("fields") or []:
+        if field.get("category") == case_bridge.ADDRESS and field.get("parts_reviewed"):
+            return ((field.get("parts") or {}).get("text") or "").strip()
+    return str((session.get("values") or {}).get(case_bridge.ADDRESS) or "").strip()
+
+
+def _previous_address(session):
+    """For an address written as a ditto mark ("-DO-"): the address of the
+    nearest patient above it in the same logbook upload that has one."""
+    if not session.get("upload_id"):
+        return None
+    if not address_parser.is_ditto(_session_address(session)):
+        return None
+    from case_session_store import list_upload_sessions
+
+    # Sessions are created in logbook order, so a lower id is a row above
+    # (logbook_row restarts on each two-page spread of a longer upload).
+    above = sorted((s for s in list_upload_sessions(session["upload_id"]) if s["id"] < session["id"]),
+                   key=lambda s: s["id"])
+    for other in reversed(above):
+        address = _session_address(other)
+        if address and not address_parser.is_ditto(address):
+            return address
+    return None
+
+
 def _create_or_update_claim_from_session(session):
     if session["review_status"] == "pending":
         raise ReviewIncompleteError(
@@ -133,7 +161,7 @@ def _create_or_update_claim_from_session(session):
         if f.get("parts_reviewed") and f.get("parts")
     }
     patient_fields, encounter_fields, claims_fields, warnings = case_bridge.draft_patient_and_encounter(
-        session["values"], reviewed_parts)
+        session["values"], reviewed_parts, previous_address=_previous_address(session))
 
     with get_db_cursor(commit=True) as cursor:
         existing = _find_encounter_by_case_session(cursor, session["id"])

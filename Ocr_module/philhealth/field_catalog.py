@@ -224,6 +224,15 @@ OCR_CATEGORY_KEYS = {
     "ADMITTING DIAGNOSIS": ("admissionDx",),
     "FINAL DIAGNOSIS": ("dischargeDx",),
 }
+# Form keys worked out from a logbook column rather than copied from it
+# (case_bridge.draft_patient_and_encounter): the address split into the
+# forms' parts, and the patient's sex when the name or diagnosis makes it
+# plain. Always shown as "From scan - please check", never as certain.
+DERIVED_OCR_KEYS = {
+    "ADDRESS": ("addrLot", "addrStreet", "addrSubdivision", "addrBarangay", "addrCity", "addrProvince"),
+    "NAME": ("patientSex",),
+}
+
 # Logbook columns a claim can't be created without (the NOT NULL patient/
 # encounter columns) - staff must type these in the OCR review itself;
 # any other "manual encoding required" field may be left for the forms.

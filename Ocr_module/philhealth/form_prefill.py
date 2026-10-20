@@ -20,9 +20,11 @@ Served by GET /api/claims/<id>/form-data (routes/claims_routes.py).
 from datetime import date, datetime
 from decimal import Decimal
 
+from philhealth.case_bridge import infer_patient_sex
 from philhealth.field_catalog import (
     AUTO_CONFIG_KEYS,
     AUTO_OCR_KEYS,
+    DERIVED_OCR_KEYS,
     FORM_FIELDS,
     NON_FORM_KEYS,
     OCR_CATEGORY_KEYS,
@@ -154,6 +156,25 @@ def build_form_data(rows, prenatal_visits=(), postpartum_care=(), session=None):
                 "confidence": ocr_field.get("confidence"),
                 "reason": reason,
             }
+
+    # Worked out from the logbook rather than copied (address parts, sex):
+    # filled, but always "please check", with where it came from.
+    address = ocr_reference.get("ADDRESS") or data.get("patientAddress") \
+        or _stored_value(FORM_FIELDS["patientAddress"], tables, prenatal, postpartum)
+    for category, keys in DERIVED_OCR_KEYS.items():
+        for key in keys:
+            if _blank(data.get(key)) or key in fields:
+                continue
+            if category == "ADDRESS":
+                reason = f"Taken from the logbook address \"{address}\" - check it" if address \
+                    else "Taken from the logbook address - check it"
+            else:
+                reason = (infer_patient_sex(
+                    " ".join(data.get(k) or "" for k in ("patientFirstName", "patientMiddleName", "patientLastName")),
+                    [data.get("admissionDx"), data.get("dischargeDx")])[1]
+                    or "Worked out from the logbook") + " - check it"
+            fields[key] = {"status": NEEDS_CHECK, "category": category, "raw_text": None,
+                           "confidence": None, "reason": reason}
 
     no_ocr_source = [
         key for key in FORM_FIELDS

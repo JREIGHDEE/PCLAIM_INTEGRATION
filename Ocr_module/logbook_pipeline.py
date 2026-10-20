@@ -636,6 +636,21 @@ def persist_review_rows(result, source_document):
     return ids
 
 
+def _unreadable_required_date(field):
+    """A logbook date a claim can't be made without (birthday, admission)
+    whose text holds no date the computer can read, and that wasn't typed
+    into the date boxes or marked empty. It must be typed before saving."""
+    category = field["category"]
+    if category not in field_catalog.OCR_CLAIM_REQUIRED_CATEGORIES or field.get("marked_empty"):
+        return False
+    if review_fields.kind_of(category) not in (review_fields.DATE_KIND, review_fields.DATETIME_KIND):
+        return False
+    if field.get("parts_reviewed"):
+        return not (field.get("parts") or {}).get("date")
+    text = str(field.get("value") or "").strip()
+    return bool(text) and case_bridge._parse_date_flexible(text) is None
+
+
 def apply_review(ocr_data, submitted_values, defer_manual=False, submitted_parts=None):
     """Merge a reviewer's submitted values into a session's OCR fields.
 
@@ -681,6 +696,10 @@ def apply_review(ocr_data, submitted_values, defer_manual=False, submitted_parts
                 field["deferred_to_forms"] = True
             else:
                 missing.append(category)
+        elif _unreadable_required_date(field):
+            # e.g. "08-21-2u 11:00 Am": text, but no date the claim can use -
+            # saving it would leave the forms' admission date blank.
+            missing.append(category)
     values = session_values(fields)
     # Categories the reviewer added that OCR had no cell for (shouldn't
     # happen with a matching template, but never drop typed data).

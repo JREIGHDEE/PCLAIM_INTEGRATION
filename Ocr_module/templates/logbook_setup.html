@@ -40,21 +40,24 @@ a{ color:var(--blue); }
 [hidden]{ display:none !important; }
 .card{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px; margin-bottom:18px; }
 
-/* ── Steps along the top ───────────────────────────── */
-.steps{ display:flex; flex-wrap:wrap; gap:8px; list-style:none; padding:0; margin:16px 0 18px; }
-.steps li{
-    flex:1 1 180px; display:flex; align-items:center; gap:10px;
-    padding:10px 14px; border-radius:12px; border:2px solid var(--line);
-    background:#e5e7eb; color:var(--muted); font-weight:600;
+/* ── Steps as tabs, the same as the Logbook Reader's (review.html) ── */
+.tabs{ display:flex; flex-wrap:wrap; gap:10px; margin:16px 0 0; border-bottom:3px solid var(--blue); list-style:none; padding:0; }
+.tabs li{
+    flex:1 1 200px; display:flex; align-items:center; gap:10px;
+    min-height:64px; padding:12px 18px; margin-bottom:-3px;
+    border:3px solid var(--line); border-bottom:none; border-radius:14px 14px 0 0;
+    background:#e5e7eb; color:var(--muted); font-size:1.1rem; font-weight:600;
 }
-.steps .num{
+.tabs .num{
     display:inline-flex; align-items:center; justify-content:center; flex:none;
     width:2rem; height:2rem; border-radius:50%; background:var(--line); color:var(--text);
 }
-.steps li[aria-current="step"]{ background:var(--card); border-color:var(--blue); color:var(--text); }
-.steps li[aria-current="step"] .num{ background:var(--blue); color:#fff; }
-.steps li.done{ color:var(--ok); border-color:var(--ok); background:var(--ok-soft); }
-.steps li.done .num{ background:var(--ok); color:#fff; }
+.tabs li[aria-current="step"]{ background:var(--card); color:var(--text); border-color:var(--blue); border-bottom:3px solid var(--card); }
+.tabs li[aria-current="step"] .num{ background:var(--blue); color:#fff; }
+.tabs li.done{ color:var(--ok); }
+.tabs li.done .num{ background:var(--ok-soft); color:var(--ok); }
+.tab-panel{ background:var(--card); border:3px solid var(--blue); border-top:none; border-radius:0 0 14px 14px; padding:20px; margin-bottom:18px; }
+.tab-panel .card{ border-width:2px; margin-bottom:0; }
 
 /* ── Buttons ───────────────────────────────────────── */
 button, .file-button, .link-button{
@@ -163,18 +166,23 @@ details.more summary{ cursor:pointer; font-weight:700; color:var(--blue); min-he
 .in-use{ list-style:none; padding:0; margin:8px 0 0; display:grid; gap:8px; }
 .in-use li{ padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:#fafafa; }
 .footer-link{ text-align:center; margin-top:24px; font-size:.95rem; }
+.embedded .page-intro{ display:none; }
 </style>
+<script>/* Shown inside PClaimAssist (Read Logbook Scan / Set Up a Logbook), whose page
+   already has the title: hide this page's own title and intro. */
+if (window.top !== window.self) document.documentElement.classList.add('embedded');</script>
 </head>
 <body>
 <main>
-    <h1>Set up a logbook</h1>
-    <p class="muted">Do this <strong>once</strong> for each kind of logbook. After that, every new scan of
+    <h1 class="page-intro">Logbook Setup</h1>
+    <p class="muted page-intro">Do this <strong>once</strong> for each kind of logbook. After that, every new scan of
        that logbook is read by itself: you do not need to do this again for new scans.</p>
 
     <div id="gate" class="notice warn" role="alert" hidden></div>
 
     <div id="app" hidden>
-        <ol class="steps" id="steps" aria-label="Steps"></ol>
+        <ol class="tabs" id="steps" aria-label="Steps"></ol>
+        <div class="tab-panel">
 
         <!-- Step 1: choose the scan -->
         <section class="card" id="stepChoose">
@@ -202,17 +210,8 @@ details.more summary{ cursor:pointer; font-weight:700; color:var(--blue); min-he
         <!-- Steps 2-3: check one page -->
         <section class="card" id="stepCheck" hidden>
             <h2 id="checkTitle" tabindex="-1"></h2>
-            <div class="notice todo">
-                <strong>What to do on this page</strong>
-                <ol>
-                    <li>Look at the picture. Each coloured stripe is <strong>one column</strong> of the logbook,
-                        with its number and name at the top. Each patient should sit inside one dashed box.</li>
-                    <li>If every stripe sits on the right column, press <strong>Yes, this page is right</strong>.</li>
-                    <li>A black dividing line in the wrong place? Press on it (or on its <strong>round handle</strong>)
-                        and drag it onto the printed line. It jumps onto the line when you let go.</li>
-                    <li>A wrong name? Change it in the list under the picture.</li>
-                </ol>
-            </div>
+            <p class="muted">Each coloured stripe should cover one column. A line in the wrong place:
+                drag it onto the printed line. A wrong name: change it below the picture.</p>
             <div class="side-choice" role="radiogroup" aria-label="Which page is this">
                 <span class="label">This is the:</span>
                 <label><input type="radio" name="side" value="left"> Left page</label>
@@ -251,13 +250,14 @@ details.more summary{ cursor:pointer; font-weight:700; color:var(--blue); min-he
                 New scans of this logbook will now be read by themselves.
             </div>
             <div class="actions">
-                <a class="link-button primary" href="/ocr.html">Read a logbook scan</a>
-                <a class="link-button" href="/index.html">Back to Home</a>
+                <a class="link-button primary" href="/ocr.html" target="_top">Read a logbook scan</a>
+                <a class="link-button" href="/index.html" target="_top">Back to Home</a>
             </div>
         </section>
+        </div>
     </div>
 
-    <p class="footer-link muted">For technical staff: <a href="/ocr-workspace">the advanced calibration tool</a>.</p>
+    <p class="footer-link muted">For technical staff: <a href="/ocr-workspace" target="_top">the advanced calibration tool</a>.</p>
 </main>
 
 <script>
@@ -296,14 +296,14 @@ async function checkAccess(){
         const me = await getJson("/api/auth/me");
         if(me.user.role !== "admin"){
             showGate("Only the clinic administrator can set up a logbook.",
-                     "Ask your administrator to do this. To read a scan, go to <a href=\"/ocr.html\">Read a logbook page</a>.");
+                     "Ask your administrator to do this. To read a scan, go to <a href=\"/ocr.html\" target=\"_top\">Read a logbook page</a>.");
             return;
         }
         $("app").hidden = false;
         render();
         loadInUse();
     }catch(_){
-        showGate("Please sign in first.", "<a href=\"/login.html\">Go to the sign-in page</a>, then come back here.");
+        showGate("Please sign in first.", "<a href=\"/login.html\" target=\"_top\">Go to the sign-in page</a>, then come back here.");
     }
 }
 function showGate(title, text){
@@ -340,7 +340,7 @@ function render(){
     $("stepCheck").hidden = !(step >= 1 && step <= n);
     $("stepSave").hidden = step !== n + 1;
     $("stepDone").hidden = step !== n + 2;
-    $("steps").hidden = step === n + 2;
+    // Once saved, the steps stay in view, all ticked.
     if(step >= 1 && step <= n) showPage(step - 1);
     if(step === n + 1) showSummary();
 }

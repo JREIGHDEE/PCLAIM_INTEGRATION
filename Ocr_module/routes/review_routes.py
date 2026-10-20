@@ -178,11 +178,15 @@ def submit_review(session_id):
     defer_manual = bool(payload.get("defer_manual"))
     values, ocr_data, missing = logbook_pipeline.apply_review(session["ocr_data"], submitted, defer_manual, parts)
     if missing:
+        names = ", ".join(review_fields.FIELD_NAMES.get(c, c) for c in missing)
+        dates = any(review_fields.kind_of(c) in (review_fields.DATE_KIND, review_fields.DATETIME_KIND)
+                    for c in missing)
+        hint = " (dates in the date box)" if dates else ""
         raise ReviewIncompleteError(
-            ("A claim can't be created without these - type them here before sending to the forms: "
+            (f"The forms can't be filled without these - type them here first{hint}: "
              if defer_manual else
-             "These fields need manual encoding before the review can be submitted: ")
-            + ", ".join(missing)
+             f"Please type these before saving{hint}: ")
+            + names
         )
 
     case_session_store.mark_session_reviewed(

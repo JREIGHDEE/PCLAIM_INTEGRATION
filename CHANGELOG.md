@@ -11,6 +11,106 @@ Related documents:
 
 ---
 
+## 2026-10-21 02:40: UI update (reigh)
+
+- Changed: review.html
+
+**Logbook Review page**
+
+![Logbook Review page](docs/screenshots/2026-10-21_024025_review.jpg)
+
+## Not yet committed (2026-10-21, night)
+
+**Patient details: clearer, and it says what is next** (`PClaimAssist/index.html`, `js/easy.js`, `css/easy.css`)
+- A "Next step" line at the top names the first part with boxes still to
+  fill and has a **Go there** button; when nothing required is left it
+  points to "Check for missing information".
+- The six parts are numbered steps in an even grid, each saying what is
+  left: "5 to type", "1 from scan to check", or "Nothing missing".
+- Every box that must be filled and is still empty is **red** (also radio
+  buttons and the PIN boxes); it clears as soon as it is filled. No lists.
+- Example text inside empty boxes that looked like real data ("DELA CRUZ",
+  "456 Bonifacio Ave.", "0917-123-4567", "120/80") is gone on every page;
+  format hints ("##-#########-#", "13 digits") stay.
+
+**Less text everywhere**
+- Page subtitles removed; "What to do on this page" boxes removed.
+- The "Patient loaded from the logbook scan" banner and pop-up are gone;
+  only the warning that a scan was not clear stays. On the boxes only the
+  "From scan - please check" tag stays ("From scan", "Typed by staff",
+  "Clinic default", "Empty in logbook" were notices).
+- The "Which details are copied into every form" panel is closed by default.
+- Read Logbook Scan and Set Up a Logbook no longer repeat their title and
+  intro inside the page.
+
+**Set Up a Logbook looks like Read Logbook Scan** (`PClaimAssist/logbook-setup.html`, `Ocr_module/templates/logbook_setup.html`, `js/ocr.js`, `js/sidebar.js`)
+- Same top bar, sidebar, title and numbered tabs over a framed panel.
+
+**Fixed: admission dates that couldn't reach the forms** (`Ocr_module/philhealth/case_bridge.py`, `logbook_pipeline.py`, `routes/review_routes.py`, `PClaimAssist/js/validation-rules.js`)
+- ~20 fake-scan patients had been saved with admission text the computer
+  couldn't read as a date ("08-21-2u 11:00 Am"), so no claim could carry
+  the date and the forms said "Date of admission could not be read".
+- Dates are now found even when the time next to them is garbled ("05-21-20
+  10.COAM"), OCR look-alikes inside a date or time are read as digits
+  ("O8-2I-26 1O:3O AM"), and times may be written 10.30 or 1;20. A date that
+  still can't be read is never guessed.
+- The review no longer saves an admission date (or birthday) it can't read:
+  it asks for it in the date box ("Please type these before saving (dates in
+  the date box): Admitted").
+- The forms' message now says what is missing and where to type it, instead
+  of blaming the logbook when no logbook was involved.
+
+**Typing once fills the same thing on the other forms** (`PClaimAssist/js/app.js`)
+- 72 boxes were already one value shared by every form. Now also linked,
+  both ways: vital signs (CF3 and CF4), the three health care professionals
+  (names, accreditation numbers, dates signed: CSF and CF2), the clinic's
+  representative, and who signs for the patient and why (CSF and CF2), plus
+  the final diagnosis and chief complaint. Choice buttons copy too.
+
+---
+
+## Not yet committed (2026-10-21, later)
+
+**Send to Forms fills in more, so there is less to type** (`Ocr_module/philhealth/address_parser.py`, `case_bridge.py`, `form_prefill.py`, `field_catalog.py`, `Ocr_module/claims_store.py`, `PClaimAssist/js/claim-loader.js`)
+- **Address:** the logbook's one-line address is split into the forms'
+  parts: Lot/Block, Street (Purok, Km ...), Subdivision (... Homes /
+  Village / Subd., with its Phase), Barangay, City and Province. Barangays
+  of Davao City are recognised without "Brgy." (and with small OCR slips),
+  "DC" means Davao City, and a barangay gives its city and province. A
+  ditto mark ("-DO-") takes the address of the patient above in the
+  logbook. Parts it can't find are left empty, never made up.
+- **Sex:** filled when the logbook makes it plain: "BABY GIRL/BOY ..." or a
+  pregnancy, delivery or after-birth diagnosis (not for "well baby" visits,
+  where the patient may be the baby).
+- These are all tagged "From scan - please check", saying where they came
+  from ("Taken from the logbook address ..."). Tested on the fake-data
+  patients: e.g. "Suraya Homes: Cabantian Davao City" -> Subdivision SURAYA
+  HOMES, Barangay CABANTIAN, City DAVAO CITY, Province DAVAO DEL SUR.
+- **Final diagnosis** now also fills CF2's diagnosis line and CF4's final
+  diagnosis when a patient is loaded (before, only when typed).
+
+**"The patient is the PhilHealth member" tick box** (`PClaimAssist/index.html`, `js/app.js`, `css/style.css`)
+- On Patient Details and the CSF: one tick copies the patient's name,
+  birthday, sex and PIN into the member's boxes and sets Relationship to
+  "Self". While ticked the member boxes follow the patient's and are
+  locked; unticking unlocks them and keeps what is there.
+
+**Fixed: a patient sent to the forms didn't open** (`PClaimAssist/js/claim-loader.js`)
+- Since the layout update (`7a6f79e`) the forms page stopped with an error
+  while showing the "Patient loaded" banner (the notice it was placed after
+  had been removed), so it stayed on Home instead of opening Patient
+  Details with the banner.
+- "Send to Forms" itself also failed with "Failed to construct 'URL'"
+  (`Ocr_module/templates/review.html`): the forms address was a path, which
+  now gets the page's own address as its base.
+
+**Fixed: stray "Finish" on the review's last step** (`Ocr_module/templates/review.html`)
+- On "Finish: is everything right?" the box bar still showed a "Finish"
+  label next to the hidden Next button, which looked like a broken button.
+  It is gone; Back now says "Back to the last box".
+
+---
+
 ## Not yet committed (2026-10-21)
 
 **Reading a logbook is about twice as fast** (`Ocr_module/ocr_engine.py`, `Ocr_module/logbook_pipeline.py`, `Ocr_module/paddle_assist.py`, `Ocr_module/routes/review_routes.py`)

@@ -258,13 +258,17 @@ details.more dd{ margin:0; word-break:break-word; }
 #rowViewer.fit .rv-frame img{ width:100%; }
 .rv-mark{ position:absolute; border:3px solid var(--type-line); border-radius:4px;
     box-shadow:0 0 0 9999px rgba(17,24,39,.18); pointer-events:none; }
+.embedded .page-intro{ display:none; }
 </style>
+<script>/* Shown inside PClaimAssist (Read Logbook Scan / Set Up a Logbook), whose page
+   already has the title: hide this page's own title and intro. */
+if (window.top !== window.self) document.documentElement.classList.add('embedded');</script>
 </head>
 <body>
 <main>
 
-<h1>Logbook Reader</h1>
-<p class="muted">Scan a page of the maternity logbook. The computer reads each patient's line, you check it, then it fills in the PhilHealth forms.</p>
+<h1 class="page-intro">Logbook Reader</h1>
+<p class="muted page-intro">Scan a page of the maternity logbook. The computer reads each patient's line, you check it, then it fills in the PhilHealth forms.</p>
 
 <div class="tabs" role="tablist" aria-label="Logbook reader">
     <button type="button" class="tab" role="tab" id="tab-upload" aria-controls="panel-upload"
@@ -331,7 +335,6 @@ details.more dd{ margin:0; word-break:break-word; }
 </div>
 </div>
 
-<p class="admin-link muted">For administrators: <a href="/logbook-setup" target="_top">set up a new kind of logbook</a>.</p>
 </main>
 
 <dialog id="rowViewer" aria-labelledby="rvTitle">
@@ -844,10 +847,14 @@ function goToField(index, moveFocus = true){
     const back = document.getElementById("boxBack");
     const next = document.getElementById("boxNext");
     back.disabled = index === 0;
+    // On the Finish step its own title says where you are, and its buttons
+    // (Send to Forms / Save) are the way on: no "Finish" label down here
+    // next to a missing Next button, which looked like a broken button.
+    back.textContent = finishing ? "◀ Back to the last box" : "◀ Back";
     next.hidden = finishing;
     next.textContent = index === fields.length - 1 ? "Finish ▶" : "Next ▶";
     document.getElementById("boxWhere").textContent = finishing
-        ? "Finish"
+        ? ""
         : `Box ${index + 1} of ${fields.length}: ${nameOf(fields[index].dataset.category)}`;
     if(!document.getElementById("confirmBox")) setMessage("", true);
     renderBoxSteps();
@@ -1240,7 +1247,9 @@ async function sendToForms(button){
 }
 
 function openForms(claimId){
-    const url = new URL(FORMS_URL);
+    // FORMS_URL may be a path on this server ("/index.html", the default)
+    // or a full address; a path needs this page's address as its base.
+    const url = new URL(FORMS_URL, window.location.href);
     url.searchParams.set("claim", String(claimId));
     if(window.top !== window.self){
         // Inside PClaimAssist's OCR tab (cross-origin iframe): ask the

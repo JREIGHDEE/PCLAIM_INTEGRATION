@@ -1,10 +1,10 @@
 {
-  "name": "Logbook right page (set up 2026-10-21 00:46)",
+  "name": "Logbook right page (set up 2026-10-21 01:44)",
   "gridLines": [
     0.01,
-    0.3569,
-    0.4951,
-    0.86
+    0.3386,
+    0.4897,
+    0.8513
   ],
   "segmentInfo": [
     {
@@ -26,18 +26,18 @@
   ],
   "cropBoxPercent": null,
   "rowTemplate": {
-    "y": 136.0,
-    "height": 76.0,
+    "y": 49.0,
+    "height": 79.0,
     "spacing": 32.0
   },
   "cropPresets": [],
-  "created_at": 1792514806397,
+  "created_at": 1792518252905,
   "metadata": {
     "source": "guided_setup",
     "pageParity": "even",
-    "setupId": "726084b2459e411ca0c709f2b92c033b",
+    "setupId": "a643a8cf0e434343a181e419e8095424",
     "setupBy": "admin@email.com"
   },
-  "imageWidth": 1132,
-  "imageHeight": 1684
+  "imageWidth": 1066,
+  "imageHeight": 1468
 }

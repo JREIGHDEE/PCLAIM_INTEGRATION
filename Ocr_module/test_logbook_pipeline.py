@@ -643,7 +643,7 @@ class LogbookEndToEndTests(unittest.TestCase):
         # submitting it blank is refused.
         response = self.client.put(f"/api/review/sessions/{session_id}", json={"values": {"ADDRESS": ""}})
         self.assertEqual(response.status_code, 400)
-        self.assertIn("ADDRESS", response.get_json()["error"])
+        self.assertIn("Address", response.get_json()["error"])  # in plain words
 
         # Review: confirm/correct every field from the scan, as a person would.
         for session, expected in zip(sessions, SAMPLE_PATIENTS):
