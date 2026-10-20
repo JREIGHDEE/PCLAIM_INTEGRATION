@@ -329,6 +329,19 @@ That one address serves **everything** — the login page, the claim forms,
 and the OCR workspace. There is no second server and no Live Server.
 Leave the two minimised windows in the taskbar running while you work.
 
+**Start it automatically at sign-in (recommended).** So the system is always
+running and sign-in never fails because nobody started it, run once:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\autostart.ps1
+```
+
+From then on Windows runs `PClaimAssist.bat /background` when you sign in
+(database + application, minimised, no browser). Just open
+`http://127.0.0.1:5000/`. Turn it off with `tools\autostart.ps1 -Remove`.
+The application keeps PaddleOCR in memory (about 1 GB, more after reading
+many scans), so restart the PC now and then if it gets slow.
+
 > **Do not open the HTML files by double-clicking them.** A page opened
 > from the filesystem has a `file://` origin, which the browser refuses to
 > let call the backend — sign-in then fails with "Cannot reach the server.

@@ -37,7 +37,7 @@ const PCA_SIDEBAR = [
     { key: 'settings',   icon: 'bi-hospital',        text: 'Clinic Details', role: 'admin' },
     // Once per kind of logbook, so new scans are read by themselves.
     { key: 'logbook-setup', icon: 'bi-layout-three-columns', text: 'Set up a logbook',
-      href: '/logbook-setup', role: 'admin' },
+      href: 'logbook-setup.html', role: 'admin' },
   ]},
 ];
 

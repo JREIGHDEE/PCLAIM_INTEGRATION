@@ -1793,6 +1793,21 @@ body {
   gap: .5rem;
   flex-wrap: wrap;
 }
+/* Filled from the patient's details ("The patient is the member"). */
+.btn-check-group.is-locked {
+  pointer-events: none;
+  opacity: .6;
+}
+
+/* "The patient is the PhilHealth member" tick box: one click instead of
+   typing the member's details again. */
+.member-is-patient {
+  padding: .75rem 1rem .75rem 2.5rem;
+  border: 2px solid #bfdbfe;
+  border-radius: 10px;
+  background: #eff6ff;
+}
+.member-is-patient .form-check-input { width: 1.4em; height: 1.4em; margin-top: .1em; }
 
 .btn-check-option {
   display: flex;

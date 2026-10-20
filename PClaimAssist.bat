@@ -8,10 +8,16 @@ REM  answers, then opens it in the browser.
 REM
 REM  Safe to run when things are already started - it checks first and
 REM  skips whatever is already up, so staff can click it any time.
+REM
+REM  PClaimAssist.bat /background  - the same, without opening the browser
+REM  (used when Windows starts it at sign-in, see tools\autostart.ps1).
 REM ====================================================================
 
 setlocal
 cd /d "%~dp0"
+
+set "BACKGROUND="
+if /I "%~1"=="/background" set "BACKGROUND=1"
 
 set "XAMPP_DIR=C:\xampp"
 set "APP_URL=http://127.0.0.1:5000/"
@@ -70,6 +76,7 @@ ping -n 3 127.0.0.1 >nul
 goto waitloop
 
 :ready
+if defined BACKGROUND exit /b 0
 echo.
 echo   PClaimAssist is ready. Opening it now.
 echo.

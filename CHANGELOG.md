@@ -13,6 +13,22 @@ Related documents:
 
 ## 2026-10-21 02:40: UI update (reigh)
 
+- Changed: style.css, index.html, app.js, auth-client.js, claim-loader.js, ocr.js, sidebar.js, validation-rules.js, login.html, ocr.html
+
+**Login page**
+
+![Login page](docs/screenshots/2026-10-21_024043_login.jpg)
+
+**Main app (dashboard)**
+
+![Main app (dashboard)](docs/screenshots/2026-10-21_024043_app.jpg)
+
+**Read Logbook Scan page**
+
+![Read Logbook Scan page](docs/screenshots/2026-10-21_024043_ocr.jpg)
+
+## 2026-10-21 02:40: UI update (reigh)
+
 - Changed: review.html
 
 **Logbook Review page**

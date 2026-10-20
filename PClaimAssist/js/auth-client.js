@@ -35,9 +35,28 @@ const PCA_BACKEND_URL = 'http://127.0.0.1:5000';
   const page = location.pathname.split('/').pop() || 'login.html';
   fetch(`${PCA_BACKEND_URL}/db_health`, { mode: 'no-cors', cache: 'no-store' })
     .then(() => location.replace(`${PCA_BACKEND_URL}/${page}${location.search}${location.hash}`))
-    .catch(() => console.warn(
-      `PClaimAssist backend is not running at ${PCA_BACKEND_URL}. ` +
-      'Start it with PClaimAssist.bat, then reload this page.'));
+    .catch(showBackendDown);
+
+  // Without the backend nobody can sign in, so say so plainly on the page
+  // instead of letting every sign-in fail with no reason given.
+  function showBackendDown() {
+    const show = () => {
+      if (document.getElementById('pcaBackendDown')) return;
+      const box = document.createElement('div');
+      box.id = 'pcaBackendDown';
+      box.setAttribute('role', 'alert');
+      // Fixed across the top: the pages lay out <body> in columns.
+      box.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:2000;margin:0;padding:16px 20px;' +
+        'background:#fee2e2;color:#991b1b;border-bottom:3px solid #dc2626;' +
+        'font:600 18px/1.5 "Segoe UI",Arial,sans-serif;text-align:center;';
+      box.innerHTML = '<strong style="display:block;font-size:20px;">PClaimAssist is not running, so you cannot sign in yet.</strong>' +
+        'Double-click <strong>PClaimAssist.bat</strong> in the project folder, wait until it opens ' +
+        `the system, or open <a href="${PCA_BACKEND_URL}/" style="color:#991b1b;">${PCA_BACKEND_URL}/</a> once it is running.`;
+      document.body.prepend(box);
+      document.body.style.paddingTop = `${box.offsetHeight}px`;
+    };
+    if (document.body) show(); else document.addEventListener('DOMContentLoaded', show);
+  }
 })();
 
 const PCAAuth = (function () {

@@ -17,8 +17,10 @@
    couldn't reach any of that even by accident.
 ═══════════════════════════════════════════════════════════ */
 
-/* Root-relative: the backend serves this page, so the iframe is same-origin. */
-const OCR_APP_URL = '/review';
+/* Root-relative: the backend serves this page, so the iframe is same-origin.
+   A page can show another backend page the same way with data-src on the
+   iframe (logbook-setup.html shows /logbook-setup). */
+const OCR_APP_URL = (document.getElementById('ocrIframe') || {}).dataset?.src || '/review';
 const OCR_LOAD_TIMEOUT_MS = 10000;
 
 /* ── Iframe load / error state ───────────────────────────── */
