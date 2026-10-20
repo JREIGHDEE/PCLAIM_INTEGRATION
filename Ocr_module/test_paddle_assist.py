@@ -438,6 +438,34 @@ class AssistFieldTests(unittest.TestCase):
             corrector([(_field("x"), _crop()) for _ in range(5)])
         self.assertEqual(len(calls), 2)
 
+    def test_batch_reader_reads_every_version_of_many_fields_at_once(self):
+        batches, one_at_a_time = [], []
+
+        def batch_reader(jobs):
+            batches.append(len(jobs))
+            self.assertTrue(all(len(versions) == 4 for _, versions in jobs))
+            return [[[{"text": "Maria", "confidence": 0.9}]] * 4 for _ in jobs]
+
+        corrector = paddle_assist.make_corrector(lambda img: one_at_a_time.append(1) or [],
+                                                 model=paddle_assist.CorrectionModel(),
+                                                 batch_reader=batch_reader)
+        fields = [_field("Marla") for _ in range(paddle_assist._BATCH_FIELDS + 3)]
+        corrector([(field, _crop()) for field in fields])
+        self.assertEqual(batches, [paddle_assist._BATCH_FIELDS, 3])
+        self.assertEqual(one_at_a_time, [])
+        self.assertTrue(all(f["ai"]["text"] == "Maria" for f in fields))
+
+    def test_failed_batch_falls_back_to_one_version_at_a_time(self):
+        def broken_batch(jobs):
+            raise RuntimeError("could not create a memory object")
+        ocr = _ocr_returning(("Maria", 0.9), ("Maria", 0.9), ("Maria", 0.9), ("Maria", 0.9))
+        field = _field("Marla")
+        corrector = paddle_assist.make_corrector(ocr, model=paddle_assist.CorrectionModel(),
+                                                 batch_reader=broken_batch)
+        with self.assertLogs("paddle_assist", level="ERROR"):
+            corrector([(field, _crop())])
+        self.assertEqual(field["ai"]["text"], "Maria")
+
     def test_switched_off_means_paddle_only(self):
         with mock.patch.object(config, "AI_CORRECTION_ENABLED", False):
             self.assertIsNone(paddle_assist.make_corrector(lambda img: []))

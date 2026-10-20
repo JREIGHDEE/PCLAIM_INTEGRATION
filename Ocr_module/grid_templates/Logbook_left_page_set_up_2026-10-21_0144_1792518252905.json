@@ -1,0 +1,48 @@
+{
+  "name": "Logbook left page (set up 2026-10-21 01:44)",
+  "gridLines": [
+    0.01,
+    0.1253,
+    0.2923,
+    0.5059,
+    0.6595
+  ],
+  "segmentInfo": [
+    {
+      "category": "CASE #",
+      "color": "#ef476f"
+    },
+    {
+      "category": "DATE & TIME OF ADMISSION",
+      "color": "#ffd166"
+    },
+    {
+      "category": "NAME",
+      "color": "#06d6a0"
+    },
+    {
+      "category": "BDAY",
+      "color": "#118ab2"
+    },
+    {
+      "category": "ADDRESS",
+      "color": "#073b4c"
+    }
+  ],
+  "cropBoxPercent": null,
+  "rowTemplate": {
+    "y": 81.0,
+    "height": 61.0,
+    "spacing": 24.0
+  },
+  "cropPresets": [],
+  "created_at": 1792518252905,
+  "metadata": {
+    "source": "guided_setup",
+    "pageParity": "odd",
+    "setupId": "a643a8cf0e434343a181e419e8095424",
+    "setupBy": "admin@email.com"
+  },
+  "imageWidth": 1012,
+  "imageHeight": 1476
+}

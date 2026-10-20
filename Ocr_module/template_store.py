@@ -19,8 +19,11 @@ import config
 
 
 def get_template_files():
+    # Template files only: setups put away by the guided setup sit in an
+    # "archive" folder alongside them.
     try:
-        return sorted(os.listdir(config.GRID_TEMPLATES_FOLDER))
+        return sorted(name for name in os.listdir(config.GRID_TEMPLATES_FOLDER)
+                      if name.lower().endswith(".json"))
     except Exception:
         return []
 

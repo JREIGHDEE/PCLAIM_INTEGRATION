@@ -239,13 +239,36 @@ details.more dl{ margin:6px 0 0; display:grid; grid-template-columns:max-content
 details.more dt{ font-weight:600; }
 details.more dd{ margin:0; word-break:break-word; }
 .admin-link{ font-size:.9rem; }
+
+/* ── Whole-row viewer: opened by clicking a box's picture ── */
+.scan{ cursor:zoom-in; }
+#rowViewer{ width:min(1200px, calc(100vw - 32px)); max-height:calc(100vh - 32px); padding:0;
+    border:1px solid var(--line); border-radius:12px; background:var(--card); color:var(--text); }
+#rowViewer::backdrop{ background:rgba(17,24,39,.6); }
+.rv-head{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:14px 18px; border-bottom:1px solid var(--line); }
+.rv-head h2{ margin:0; font-size:1.15rem; flex:1 1 auto; }
+.rv-head button, .rv-head a{ min-height:40px; padding:6px 14px; font-size:.95rem; border-radius:8px;
+    border:1px solid var(--line); background:#fff; color:var(--text); cursor:pointer; text-decoration:none;
+    display:inline-flex; align-items:center; }
+.rv-note{ margin:0; padding:8px 18px 0; font-size:.9rem; color:var(--muted); }
+.rv-scroll{ overflow:auto; max-height:calc(100vh - 190px); padding:12px 18px 18px; }
+.rv-frame{ position:relative; display:inline-block; line-height:0; }
+.rv-frame img{ display:block; height:auto; }
+#rowViewer.fit .rv-frame{ display:block; }
+#rowViewer.fit .rv-frame img{ width:100%; }
+.rv-mark{ position:absolute; border:3px solid var(--type-line); border-radius:4px;
+    box-shadow:0 0 0 9999px rgba(17,24,39,.18); pointer-events:none; }
+.embedded .page-intro{ display:none; }
 </style>
+<script>/* Shown inside PClaimAssist (Read Logbook Scan / Set Up a Logbook), whose page
+   already has the title: hide this page's own title and intro. */
+if (window.top !== window.self) document.documentElement.classList.add('embedded');</script>
 </head>
 <body>
 <main>
 
-<h1>Logbook Reader</h1>
-<p class="muted">Scan a page of the maternity logbook. The computer reads each patient's line, you check it, then it fills in the PhilHealth forms.</p>
+<h1 class="page-intro">Logbook Reader</h1>
+<p class="muted page-intro">Scan a page of the maternity logbook. The computer reads each patient's line, you check it, then it fills in the PhilHealth forms.</p>
 
 <div class="tabs" role="tablist" aria-label="Logbook reader">
     <button type="button" class="tab" role="tab" id="tab-upload" aria-controls="panel-upload"
@@ -312,8 +335,20 @@ details.more dd{ margin:0; word-break:break-word; }
 </div>
 </div>
 
-<p class="admin-link muted">For administrators: <a href="/ocr-workspace">template setup (calibration)</a>.</p>
 </main>
+
+<dialog id="rowViewer" aria-labelledby="rvTitle">
+    <div class="rv-head">
+        <h2 id="rvTitle">The whole logbook row</h2>
+        <button type="button" id="rvFit" onclick="toggleRowFit()">Fit to screen</button>
+        <a id="rvCell" href="#" target="_blank" rel="noopener">Just this box</a>
+        <button type="button" onclick="closeRowViewer()">Close ✕</button>
+    </div>
+    <p class="rv-note" id="rvNote">The red box is the one you are checking. Scroll sideways to see the rest of the row.</p>
+    <div class="rv-scroll" id="rvScroll">
+        <div class="rv-frame"><img id="rvImage" alt=""><div class="rv-mark" id="rvMark" hidden></div></div>
+    </div>
+</dialog>
 
 <script>
 const FORMS_URL = {{ forms_url | tojson }};
@@ -520,9 +555,16 @@ function renderIqBanner(iq){
 function renderPageReport(pages){
     const errors = (pages || []).filter(p => p.error);
     document.getElementById("pageReport").innerHTML = errors.length
-        ? `<div class="notice bad" role="alert"><strong>Some pages could not be read.</strong>
-            Ask an administrator to set up a template for this kind of page.
-            <details class="more"><summary>Details</summary><ul>${
+        ? `<div class="notice bad" role="alert"><strong>${errors.length === 1
+                ? `Page ${errors[0].page} could not be read.` : "Some pages could not be read."}</strong>
+            <ol>
+              <li>Scan the whole page again, lying flat and straight, with the
+                  printed column names at the top showing.</li>
+              <li>Put both pages of the logbook in one PDF, left page first.</li>
+              <li>If it still cannot be read, this may be a new kind of logbook:
+                  ask your administrator to set it up once.</li>
+            </ol>
+            <details class="more"><summary>Details for the administrator</summary><ul>${
             errors.map(p => `<li>Page ${p.page}: ${escapeHtml(p.error)}</li>`).join("")}</ul></details></div>`
         : "";
 }
@@ -666,7 +708,8 @@ function renderField(session, f, index){
     const id = `f-${session.session_id}-${index}`;
     const sure = percent(f.confidence);
     const sureText = sure === null ? "" : ` <span class="sure">(computer is ${sure}% sure)</span>`;
-    const cropUrl = `/api/review/crops/${f.crop.split("/").map(encodeURIComponent).join("/")}`;
+    const cropUrl = crop(f.crop);
+    const rowUrl = f.row_crop ? crop(f.row_crop) : "";
     const manual = f.status === "manual_encoding_required";
     const neededHere = manual && CLAIM_REQUIRED.includes(f.category)
         ? " This one is needed before the forms can be filled." : "";
@@ -680,8 +723,10 @@ function renderField(session, f, index){
         </div>
         <p class="field-help">${status.help}${neededHere}${f.possibly_incomplete ? ` <strong>${MAYBE_MISSING}</strong>` : ""}</p>
         ${renderAiNote(f)}
-        <p class="scan-label">From the logbook (click the picture to make it bigger):</p>
-        <a class="scan" href="${cropUrl}" target="_blank" rel="noopener">
+        <p class="scan-label">From the logbook (click the picture to see ${rowUrl ? "the whole row" : "it bigger"}):</p>
+        <a class="scan" href="${rowUrl || cropUrl}" target="_blank" rel="noopener"
+            ${rowUrl ? `data-cell="${attr(cropUrl)}" data-box="${attr((f.row_box || []).join(","))}"
+            data-title="${attr(nameOf(f.category))}" onclick="openRowViewer(event, this)"` : ""}>
             <img src="${cropUrl}" alt="Scanned logbook entry for ${escapeHtml(nameOf(f.category))}" onload="enlarge(this)">
         </a>
         <p class="empty-note">Marked as empty in the logbook — nothing to type.</p>
@@ -802,10 +847,14 @@ function goToField(index, moveFocus = true){
     const back = document.getElementById("boxBack");
     const next = document.getElementById("boxNext");
     back.disabled = index === 0;
+    // On the Finish step its own title says where you are, and its buttons
+    // (Send to Forms / Save) are the way on: no "Finish" label down here
+    // next to a missing Next button, which looked like a broken button.
+    back.textContent = finishing ? "◀ Back to the last box" : "◀ Back";
     next.hidden = finishing;
     next.textContent = index === fields.length - 1 ? "Finish ▶" : "Next ▶";
     document.getElementById("boxWhere").textContent = finishing
-        ? "Finish"
+        ? ""
         : `Box ${index + 1} of ${fields.length}: ${nameOf(fields[index].dataset.category)}`;
     if(!document.getElementById("confirmBox")) setMessage("", true);
     renderBoxSteps();
@@ -882,6 +931,64 @@ function keepTyped(){
 function enlarge(img){
     img.style.width = `${img.naturalWidth * 2}px`;
 }
+
+function crop(path){ return `/api/review/crops/${path.split("/").map(encodeURIComponent).join("/")}`; }
+
+// The whole logbook row (both pages of a spread), with this field's box
+// marked. A cell crop cut at the ruled lines can lose handwriting that runs
+// over them - or come out blank - so staff can always see the full entry.
+function openRowViewer(event, link){
+    const viewer = document.getElementById("rowViewer");
+    if(typeof viewer.showModal !== "function") return;   // very old browser: open in a new tab
+    event.preventDefault();
+    const img = document.getElementById("rvImage");
+    const mark = document.getElementById("rvMark");
+    const box = (link.dataset.box || "").split(",").map(Number);
+    const hasBox = box.length === 4 && box.every(n => Number.isFinite(n));
+
+    document.getElementById("rvTitle").textContent = `The whole logbook row - ${link.dataset.title}`;
+    document.getElementById("rvCell").href = link.dataset.cell;
+    document.getElementById("rvNote").hidden = !hasBox;
+    viewer.classList.remove("fit");
+    document.getElementById("rvFit").textContent = "Fit to screen";
+    mark.hidden = true;
+    img.alt = `The whole logbook row containing ${link.dataset.title}`;
+    img.onload = () => {
+        if(hasBox){
+            const [left, top, width, height] = box;
+            Object.assign(mark.style, {left: `${left * 100}%`, top: `${top * 100}%`,
+                                       width: `${width * 100}%`, height: `${height * 100}%`});
+            mark.hidden = false;
+        }
+        scrollToMark();
+    };
+    img.src = link.getAttribute("href");
+    viewer.showModal();
+}
+
+// Bring the marked box into the middle of the viewer.
+function scrollToMark(){
+    const mark = document.getElementById("rvMark");
+    const scroller = document.getElementById("rvScroll");
+    if(mark.hidden) return;
+    scroller.scrollLeft = mark.offsetLeft + mark.offsetWidth / 2 - scroller.clientWidth / 2;
+}
+
+function toggleRowFit(){
+    const viewer = document.getElementById("rowViewer");
+    const fit = viewer.classList.toggle("fit");
+    document.getElementById("rvFit").textContent = fit ? "Actual size" : "Fit to screen";
+    scrollToMark();
+}
+
+function closeRowViewer(){
+    document.getElementById("rowViewer").close();
+}
+
+document.addEventListener("click", event => {
+    // A click on the dark backdrop closes the viewer.
+    if(event.target.id === "rowViewer") closeRowViewer();
+});
 
 function fieldEl(category){
     return document.querySelector(`#fields .field[data-category="${CSS.escape(category)}"]`);
@@ -1140,7 +1247,9 @@ async function sendToForms(button){
 }
 
 function openForms(claimId){
-    const url = new URL(FORMS_URL);
+    // FORMS_URL may be a path on this server ("/index.html", the default)
+    // or a full address; a path needs this page's address as its base.
+    const url = new URL(FORMS_URL, window.location.href);
     url.searchParams.set("claim", String(claimId));
     if(window.top !== window.self){
         // Inside PClaimAssist's OCR tab (cross-origin iframe): ask the
@@ -1315,6 +1424,7 @@ function isTypingIn(el){
 
 document.addEventListener("keydown", event => {
     if(event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    if(document.getElementById("rowViewer").open) return;   // the dialog handles its own keys (Esc closes it)
     const target = event.target;
 
     // Esc leaves a box, so the arrow keys move between patients again.

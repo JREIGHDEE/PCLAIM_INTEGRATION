@@ -236,12 +236,12 @@ const RULES = [
 
   { id:'MF-04', category:'Missing Field', action:'block_submission',
     test: f => f.dateAdmitted_present === 0,
-    message:'Date of admission could not be read from the logbook entry. This field is required for CF2.',
+    message:'Date of admission is missing. Type it in Patient details, part 3 (Stay at the clinic) - CF2 needs it.',
     field:'dateAdmitted', source:'PhilHealth guidelines' },
 
   { id:'MF-05', category:'Missing Field', action:'block_submission',
     test: f => f.dateDischarge_present === 0,
-    message:'Date of discharge could not be read from the logbook entry. This field is required for CF2.',
+    message:'Date of discharge (went home) is missing. Type it in Patient details, part 3 (Stay at the clinic) - CF2 needs it.',
     field:'dateDischarge', source:'PhilHealth guidelines' },
 
   { id:'MF-06', category:'Missing Field', action:'flag_high_risk',

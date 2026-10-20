@@ -16,7 +16,7 @@
      default     "Clinic default"           (gray)
      empty       "Empty in logbook"         (gray, dashed - blank in the logbook)
    Needs js/app.js (state, applyFormData, resetFormData, navigateTo,
-   showToast, logActivity, escHtml, OVERLAY_MAP, VAL_FIELDS).
+   updateFormPreviews, MIRRORED_FIELDS, showToast, logActivity).
 ═══════════════════════════════════════════════════════════ */
 
 /* Empty string = same origin; the backend serves this page too. */
@@ -30,30 +30,12 @@ const OCR_TAGS = {
   default:     { label: 'Clinic default',           hint: 'Filled from the clinic settings.' },
   empty:       { label: 'Empty in logbook',         hint: 'Nothing is written here in the logbook. Fill it in only if you know it.' },
 };
-const FORM_NAMES = { pmrf: 'PMRF', csf: 'CSF', cf2: 'CF2', cf3: 'CF3' };
 
 /* Label element for a bound input: the field's own label, not a radio
    option's ("AM"/"PM") or a checkbox's caption. */
 function fieldLabelFor(el) {
   const container = el.closest('[class*="col"]') || el.parentElement;
   return container && container.querySelector('label:not(.form-check-label)');
-}
-
-// Repeating fields listed as one entry in the "still to type" list.
-const FIELD_GROUPS = [
-  [/^pnc/, 'Follow-up prenatal visits grid (2nd–12th)'],
-  [/^risk/, 'Obstetric / medical risk-factor checkboxes'],
-  [/^pp/, 'Postpartum care checklist'],
-];
-
-function fieldLabelText(key) {
-  const el = document.querySelector(`[data-autofill="${key}"]`);
-  // A checkbox's own caption, when it has no separate field label.
-  const label = el && (fieldLabelFor(el) || (el.id && document.querySelector(`label[for="${el.id}"]`)));
-  if (!label) return key;
-  const clone = label.cloneNode(true);
-  clone.querySelectorAll('.required-dot, .ocr-tag').forEach(n => n.remove());
-  return clone.textContent.trim() || key;
 }
 
 function describeField(info) {
@@ -77,7 +59,10 @@ function tagOcrFields(fields) {
         el.dataset.ocrRequired = '1';
         el.setAttribute('aria-required', 'true');
       }
-      const label = fieldLabelFor(el);
+      // Only the tag that asks for something is shown on the box: "please
+      // check". "From scan", "Typed by staff", "Clinic default" and "Empty in
+      // logbook" are just notices, and a box still to type is already red.
+      const label = info.status === 'needs_check' ? fieldLabelFor(el) : null;
       if (label && !labelsDone.has(label) && !label.querySelector('.ocr-tag')) {
         labelsDone.add(label);
         const span = document.createElement('span');
@@ -111,79 +96,24 @@ function clearOcrTags() {
   if (banner) banner.remove();
 }
 
-/* Which of the four forms print a given form key (from the PDF overlays). */
-function formsPrinting(key) {
-  return Object.keys(FORM_NAMES).filter(form =>
-    (OVERLAY_MAP[form] || []).some(f => f.key === key));
-}
-
+/* Only what staff must see: a warning when the scan was not clear, so
+   they check the "From scan" boxes more carefully. What the scan filled in
+   is shown on each box (its "From scan" tag), and what is left is shown
+   by the red boxes and the parts' counts on Patient details. */
 function renderClaimBanner(body) {
-  const counts = {};
-  Object.values(body.fields).forEach(f => { counts[f.status] = (counts[f.status] || 0) + 1; });
-  const required = Object.entries(body.fields).filter(([, f]) => f.status === 'required').map(([k]) => k);
-
-  // Fields no logbook column can fill, grouped by the form that prints
-  // them; only the ones still empty, required-for-validation ones first.
-  const requiredByForm = {};
-  Object.entries(VAL_FIELDS).forEach(([form, list]) => {
-    requiredByForm[form] = new Set(list.map(f => f.key));
-  });
-  const stillToType = Object.keys(FORM_NAMES).map(form => {
-    const keys = body.no_ocr_source.filter(k => formsPrinting(k).includes(form) && !state.data[k]);
-    keys.sort((a, b) => requiredByForm[form].has(b) - requiredByForm[form].has(a));
-    const seen = new Set();
-    const items = [];
-    keys.forEach(k => {
-      const group = FIELD_GROUPS.find(([re]) => re.test(k));
-      const text = group ? group[1] : fieldLabelText(k);
-      if (seen.has(text)) return;
-      seen.add(text);
-      items.push(requiredByForm[form].has(k) ? `<strong>${escHtml(text)}</strong>` : escHtml(text));
-    });
-    return items.length
-      ? `<li><span class="form-badge-inline">${FORM_NAMES[form]}</span> ${items.join(', ')}</li>`
-      : '';
-  }).join('');
-
   const iq = body.image_quality;
-  const iqLine = iq && iq.passed === false
-    ? `<div class="claim-banner-iq"><i class="bi bi-exclamation-triangle-fill me-1"></i>
-         The logbook scan was not very clear — check the fields marked "From scan" carefully.
-         <span class="claim-banner-tag">(image quality check ${escHtml(iq.rule_id)})</span></div>`
-    : '';
-  const address = body.ocr_reference && body.ocr_reference.ADDRESS;
-  const addressLine = address
-    ? `<div class="claim-banner-ref"><strong>Address from the logbook:</strong>
-         ${escHtml(address)} — please type it into the parts under <em>Address &amp; Contact</em>.</div>`
-    : '';
-  const requiredLine = required.length
-    ? `<div class="claim-banner-required"><span class="ocr-tag ocr-tag--required">Please type</span>
-         The computer could not read these — type them from the logbook: ${required.map(k => escHtml(fieldLabelText(k))).join(', ')}</div>`
-    : '';
-
+  if (!iq || iq.passed !== false) return;
   const banner = document.createElement('div');
   banner.id = 'claimLoadBanner';
-  banner.className = 'claim-load-banner mb-3';
-  banner.innerHTML = `
-    <div class="claim-banner-head">
-      <i class="bi bi-upc-scan me-2"></i>
-      <strong>Patient loaded from the logbook scan</strong> <span class="claim-banner-tag">(claim #${body.claim_id})</span>
-      <span class="claim-banner-legend">
-        ${['accepted', 'needs_check', 'typed', 'required', 'empty', 'default']
-          .filter(s => counts[s])
-          .map(s => `<span class="ocr-tag ocr-tag--${s}">${OCR_TAGS[s].label}</span> ${counts[s]}`)
-          .join(' &nbsp; ')}
-      </span>
-    </div>
-    ${iqLine}${requiredLine}${addressLine}
-    <details class="claim-banner-details">
-      <summary>Other fields to fill in — the logbook does not have these (${body.no_ocr_source.filter(k => !state.data[k]).length} empty)</summary>
-      <ul>${stillToType}</ul>
-      <p class="claim-banner-note">Bold = must be filled in for that form. Changes made on these forms are not saved back to the database.</p>
-    </details>`;
+  banner.className = 'claim-load-banner claim-banner-iq mb-3';
+  banner.setAttribute('role', 'alert');
+  banner.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-2"></i>
+    The logbook scan was not very clear — check the boxes marked "From scan" carefully.`;
+  // Under the Patient Details heading.
   const section = document.getElementById('section-patient');
-  const anchor = section.querySelector('.alert-auto-populate');
-  anchor.insertAdjacentElement('afterend', banner);
+  const anchor = section.querySelector('.section-header');
+  if (anchor) anchor.insertAdjacentElement('afterend', banner);
+  else section.prepend(banner);
 }
 
 async function loadClaimFromUrl() {
@@ -212,12 +142,26 @@ async function loadClaimFromUrl() {
   const values = { ...body.data };
   // Required fields start empty, even ones with a default (e.g. AM/PM).
   Object.entries(body.fields).forEach(([key, f]) => { if (f.status === 'required') values[key] = ''; });
+  // Boxes on other forms that repeat a logbook value (the final diagnosis
+  // on CF2's diagnosis line and CF4) are filled from it too, with the same
+  // tag, instead of being typed again (app.js MIRRORED_FIELDS - normally
+  // copied only as someone types).
+  Object.entries(MIRRORED_FIELDS).forEach(([source, targets]) => {
+    if (!values[source]) return;
+    targets.forEach(target => {
+      if (values[target]) return;
+      values[target] = values[source];
+      if (body.fields[source]) body.fields[target] = { ...body.fields[source] };
+    });
+  });
   applyFormData(values);
   tagOcrFields(body.fields);
   renderClaimBanner(body);
   navigateTo('patient');
+  // Once the tags are on, so Patient details' parts count "from scan to
+  // check" too (js/easy.js refreshes them on every update).
+  updateFormPreviews();
   logActivity(`Patient loaded from the logbook scan (claim #${claimId})`, 'success');
-  showToast('Patient loaded', 'Answers from the logbook are marked "From scan". Red boxes still need typing.', 'success');
 }
 
 document.addEventListener('input', e => {

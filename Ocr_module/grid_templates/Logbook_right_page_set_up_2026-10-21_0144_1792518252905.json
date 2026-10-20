@@ -1,0 +1,43 @@
+{
+  "name": "Logbook right page (set up 2026-10-21 01:44)",
+  "gridLines": [
+    0.01,
+    0.3386,
+    0.4897,
+    0.8513
+  ],
+  "segmentInfo": [
+    {
+      "category": "ADMITTING DIAGNOSIS",
+      "color": "#ef476f"
+    },
+    {
+      "category": "DATE & TIME OF DELIVERY",
+      "color": "#ffd166"
+    },
+    {
+      "category": "FINAL DIAGNOSIS",
+      "color": "#06d6a0"
+    },
+    {
+      "category": "DATE & TIME OF DISCHARGE",
+      "color": "#118ab2"
+    }
+  ],
+  "cropBoxPercent": null,
+  "rowTemplate": {
+    "y": 49.0,
+    "height": 79.0,
+    "spacing": 32.0
+  },
+  "cropPresets": [],
+  "created_at": 1792518252905,
+  "metadata": {
+    "source": "guided_setup",
+    "pageParity": "even",
+    "setupId": "a643a8cf0e434343a181e419e8095424",
+    "setupBy": "admin@email.com"
+  },
+  "imageWidth": 1066,
+  "imageHeight": 1468
+}

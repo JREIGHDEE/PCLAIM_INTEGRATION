@@ -42,6 +42,7 @@
   setTimeout(() => {
     if (typeof fillProfileSection === 'function') fillProfileSection(user);
     if (typeof loadClinicSettings === 'function') loadClinicSettings();
+    if (user.role === 'admin' && typeof loadStaffAccounts === 'function') loadStaffAccounts();
   }, 0);
 })();
 
@@ -59,6 +60,7 @@ const state = {
     /* Member (PhilHealth account holder) */
     memberLastName:'', memberFirstName:'', memberMiddleName:'', memberNameExt:'',
     memberDOB:'', memberSex:'', memberPIN:'', relationship:'',
+    memberIsPatient:false, /* "The patient is the member": member copies the patient */
     /* Address */
     addrUnit:'', addrBuilding:'', addrLot:'', addrStreet:'',
     addrSubdivision:'', addrBarangay:'', addrCity:'', addrProvince:'', addrZip:'',
@@ -646,7 +648,48 @@ document.querySelectorAll('.sidebar-item').forEach(item =>
 /* ══════════════════════════════════════════════════════════
    AUTO-POPULATION ENGINE
 ══════════════════════════════════════════════════════════ */
+/* "The patient is the PhilHealth member": the member's boxes copy the
+   patient's (name, birthday, sex, PIN) and the relationship is "Self", so
+   nothing is typed twice. While ticked they follow the patient's boxes and
+   are locked, so the two can't drift apart; unticking unlocks them and
+   keeps what is there. */
+const MEMBER_FROM_PATIENT = {
+  memberLastName: 'patientLastName', memberFirstName: 'patientFirstName',
+  memberMiddleName: 'patientMiddleName', memberNameExt: 'patientNameExt',
+  memberDOB: 'patientDOB', memberSex: 'patientSex',
+};
+const MEMBER_LOCKED_KEYS = [...Object.keys(MEMBER_FROM_PATIENT), 'memberPIN', 'relationship'];
+
+function applyMemberIsPatient() {
+  const same = !!state.data.memberIsPatient;
+  if (same) {
+    Object.entries(MEMBER_FROM_PATIENT).forEach(([member, patient]) => {
+      state.data[member] = state.data[patient] || '';
+    });
+    // One PIN for one person: whichever box has it.
+    const pin = state.data.patientPIN || state.data.memberPIN || '';
+    state.data.patientPIN = pin;
+    state.data.memberPIN = pin;
+    state.data.relationship = 'Self';
+  }
+  MEMBER_LOCKED_KEYS.forEach(key => {
+    document.querySelectorAll(`[data-autofill="${key}"]`).forEach(el => {
+      if (el.type === 'hidden') return;
+      if (el.classList.contains('btn-check-group')) el.classList.toggle('is-locked', same);
+      else el.disabled = same;
+      el.title = same ? 'Filled from the patient\'s details (the patient is the member)' : '';
+    });
+  });
+  document.querySelectorAll('.box-input[data-target]').forEach(group => {
+    const target = document.querySelector(group.dataset.target);
+    if (target && target.dataset.autofill === 'memberPIN') {
+      group.querySelectorAll('input').forEach(i => { i.disabled = same; });
+    }
+  });
+}
+
 function updateFormPreviews() {
+  applyMemberIsPatient();
   PREVIEW_MAP.forEach(([id, key]) => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -725,7 +768,9 @@ document.querySelectorAll('.btn-check-group[data-autofill]').forEach(group => {
     btn.addEventListener('click', () => {
       const alreadyActive = btn.classList.contains('active');
       const newVal = alreadyActive ? '' : btn.dataset.value;
+      const prev = state.data[key];
       state.data[key] = newVal;
+      propagateMirroredField(key, prev);
 
       const timeKey = AMPM_TIME_KEY[key];
       if (timeKey && newVal && state.data[timeKey]) {
@@ -775,10 +820,34 @@ function time12hDigits(hhmm) {
    still holds the previous source value, so the five forms stay
    consistent and IC-08 (CF2 vs CF4 diagnosis) does not fire spuriously.
    A target the user has deliberately edited is left alone. */
-const MIRRORED_FIELDS = {
-  dischargeDx: ['dxADiagnosis', 'cf4FinalDiagnosis'],
-  chiefComplaint: ['cf4ChiefComplaint'],
-};
+/* Most boxes that mean the same thing on several forms are one key (e.g.
+   patientLastName on Patient details, CSF, CF2, CF4, PMRF), so typing it
+   anywhere fills it everywhere. These are separate keys on different
+   forms for the same fact: typing in any of them fills the others (both
+   ways), on the rule above. */
+const LINKED_FIELD_GROUPS = [
+  ['dischargeDx', 'dxADiagnosis', 'cf4FinalDiagnosis'],
+  ['chiefComplaint', 'cf4ChiefComplaint'],
+  // Vital signs on admission: CF3 and CF4
+  ['vitalBP', 'cf4VitalBP'], ['vitalCR', 'cf4VitalHR'], ['vitalRR', 'cf4VitalRR'], ['vitalTemp', 'cf4VitalTemp'],
+  // Health care professionals: CSF Part III and CF2 Part II
+  ...[1, 2, 3].flatMap(n => [
+    [`hciProf${n}Name`, `cf2Prof${n}Name`],
+    [`hciProf${n}AccredNo`, `cf2Prof${n}AccredNo`],
+    [`hciProf${n}DateSigned`, `cf2Prof${n}DateSigned`],
+  ]),
+  // The clinic's authorized representative: CSF and CF2
+  ['providerRepName', 'cf2ProviderRepName'], ['providerCapacity', 'cf2ProviderCapacity'],
+  ['providerSignedDate', 'cf2ProviderSignedDate'],
+  // Who signs for the patient, and why: CSF and CF2
+  ['patientRepName', 'cf2PatientRepName'], ['patientRepRelationship', 'cf2PatientRepRelationship'],
+  ['patientRepRelationshipOther', 'cf2PatientRepRelationshipOther'], ['patientReason', 'cf2PatientReason'],
+  ['patientReasonOther', 'cf2PatientReasonOther'], ['patientRepSignedDate', 'cf2PatientRepSignedDate'],
+];
+const MIRRORED_FIELDS = {};
+LINKED_FIELD_GROUPS.forEach(group => group.forEach(key => {
+  MIRRORED_FIELDS[key] = group.filter(other => other !== key);
+}));
 
 function propagateMirroredField(key, prevValue) {
   const targets = MIRRORED_FIELDS[key];
@@ -1389,6 +1458,107 @@ function fillProfileSection(user) {
     });
     showToast('Password updated', 'Use your new password the next time you sign in.', 'success');
     logActivity('Account password changed', 'success');
+  });
+})();
+
+/* ══════════════════════════════════════════════════════════
+   STAFF ACCOUNTS (administrators)
+   New sign-ups are switched off until approved here (§3.8).
+   The backend re-checks the admin role on every call; hiding
+   this card from encoders is only for tidiness.
+══════════════════════════════════════════════════════════ */
+function escapeAccountText(value) {
+  const div = document.createElement('div');
+  div.textContent = value == null ? '' : String(value);
+  return div.innerHTML;
+}
+
+async function loadStaffAccounts() {
+  const body = document.getElementById('usersTableBody');
+  if (!body) return;
+  const result = await PCAAuth.listUsers();
+  if (!result.ok) {
+    body.innerHTML = `<tr><td colspan="6" class="text-danger">${escapeAccountText(result.error)}</td></tr>`;
+    return;
+  }
+  const me = window.currentUser && window.currentUser.id;
+  // Accounts waiting for approval first, so they are not missed.
+  const users = result.users.slice().sort((a, b) =>
+    (!a.last_login_at && !a.is_active ? 0 : 1) - (!b.last_login_at && !b.is_active ? 0 : 1));
+
+  body.innerHTML = users.map(u => {
+    const pending = !u.is_active && !u.last_login_at;
+    const status = u.is_active
+      ? '<span class="badge bg-success-subtle text-success-emphasis">Active</span>'
+      : pending
+        ? '<span class="badge bg-warning-subtle text-warning-emphasis">Waiting for approval</span>'
+        : '<span class="badge bg-secondary-subtle text-secondary-emphasis">Switched off</span>';
+    const self = u.id === me;
+    const toggle = u.is_active
+      ? (self ? '' : `<button class="btn btn-sm btn-outline-danger" data-action="deactivate" data-id="${u.id}">Switch off</button>`)
+      : `<button class="btn btn-sm btn-success" data-action="activate" data-id="${u.id}">${pending ? 'Approve' : 'Switch on'}</button>`;
+    return `<tr>
+      <td>${escapeAccountText(u.full_name)}${self ? ' <span class="text-muted small">(you)</span>' : ''}</td>
+      <td>${escapeAccountText(u.email)}</td>
+      <td>${escapeAccountText(PCAAuth.roleLabel(u.role))}</td>
+      <td>${status}</td>
+      <td class="small">${u.last_login_at ? new Date(u.last_login_at).toLocaleString() : '—'}</td>
+      <td class="text-end text-nowrap">
+        ${toggle}
+        ${self ? '' : `<button class="btn btn-sm btn-outline-secondary ms-1" data-action="password" data-id="${u.id}"
+            data-name="${escapeAccountText(u.full_name)}">New password</button>`}
+      </td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="6" class="text-muted">No accounts yet.</td></tr>';
+}
+
+(function setupStaffAccounts() {
+  const body = document.getElementById('usersTableBody');
+  if (!body) return;
+  let resetUserId = null;
+
+  document.getElementById('refreshUsersBtn').addEventListener('click', loadStaffAccounts);
+
+  body.addEventListener('click', async e => {
+    const btn = e.target.closest('button[data-action]');
+    if (!btn) return;
+    const id = Number(btn.dataset.id);
+
+    if (btn.dataset.action === 'password') {
+      resetUserId = id;
+      document.getElementById('resetPwFor').textContent = btn.dataset.name;
+      document.getElementById('resetPwNew').value = '';
+      document.getElementById('resetPwConfirm').value = '';
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('resetPasswordModal')).show();
+      return;
+    }
+
+    const activate = btn.dataset.action === 'activate';
+    btn.disabled = true;
+    const result = await PCAAuth.setUserActive(id, activate);
+    if (!result.ok) {
+      btn.disabled = false;
+      showToast('Could not update the account', result.error, 'danger');
+      return;
+    }
+    showToast(activate ? 'Account approved' : 'Account switched off',
+              `${escapeAccountText(result.user.full_name)} ${activate ? 'can now sign in.' : 'can no longer sign in.'}`,
+              activate ? 'success' : 'info');
+    loadStaffAccounts();
+  });
+
+  document.getElementById('resetPwSaveBtn').addEventListener('click', async function () {
+    const pw = document.getElementById('resetPwNew').value;
+    const confirm = document.getElementById('resetPwConfirm').value;
+    if (!pw) { showToast('Missing password', 'Type the new password.', 'warning'); return; }
+    if (pw !== confirm) { showToast('Passwords do not match', 'Type the same password in both boxes.', 'warning'); return; }
+
+    this.disabled = true;
+    const result = await PCAAuth.resetUserPassword(resetUserId, pw);
+    this.disabled = false;
+    if (!result.ok) { showToast('Could not set the password', result.error, 'danger'); return; }
+    bootstrap.Modal.getInstance(document.getElementById('resetPasswordModal')).hide();
+    showToast('Password set', 'Give the new password to the staff member in person.', 'success');
   });
 })();
 

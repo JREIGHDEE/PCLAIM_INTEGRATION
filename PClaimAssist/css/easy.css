@@ -151,10 +151,83 @@ body.easy .pca-nav-pills .nav-link {
   font-weight: 700;
 }
 body.easy .tab-step-nav {
-  display: flex; justify-content: space-between; gap: 1rem;
+  display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+  flex-wrap: wrap;
   margin-top: 1.5rem; padding-top: 1rem;
   border-top: 1px solid var(--border);
 }
+
+/* Patient details: the parts as numbered steps in an even grid (never a
+   ragged second row), each saying what is left in it (js/easy.js). */
+body.easy .part-steps {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .6rem !important;
+  list-style: none; margin: 0; padding: 0;
+}
+@media (min-width: 1700px) { body.easy .part-steps { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+@media (max-width: 640px) { body.easy .part-steps { grid-template-columns: 1fr; } }
+body.easy .part-steps .nav-item { display: flex; }
+body.easy .part-steps .nav-link {
+  width: 100%;
+  display: flex; align-items: flex-start; gap: .6rem;
+  text-align: left; white-space: normal;
+  min-height: 72px; padding: .65rem .75rem;
+  border: 2px solid var(--border); background: var(--card-bg); color: var(--text);
+  font-size: 1rem; line-height: 1.25;
+}
+body.easy .part-steps .nav-link .part-num {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 2rem; height: 2rem; border-radius: 50%;
+  background: var(--border); color: var(--text); font-weight: 800;
+}
+body.easy .part-steps .nav-link.part-done .part-num { background: #dcfce7; color: #166534; }
+body.easy .part-steps .nav-link .part-text { display: flex; flex-direction: column; gap: .2rem; min-width: 0; }
+body.easy .part-steps .nav-link .part-name { font-weight: 700; }
+body.easy .part-steps .nav-link .part-status { font-size: .85rem; font-weight: 600; }
+body.easy .part-steps .nav-link.active {
+  background: var(--primary-light); color: var(--text);
+  border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,.18);
+}
+body.easy .part-steps .nav-link.active .part-num { background: var(--primary); color: #fff; }
+body.easy .st-type { color: #b91c1c; }
+body.easy .st-check { color: #92400e; }
+body.easy .st-done { color: #166534; }
+
+/* "Next step" line above the parts. */
+body.easy .next-step {
+  display: flex; align-items: center; gap: .9rem; flex-wrap: wrap;
+  margin-bottom: 1rem; padding: .85rem 1rem;
+  border-radius: var(--radius);
+  background: var(--primary-light); border: 2px solid var(--primary-mid);
+  font-size: 1.1rem;
+}
+body.easy .next-step > i { font-size: 1.6rem; color: var(--primary); }
+body.easy .next-step > div { flex: 1 1 280px; }
+body.easy .next-step .next-hint { color: var(--text-muted); font-size: 1rem; }
+body.easy .next-step--done { background: #f0fdf4; border-color: #86efac; }
+body.easy .next-step--done > i { color: #16a34a; }
+
+/* A box that must be filled in and is still empty: red (js/easy.js). */
+body.easy .box-missing,
+body.easy .box-missing.form-control,
+body.easy .box-missing.form-select {
+  border: 2px solid #dc2626 !important;
+  background-color: #fef2f2 !important;
+}
+body.easy .pca-radio.box-missing,
+body.easy .btn-check-group.box-missing,
+body.easy .box-input.box-missing {
+  border-radius: 10px; padding: .35rem .6rem;
+}
+body.easy .box-input.box-missing input,
+body.easy .pin-boxes.box-missing input {
+  border: 2px solid #dc2626 !important;
+  background-color: #fef2f2 !important;
+}
+
+/* "Which details are copied into every form": closed by default. */
+body.easy .sync-details > summary { cursor: pointer; list-style: revert; }
 
 /* Dashboard: three big "what do you want to do" buttons. */
 body.easy .big-actions {

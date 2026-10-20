@@ -14,7 +14,7 @@ import re
 import bcrypt
 
 from db import get_db_cursor
-from errors import InvalidRequestError
+from errors import AccountInactiveError, InvalidRequestError
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +58,7 @@ def verify_password(password, password_hash):
         return False
 
 
-def create_user(email, password, full_name, role="encoder"):
+def create_user(email, password, full_name, role="encoder", is_active=True):
     """Create one account and return its public record."""
     email = normalize_email(email)
     full_name = (full_name or "").strip()
@@ -77,13 +77,27 @@ def create_user(email, password, full_name, role="encoder"):
         if cur.fetchone():
             raise InvalidRequestError("An account with that email already exists.")
         cur.execute(
-            "INSERT INTO users (email, password_hash, full_name, role) "
-            "VALUES (%s, %s, %s, %s)",
-            (email, password_hash, full_name, role))
+            "INSERT INTO users (email, password_hash, full_name, role, is_active) "
+            "VALUES (%s, %s, %s, %s, %s)",
+            (email, password_hash, full_name, role, 1 if is_active else 0))
         user_id = cur.lastrowid
 
-    logger.info("Created user %s (role=%s)", email, role)
+    logger.info("Created user %s (role=%s, active=%s)", email, role, bool(is_active))
     return get_user_by_id(user_id)
+
+
+def register_user(email, password, full_name):
+    """Self-registration from the sign-in page.
+
+    The very first account on an empty database becomes the clinic
+    administrator and can sign in straight away, so a fresh install no
+    longer needs create_admin.py. Every later account is an encoder that
+    stays switched off until an administrator approves it: patient data
+    must not be open to anyone who can reach the sign-in page (§3.8).
+    """
+    if count_users() == 0:
+        return create_user(email, password, full_name, role="admin", is_active=True)
+    return create_user(email, password, full_name, role="encoder", is_active=False)
 
 
 def get_user_by_id(user_id):
@@ -124,8 +138,12 @@ def authenticate(email, password):
         logger.info("Failed sign-in for %s (wrong password)", email)
         return None
     if not row["is_active"]:
-        logger.info("Blocked sign-in for deactivated account %s", email)
-        return None
+        # Only said once the password has been proven, so this reveals
+        # nothing to someone guessing at email addresses.
+        logger.info("Blocked sign-in for inactive account %s", email)
+        raise AccountInactiveError(
+            "Your account is not active yet. Ask your clinic administrator "
+            "to approve it, then sign in again.")
 
     with get_db_cursor(commit=True) as cur:
         cur.execute("UPDATE users SET last_login_at = NOW() WHERE id = %s", (row["id"],))
@@ -167,6 +185,8 @@ def change_own_password(user_id, current_password, new_password):
 
 
 def set_password(user_id, new_password):
+    if get_user_by_id(user_id) is None:
+        raise InvalidRequestError("Account not found.")
     password_hash = hash_password(new_password)
     with get_db_cursor(commit=True) as cur:
         cur.execute("UPDATE users SET password_hash = %s WHERE id = %s",
@@ -175,6 +195,8 @@ def set_password(user_id, new_password):
 
 
 def set_active(user_id, is_active):
+    if get_user_by_id(user_id) is None:
+        raise InvalidRequestError("Account not found.")
     with get_db_cursor(commit=True) as cur:
         cur.execute("UPDATE users SET is_active = %s WHERE id = %s",
                     (1 if is_active else 0, user_id))

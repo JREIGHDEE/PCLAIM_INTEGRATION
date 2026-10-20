@@ -185,6 +185,14 @@ class InvalidCredentialsError(OCRAppError):
     error_code = "invalid_credentials"
 
 
+class AccountInactiveError(OCRAppError):
+    """Correct password, but the account is awaiting approval or has been
+    switched off by an administrator."""
+
+    status_code = 403
+    error_code = "account_inactive"
+
+
 class PermissionDeniedError(OCRAppError):
     """Signed in, but this role may not perform the action."""
 

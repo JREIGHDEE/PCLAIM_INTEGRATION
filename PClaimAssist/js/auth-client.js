@@ -22,6 +22,43 @@
    app break when the page was opened from anywhere else. */
 const PCA_AUTH_API_BASE = '';
 
+/* Opened through VS Code Live Server (.vscode/settings.json, port 5501)
+   or straight from the disk, the page has no backend behind it: every
+   sign-in or sign-up request would go to a static file server that cannot
+   answer it. Move to the same page on the Flask server instead, but only
+   once it answers: redirecting to a server that is not running leaves the
+   browser on a "site can't be reached" page. */
+const PCA_BACKEND_URL = 'http://127.0.0.1:5000';
+(function openFromBackend() {
+  const staticServer = location.protocol === 'file:' || ['5500', '5501'].includes(location.port);
+  if (!staticServer) return;
+  const page = location.pathname.split('/').pop() || 'login.html';
+  fetch(`${PCA_BACKEND_URL}/db_health`, { mode: 'no-cors', cache: 'no-store' })
+    .then(() => location.replace(`${PCA_BACKEND_URL}/${page}${location.search}${location.hash}`))
+    .catch(showBackendDown);
+
+  // Without the backend nobody can sign in, so say so plainly on the page
+  // instead of letting every sign-in fail with no reason given.
+  function showBackendDown() {
+    const show = () => {
+      if (document.getElementById('pcaBackendDown')) return;
+      const box = document.createElement('div');
+      box.id = 'pcaBackendDown';
+      box.setAttribute('role', 'alert');
+      // Fixed across the top: the pages lay out <body> in columns.
+      box.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:2000;margin:0;padding:16px 20px;' +
+        'background:#fee2e2;color:#991b1b;border-bottom:3px solid #dc2626;' +
+        'font:600 18px/1.5 "Segoe UI",Arial,sans-serif;text-align:center;';
+      box.innerHTML = '<strong style="display:block;font-size:20px;">PClaimAssist is not running, so you cannot sign in yet.</strong>' +
+        'Double-click <strong>PClaimAssist.bat</strong> in the project folder, wait until it opens ' +
+        `the system, or open <a href="${PCA_BACKEND_URL}/" style="color:#991b1b;">${PCA_BACKEND_URL}/</a> once it is running.`;
+      document.body.prepend(box);
+      document.body.style.paddingTop = `${box.offsetHeight}px`;
+    };
+    if (document.body) show(); else document.addEventListener('DOMContentLoaded', show);
+  }
+})();
+
 const PCAAuth = (function () {
 
   async function call(path, options) {
@@ -32,7 +69,15 @@ const PCAAuth = (function () {
 
     let body = null;
     try { body = await res.json(); } catch (_) { /* non-JSON error page */ }
-    return { ok: res.ok, status: res.status, body };
+    if (!body) {
+      // The backend always answers in JSON, so this came from something else.
+      body = {
+        success: false,
+        error: `The server did not understand the request (HTTP ${res.status}). ` +
+               `Make sure PClaimAssist is running and open it at ${PCA_BACKEND_URL}/`,
+      };
+    }
+    return { ok: res.ok && body.success !== false, status: res.status, body };
   }
 
   return {
@@ -47,6 +92,80 @@ const PCAAuth = (function () {
         return { ok: false, error: (r.body && r.body.error) || 'Sign-in failed.' };
       } catch (err) {
         return { ok: false, error: 'Cannot reach the server. Is the OCR backend running?' };
+      }
+    },
+
+    /**
+     * Create your own account. Resolves {ok, user, signedIn} or
+     * {ok:false, error}. Only the first account on a fresh install is
+     * signed in at once (as administrator); later ones wait for approval.
+     */
+    async register(fullName, email, password, confirmPassword) {
+      try {
+        const r = await call('/api/auth/register', {
+          method: 'POST',
+          body: JSON.stringify({
+            full_name: fullName,
+            email,
+            password,
+            confirm_password: confirmPassword,
+          }),
+        });
+        if (r.ok && r.body && r.body.success) {
+          return { ok: true, user: r.body.user, signedIn: !!r.body.signed_in };
+        }
+        return { ok: false, error: (r.body && r.body.error) || 'Could not create the account.' };
+      } catch (err) {
+        return { ok: false, error: 'Cannot reach the server. Is the OCR backend running?' };
+      }
+    },
+
+    /** {hasAccounts} so the sign-in page can explain a fresh install, or null. */
+    async status() {
+      try {
+        const r = await call('/api/auth/status');
+        return (r.ok && r.body) ? { hasAccounts: !!r.body.has_accounts } : null;
+      } catch (err) {
+        return null;
+      }
+    },
+
+    /** Admin: every account. Resolves {ok, users} or {ok:false, error}. */
+    async listUsers() {
+      try {
+        const r = await call('/api/auth/users');
+        if (r.ok && r.body && r.body.success) return { ok: true, users: r.body.users };
+        return { ok: false, error: (r.body && r.body.error) || 'Could not load accounts.' };
+      } catch (err) {
+        return { ok: false, error: 'Cannot reach the server.' };
+      }
+    },
+
+    /** Admin: approve (true) or switch off (false) an account. */
+    async setUserActive(userId, isActive) {
+      try {
+        const r = await call(`/api/auth/users/${encodeURIComponent(userId)}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ is_active: isActive }),
+        });
+        if (r.ok && r.body && r.body.success) return { ok: true, user: r.body.user };
+        return { ok: false, error: (r.body && r.body.error) || 'Could not update the account.' };
+      } catch (err) {
+        return { ok: false, error: 'Cannot reach the server.' };
+      }
+    },
+
+    /** Admin: set a new password for a staff member who forgot theirs. */
+    async resetUserPassword(userId, newPassword) {
+      try {
+        const r = await call(`/api/auth/users/${encodeURIComponent(userId)}/password`, {
+          method: 'POST',
+          body: JSON.stringify({ new_password: newPassword }),
+        });
+        if (r.ok && r.body && r.body.success) return { ok: true };
+        return { ok: false, error: (r.body && r.body.error) || 'Could not set the password.' };
+      } catch (err) {
+        return { ok: false, error: 'Cannot reach the server.' };
       }
     },
 

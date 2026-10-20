@@ -20,7 +20,7 @@ case_sessions.logbook_case_number key, not a patient/claim field).
 import re
 from datetime import datetime
 
-from philhealth import field_catalog
+from philhealth import address_parser, field_catalog
 
 # OCR category labels, from Ocr_module/config.py TRAINING_CATEGORIES.
 CASE_NUMBER = "CASE #"
@@ -56,11 +56,40 @@ _DATE_FORMATS = (
     "%m/%d/%Y", "%m-%d-%Y", "%Y-%m-%d", "%m/%d/%y", "%m-%d-%y",
     "%B %d, %Y", "%b %d, %Y", "%B %d %Y", "%b %d %Y",
 )
-_TIME_RE = re.compile(r"(\d{1,2}):(\d{2})\s*([AaPp][Mm])?")
+# Handwriting OCR often reads a digit as a look-alike letter. Only ever
+# applied inside a date or time pattern, never to names or words.
+_OCR_DIGITS = str.maketrans({"O": "0", "o": "0", "D": "0", "Q": "0", "I": "1", "l": "1", "|": "1",
+                             "i": "1", "Z": "2", "z": "2", "S": "5", "s": "5", "B": "8", "G": "6",
+                             "b": "6", "g": "9", "q": "9"})
+_DIGITISH = r"[0-9OoDQIl|iZzSsBGbgq]"
+# mm-dd-yy(yy) as staff write it in the logbook, with -, / or . between.
+_DATE_TOKEN = re.compile(
+    rf"(?<![0-9A-Za-z])({_DIGITISH}{{1,2}})\s*[-/.]\s*({_DIGITISH}{{1,2}})\s*[-/.]\s*({_DIGITISH}{{2}}(?:{_DIGITISH}{{2}})?)(?![0-9A-Za-z])")
+# h:mm, also written h.mm or h;mm, with an optional AM/PM ("1;20pm", "10.30 Am").
+_TIME_RE = re.compile(r"(\d{1,2})\s*[:.;]\s*(\d{2})\s*([AaPp])?\.?\s*[Mm]?\b")
+_TIME_TOKEN = re.compile(rf"({_DIGITISH}{{1,2}})\s*[:.;]\s*({_DIGITISH}{{2}})\s*([AaPp]\.?\s*[Mm]\.?)?")
+
+
+def _date_from_token(match):
+    month, day, year = (part.translate(_OCR_DIGITS) for part in match.groups())
+    if not (month.isdigit() and day.isdigit() and year.isdigit()):
+        return None
+    year = int(year)
+    if year < 100:  # as strptime's %y: 69-99 -> 1900s, 00-68 -> 2000s
+        year += 1900 if year >= 69 else 2000
+    try:
+        return datetime(year, int(month), int(day)).date().isoformat()
+    except ValueError:
+        return None
 
 
 def _parse_date_flexible(text):
-    """Returns 'YYYY-MM-DD' on success, or None if nothing recognizable."""
+    """Returns 'YYYY-MM-DD' on success, or None if nothing recognizable.
+
+    Finds the date even when the rest of the text is garbled ("05-21-20
+    10.COAM"), and reads OCR look-alikes inside it as digits ("0F" is not
+    fixed - F is no digit - but "O8-2I-26" is 08-21-26). A date that isn't
+    a real calendar date is None, never guessed."""
     if not text:
         return None
     candidate = _TIME_RE.sub("", text).strip(" ,.-")
@@ -69,17 +98,25 @@ def _parse_date_flexible(text):
             return datetime.strptime(candidate, fmt).date().isoformat()
         except ValueError:
             continue
-    return None
+    found = _DATE_TOKEN.search(text)
+    return _date_from_token(found) if found else None
 
 
 def _parse_time_flexible(text):
     """Returns (HH:MM in 24h, 'AM'|'PM') on success, or (None, None)."""
     if not text:
         return None, None
-    match = _TIME_RE.search(text)
+    # The time is what's left once the date is taken out ("08.20.26" is a
+    # date, not 08:20).
+    rest = _DATE_TOKEN.sub(" ", text)
+    match = _TIME_TOKEN.search(rest)
     if not match:
         return None, None
-    hour, minute, meridiem = match.groups()
+    hour, minute = (part.translate(_OCR_DIGITS) for part in match.groups()[:2])
+    meridiem = (match.group(3) or "").replace(".", "").replace(" ", "")
+    if not (hour.isdigit() and minute.isdigit()) or int(hour) > 23 or int(minute) > 59:
+        return None, None
+    meridiem = meridiem[:1].upper() + "M" if meridiem else None
     hour = int(hour)
     if meridiem:
         am_pm = meridiem.upper()
@@ -141,7 +178,38 @@ def _split_name(raw_name):
     return last, first, middle, warning
 
 
-def draft_patient_and_encounter(values, reviewed_parts=None):
+# Diagnoses only a woman can have (pregnancy, delivery, after-birth care):
+# the patient is then female. A newborn's entry names it "BABY GIRL/BOY".
+_MATERNAL_DX = re.compile(
+    r"\bG\s?\d+\s?P\s?\d+|\bAOG\b|\bPRE-?NATAL\b|\bPOST-?\s?PARTUM\b|\bN?SVD\b|\bDELIVER(Y|ED)\b|"
+    r"\bLABOU?R\b|\bPREGNAN|\bCESAREAN\b|\bC-?SECTION\b|\bPUERPER|\bANTE-?PARTUM\b|\bPPTL\b",
+    re.IGNORECASE)
+_NEWBORN = re.compile(r"^\s*BABY\s+(GIRL|BOY)\b", re.IGNORECASE)
+# Entries about the baby's own care ("WELL BABY CARE"): the patient may be
+# the baby, so no sex guess. (A delivery diagnosis mentioning "BABY BOY"
+# is still about the mother.)
+_BABY_CARE = re.compile(r"\bWELL\s*-?\s*BABY\b|\bNEWBORN\b|\bNB\s+SCREEN|\bIMMUNI[SZ]|\bVACCIN|\bBCG\b",
+                        re.IGNORECASE)
+
+
+def infer_patient_sex(name, diagnoses):
+    """(sex, reason) when the logbook makes it plain, else (None, None):
+    a "BABY GIRL/BOY ..." name, or a pregnancy/delivery/after-birth
+    diagnosis (only a woman has those) - unless the entry is about a baby."""
+    newborn = _NEWBORN.match(name or "")
+    if newborn:
+        return ("Female" if newborn.group(1).upper() == "GIRL" else "Male",
+                f"The logbook names the patient \"{name.strip()}\"")
+    text = " ".join(d for d in diagnoses if d)
+    if _BABY_CARE.search(text):
+        return None, None
+    found = _MATERNAL_DX.search(text)
+    if found:
+        return "Female", f"The diagnosis mentions \"{found.group().strip()}\" (pregnancy or birth care)"
+    return None, None
+
+
+def draft_patient_and_encounter(values, reviewed_parts=None, previous_address=None):
     """values: the case_sessions.reviewed_values dict (OCR review free text).
 
     Returns (patient_fields, encounter_fields, claims_fields, warnings):
@@ -200,7 +268,7 @@ def draft_patient_and_encounter(values, reviewed_parts=None):
         warnings.append(f"Could not parse birth date \"{values.get(BDAY)}\" - please enter it manually.")
 
     # Free text, no format to parse - passed through as-is, same as the
-    # diagnosis fields below.
+    # diagnosis fields below (and split into its parts at the end).
     address_raw = values.get(ADDRESS)
     if address_raw and address_raw.strip():
         patient_fields["address"] = address_raw.strip()
@@ -245,5 +313,29 @@ def draft_patient_and_encounter(values, reviewed_parts=None):
         encounter_fields["admission_dx"] = values[ADMITTING_DX]
     if values.get(FINAL_DX):
         encounter_fields["discharge_dx"] = values[FINAL_DX]
+
+    # What the logbook says without a column of its own, so staff check it
+    # on the forms instead of typing it (philhealth/form_prefill tags these
+    # "From scan - please check"):
+    # - the address split into the forms' parts; a ditto mark ("-DO-")
+    #   means the address of the patient above it in the logbook
+    address = patient_fields.get("address")
+    if address and address_parser.is_ditto(address):
+        if previous_address:
+            patient_fields["address"] = address = previous_address
+        else:
+            patient_fields.pop("address")
+            address = None
+            warnings.append("The address is a ditto mark (\"-DO-\") but the patient above it was not found "
+                            "- please type the address.")
+    if address:
+        claims_fields.update(address_parser.split_address(address))
+    # - the patient's sex, when the name or diagnosis makes it plain
+    if "sex" not in patient_fields:
+        name = " ".join(patient_fields.get(k) or "" for k in ("first_name", "middle_name", "last_name"))
+        sex, _ = infer_patient_sex(values.get(NAME) or name,
+                                   [encounter_fields.get("admission_dx"), encounter_fields.get("discharge_dx")])
+        if sex:
+            patient_fields["sex"] = sex
 
     return patient_fields, encounter_fields, claims_fields, warnings

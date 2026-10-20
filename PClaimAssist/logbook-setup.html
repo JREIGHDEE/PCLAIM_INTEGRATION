@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Set Up a Logbook – PClaimAssist</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="css/style.css?v=20261021a" rel="stylesheet">
+  <link href="css/easy.css?v=20261021d" rel="stylesheet">
+  <link href="css/ocr.css" rel="stylesheet">
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     TOP NAVBAR (same markup as index.html for brand consistency)
+════════════════════════════════════════════════════════════ -->
+<nav class="top-navbar">
+  <div class="navbar-left">
+    <button class="sidebar-toggle-btn" id="sidebarToggle" title="Toggle sidebar">
+      <i class="bi bi-list"></i>
+    </button>
+    <div class="brand-logo"><i class="bi bi-heart-pulse-fill"></i></div>
+    <div>
+      <div class="brand-name">PClaimAssist</div>
+      <div class="brand-sub">PhilHealth Claims Preparation System</div>
+    </div>
+  </div>
+  <div class="navbar-right">
+    <div class="dropdown">
+      <button class="user-profile-wrap btn" id="profileMenuBtn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <div class="user-avatar"><i class="bi bi-person-fill"></i></div>
+        <div class="d-none d-sm-block text-start">
+          <div class="user-name" id="navUserName">Clinic Staff</div>
+          <div class="user-role">Claims Encoder</div>
+        </div>
+        <i class="bi bi-chevron-down profile-chevron d-none d-sm-block"></i>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end profile-dropdown-menu" aria-labelledby="profileMenuBtn">
+        <li class="profile-dropdown-header">
+          <div class="user-name" id="navUserNameFull">Clinic Staff</div>
+          <div class="user-email" id="navUserEmail">staff@clinic.ph</div>
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item" href="index.html" id="profileMenuProfile"><i class="bi bi-person-vcard"></i>My Profile</a></li>
+        <li><a class="dropdown-item" href="index.html"
+               data-requires-role="admin" hidden><i class="bi bi-hospital"></i>Clinic Details</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item text-danger" href="login.html#" id="logoutBtn"><i class="bi bi-box-arrow-right"></i>Log Out</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════
+     LAYOUT
+════════════════════════════════════════════════════════════ -->
+<div class="layout-wrapper">
+
+<!-- ── SIDEBAR ─────────────────────────────────────────────────
+     Built by js/sidebar.js, the same file index.html uses, so the
+     menu does not change when you open this page. This page does not
+     use the section-switching system from js/app.js, so every item
+     except "Read Logbook Scan" links back to index.html.
+──────────────────────────────────────────────────────────────── -->
+<aside class="sidebar" id="sidebar">
+  <nav class="sidebar-nav" id="sidebarNav"></nav>
+
+  <div class="sidebar-footer">
+    <div class="d-flex align-items-center gap-2">
+      <span class="text-muted" style="font-size:.72rem;">Standalone OCR workspace</span>
+    </div>
+  </div>
+</aside>
+
+<!-- ── MAIN CONTENT ─────────────────────────────────────────── -->
+<main class="main-content">
+
+<section class="content-section active">
+  <div class="section-header">
+    <div>
+      <h1 class="section-title">Set Up a Logbook</h1>
+    </div>
+  </div>
+
+  <!-- The guided setup (Ocr_module/templates/logbook_setup.html, served by
+       the Flask backend at /logbook-setup), shown in this page the same way
+       Read Logbook Scan shows the Logbook Reader. -->
+  <div class="ocr-iframe-wrap">
+    <iframe id="ocrIframe" class="ocr-native-iframe" title="Set up a logbook" data-src="/logbook-setup"></iframe>
+    <div id="ocrIframeOverlay" class="ocr-iframe-overlay">
+      <div class="spinner-border text-primary"></div>
+      <p>Loading the logbook setup…</p>
+    </div>
+  </div>
+</section>
+
+</main>
+</div>
+
+<!-- No js/app.js on this page by design — this workspace is isolated from
+     PClaimAssist's form state, autofill, validation, and PDF-overlay logic.
+     js/ocr.js only drives this page's shell (sidebar toggle, iframe load
+     state) — it never touches the OCR iframe's own document. -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/sidebar.js?v=20261021a"></script>
+<script>PCASidebar.render({ page: 'ocr', active: 'logbook-setup' });</script>
+<script src="js/auth-client.js?v=20261021a"></script>
+<script>
+/* This page does not load js/app.js, so it carries its own copy of the
+   auth guard: confirm the session with the backend, fill the navbar, and
+   wire Log Out. Same server-side check as index.html. */
+(async function () {
+  const user = await PCAAuth.requireLogin();
+  if (!user) return;
+  const set = (id, t) => { const el = document.getElementById(id); if (el) el.textContent = t; };
+  set('navUserName', user.full_name);
+  set('navUserNameFull', user.full_name);
+  set('navUserEmail', user.email);
+  document.querySelectorAll('.user-role').forEach(el => {
+    el.textContent = PCAAuth.roleLabel(user.role);
+  });
+  // Same role gate as index.html, so admin-only items stay hidden here too.
+  document.querySelectorAll('[data-requires-role]').forEach(el => {
+    el.hidden = !el.dataset.requiresRole.split(',').map(r => r.trim()).includes(user.role);
+  });
+  const out = document.getElementById('logoutBtn');
+  if (out) out.addEventListener('click', async e => {
+    e.preventDefault();
+    await PCAAuth.logout();
+    window.location.replace('login.html');
+  });
+})();
+</script>
+<script src="js/ocr.js?v=20261021a"></script>
+</body>
+</html>

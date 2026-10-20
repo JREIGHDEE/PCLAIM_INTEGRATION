@@ -33,15 +33,145 @@ function showToast(title, message, type = 'info') {
 })();
 
 // Show/hide password
-document.getElementById('togglePassword').addEventListener('click', function () {
-  const input = document.getElementById('loginPassword');
-  const icon = this.querySelector('i');
-  const showing = input.type === 'text';
-  input.type = showing ? 'password' : 'text';
-  icon.classList.toggle('bi-eye', showing);
-  icon.classList.toggle('bi-eye-slash', !showing);
-  this.querySelector('span').textContent = showing ? 'Show' : 'Hide';
-  this.title = showing ? 'Show password' : 'Hide password';
+function bindPasswordToggle(buttonId, inputIds) {
+  document.getElementById(buttonId).addEventListener('click', function () {
+    const inputs = inputIds.map(id => document.getElementById(id));
+    const icon = this.querySelector('i');
+    const showing = inputs[0].type === 'text';
+    inputs.forEach(input => { input.type = showing ? 'password' : 'text'; });
+    icon.classList.toggle('bi-eye', showing);
+    icon.classList.toggle('bi-eye-slash', !showing);
+    this.querySelector('span').textContent = showing ? 'Show' : 'Hide';
+    this.title = showing ? 'Show password' : 'Hide password';
+  });
+}
+bindPasswordToggle('togglePassword', ['loginPassword']);
+bindPasswordToggle('toggleRegPassword', ['regPassword', 'regConfirm']);
+
+function setButtonBusy(btn, busy) {
+  btn.disabled = busy;
+  btn.querySelector('.btn-label').classList.toggle('d-none', busy);
+  btn.querySelector('.btn-spinner').classList.toggle('d-none', !busy);
+}
+
+/* ── Sign in ⇄ Create account ─────────────────────────────── */
+async function showRegister(updateHash = true) {
+  document.getElementById('signInCard').hidden = true;
+  document.getElementById('registerCard').hidden = false;
+  if (updateHash) history.replaceState(null, '', '#register');
+  document.getElementById('regFullName').focus();
+
+  // A fresh install: say plainly that this account runs the clinic.
+  const status = await PCAAuth.status();
+  const first = !!status && !status.hasAccounts;
+  document.getElementById('firstAccountNote').classList.toggle('d-none', !first);
+  document.getElementById('registerIntro').textContent = first
+    ? 'Set up the first account for this clinic.'
+    : 'Fill in your details. Your clinic administrator will approve the account before you can sign in.';
+}
+
+function showSignIn() {
+  document.getElementById('registerCard').hidden = true;
+  document.getElementById('signInCard').hidden = false;
+  history.replaceState(null, '', location.pathname);
+  const email = document.getElementById('loginEmail');
+  (email.value ? document.getElementById('loginPassword') : email).focus();
+}
+
+document.getElementById('showRegisterLink').addEventListener('click', e => { e.preventDefault(); showRegister(); });
+document.getElementById('showSignInLink').addEventListener('click', e => { e.preventDefault(); showSignIn(); });
+if (location.hash === '#register') showRegister(false);
+
+/* ── Password rules, shown live while typing ──────────────── */
+// The server enforces the 8-character minimum (user_store.MIN_PASSWORD_LENGTH);
+// the letter and number rules are checked here before sending.
+const PW_RULES = {
+  length: pw => pw.length >= 8,
+  letter: pw => /[A-Za-z]/.test(pw),
+  number: pw => /\d/.test(pw),
+};
+
+function checkPasswordRules() {
+  const pw = document.getElementById('regPassword').value;
+  let passed = 0;
+  Object.entries(PW_RULES).forEach(([rule, test]) => {
+    const ok = test(pw);
+    if (ok) passed++;
+    const li = document.querySelector(`#pwRules [data-rule="${rule}"]`);
+    li.classList.toggle('text-success', ok);
+    li.classList.toggle('text-muted', !ok);
+    li.querySelector('i').className = `bi ${ok ? 'bi-check-circle-fill' : 'bi-circle'} me-1`;
+  });
+  const bar = document.getElementById('pwStrengthBar');
+  const strong = passed === 3 && pw.length >= 12;
+  bar.style.width = pw ? `${strong ? 100 : (passed / 3) * 85}%` : '0%';
+  bar.className = 'progress-bar ' + (passed < 2 ? 'bg-danger' : passed < 3 ? 'bg-warning' : 'bg-success');
+  return passed === 3;
+}
+
+function checkPasswordMatch() {
+  const pw = document.getElementById('regPassword').value;
+  const confirm = document.getElementById('regConfirm').value;
+  const note = document.getElementById('pwMatchNote');
+  if (!confirm) { note.textContent = ''; return false; }
+  const same = pw === confirm;
+  note.textContent = same ? '✓ The passwords match.' : '✗ The passwords do not match yet.';
+  note.className = 'small mt-1 ' + (same ? 'text-success' : 'text-danger');
+  return same;
+}
+
+document.getElementById('regPassword').addEventListener('input', () => { checkPasswordRules(); checkPasswordMatch(); });
+document.getElementById('regConfirm').addEventListener('input', checkPasswordMatch);
+checkPasswordRules();
+
+document.getElementById('registerForm').addEventListener('submit', async function (e) {
+  e.preventDefault();
+  const btn = document.getElementById('registerBtn');
+  if (btn.disabled) return;
+
+  const fullName = document.getElementById('regFullName').value.trim();
+  const email    = document.getElementById('regEmail').value.trim();
+  const password = document.getElementById('regPassword').value;
+  const confirm  = document.getElementById('regConfirm').value;
+
+  if (!fullName || !email || !password || !confirm) {
+    showToast('Missing details', 'Fill in your name, email and both password boxes.', 'warning');
+    return;
+  }
+  if (!checkPasswordRules()) {
+    showToast('Password too weak', 'Use at least 8 characters with a letter and a number.', 'warning');
+    return;
+  }
+  if (!checkPasswordMatch()) {
+    showToast('Passwords do not match', 'Type the same password in both boxes.', 'warning');
+    return;
+  }
+
+  setButtonBusy(btn, true);
+  const result = await PCAAuth.register(fullName, email, password, confirm);
+  setButtonBusy(btn, false);
+
+  if (!result.ok) {
+    showToast('Could not create the account', result.error, 'danger');
+    return;
+  }
+
+  this.reset();
+  checkPasswordRules();
+  checkPasswordMatch();
+
+  if (result.signedIn) {
+    showToast('Administrator account created',
+              `Welcome, ${result.user.full_name}. You are signed in.`, 'success');
+    setTimeout(() => { window.location.href = 'index.html'; }, 800);
+    return;
+  }
+
+  document.getElementById('loginEmail').value = result.user.email;
+  showSignIn();
+  showToast('Account created',
+            'Your clinic administrator needs to approve it. You can sign in once they have.',
+            'success');
 });
 
 // Submit: credentials are checked by the Flask backend against the bcrypt
@@ -62,12 +192,7 @@ document.getElementById('loginForm').addEventListener('submit', async function (
     return;
   }
 
-  function setBusy(busy) {
-    signInBtn.disabled = busy;
-    signInBtn.querySelector('.btn-label').classList.toggle('d-none', busy);
-    signInBtn.querySelector('.btn-spinner').classList.toggle('d-none', !busy);
-  }
-  setBusy(true);
+  setButtonBusy(signInBtn, true);
 
   // "Remember me" stores only the email so it can be pre-filled next time.
   // The password is never written to the browser.
@@ -77,7 +202,7 @@ document.getElementById('loginForm').addEventListener('submit', async function (
   const result = await PCAAuth.login(email, password);
 
   if (!result.ok) {
-    setBusy(false);
+    setButtonBusy(signInBtn, false);
     document.getElementById('loginPassword').value = '';
     showToast('Sign-in failed', result.error, 'danger');
     return;

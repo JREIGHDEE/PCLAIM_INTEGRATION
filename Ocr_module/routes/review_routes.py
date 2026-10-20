@@ -29,7 +29,7 @@ import logbook_pipeline
 import paddle_assist
 import review_jobs
 from errors import InvalidRequestError, ReviewCheckError, ReviewIncompleteError, SessionNotFoundError
-from ocr_engine import extract_tokens_from_array
+from ocr_engine import extract_tokens_from_array, read_many, read_versions_many
 from philhealth import case_bridge, field_catalog, review_fields
 from template_store import load_template_payloads
 from utils.uploads import require_file, temp_upload_path, validate_extension
@@ -76,9 +76,12 @@ def _read_logbook(path, source_document, progress=None):
     """Run the full flow on one saved upload and save one pending session
     per patient row. Returns the upload response payload. Raises
     ValueError (message for the user) if the file can't be read."""
+    # Cells and the AI's image versions are read in batches (about twice as
+    # fast); the one-at-a-time reader is kept for retries and fallback.
     result = logbook_pipeline.build_review_rows(
         path, extract_tokens_from_array, load_template_payloads(), progress=progress,
-        corrector=paddle_assist.make_corrector(extract_tokens_from_array))
+        corrector=paddle_assist.make_corrector(extract_tokens_from_array, batch_reader=read_versions_many),
+        batch_ocr_fn=read_many)
     if progress:
         progress(1.0, "Saving the patients")
     session_ids = logbook_pipeline.persist_review_rows(result, source_document)
@@ -175,11 +178,15 @@ def submit_review(session_id):
     defer_manual = bool(payload.get("defer_manual"))
     values, ocr_data, missing = logbook_pipeline.apply_review(session["ocr_data"], submitted, defer_manual, parts)
     if missing:
+        names = ", ".join(review_fields.FIELD_NAMES.get(c, c) for c in missing)
+        dates = any(review_fields.kind_of(c) in (review_fields.DATE_KIND, review_fields.DATETIME_KIND)
+                    for c in missing)
+        hint = " (dates in the date box)" if dates else ""
         raise ReviewIncompleteError(
-            ("A claim can't be created without these - type them here before sending to the forms: "
+            (f"The forms can't be filled without these - type them here first{hint}: "
              if defer_manual else
-             "These fields need manual encoding before the review can be submitted: ")
-            + ", ".join(missing)
+             f"Please type these before saving{hint}: ")
+            + names
         )
 
     case_session_store.mark_session_reviewed(

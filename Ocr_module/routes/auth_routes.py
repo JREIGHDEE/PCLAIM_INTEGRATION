@@ -1,10 +1,17 @@
 """Sign-in, sign-out and account management.
 
-  POST /api/auth/login    email + password  -> starts a session
-  POST /api/auth/logout                     -> ends the session
-  GET  /api/auth/me                         -> who is signed in (or 401)
-  GET  /api/auth/users    (admin)           -> list accounts
-  POST /api/auth/users    (admin)           -> create an account
+  GET  /api/auth/status                     -> {has_accounts} for the sign-in page
+  POST /api/auth/register  name/email/password -> create your own account
+                                               (first one: admin, signed in;
+                                               later ones: wait for approval)
+  POST /api/auth/login     email + password  -> starts a session
+  POST /api/auth/logout                      -> ends the session
+  GET  /api/auth/me                          -> who is signed in (or 401)
+  POST /api/auth/password                    -> change your own password
+  GET  /api/auth/users     (admin)           -> list accounts
+  POST /api/auth/users     (admin)           -> create an account
+  PATCH /api/auth/users/<id> (admin)         -> {is_active}: approve / switch off
+  POST /api/auth/users/<id>/password (admin) -> set a new password for someone
 
 Credentials are verified against the bcrypt hash in the `users` table; the
 password itself is never stored, logged or returned.
@@ -27,6 +34,37 @@ def _json_field(data, name):
     if not isinstance(value, str) or not value.strip():
         raise InvalidRequestError(f"{name} is required.")
     return value.strip()
+
+
+@auth_bp.route("/status", methods=["GET"])
+def status():
+    """Lets the sign-in page say "the first account will be the
+    administrator" on a fresh install. Reveals nothing about who exists."""
+    return jsonify({"success": True, "has_accounts": user_store.count_users() > 0})
+
+
+@auth_bp.route("/register", methods=["POST"])
+def register():
+    data = request.get_json(silent=True) or {}
+    password = data.get("password") or ""
+    if not password:
+        raise InvalidRequestError("password is required.")
+    if password != (data.get("confirm_password") or ""):
+        raise InvalidRequestError("The two passwords do not match.")
+
+    user = user_store.register_user(
+        email=_json_field(data, "email"),
+        password=password,
+        full_name=_json_field(data, "full_name"),
+    )
+    if user["is_active"]:
+        # First account on a fresh install: the administrator, signed in now.
+        auth.start_session(user)
+    return jsonify({
+        "success": True,
+        "user": auth.public_user(user),
+        "signed_in": bool(user["is_active"]),
+    }), 201
 
 
 @auth_bp.route("/login", methods=["POST"])
@@ -79,6 +117,32 @@ def create_user():
         role=(data.get("role") or "encoder"),
     )
     return jsonify({"success": True, "user": auth.public_user(user)}), 201
+
+
+@auth_bp.route("/users/<int:user_id>", methods=["PATCH"])
+@auth.role_required("admin")
+def update_user(user_id):
+    data = request.get_json(silent=True) or {}
+    if not isinstance(data.get("is_active"), bool):
+        raise InvalidRequestError("is_active (true or false) is required.")
+    if user_id == auth.current_user()["id"] and not data["is_active"]:
+        raise InvalidRequestError("You cannot switch off your own account.")
+    user = user_store.set_active(user_id, data["is_active"])
+    logger.info("Account %s set active=%s by %s",
+                user_id, data["is_active"], auth.current_user()["email"])
+    return jsonify({"success": True, "user": auth.public_user(user)})
+
+
+@auth_bp.route("/users/<int:user_id>/password", methods=["POST"])
+@auth.role_required("admin")
+def reset_user_password(user_id):
+    """An administrator sets a new password for a staff member who forgot
+    theirs (there is no email reset, see login.html)."""
+    data = request.get_json(silent=True) or {}
+    user_store.set_password(user_id, data.get("new_password") or "")
+    logger.info("Password for account %s reset by %s",
+                user_id, auth.current_user()["email"])
+    return jsonify({"success": True})
 
 
 @auth_bp.route("/password", methods=["POST"])

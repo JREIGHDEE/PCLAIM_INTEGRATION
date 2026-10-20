@@ -7,8 +7,8 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" rel="stylesheet">
-  <link href="css/style.css?v=20261015a" rel="stylesheet">
-  <link href="css/easy.css?v=20261015e" rel="stylesheet">
+  <link href="css/style.css?v=20261021a" rel="stylesheet">
+  <link href="css/easy.css?v=20261021d" rel="stylesheet">
 </head>
 <body class="easy">
 
@@ -81,7 +81,6 @@
   <div class="section-header">
     <div>
       <h1 class="section-title">Home</h1>
-      <p class="section-subtitle">What would you like to do? Press one of the big buttons.</p>
     </div>
   </div>
 
@@ -205,7 +204,6 @@
   <div class="section-header">
     <div>
       <h1 class="section-title">Patient Details</h1>
-      <p class="section-subtitle">Type the patient&rsquo;s details once. They are copied into every form for you.</p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
       <!-- Practice data is for training/demos only: administrators only, so
@@ -220,22 +218,13 @@
     </div>
   </div>
 
-  <div class="how-to">
-    <i class="bi bi-lightbulb-fill"></i>
-    <div>
-      <strong>How to fill this in:</strong>
-      <ol>
-        <li>The details are split into parts. Start with <strong>Part 1</strong>.</li>
-        <li>Type in each box. Boxes with a red <span class="required-dot">*</span> must be filled in.</li>
-        <li>Press <strong>Next part</strong> at the bottom to go on. Your typing is kept when you switch parts.</li>
-      </ol>
-    </div>
-  </div>
-
-  <!-- Nav Pills -->
+  <!-- The parts of the patient's details, shown as numbered steps that say
+       what is left in each, under a "Next step" line (js/easy.js
+       addPartProgress). Replaces a separate "How to fill this in" box. -->
   <div class="pca-card" data-aos="fade-up">
-    <div class="p-3 border-bottom overflow-auto">
-      <ul class="nav pca-nav-pills flex-nowrap gap-1" id="patientTabs" role="tablist">
+    <div class="p-3 border-bottom">
+      <div class="next-step" id="patientNextStep" role="status" aria-live="polite"></div>
+      <ul class="nav pca-nav-pills part-steps" id="patientTabs" role="tablist">
         <li class="nav-item" role="presentation">
           <button class="nav-link active" id="tab-identity" data-bs-toggle="pill" data-bs-target="#pane-identity" type="button" role="tab">
             1. Patient &amp; member
@@ -317,6 +306,14 @@
         </div>
 
         <p class="pca-tab-section-label mt-4">PhilHealth Member (Account Holder)</p>
+        <!-- Ticked: the member boxes copy the patient's details (js/app.js
+             applyMemberIsPatient), so they are not typed twice. -->
+        <div class="form-check pca-checkbox member-is-patient mb-3">
+          <input type="checkbox" class="form-check-input" data-autofill="memberIsPatient" id="memberIsPatient">
+          <label class="form-check-label" for="memberIsPatient">
+            <strong>The patient is the PhilHealth member</strong> (same person) — fill in the member's details from the patient's
+          </label>
+        </div>
         <div class="row g-3">
           <div class="col-md-3">
             <label class="pca-label">Last Name <span class="required-dot">*</span></label>
@@ -760,9 +757,10 @@
     </div><!-- /tab-content -->
   </div><!-- /pca-card -->
 
-  <!-- Sync Field Checklist -->
-  <div class="pca-card mt-3" data-aos="fade-up">
-    <div class="pca-card-header"><i class="bi bi-arrow-repeat me-2 text-success"></i>Sync Status</div>
+  <!-- Sync Field Checklist: closed by default - the parts above already say
+       what is missing; this is for checking what reaches every form. -->
+  <details class="pca-card mt-3 sync-details" data-aos="fade-up">
+    <summary class="pca-card-header"><i class="bi bi-arrow-repeat me-2 text-success"></i>Which details are copied into every form</summary>
     <div class="p-3">
       <div class="row g-2">
         <div class="col-6 col-md-3">
@@ -819,7 +817,7 @@
         </div>
       </div>
     </div>
-  </div>
+  </details>
 </section>
 
 
@@ -830,7 +828,6 @@
   <div class="section-header">
     <div>
       <h1 class="section-title">CSF</h1>
-      <p class="section-subtitle">Claim Signature Form — the PhilHealth member, the patient, and their signatures.</p>
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
       <span id="val-csf-score" class="val-score">0/9 Fields</span>
@@ -889,6 +886,12 @@
 
 
         <div class="entry-section-title">Member (PhilHealth Account Holder)</div>
+        <div class="form-check pca-checkbox member-is-patient mb-2">
+          <input type="checkbox" class="form-check-input" data-autofill="memberIsPatient" id="csf-memberIsPatient">
+          <label class="form-check-label" for="csf-memberIsPatient">
+            <strong>The patient is the member</strong> (same person) — fill in from the patient's details
+          </label>
+        </div>
         <div class="row g-2">
           <div class="col-12">
             <label class="pca-label">Member PhilHealth PIN</label>
@@ -1197,7 +1200,6 @@
   <div class="section-header">
     <div>
       <h1 class="section-title">CSF 2</h1>
-      <p class="section-subtitle">The patient&rsquo;s stay at the clinic — filled in by the clinic.</p>
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
       <span id="val-cf2-score" class="val-score">0/9 Fields</span>
@@ -1712,7 +1714,6 @@
   <div class="section-header">
     <div>
       <h1 class="section-title">CSF 3</h1>
-      <p class="section-subtitle">Pregnancy and delivery record (2 pages).</p>
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
       <span id="val-cf3-score" class="val-score">0/9 Fields</span>
@@ -2196,7 +2197,6 @@
   <div class="section-header">
     <div>
       <h1 class="section-title">CSF 4</h1>
-      <p class="section-subtitle">Patient clinical record &mdash; history, examination, course in the ward, drugs and outcome</p>
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
       <span id="val-cf4-score" class="val-score">0/12 Fields</span>
@@ -3008,7 +3008,6 @@
   <div class="section-header">
     <div>
       <h1 class="section-title">PMRF</h1>
-      <p class="section-subtitle">PhilHealth membership and dependent registration</p>
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
       <span id="val-pmrf-score" class="val-score">0/9 Fields</span>
@@ -3687,7 +3686,6 @@
   <div class="section-header">
     <div>
       <h1 class="section-title">Check for Missing Information</h1>
-      <p class="section-subtitle">Before saving the forms, make sure nothing important is missing.</p>
     </div>
   </div>
 
@@ -3809,7 +3807,6 @@
   <div class="section-header">
     <div>
       <h1 class="section-title">My Profile</h1>
-      <p class="section-subtitle">Your account details and password</p>
     </div>
   </div>
 
@@ -3877,14 +3874,68 @@
         </div>
       </div>
     </div>
+
+    <!-- Staff accounts: new sign-ups wait here until an administrator
+         approves them (§3.8). Administrators only. -->
+    <div class="col-12" data-aos="fade-up" data-requires-role="admin" hidden>
+      <div class="pca-card">
+        <div class="pca-card-header d-flex align-items-center">
+          <span><i class="bi bi-people me-2 text-primary"></i>Staff Accounts</span>
+          <span class="badge badge-pending ms-2" style="font-size:.64rem;">Administrator only</span>
+          <button class="btn btn-sm btn-outline-secondary ms-auto" id="refreshUsersBtn" title="Reload the list">
+            <i class="bi bi-arrow-clockwise"></i>
+          </button>
+        </div>
+        <div class="p-3">
+          <p class="text-muted mb-3" style="font-size:.82rem;">
+            Staff create their own account from the sign-in page. It cannot be
+            used until you press <strong>Approve</strong>. Switch off an account
+            when someone leaves the clinic; their past work stays on record.
+          </p>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+              <thead>
+                <tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Last signed in</th><th class="text-end">Actions</th></tr>
+              </thead>
+              <tbody id="usersTableBody">
+                <tr><td colspan="6" class="text-muted">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
+
+<!-- ═══ ADMIN: SET A NEW PASSWORD FOR SOMEONE ═══ -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-key-fill me-2 text-primary"></i>Set a new password</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted mb-3">For <strong id="resetPwFor"></strong>. Tell them the new password in person; they can change it later under My Profile.</p>
+        <label class="pca-label" for="resetPwNew">New password</label>
+        <input type="password" class="form-control pca-input mb-2" id="resetPwNew" autocomplete="new-password">
+        <label class="pca-label" for="resetPwConfirm">Type it again</label>
+        <input type="password" class="form-control pca-input" id="resetPwConfirm" autocomplete="new-password">
+        <div class="form-text" style="font-size:.74rem;">At least 8 characters.</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="resetPwSaveBtn">Set Password</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <section id="section-settings" class="content-section">
   <div class="section-header">
     <div>
       <h1 class="section-title">Clinic Details</h1>
-      <p class="section-subtitle">Type the clinic&rsquo;s details once. They are used on every claim.</p>
     </div>
   </div>
 
@@ -3966,10 +4017,10 @@
 <!-- pdf-lib: write filled text onto PDF for export -->
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <!-- Shared sidebar (must load before app.js, which binds to .sidebar-item) -->
-<script src="js/sidebar.js?v=20261015b"></script>
+<script src="js/sidebar.js?v=20261021a"></script>
 <script>PCASidebar.render({ page: 'app', active: 'dashboard' });</script>
 <!-- Authentication client (must load before app.js) -->
-<script src="js/auth-client.js?v=20261012c"></script>
+<script src="js/auth-client.js?v=20261021a"></script>
 <!-- PDF overlay coordinate maps (must load before pdf-overlay.js) -->
 <script src="js/pdf/overlays/csf.js?v=20261012c"></script>
 <script src="js/pdf/overlays/cf2.js?v=20261012c"></script>
@@ -3981,15 +4032,15 @@
 <script src="js/pdf/pdf-overlay.js?v=20261015d"></script>
 <script src="js/pdf/pdf-calibrate.js?v=20261015a"></script>
 <!-- Rule-based validation engine (must load before app.js) -->
-<script src="js/validation-rules.js?v=20261012c"></script>
+<script src="js/validation-rules.js?v=20261021a"></script>
 <script src="js/ocr-review.js?v=20261012c"></script>
 <!-- Segmented inputs: date/PAN boxes and the PhilHealth PIN (2-9-1) -->
 <script src="js/box-input.js?v=20261012c"></script>
 <script src="js/pin-input.js?v=20261012c"></script>
-<script src="js/app.js?v=20261015d"></script>
-<script src="js/easy.js?v=20261015a"></script>
+<script src="js/app.js?v=20261021b"></script>
+<script src="js/easy.js?v=20261021f"></script>
 <!-- Loads a claim sent from the OCR review: index.html?claim=<id> -->
-<script src="js/claim-loader.js?v=20261012c"></script>
+<script src="js/claim-loader.js?v=20261021d"></script>
 
 </body>
 </html>

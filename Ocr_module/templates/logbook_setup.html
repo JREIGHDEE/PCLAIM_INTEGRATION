@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Set Up a Logbook</title>
+<style>
+/* The simple replacement for the calibration workspace: the computer finds
+   the columns, the person only checks them. Same look as the Logbook Reader
+   (review.html): large text and buttons, plain words, one step at a time,
+   and nothing shown by colour alone - every column has a number and name. */
+:root{
+    --text:#111827;
+    --muted:#4b5563;
+    --line:#d1d5db;
+    --bg:#f3f4f6;
+    --card:#ffffff;
+    --blue:#1d4ed8;
+    --blue-soft:#dbeafe;
+    --ok:#166534;     --ok-soft:#dcfce7;
+    --check:#854d0e;  --check-soft:#fef9c3;  --check-line:#ca8a04;
+    --type:#991b1b;   --type-soft:#fee2e2;   --type-line:#dc2626;
+}
+*{ box-sizing:border-box; }
+html{ font-size:18px; }
+body{
+    margin:0;
+    padding:20px 16px 60px;
+    background:var(--bg);
+    color:var(--text);
+    font-family:"Segoe UI",Arial,sans-serif;
+    line-height:1.5;
+}
+main{ max-width:1000px; margin:0 auto; }
+h1{ font-size:1.7rem; margin:0 0 4px; }
+h2{ font-size:1.35rem; margin:0 0 10px; }
+p{ margin:0 0 10px; }
+a{ color:var(--blue); }
+.muted{ color:var(--muted); }
+[hidden]{ display:none !important; }
+.card{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px; margin-bottom:18px; }
+
+/* ── Steps as tabs, the same as the Logbook Reader's (review.html) ── */
+.tabs{ display:flex; flex-wrap:wrap; gap:10px; margin:16px 0 0; border-bottom:3px solid var(--blue); list-style:none; padding:0; }
+.tabs li{
+    flex:1 1 200px; display:flex; align-items:center; gap:10px;
+    min-height:64px; padding:12px 18px; margin-bottom:-3px;
+    border:3px solid var(--line); border-bottom:none; border-radius:14px 14px 0 0;
+    background:#e5e7eb; color:var(--muted); font-size:1.1rem; font-weight:600;
+}
+.tabs .num{
+    display:inline-flex; align-items:center; justify-content:center; flex:none;
+    width:2rem; height:2rem; border-radius:50%; background:var(--line); color:var(--text);
+}
+.tabs li[aria-current="step"]{ background:var(--card); color:var(--text); border-color:var(--blue); border-bottom:3px solid var(--card); }
+.tabs li[aria-current="step"] .num{ background:var(--blue); color:#fff; }
+.tabs li.done{ color:var(--ok); }
+.tabs li.done .num{ background:var(--ok-soft); color:var(--ok); }
+.tab-panel{ background:var(--card); border:3px solid var(--blue); border-top:none; border-radius:0 0 14px 14px; padding:20px; margin-bottom:18px; }
+.tab-panel .card{ border-width:2px; margin-bottom:0; }
+
+/* ── Buttons ───────────────────────────────────────── */
+button, .file-button, .link-button{
+    font:inherit; font-weight:700; min-height:56px; padding:12px 22px;
+    border-radius:12px; border:2px solid var(--blue); background:#fff; color:var(--blue);
+    cursor:pointer;
+}
+.link-button{ display:inline-flex; align-items:center; justify-content:center; text-decoration:none; }
+button.primary, .file-button, .link-button.primary{ background:var(--blue); color:#fff; }
+button.go{ background:var(--ok); border-color:var(--ok); color:#fff; }
+button:disabled{ opacity:.55; cursor:default; }
+button.primary:disabled, button.go:disabled{ opacity:1; background:#d1d5db; border-color:#d1d5db; color:#4b5563; }
+button.small{ min-height:46px; padding:6px 14px; font-size:.95rem; }
+button:focus-visible, select:focus-visible, input:focus-visible, .file-button:focus-within, a:focus-visible{
+    outline:4px solid #f59e0b; outline-offset:2px;
+}
+.file-button{ position:relative; display:inline-flex; align-items:center; justify-content:center; }
+.file-button input{ position:absolute; width:1px; height:1px; opacity:0; }
+.actions{ display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+.nav{ display:flex; flex-wrap:wrap; gap:12px; justify-content:space-between; margin-top:20px; }
+.nav button{ flex:0 1 300px; }
+
+/* ── Messages ──────────────────────────────────────── */
+.notice{ border-radius:12px; padding:14px 18px; margin-bottom:18px; border:2px solid; }
+.notice strong{ display:block; font-size:1.1rem; }
+.notice ul, .notice ol{ margin:6px 0 0 22px; padding:0; }
+.notice li{ margin:4px 0; }
+.notice li strong{ display:inline; font-size:inherit; }
+.notice.warn{ background:var(--check-soft); border-color:var(--check-line); color:var(--check); }
+.notice.good{ background:var(--ok-soft); border-color:var(--ok); color:var(--ok); }
+.notice.bad{ background:var(--type-soft); border-color:var(--type-line); color:var(--type); }
+.notice.todo{ background:var(--check-soft); border-color:var(--check-line); color:var(--text); }
+.notice.todo strong{ color:var(--check); }
+.message{ font-weight:600; min-height:1.5em; margin-top:10px; }
+.message.bad{ color:var(--type); }
+.busy{ display:flex; align-items:center; gap:14px; margin-top:16px; font-size:1.1rem; font-weight:600; }
+.spinner{ width:34px; height:34px; border-radius:50%; border:5px solid var(--blue-soft); border-top-color:var(--blue); animation:spin 1s linear infinite; flex:none; }
+@keyframes spin{ to{ transform:rotate(360deg); } }
+@media (prefers-reduced-motion: reduce){ .spinner{ animation:none; border-top-color:var(--blue-soft); border-left-color:var(--blue); } }
+
+/* ── Which page is this ────────────────────────────── */
+.side-choice{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:4px 0 14px; }
+.side-choice .label{ font-weight:700; }
+.side-choice label{
+    display:inline-flex; align-items:center; gap:8px; min-height:52px; padding:8px 16px;
+    border:2px solid var(--line); border-radius:12px; background:#fff; cursor:pointer; font-weight:600;
+}
+.side-choice input{ width:22px; height:22px; }
+.side-choice label:has(input:checked){ border-color:var(--blue); background:var(--blue-soft); }
+
+/* ── The page picture with its columns ─────────────── */
+.page-view{ position:relative; border:2px solid var(--line); border-radius:10px; overflow:hidden; background:#fff; user-select:none; touch-action:pan-y; }
+.page-view img{ display:block; width:100%; height:auto; }
+.stripe{ position:absolute; top:0; bottom:0; pointer-events:none; }
+.stripe-label{
+    position:absolute; top:6px; left:4px; right:4px; padding:3px 6px;
+    background:rgba(255,255,255,.95); border:2px solid; border-radius:8px;
+    font-size:.8rem; font-weight:700; line-height:1.25; color:var(--text);
+    overflow-wrap:anywhere;
+}
+.stripe-label .n{ display:inline-block; min-width:1.3em; text-align:center; border-radius:50%; color:#fff; margin-right:4px; }
+.stripe.skip .stripe-label{ border-style:dashed; color:var(--muted); }
+.row-box{ position:absolute; left:0; right:0; border:2px dashed rgba(17,24,39,.55); pointer-events:none; }
+/* The whole line can be grabbed, anywhere along it (a wide, invisible
+   strip); the round handle near the top shows that it moves. */
+.divider{ position:absolute; top:0; bottom:0; width:28px; margin-left:-14px; cursor:ew-resize; touch-action:none; }
+.divider::before{ content:""; position:absolute; top:0; bottom:0; left:12px; width:4px; background:#111827; }
+.divider button{
+    position:absolute; top:70px; left:-10px; width:48px; height:48px; min-height:0; padding:0;
+    border-radius:50%; border:4px solid #fff; background:#111827; color:#fff;
+    box-shadow:0 2px 8px rgba(0,0,0,.45); cursor:grab; touch-action:none;
+    font-size:1.1rem; line-height:1;
+}
+.divider button:active, .divider.dragging button{ cursor:grabbing; background:var(--blue); }
+.divider.dragging::before{ background:var(--blue); }
+
+/* ── The column list under the picture ─────────────── */
+.columns{ list-style:none; padding:0; margin:16px 0 0; display:grid; gap:10px; }
+.columns li{
+    display:grid; grid-template-columns:auto 1fr auto; gap:10px 14px; align-items:center;
+    padding:10px 12px; border:2px solid var(--line); border-radius:12px; background:#fff;
+}
+.columns .swatch{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:2.4rem; height:2.4rem; border-radius:50%; color:#fff; font-weight:700;
+}
+.columns select{
+    width:100%; min-height:52px; font:inherit; font-size:1.05rem; padding:8px 10px;
+    border:2px solid var(--line); border-radius:10px; background:#fff; color:var(--text);
+}
+.columns .tools{ display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; }
+.columns li.bad{ border-color:var(--type-line); background:var(--type-soft); }
+@media (max-width:640px){
+    .columns li{ grid-template-columns:auto 1fr; }
+    .columns .tools{ grid-column:1 / -1; justify-content:flex-start; }
+}
+
+/* ── Summary and setups in use ─────────────────────── */
+.summary{ list-style:none; padding:0; margin:0 0 16px; display:grid; gap:10px; }
+.summary li{ padding:12px 14px; border:2px solid var(--ok); border-radius:12px; background:var(--ok-soft); }
+.summary strong{ display:block; }
+.check-line{ display:flex; gap:12px; align-items:flex-start; margin:10px 0 18px; font-size:1.05rem; cursor:pointer; }
+.check-line input{ width:26px; height:26px; margin-top:2px; flex:none; }
+details.more{ margin-top:14px; }
+details.more summary{ cursor:pointer; font-weight:700; color:var(--blue); min-height:44px; display:flex; align-items:center; }
+.in-use{ list-style:none; padding:0; margin:8px 0 0; display:grid; gap:8px; }
+.in-use li{ padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:#fafafa; }
+.footer-link{ text-align:center; margin-top:24px; font-size:.95rem; }
+.embedded .page-intro{ display:none; }
+</style>
+<script>/* Shown inside PClaimAssist (Read Logbook Scan / Set Up a Logbook), whose page
+   already has the title: hide this page's own title and intro. */
+if (window.top !== window.self) document.documentElement.classList.add('embedded');</script>
+</head>
+<body>
+<main>
+    <h1 class="page-intro">Logbook Setup</h1>
+    <p class="muted page-intro">Do this <strong>once</strong> for each kind of logbook. After that, every new scan of
+       that logbook is read by itself: you do not need to do this again for new scans.</p>
+
+    <div id="gate" class="notice warn" role="alert" hidden></div>
+
+    <div id="app" hidden>
+        <ol class="tabs" id="steps" aria-label="Steps"></ol>
+        <div class="tab-panel">
+
+        <!-- Step 1: choose the scan -->
+        <section class="card" id="stepChoose">
+            <h2>Step 1: Choose a scan of the logbook</h2>
+            <p>Use a <strong>clear, straight scan</strong> of one open logbook, with the printed column names at
+               the top showing. Best is a PDF with the <strong>left page first</strong>, then the right page.
+               A photo of one page also works.</p>
+            <div class="actions">
+                <label class="file-button">Choose the scan
+                    <input type="file" id="file" accept=".pdf,.png,.jpg,.jpeg">
+                </label>
+                <button class="primary" id="readBtn" disabled>Read the scan</button>
+            </div>
+            <p id="fileName" class="muted" style="margin-top:10px;"></p>
+            <div class="busy" id="busy" hidden><span class="spinner" aria-hidden="true"></span>
+                <span>Looking at the pages and finding the columns. This takes up to a minute…</span></div>
+            <p class="message bad" id="readMessage" role="alert"></p>
+
+            <details class="more" id="inUseBox" hidden>
+                <summary>What is set up now</summary>
+                <ul class="in-use" id="inUse"></ul>
+            </details>
+        </section>
+
+        <!-- Steps 2-3: check one page -->
+        <section class="card" id="stepCheck" hidden>
+            <h2 id="checkTitle" tabindex="-1"></h2>
+            <p class="muted">Each coloured stripe should cover one column. A line in the wrong place:
+                drag it onto the printed line. A wrong name: change it below the picture.</p>
+            <div class="side-choice" role="radiogroup" aria-label="Which page is this">
+                <span class="label">This is the:</span>
+                <label><input type="radio" name="side" value="left"> Left page</label>
+                <label><input type="radio" name="side" value="right"> Right page</label>
+            </div>
+            <div class="page-view" id="pageView">
+                <img id="pageImg" alt="The logbook page, with its columns marked">
+                <div id="overlay"></div>
+            </div>
+            <ol class="columns" id="columnList" aria-label="Columns on this page"></ol>
+            <div id="problems" class="notice bad" role="alert" hidden></div>
+            <div class="nav">
+                <button id="backBtn">Back</button>
+                <button class="go" id="okBtn">Yes, this page is right</button>
+            </div>
+        </section>
+
+        <!-- Last step: save -->
+        <section class="card" id="stepSave" hidden>
+            <h2 tabindex="-1" id="saveTitle">Last step: Save</h2>
+            <p>This is what the computer will read from every scan of this logbook:</p>
+            <ul class="summary" id="summary"></ul>
+            <label class="check-line"><input type="checkbox" id="replaceOld" checked>
+                <span>Use <strong>only</strong> this setup from now on. Older setups are put away, not deleted.</span></label>
+            <div class="nav">
+                <button id="saveBackBtn">Back</button>
+                <button class="go" id="saveBtn">Save the logbook setup</button>
+            </div>
+            <p class="message bad" id="saveMessage" role="alert"></p>
+        </section>
+
+        <!-- Done -->
+        <section class="card" id="stepDone" hidden>
+            <div class="notice good" role="status">
+                <strong>Done! This logbook is set up.</strong>
+                New scans of this logbook will now be read by themselves.
+            </div>
+            <div class="actions">
+                <a class="link-button primary" href="/ocr.html" target="_top">Read a logbook scan</a>
+                <a class="link-button" href="/index.html" target="_top">Back to Home</a>
+            </div>
+        </section>
+        </div>
+    </div>
+
+    <p class="footer-link muted">For technical staff: <a href="/ocr-workspace" target="_top">the advanced calibration tool</a>.</p>
+</main>
+
+<script>
+const SIDES = {{ sides | tojson }};
+const REQUIRED = {{ required | tojson }};
+// Column colours: strong enough to see on paper, each with white text.
+const COLORS = ["#1d4ed8", "#b45309", "#047857", "#7c3aed", "#be123c", "#0e7490", "#4d7c0f"];
+const SNAP = 0.02;      // a moved line jumps onto a printed line this close (share of page width)
+const MIN_GAP = 0.025;  // narrowest a column may get
+
+let setup = null;   // {setup_id, pages:[...]} from the server, edited in place
+let step = 0;       // 0 = choose, 1..n = check page n, n+1 = save, n+2 = done
+
+const $ = id => document.getElementById(id);
+function escapeHtml(text){
+    return String(text ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function plainName(side, value){
+    if(!value) return "Do not read";
+    const found = (SIDES[side] || []).find(c => c.value === value);
+    return found ? found.label : value;
+}
+async function getJson(url, options){
+    const response = await fetch(url, Object.assign({credentials:"same-origin"}, options || {}));
+    let body = null;
+    try{ body = await response.json(); }catch(_){}
+    if(!response.ok || !body || body.success === false){
+        throw new Error((body && body.error) || "Something went wrong. Please try again.");
+    }
+    return body;
+}
+
+/* ── Who may use this page ─────────────────────────── */
+async function checkAccess(){
+    try{
+        const me = await getJson("/api/auth/me");
+        if(me.user.role !== "admin"){
+            showGate("Only the clinic administrator can set up a logbook.",
+                     "Ask your administrator to do this. To read a scan, go to <a href=\"/ocr.html\" target=\"_top\">Read a logbook page</a>.");
+            return;
+        }
+        $("app").hidden = false;
+        render();
+        loadInUse();
+    }catch(_){
+        showGate("Please sign in first.", "<a href=\"/login.html\" target=\"_top\">Go to the sign-in page</a>, then come back here.");
+    }
+}
+function showGate(title, text){
+    $("gate").innerHTML = `<strong>${escapeHtml(title)}</strong>${text}`;
+    $("gate").hidden = false;
+}
+
+async function loadInUse(){
+    try{
+        const data = await getJson("/api/logbook-setup/current");
+        if(!data.setups.length) return;
+        $("inUse").innerHTML = data.setups.map(s => `<li><strong>${escapeHtml(s.name)}</strong>
+            ${s.side ? `(${s.side} page)` : ""}<br><span class="muted">${s.columns.map(escapeHtml).join(" · ")}</span></li>`).join("");
+        $("inUseBox").hidden = false;
+    }catch(_){ /* only a convenience */ }
+}
+
+/* ── Steps ─────────────────────────────────────────── */
+function pageCount(){ return setup ? setup.pages.length : 2; }
+function pageTitle(index){
+    const page = setup && setup.pages[index];
+    const side = page ? page.side : (index === 0 ? "left" : "right");
+    return `Check the ${side} page`;
+}
+function render(){
+    const n = pageCount();
+    const names = ["Choose the scan"];
+    for(let i = 0; i < n; i++) names.push(pageTitle(i));
+    names.push("Save");
+    $("steps").innerHTML = names.map((name, i) =>
+        `<li ${i === step ? 'aria-current="step"' : ""} class="${i < step ? "done" : ""}">
+            <span class="num">${i < step ? "✓" : i + 1}</span>${escapeHtml(name)}</li>`).join("");
+    $("stepChoose").hidden = step !== 0;
+    $("stepCheck").hidden = !(step >= 1 && step <= n);
+    $("stepSave").hidden = step !== n + 1;
+    $("stepDone").hidden = step !== n + 2;
+    // Once saved, the steps stay in view, all ticked.
+    if(step >= 1 && step <= n) showPage(step - 1);
+    if(step === n + 1) showSummary();
+}
+function go(to){
+    step = to;
+    render();
+    window.scrollTo({top:0});
+    const title = step === pageCount() + 1 ? $("saveTitle") : $("checkTitle");
+    if(!title.closest("section").hidden) title.focus();
+}
+
+/* ── Step 1: read the scan ─────────────────────────── */
+$("file").addEventListener("change", () => {
+    const file = $("file").files[0];
+    $("fileName").textContent = file ? `Chosen: ${file.name}` : "";
+    $("readBtn").disabled = !file;
+    $("readMessage").textContent = "";
+});
+$("readBtn").addEventListener("click", async () => {
+    const file = $("file").files[0];
+    if(!file) return;
+    const form = new FormData();
+    form.append("file", file);
+    $("readBtn").disabled = true;
+    $("busy").hidden = false;
+    $("readMessage").textContent = "";
+    try{
+        setup = await getJson("/api/logbook-setup/read", {method:"POST", body:form});
+        if(!setup.pages.length) throw new Error("No pages were found in this file.");
+        go(1);
+    }catch(error){
+        $("readMessage").textContent = error.message;
+    }finally{
+        $("busy").hidden = true;
+        $("readBtn").disabled = false;
+    }
+});
+
+/* ── Steps 2-3: check a page ───────────────────────── */
+let current = null;  // the page being checked
+
+function showPage(index){
+    current = setup.pages[index];
+    $("checkTitle").textContent = `Step ${index + 2}: ${pageTitle(index)}`;
+    document.querySelectorAll('input[name="side"]').forEach(r => { r.checked = r.value === current.side; });
+    const img = $("pageImg");
+    const src = `/api/logbook-setup/${setup.setup_id}/${current.picture}`;
+    if(img.getAttribute("src") !== src) img.src = src;
+    $("okBtn").textContent = index === pageCount() - 1 ? "Yes, this page is right" : "Yes, this page is right → next page";
+    drawPage();
+}
+
+function columnEdges(page){
+    return page.lines.map((x, i) => [i === 0 ? 0 : x, i + 1 < page.lines.length ? page.lines[i + 1] : 1]);
+}
+
+function drawPage(){
+    const page = current;
+    const edges = columnEdges(page);
+    let html = page.rows.map(r =>
+        `<div class="row-box" style="top:${r.y * 100}%;height:${r.height * 100}%"></div>`).join("");
+    html += edges.map(([a, b], i) => {
+        const color = COLORS[i % COLORS.length];
+        const name = page.categories[i];
+        return `<div class="stripe${name ? "" : " skip"}" style="left:${a * 100}%;width:${(b - a) * 100}%;background:${color}22">
+            <span class="stripe-label" style="border-color:${color}"><span class="n" style="background:${color}">${i + 1}</span>${escapeHtml(plainName(page.side, name))}</span></div>`;
+    }).join("");
+    // The first line is the page's left edge: nothing to move.
+    html += page.lines.slice(1).map((x, k) =>
+        `<div class="divider" data-line="${k + 1}" style="left:${x * 100}%">
+            <button type="button" aria-label="Line between column ${k + 1} and column ${k + 2}. Use the left and right arrow keys to move it.">⇔</button></div>`).join("");
+    $("overlay").innerHTML = html;
+    drawList();
+    checkProblems();
+}
+
+function drawList(){
+    const page = current;
+    const options = SIDES[page.side];
+    $("columnList").innerHTML = page.categories.map((name, i) => {
+        const color = COLORS[i % COLORS.length];
+        const opts = options.map(o => `<option value="${escapeHtml(o.value)}" ${o.value === name ? "selected" : ""}>${escapeHtml(o.label)}</option>`).join("")
+            + `<option value="" ${name ? "" : "selected"}>Do not read this column</option>`;
+        return `<li data-col="${i}">
+            <span class="swatch" style="background:${color}" aria-hidden="true">${i + 1}</span>
+            <label><span class="muted" style="display:block;font-size:.9rem;">Column ${i + 1} is:</span>
+                <select data-col="${i}">${opts}</select></label>
+            <span class="tools">
+                <button type="button" class="small" data-split="${i}">Split in two</button>
+                ${i > 0 ? `<button type="button" class="small" data-join="${i}">Join with column ${i}</button>` : ""}
+            </span></li>`;
+    }).join("");
+}
+
+function checkProblems(){
+    const page = current;
+    const problems = [];
+    const named = page.categories.filter(Boolean);
+    const twice = named.filter((c, i) => named.indexOf(c) !== i);
+    document.querySelectorAll("#columnList li").forEach(li => {
+        li.classList.toggle("bad", twice.includes(page.categories[+li.dataset.col]));
+    });
+    if(twice.length){
+        problems.push(`Two columns are both called “${escapeHtml(plainName(page.side, twice[0]))}”. Give each column its own name.`);
+    }
+    if(page.side === "left"){
+        const missing = REQUIRED.filter(c => SIDES.left.some(o => o.value === c) && !named.includes(c));
+        if(missing.length){
+            problems.push(`The computer needs these columns to make a claim: ${missing.map(c => escapeHtml(plainName("left", c))).join(", ")}.`);
+        }
+    }
+    if(!named.length) problems.push("Name at least one column.");
+    $("problems").innerHTML = problems.length ? `<strong>Please fix this first</strong><ul>${problems.map(p => `<li>${p}</li>`).join("")}</ul>` : "";
+    $("problems").hidden = !problems.length;
+    $("okBtn").disabled = problems.length > 0;
+}
+
+// Names
+$("columnList").addEventListener("change", e => {
+    const select = e.target.closest("select[data-col]");
+    if(!select) return;
+    current.categories[+select.dataset.col] = select.value;
+    drawPage();
+    document.querySelector(`#columnList select[data-col="${select.dataset.col}"]`).focus();
+});
+// Split / join
+$("columnList").addEventListener("click", e => {
+    const split = e.target.closest("[data-split]");
+    const join = e.target.closest("[data-join]");
+    const page = current;
+    if(split){
+        const i = +split.dataset.split;
+        const [a, b] = columnEdges(page)[i];
+        if(b - a < MIN_GAP * 2) return;
+        page.lines.splice(i + 1, 0, snap((a + b) / 2, page));
+        page.categories.splice(i + 1, 0, nextUnused(page));
+        drawPage();
+    }else if(join){
+        const i = +join.dataset.join;
+        page.lines.splice(i, 1);
+        // Keep the left column's name, or the right one's if the left had none.
+        const keep = page.categories[i - 1] || page.categories[i];
+        page.categories.splice(i, 1);
+        page.categories[i - 1] = keep;
+        drawPage();
+    }
+});
+function nextUnused(page){
+    const used = new Set(page.categories);
+    const free = SIDES[page.side].find(o => !used.has(o.value));
+    return free ? free.value : "";
+}
+function snap(x, page){
+    let best = x, distance = SNAP;
+    (page.rules || []).forEach(r => {
+        if(Math.abs(r - x) < distance){ best = r; distance = Math.abs(r - x); }
+    });
+    return Math.round(best * 10000) / 10000;
+}
+function clampLine(page, k, x){
+    const low = page.lines[k - 1] + MIN_GAP;
+    const high = (k + 1 < page.lines.length ? page.lines[k + 1] : 1) - MIN_GAP;
+    return Math.min(high, Math.max(low, x));
+}
+
+// Dragging a line: pointer (mouse, touch, pen) and keyboard.
+let drag = null;
+$("overlay").addEventListener("pointerdown", e => {
+    const divider = e.target.closest(".divider");
+    if(!divider) return;
+    e.preventDefault();
+    drag = {k: +divider.dataset.line, divider};
+    divider.classList.add("dragging");
+    divider.setPointerCapture(e.pointerId);
+});
+$("overlay").addEventListener("pointermove", e => {
+    if(!drag) return;
+    const box = $("pageView").getBoundingClientRect();
+    const x = clampLine(current, drag.k, (e.clientX - box.left) / box.width);
+    current.lines[drag.k] = x;
+    drag.divider.style.left = `${x * 100}%`;
+});
+function endDrag(){
+    if(!drag) return;
+    const k = drag.k;
+    current.lines[k] = clampLine(current, k, snap(current.lines[k], current));
+    drag = null;
+    drawPage();
+    const handle = document.querySelector(`.divider[data-line="${k}"] button`);
+    if(handle) handle.focus();
+}
+$("overlay").addEventListener("pointerup", endDrag);
+$("overlay").addEventListener("pointercancel", endDrag);
+$("overlay").addEventListener("keydown", e => {
+    const handle = e.target.closest(".divider button");
+    if(!handle || !["ArrowLeft", "ArrowRight"].includes(e.key)) return;
+    e.preventDefault();
+    const k = +handle.parentElement.dataset.line;
+    const step = (e.shiftKey ? 0.01 : 0.002) * (e.key === "ArrowLeft" ? -1 : 1);
+    current.lines[k] = Math.round(clampLine(current, k, current.lines[k] + step) * 10000) / 10000;
+    drawPage();
+    document.querySelector(`.divider[data-line="${k}"] button`).focus();
+});
+
+// Left or right page: changing it re-labels the columns in that side's order.
+document.querySelectorAll('input[name="side"]').forEach(radio => radio.addEventListener("change", () => {
+    if(!radio.checked || radio.value === current.side) return;
+    current.side = radio.value;
+    const names = SIDES[current.side].map(o => o.value);
+    current.categories = current.categories.map((_, i) => names[i] || "");
+    render();
+}));
+
+$("backBtn").addEventListener("click", () => go(step - 1));
+$("okBtn").addEventListener("click", () => {
+    const sides = setup.pages.map(p => p.side);
+    if(step === pageCount() && new Set(sides).size !== sides.length){
+        $("problems").innerHTML = "<strong>Please fix this first</strong>Both pages are marked as the same side. One must be the left page and one the right.";
+        $("problems").hidden = false;
+        return;
+    }
+    go(step + 1);
+});
+
+/* ── Save ──────────────────────────────────────────── */
+function showSummary(){
+    $("summary").innerHTML = setup.pages.map(page => `<li><strong>${page.side === "left" ? "Left" : "Right"} page: ${page.categories.length} columns</strong>
+        ${page.categories.map((c, i) => `${i + 1}. ${escapeHtml(plainName(page.side, c))}`).join(" · ")}</li>`).join("");
+    $("saveMessage").textContent = "";
+}
+$("saveBackBtn").addEventListener("click", () => go(step - 1));
+$("saveBtn").addEventListener("click", async () => {
+    $("saveBtn").disabled = true;
+    $("saveMessage").textContent = "";
+    try{
+        await getJson("/api/logbook-setup/save", {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({
+                setup_id:setup.setup_id,
+                replace_old:$("replaceOld").checked,
+                pages:setup.pages.map(p => ({index:p.index, side:p.side, lines:p.lines, categories:p.categories})),
+            }),
+        });
+        go(pageCount() + 2);
+    }catch(error){
+        $("saveMessage").textContent = error.message;
+    }finally{
+        $("saveBtn").disabled = false;
+    }
+});
+
+checkAccess();
+</script>
+</body>
+</html>
