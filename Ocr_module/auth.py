@@ -111,6 +111,9 @@ def public_user(user):
         "email": user["email"],
         "full_name": user["full_name"],
         "role": user["role"],
+        "is_active": bool(user.get("is_active")),
         "last_login_at": user["last_login_at"].isoformat()
                          if user.get("last_login_at") else None,
+        "created_at": user["created_at"].isoformat()
+                      if user.get("created_at") else None,
     }

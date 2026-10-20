@@ -3877,8 +3877,63 @@
         </div>
       </div>
     </div>
+
+    <!-- Staff accounts: new sign-ups wait here until an administrator
+         approves them (§3.8). Administrators only. -->
+    <div class="col-12" data-aos="fade-up" data-requires-role="admin" hidden>
+      <div class="pca-card">
+        <div class="pca-card-header d-flex align-items-center">
+          <span><i class="bi bi-people me-2 text-primary"></i>Staff Accounts</span>
+          <span class="badge badge-pending ms-2" style="font-size:.64rem;">Administrator only</span>
+          <button class="btn btn-sm btn-outline-secondary ms-auto" id="refreshUsersBtn" title="Reload the list">
+            <i class="bi bi-arrow-clockwise"></i>
+          </button>
+        </div>
+        <div class="p-3">
+          <p class="text-muted mb-3" style="font-size:.82rem;">
+            Staff create their own account from the sign-in page. It cannot be
+            used until you press <strong>Approve</strong>. Switch off an account
+            when someone leaves the clinic; their past work stays on record.
+          </p>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+              <thead>
+                <tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Last signed in</th><th class="text-end">Actions</th></tr>
+              </thead>
+              <tbody id="usersTableBody">
+                <tr><td colspan="6" class="text-muted">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
+
+<!-- ═══ ADMIN: SET A NEW PASSWORD FOR SOMEONE ═══ -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-key-fill me-2 text-primary"></i>Set a new password</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted mb-3">For <strong id="resetPwFor"></strong>. Tell them the new password in person; they can change it later under My Profile.</p>
+        <label class="pca-label" for="resetPwNew">New password</label>
+        <input type="password" class="form-control pca-input mb-2" id="resetPwNew" autocomplete="new-password">
+        <label class="pca-label" for="resetPwConfirm">Type it again</label>
+        <input type="password" class="form-control pca-input" id="resetPwConfirm" autocomplete="new-password">
+        <div class="form-text" style="font-size:.74rem;">At least 8 characters.</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="resetPwSaveBtn">Set Password</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <section id="section-settings" class="content-section">
   <div class="section-header">
@@ -3966,10 +4021,10 @@
 <!-- pdf-lib: write filled text onto PDF for export -->
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <!-- Shared sidebar (must load before app.js, which binds to .sidebar-item) -->
-<script src="js/sidebar.js?v=20261015b"></script>
+<script src="js/sidebar.js?v=20261020a"></script>
 <script>PCASidebar.render({ page: 'app', active: 'dashboard' });</script>
 <!-- Authentication client (must load before app.js) -->
-<script src="js/auth-client.js?v=20261012c"></script>
+<script src="js/auth-client.js?v=20261020a"></script>
 <!-- PDF overlay coordinate maps (must load before pdf-overlay.js) -->
 <script src="js/pdf/overlays/csf.js?v=20261012c"></script>
 <script src="js/pdf/overlays/cf2.js?v=20261012c"></script>
@@ -3986,7 +4041,7 @@
 <!-- Segmented inputs: date/PAN boxes and the PhilHealth PIN (2-9-1) -->
 <script src="js/box-input.js?v=20261012c"></script>
 <script src="js/pin-input.js?v=20261012c"></script>
-<script src="js/app.js?v=20261015d"></script>
+<script src="js/app.js?v=20261019a"></script>
 <script src="js/easy.js?v=20261015a"></script>
 <!-- Loads a claim sent from the OCR review: index.html?claim=<id> -->
 <script src="js/claim-loader.js?v=20261012c"></script>
