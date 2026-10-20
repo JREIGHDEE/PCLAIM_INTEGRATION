@@ -130,26 +130,42 @@ VARIANTS = [("contrast", _contrast), ("sharpened", _sharpen), ("enlarged", _enla
             ("black_and_white", _black_and_white)]
 
 
-def _read(ocr_fn, image):
+def _combine(tokens):
     """(text, confidence) the same way logbook_pipeline.ocr_cell combines
     tokens: joined text, lowest token confidence. None when nothing read."""
-    tokens = [t for t in (ocr_fn(image) or []) if str(t.get("text", "")).strip()]
+    tokens = [t for t in (tokens or []) if str(t.get("text", "")).strip()]
     if not tokens:
         return None
     return (" ".join(str(t["text"]).strip() for t in tokens),
             float(min(t.get("confidence", 0) for t in tokens)))
 
 
-def ensemble_read(ocr_fn, crop, original_text, original_confidence):
+def _read(ocr_fn, image):
+    return _combine(ocr_fn(image))
+
+
+def versions(crop):
+    """The enhanced versions of a crop the ensemble reads, in VARIANTS order."""
+    return [make(crop) for _, make in VARIANTS[:config.AI_ENSEMBLE_VARIANTS]]
+
+
+def ensemble_read(ocr_fn, crop, original_text, original_confidence, version_tokens=None):
     """Vote over PaddleOCR's readings of the original and enhanced crops.
     Returns {"text", "votes", "readings", "confidence"} or None if no
-    version produced any text."""
+    version produced any text.
+
+    version_tokens: the versions' tokens already read in one batch for many
+    fields (ocr_engine.read_versions_many, see make_corrector); otherwise
+    each version is read with ocr_fn here."""
     readings = []
     if _norm(original_text):
         readings.append((_norm(original_text), float(original_confidence or 0)))
-    for name, make in VARIANTS[:config.AI_ENSEMBLE_VARIANTS]:
+    for index, (name, make) in enumerate(VARIANTS[:config.AI_ENSEMBLE_VARIANTS]):
         try:
-            reading = _read(ocr_fn, make(crop))
+            if version_tokens is not None:
+                reading = _combine(version_tokens[index] if index < len(version_tokens) else None)
+            else:
+                reading = _read(ocr_fn, make(crop))
         except Exception:
             logger.exception("Ensemble read failed on the %s version", name)
             continue
@@ -613,11 +629,11 @@ def _looks_right(category, text):
     return not any(c.isalpha() and c not in allowed for c in text)
 
 
-def assist_field(field, crop, ocr_fn, model):
+def assist_field(field, crop, ocr_fn, model, version_tokens=None):
     """The offline AI's reading of one unsure field -> {"text", "sure",
     "note", "model", ...}, or None when there is nothing to suggest."""
     category = field["category"]
-    vote = ensemble_read(ocr_fn, crop, field.get("raw_text"), field.get("confidence"))
+    vote = ensemble_read(ocr_fn, crop, field.get("raw_text"), field.get("confidence"), version_tokens)
     if vote is None:
         return None
     text, notes, whole_pattern = model.correct(category, vote["text"])
@@ -645,11 +661,31 @@ def assist_field(field, crop, ocr_fn, model):
     }
 
 
-def make_corrector(ocr_fn, model=None):
+# Fields whose versions are read in one batch (make_corrector): big enough
+# for batching to pay off, small enough for the progress bar to keep moving.
+_BATCH_FIELDS = 12
+
+
+def make_corrector(ocr_fn, model=None, batch_reader=None):
     """A corrector for logbook_pipeline.build_review_rows(corrector=...), or
-    None when the AI is switched off (AI_CORRECTION_ENABLED=false)."""
+    None when the AI is switched off (AI_CORRECTION_ENABLED=false).
+
+    batch_reader: ocr_engine.read_versions_many - reads every version of a
+    group of fields in one batch, about twice as fast as reading each
+    version with ocr_fn (same accuracy on the fake-data scan: 0.335 vs 0.340
+    character errors). Without it, or if a batch fails, each version is read
+    with ocr_fn."""
     if not config.AI_CORRECTION_ENABLED:
         return None
+
+    def read_ahead(group):
+        if batch_reader is None:
+            return [None] * len(group)
+        try:
+            return batch_reader([(crop, versions(crop)) for _, crop in group])
+        except Exception:
+            logger.exception("Batch reading failed; reading these fields one version at a time")
+            return [None] * len(group)
 
     def correct_fields(candidates, progress=None):
         candidates = candidates[:config.AI_CORRECTION_MAX_FIELDS]
@@ -657,12 +693,15 @@ def make_corrector(ocr_fn, model=None):
             return 0
         active = model or load_model()
         done = 0
+        ahead = []
         for index, (field, crop) in enumerate(candidates):
             if progress:
                 progress(f"Double-checking hard-to-read entries ({index + 1} of {len(candidates)})",
                          index / len(candidates))
+            if index % _BATCH_FIELDS == 0:
+                ahead = read_ahead(candidates[index:index + _BATCH_FIELDS])
             try:
-                reading = assist_field(field, crop, ocr_fn, active)
+                reading = assist_field(field, crop, ocr_fn, active, ahead[index % _BATCH_FIELDS])
             except Exception:
                 logger.exception("Offline AI failed on %s", field.get("category"))
                 continue

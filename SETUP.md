@@ -107,7 +107,9 @@ This does two things automatically:
 
 This downloads several hundred MB (PaddleOCR/PaddlePaddle are large) and can
 take several minutes. The window stays open when done — read it before
-closing, in case something failed partway.
+closing, in case something failed partway. (The PaddleOCR *model* files are
+already in the repository, in `Ocr_module/ocr_models/`, so OCR needs no
+further download the first time it runs.)
 
 Run this **once per machine**. You don't need to repeat it just to start the
 server later.
@@ -557,6 +559,35 @@ Keep this simple and consistent so nobody overwrites each other's work.
   information
 - The `venv/`, `uploads/`, `debug_cells/`, `__pycache__/` folders under
   `Ocr_module/` — all machine-specific or generated, and already gitignored
+
+### What git shares so OCR reads the same on every PC
+
+| What | Where | Shared? |
+|---|---|---|
+| OCR code and settings defaults | `Ocr_module/*.py` | Yes |
+| Python package versions (PaddleOCR 2.8.1, PaddlePaddle 2.6.2) | `Ocr_module/requirements.txt` | Yes, pinned |
+| PaddleOCR model files (16 MB) | `Ocr_module/ocr_models/` | Yes: no download needed, same models everywhere |
+| **Logbook setup in use** (which column is which) | `Ocr_module/grid_templates/*.json` | **Yes: commit it whenever it changes** |
+| Old setups put away by *Set up a logbook* | `Ocr_module/grid_templates/archive/` | No (each PC's own history) |
+| The tests' own logbook setups | `Ocr_module/test_fixtures/grid_templates/` | Yes |
+| Learned OCR fixes and common entries | database tables `ocr_correction_patterns`, `ocr_known_entries` | **No**: they come from real patients' reviews, so they stay on each PC. The AI's suggestions can therefore differ a little between PCs; PaddleOCR's own readings are the same. |
+| `.env` (passwords, local settings) | `Ocr_module/.env` | No, never |
+
+**After someone sets up a logbook** (*Set up a logbook* page), they commit
+the new `grid_templates/*.json` files and the removal of the old ones:
+
+```powershell
+git add Ocr_module/grid_templates
+git status    # only .json setup files should be listed under grid_templates
+git commit -m "Logbook setup: <what changed>"
+```
+
+**After you pull a new setup**, make sure only the shared setup is used on
+your PC: `Ocr_module/grid_templates/` should hold only the `.json` files
+`git status` shows as tracked. Any extra file listed as untracked there is an
+old local calibration that can compete with the shared one: move it into
+`grid_templates/archive/` (or sign in as administrator and check
+*Set up a logbook* → *What is set up now*). Then restart the backend.
 
 ---
 

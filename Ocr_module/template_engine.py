@@ -299,10 +299,46 @@ def score_template_match(template_payload: Optional[Dict[str, Any]], current_con
     return round(score / max(1.0, weights), 3)
 
 
-def match_templates(templates: List[Dict[str, Any]], current_context: Optional[Dict[str, Any]], page_parity: Optional[str] = None) -> Tuple[Optional[Dict[str, Any]], Optional[float]]:
-    """Find the best matching saved template for the active document."""
+def score_template_fit(template_payload: Optional[Dict[str, Any]], image_width: float,
+                       vertical_rules: List[float]) -> float:
+    """0.0-1.0: how well a template's column lines land on this page's
+    printed column rules (detect_ruling_lines), allowing for a different
+    scan size or shift (fit_lines_to_rules).
+
+    Unlike score_template_match(), whose page-wide edge statistics are
+    swayed by how much handwriting is on the page and how it was scanned,
+    this looks only at the printed logbook columns - which are the same on
+    every page of the same logbook. So a template set up once keeps
+    matching every new scan of that logbook.
+
+    The share of the template's inner column lines that found a rule, times
+    how close the fitted scale is to 1 (template lines are stored as a share
+    of page width, so the right template needs almost no stretching). Lines
+    hugging the page edge are left out: the page edge has no printed rule.
+    """
+    if not template_payload or not image_width:
+        return 0.0
+    lines = [float(x) for x in template_payload.get("gridLines", []) if 0.02 < float(x) < 0.98]
+    if len(lines) < 2:
+        return 0.0
+    fitted = fit_lines_to_rules([x * image_width for x in lines], vertical_rules, image_width)
+    if not fitted:
+        return 0.0
+    share = min(1.0, fitted["matched"] / len(lines))
+    stretch = max(0.0, 1.0 - 2.0 * abs(float(np.log(fitted["scale"]))))
+    return round(share * stretch, 3)
+
+
+def match_templates(templates: List[Dict[str, Any]], current_context: Optional[Dict[str, Any]], page_parity: Optional[str] = None,
+                    vertical_rules: Optional[List[float]] = None) -> Tuple[Optional[Dict[str, Any]], Optional[float]]:
+    """Find the best matching saved template for the active document.
+
+    With vertical_rules (the page's printed column rules, from
+    detect_ruling_lines), each template scores the better of
+    score_template_match() and score_template_fit()."""
     if not templates:
         return None, None
+    page_width = (current_context or {}).get("image_width") or 0
 
     normalized_parity = page_parity if page_parity in {"odd", "even"} else None
     eligible_templates = []
@@ -318,6 +354,8 @@ def match_templates(templates: List[Dict[str, Any]], current_context: Optional[D
     best_score = 0.0
     for template in eligible_templates:
         score = score_template_match(template, current_context)
+        if vertical_rules is not None:
+            score = max(score, score_template_fit(template, page_width, vertical_rules))
         if score > best_score:
             best_score = score
             best_template = template
@@ -736,6 +774,33 @@ def _wrap_bands_to_components(ink_mask: np.ndarray,
     return refined
 
 
+def first_content_band(image: np.ndarray, start_y: float) -> Optional[Tuple[float, float]]:
+    """(y, height) of the first entry's handwriting at or below start_y,
+    or None when there is none."""
+    if image is None or image.size == 0:
+        return None
+    h = image.shape[0]
+    ink_mask, _ = _compute_ink_mask(image)
+    # Printed ruled lines are told apart from ink by their blue colour, which
+    # fades on a dark or grey scan; a long straight stroke is a ruled line
+    # whatever its colour, and would join the entries above and below it.
+    mask = ink_mask.astype(np.uint8)
+    lines = cv2.morphologyEx(mask, cv2.MORPH_OPEN,
+                             cv2.getStructuringElement(cv2.MORPH_RECT, (max(3, mask.shape[1] // 4), 1)))
+    mask[cv2.dilate(lines, np.ones((3, 3), np.uint8)) > 0] = 0
+    density = mask.sum(axis=1).astype(np.float64)
+    # Ignore everything above start_y (the printed header), so it can't
+    # merge with the first entry into one band. Strokes of the entry that
+    # rise over the line are added back by detect_content_rows(), which
+    # grows each row to the whole of every stroke it touches.
+    density[:max(0, int(start_y))] = 0
+    for y0, y1 in _coarse_row_bands(density, h):
+        if y1 > start_y:
+            top = max(float(y0), float(start_y))
+            return top, float(y1) - top
+    return None
+
+
 def detect_content_rows(image: np.ndarray,
                        seed_y: float,
                        seed_height: float,
@@ -1111,10 +1176,19 @@ class TemplateAutoDetector:
                     "spacing": float(row.get("spacing", 0))
                 })
         elif self.template_engine.row_template:
+            seed_y = self.template_engine.row_template.y
+            seed_height = self.template_engine.row_template.height
+            # The first row the template remembers sits wherever it was on
+            # the scan it was set up on; another scan has other margins.
+            # When the page shows where its entries start, begin with the
+            # first handwriting there instead.
+            first = first_content_band(image, rows_start_y) if rows_start_y is not None else None
+            if first:
+                seed_y, seed_height = first
             rows = detect_content_rows(
                 image,
-                self.template_engine.row_template.y,
-                self.template_engine.row_template.height,
+                seed_y,
+                seed_height,
                 image_bottom=h
             )
             for row in rows:

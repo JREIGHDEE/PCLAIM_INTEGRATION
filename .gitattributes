@@ -1,1 +1,4 @@
 .githooks/* text eol=lf
+
+# PaddleOCR model files: byte-exact on every PC (never line-ending converted).
+Ocr_module/ocr_models/** binary

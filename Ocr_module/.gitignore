@@ -16,6 +16,11 @@ __pycache__/
 uploads/
 debug_cells/
 
+# Logbook setups put away by "Set up a logbook" on this PC (local history).
+# The setups in use - grid_templates/*.json - ARE committed, so every
+# groupmate reads logbooks with the same setup.
+grid_templates/archive/
+
 # OCR benchmark output (generated) and test scans (potentially sensitive
 # patient forms - never committed by default; add real files locally only)
 benchmarks/results/

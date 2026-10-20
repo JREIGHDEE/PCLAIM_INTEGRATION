@@ -30,6 +30,10 @@ import logbook_pipeline
 from logbook_pipeline import ACCEPTED, MANUAL, NEEDS_CHECK
 from philhealth import case_bridge
 
+# The tests' own copies of two calibrated templates, so they don't depend on
+# which logbook setup is in use on this PC (grid_templates/, changed by the
+# Set up a logbook page).
+FIXTURE_TEMPLATES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_fixtures", "grid_templates")
 GRID_TEMPLATES = (
     "left_pages_FINAK_1789214042272.json",
     "right_pages_finallll_1789214071747.json",
@@ -63,7 +67,7 @@ _DATETIME_CATEGORIES = {
 
 
 def _load_grid_template(filename):
-    with open(os.path.join(os.path.dirname(__file__), "grid_templates", filename), encoding="utf-8") as handle:
+    with open(os.path.join(FIXTURE_TEMPLATES, filename), encoding="utf-8") as handle:
         return json.load(handle)
 
 
@@ -111,6 +115,23 @@ def _field(category, raw_text, confidence, status=None):
         "status": status or logbook_pipeline.route_confidence(confidence),
         "value": raw_text,
     }
+
+
+class BatchReadingTests(unittest.TestCase):
+    def test_batch_results_are_used_as_the_first_read(self):
+        reads = []
+        crop = np.full((40, 120, 3), 255, dtype=np.uint8)
+        text, confidence, _, error, _ = logbook_pipeline.ocr_cell(
+            crop, lambda img: reads.append(1) or [], first_read=[{"text": "Maria", "confidence": 0.9}])
+        self.assertEqual((text, confidence, error), ("Maria", 0.9, None))
+        self.assertEqual(reads, [])  # no second OCR call
+
+    def test_failed_batch_reads_cells_one_at_a_time(self):
+        def broken(crops):
+            raise RuntimeError("could not create a memory object")
+        with self.assertLogs("logbook_pipeline", level="ERROR"):
+            self.assertEqual(logbook_pipeline._read_batch(broken, ["a", "b"]), [None, None])
+        self.assertEqual(logbook_pipeline._read_batch(None, ["a"]), [None])
 
 
 class RouteConfidenceTests(unittest.TestCase):
@@ -244,6 +265,43 @@ class RowFilterTests(unittest.TestCase):
         rows.append(self._row(3, ["Normal delivery", "Admitting diagnosis noted", "Name"]))
         kept = logbook_pipeline._drop_non_patient_rows(rows)
         self.assertIn(3, [r["row"] for r in kept])
+
+
+class RowCropTests(unittest.TestCase):
+    """The whole-row picture shown when a box's picture is clicked."""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        patcher = mock.patch.object(config, "REVIEW_CROPS_FOLDER", self.tmp)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+
+    def test_row_strip_keeps_writing_above_and_below_the_ruled_lines(self):
+        page = np.full((400, 600, 3), 255, dtype=np.uint8)
+        strip = logbook_pipeline._row_strip(page, (50, 100, 550, 140))
+        self.assertEqual((strip["x0"], strip["y0"]), (50, 82))
+        self.assertEqual(strip["image"].shape[:2], (76, 500))
+
+    def test_spread_is_joined_and_each_box_is_located(self):
+        left = np.zeros((40, 100, 3), dtype=np.uint8)
+        right = np.zeros((20, 50, 3), dtype=np.uint8)  # scaled up to 40 high
+        strips = {(0, 1): {1: {"image": left, "x0": 10, "y0": 90},
+                           2: {"image": right, "x0": 0, "y0": 45}}}
+        rows = [{"spread": 0, "row": 1, "pages": [1, 2], "fields": [
+            {"page": 1, "bbox": [60, 100, 110, 120]},
+            {"page": 2, "bbox": [0, 50, 25, 60]},
+        ]}]
+        logbook_pipeline._save_row_crops(rows, strips, "up1")
+
+        first, second = rows[0]["fields"]
+        self.assertEqual(first["row_crop"], "up1/s0_r1_row.png")
+        saved = cv2.imread(os.path.join(self.tmp, "up1", "s0_r1_row.png"))
+        total = 100 + logbook_pipeline._ROW_PAGE_GAP + 100
+        self.assertEqual(saved.shape[:2], (40, total))
+        self.assertEqual(first["row_box"], [round(50 / total, 4), 0.25, round(50 / total, 4), 0.5])
+        left_of_second = 100 + logbook_pipeline._ROW_PAGE_GAP
+        self.assertEqual(second["row_box"], [round(left_of_second / total, 4), 0.25, round(50 / total, 4), 0.5])
 
 
 class ApplyReviewTests(unittest.TestCase):
@@ -448,19 +506,27 @@ class LogbookEndToEndTests(unittest.TestCase):
         templates_dir = os.path.join(self.tmp, "grid_templates")
         os.makedirs(templates_dir)
         for name in GRID_TEMPLATES:
-            shutil.copy(os.path.join(os.path.dirname(__file__), "grid_templates", name), templates_dir)
+            shutil.copy(os.path.join(FIXTURE_TEMPLATES, name), templates_dir)
         self.sample_pdf = os.path.join(self.tmp, "sample_spread.pdf")
         write_sample_spread(self.sample_pdf)
 
-        from ocr_engine import extract_tokens_from_array
+        from ocr_engine import extract_tokens_from_array, read_many, read_versions_many
 
-        def ocr(image):
-            tokens = extract_tokens_from_array(image)
+        def simulate(tokens):
             for token in tokens:
                 for marker, confidence in self.SIMULATED_CONFIDENCE.items():
                     if marker in token["text"]:
                         token["confidence"] = confidence
             return tokens
+
+        def ocr(image):
+            return simulate(extract_tokens_from_array(image))
+
+        def ocr_many(images):
+            return [simulate(tokens) for tokens in read_many(images)]
+
+        def ocr_versions_many(jobs):
+            return [[simulate(tokens) for tokens in versions] for versions in read_versions_many(jobs)]
 
         self.patches = [
             # Only the two calibrated templates - a groupmate's extra local
@@ -468,6 +534,8 @@ class LogbookEndToEndTests(unittest.TestCase):
             mock.patch.object(config, "GRID_TEMPLATES_FOLDER", templates_dir),
             mock.patch.object(config, "REVIEW_CROPS_FOLDER", os.path.join(self.tmp, "crops")),
             mock.patch("routes.review_routes.extract_tokens_from_array", ocr),
+            mock.patch("routes.review_routes.read_many", ocr_many),
+            mock.patch("routes.review_routes.read_versions_many", ocr_versions_many),
             # The test patients must never be learned into the real
             # pattern/entry tables (paddle_assist.record_review / backfill).
             mock.patch("pattern_store.add_patterns"),

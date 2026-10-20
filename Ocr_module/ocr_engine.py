@@ -13,23 +13,41 @@ import tempfile
 
 import cv2
 import fitz
+import numpy as np
 from paddleocr import PaddleOCR
+from paddleocr.tools.infer.predict_system import sorted_boxes
+from paddleocr.tools.infer.utility import get_rotate_crop_image
 
 logger = logging.getLogger(__name__)
 
 _ocr_instance = None
+
+# The PaddleOCR models, kept in the repository (ocr_models/, 16 MB) so every
+# groupmate's PC reads with exactly the same models and needs no internet
+# on first run. They are the models paddleocr 2.8.1 downloads for lang="en"
+# (to ~/.paddleocr); if the folder is missing, PaddleOCR downloads them.
+_MODELS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ocr_models")
+_MODEL_DIRS = {
+    "det_model_dir": os.path.join(_MODELS, "en_PP-OCRv3_det_infer"),
+    "rec_model_dir": os.path.join(_MODELS, "en_PP-OCRv4_rec_infer"),
+    "cls_model_dir": os.path.join(_MODELS, "ch_ppocr_mobile_v2.0_cls_infer"),
+}
 
 
 def get_ocr_engine():
     """Return the shared PaddleOCR instance, creating it on first use."""
     global _ocr_instance
     if _ocr_instance is None:
-        logger.info("Loading PaddleOCR model (use_angle_cls=True, lang=en, cpu)...")
+        bundled = {k: v for k, v in _MODEL_DIRS.items()
+                   if os.path.isfile(os.path.join(v, "inference.pdmodel"))}
+        logger.info("Loading PaddleOCR model (use_angle_cls=True, lang=en, cpu, %s)...",
+                    "models from ocr_models/" if len(bundled) == 3 else "downloaded models")
         _ocr_instance = PaddleOCR(
             use_angle_cls=True,
             lang="en",
             use_gpu=False,
             show_log=False,
+            **(bundled if len(bundled) == 3 else {}),
         )
         logger.info("PaddleOCR model loaded.")
     return _ocr_instance
@@ -74,6 +92,55 @@ def extract_tokens_from_array(image):
                 "box": [[float(x), float(y)] for x, y in item[0]],
             })
     return tokens
+
+
+def read_versions_many(jobs):
+    """Batch OCR for many small images (logbook cells) at once.
+
+    jobs: [(image, [version, ...]), ...] - each version is the image itself
+    or an enhanced copy of it (same picture, possibly resized). Returns, per
+    job, per version, tokens like extract_tokens_from_array().
+
+    Same PaddleOCR models and steps as extract_tokens_from_array(), but the
+    text lines are found once per image (on the image itself) and cut from
+    every version, and all lines of all jobs are read in one batched call.
+    Finding lines takes about a third of a single ocr() call and reading
+    them two thirds, mostly per-call overhead: batching makes reading a
+    line about twice as fast, and versions skip finding lines altogether.
+    Errors propagate, as in extract_tokens_from_array().
+    """
+    engine = get_ocr_engine()
+    lines, owners = [], []
+    for job_index, (image, versions) in enumerate(jobs):
+        boxes = engine.text_detector(image)[0]
+        boxes = sorted_boxes(boxes) if boxes is not None and len(boxes) else []
+        for version_index, version in enumerate(versions):
+            scale = np.array([version.shape[1] / image.shape[1], version.shape[0] / image.shape[0]],
+                             dtype=np.float32)
+            for box in boxes:
+                box = (np.array(box, dtype=np.float32) * scale).astype(np.float32)
+                lines.append(get_rotate_crop_image(version, box))
+                owners.append((job_index, version_index, box))
+    results = [[[] for _ in versions] for _, versions in jobs]
+    if not lines:
+        return results
+    lines, _, _ = engine.text_classifier(lines)
+    readings, _ = engine.text_recognizer(lines)
+    for (job_index, version_index, box), (text, confidence) in zip(owners, readings):
+        if confidence < engine.drop_score:
+            continue  # what ocr() drops too
+        results[job_index][version_index].append({
+            "text": text,
+            "confidence": round(float(confidence), 2),
+            "box": [[float(x), float(y)] for x, y in box],
+        })
+    return results
+
+
+def read_many(images):
+    """extract_tokens_from_array() for many images, batched
+    (read_versions_many)."""
+    return [versions[0] for versions in read_versions_many([(image, [image]) for image in images])]
 
 
 def extract_text_from_array(image):

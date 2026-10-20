@@ -11,6 +11,80 @@ Related documents:
 
 ---
 
+## Not yet committed (2026-10-21)
+
+**Reading a logbook is about twice as fast** (`Ocr_module/ocr_engine.py`, `Ocr_module/logbook_pipeline.py`, `Ocr_module/paddle_assist.py`, `Ocr_module/routes/review_routes.py`)
+- Before: the 2-page `fake scan 1.pdf` took 146-152 s, three quarters of it
+  the AI second look, which ran PaddleOCR's whole process 4 times per unsure
+  field (85 of 99 fields), finding the text lines afresh in every version
+  of the same picture.
+- Now the text lines are found once per field and cut from every version,
+  and the lines of many fields are read in one batch
+  (`ocr_engine.read_versions_many` / `read_many`); same models, same voting.
+  The first read of every field is batched the same way. If a batch fails,
+  fields are read one at a time as before.
+- `fake scan 1.pdf`: **152 s -> 72 s**, character errors 0.340 -> 0.316
+  (44 fields checked by hand), all 11 patients.
+- Tried and not kept: no rotation check (changes readings), MKL-DNN, more
+  threads, bigger batches (no faster).
+- Noticed, not changed: fields the AI marks "sure" are often still wrong
+  (2 of 16 exactly right on this scan). Staff check every AI reading anyway.
+
+**Groupmates get the same OCR after pulling** (`Ocr_module/ocr_models/`, `.gitattributes`, `Ocr_module/.gitignore`, `Ocr_module/test_fixtures/`, `SETUP.md`)
+- The PaddleOCR models (16 MB) are now in the repository and used from
+  there: same models on every PC, no download on first run (identical
+  readings to the downloaded ones, checked on 30 fields). Marked binary so
+  git never changes their line endings.
+- The logbook setup in use (`grid_templates/*.json`) is committed; setups
+  put away by *Set up a logbook* (`grid_templates/archive/`) stay local.
+- The tests use their own setup copies (`test_fixtures/grid_templates/`),
+  so they pass whatever setup a PC is using.
+- SETUP.md: what git shares and what it doesn't (learned OCR fixes stay in
+  each PC's database: they come from real patients), and what to do after
+  setting up a logbook or pulling a new setup.
+
+---
+
+## Not yet committed (2026-10-20)
+
+**New "Set up a logbook" page replaces hand calibration** (`Ocr_module/logbook_setup.py`, `Ocr_module/logbook_layout.py`, `Ocr_module/routes/setup_routes.py`, `Ocr_module/templates/logbook_setup.html`, `PClaimAssist/js/sidebar.js`)
+- Administrators open **Set up a logbook** (sidebar, Clinic section, or the
+  link on the Read Logbook page) and follow four steps: choose a scan,
+  check the left page, check the right page, save.
+- The computer finds the columns itself: from the printed column lines,
+  plus the gaps between the printed column names when a line is too faint
+  to see (e.g. the red margin line). It names each column by reading the
+  printed header (CASE #, NAME, ADMITTING...), and shows the patient rows
+  it found as dashed boxes.
+- The person only checks: each column is a numbered, named coloured stripe.
+  A wrong line is dragged (anywhere along it, or by its round handle, or
+  with the arrow keys) and jumps onto the nearest printed line. A wrong name
+  is picked from a list in plain words. "Split in two" / "Join" for a missing
+  or extra line. Two columns with the same name, or a missing Name /
+  Birthday / Admission column, are pointed out before going on.
+- Saving writes ordinary grid templates (the advanced calibration tool and
+  the reader use them as before). "Use only this setup" moves older setups
+  to `grid_templates/archive` (never deleted). Admins only.
+- Tested on `fake scan 1.pdf` and `Scan.pdf`: all four pages found correctly
+  with no changes by hand.
+
+**One setup now works for every scan of the same logbook** (`Ocr_module/template_engine.py`, `Ocr_module/logbook_pipeline.py`)
+- Before, the left page of `fake scan 1.pdf` was skipped (match score
+  0.52-0.54, needs 0.55), and the rows started at the 3rd-4th patient.
+- Pages are now matched by their printed column lines (`score_template_fit`),
+  which handwriting and scan margins don't change, and the first row is found
+  under the printed column header of each scan, not where it was on the
+  setup scan.
+- A setup made from `fake scan 1.pdf` reads all 11 of its patients and all
+  12 of `Scan.pdf`, with both pages of each spread lined up.
+
+**Plainer message when a page can't be read** (`Ocr_module/templates/review.html`)
+- Numbered steps for staff (rescan flat and straight with the column names
+  showing; both pages in one PDF), then "ask your administrator to set it up
+  once"; technical detail under "Details for the administrator".
+
+---
+
 ## 2026-10-15 13:17: UI update (reigh)
 
 - Changed: review.html, style.css, index.html, app.js, login.js, sidebar.js, login.html, ocr.html

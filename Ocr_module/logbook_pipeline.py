@@ -9,14 +9,20 @@ The full server-side flow for one uploaded logbook scan (image or PDF):
                          Advisory only: warnings are shown at the top of
                          the review, OCR always runs.
   3. template match    - template_engine.match_templates() against the saved
-                         grid templates, by page parity for PDFs. A page
+                         grid templates, by page parity for PDFs, scored
+                         mainly by how the template's columns land on the
+                         page's printed column rules (score_template_fit),
+                         so one setup fits every scan of a logbook. A page
                          scoring below config.TEMPLATE_MATCH_THRESHOLD is
                          reported and skipped - never OCR'd against a
                          template that doesn't fit.
-  4. place + crop      - TemplateAutoDetector.auto_place_template(); on a
-                         two-page spread the odd page's rows are carried to
-                         the even page (same as BatchProcessor) so both
-                         halves of one patient entry line up.
+  4. place + crop      - TemplateAutoDetector.auto_place_template(); rows
+                         start under the printed column header read off the
+                         page (logbook_layout), not where they were on the
+                         setup scan. On a two-page spread the odd page's
+                         rows are carried to the even page (same as
+                         BatchProcessor) so both halves of one patient entry
+                         line up.
   5. PaddleOCR         - each cell crop OCR'd on its own.
   6. route             - each field routed by confidence (route_confidence).
   6b. AI second look   - fields Paddle was unsure about are re-read offline
@@ -44,6 +50,7 @@ import fitz
 import numpy as np
 
 import config
+import logbook_layout
 import paddle_assist
 from image_quality import IQ_RULE_ID, assess_image_quality
 from philhealth import case_bridge, field_catalog, review_fields
@@ -162,8 +169,11 @@ def _missed_ink(mask, tokens, shift=0):
     return float((mask & ~covered).sum()) / float(mask.sum())
 
 
-def ocr_cell(image, ocr_fn):
+def ocr_cell(image, ocr_fn, first_read=None):
     """OCR one cell crop -> (raw_text, confidence, tokens, error, flags).
+
+    first_read: the crop's tokens when already read in a batch with other
+    cells (build_review_rows' batch_ocr_fn); the retry still uses ocr_fn.
 
     Confidence is the *lowest* token confidence in the cell, not the mean:
     one misread word must not be hidden by confident neighbours when the
@@ -179,12 +189,12 @@ def ocr_cell(image, ocr_fn):
     flags = {"blank": False, "incomplete": False}
     mask = _ink_mask(image)
 
-    def read(img):
-        found = ocr_fn(img) or []
+    def read(img, found=None):
+        found = (ocr_fn(img) if found is None else found) or []
         return [t for t in found if str(t.get("text", "")).strip()]
 
     try:
-        tokens = read(image)
+        tokens = read(image, first_read)
         missed = _missed_ink(mask, tokens)
         if missed is not None and missed > config.OCR_MISSED_INK_LIMIT:
             padded = cv2.copyMakeBorder(image, *([_RETRY_MARGIN] * 4), cv2.BORDER_CONSTANT, value=(255, 255, 255))
@@ -220,13 +230,23 @@ def field_status(category, confidence, flags):
     return status
 
 
-def _first_entry_line(template, ruled_lines, height):
-    """Top of the first patient row: the first ruled line in the top quarter
-    of the page that lies below the template's saved first-row position -
-    on a logbook page that is the line under the printed column header.
-    Starting there keeps the header from being merged with (and then
-    dropped together with) the first patient's entry. None (use the
-    template's own position) when the page has no such line."""
+def _first_entry_line(template, ruled_lines, height, image=None, ocr_fn=None):
+    """Top of the first patient row.
+
+    Read from the page itself when its printed column header can be found
+    (logbook_layout): each scan has its own margins, so the first row is
+    not where it was on the scan the template was set up on.
+
+    Otherwise, the first ruled line in the top quarter of the page that lies
+    below the template's saved first-row position. Starting there keeps the
+    header from being merged with (and then dropped together with) the
+    first patient's entry. None (use the template's own position) when the
+    page has no such line."""
+    if image is not None and ocr_fn is not None:
+        header = logbook_layout.read_header(image, ocr_fn)
+        if header:
+            return logbook_layout.first_entry_line(ruled_lines, height, header["bottom"])
+
     row_template = template.get("rowTemplate") or {}
     saved = float(row_template.get("y", 0)) * height / float(template.get("imageHeight") or height)
     for y in ruled_lines:
@@ -252,10 +272,119 @@ def _save_crop(crop, upload_id, page_number, row, column):
     return f"{upload_id}/{filename}"
 
 
-def build_review_rows(path, ocr_fn, templates, upload_id=None, progress=None, corrector=None):
+# Extra height kept above and below a row in its whole-row picture, as a
+# share of the row's height. Handwriting often runs over the ruled lines,
+# and a cell crop cut at the line can lose it; the row picture keeps it.
+_ROW_MARGIN = 0.45
+# White gap between the two pages of a spread in a row picture.
+_ROW_PAGE_GAP = 12
+# Widest a row picture is saved; wider ones are scaled down.
+_ROW_MAX_WIDTH = 4000
+
+
+def _row_bounds(cells):
+    """{row: (x1, y1, x2, y2)} spanning every placed cell of each row."""
+    bounds = {}
+    for c in cells:
+        x1, y1, x2, y2 = bounds.get(c["row"], (c["x1"], c["y1"], c["x2"], c["y2"]))
+        bounds[c["row"]] = (min(x1, c["x1"]), min(y1, c["y1"]), max(x2, c["x2"]), max(y2, c["y2"]))
+    return bounds
+
+
+def _row_strip(image, bounds):
+    """The whole row on one page, with _ROW_MARGIN above and below.
+    Returns {"image", "x0", "y0"} (x0/y0: the strip's page offset), or None."""
+    h, w = image.shape[:2]
+    x1, y1, x2, y2 = bounds
+    pad = (y2 - y1) * _ROW_MARGIN
+    left, right = max(0, int(x1)), min(w, int(x2))
+    top, bottom = max(0, int(y1 - pad)), min(h, int(y2 + pad))
+    if right <= left or bottom <= top:
+        return None
+    return {"image": image[top:bottom, left:right].copy(), "x0": left, "y0": top}
+
+
+def _save_row_crops(rows, strips, upload_id):
+    """Save one picture per kept patient row - both pages of a spread side
+    by side - and give each field "row_crop" (its path) and "row_box"
+    ([left, top, width, height] of the field's cell in that picture, as
+    shares 0-1) so the review screen can show the whole row with the box
+    marked. Rows with no strips are left without a row picture."""
+    for row in rows:
+        parts = strips.get((row["spread"], row["row"]))
+        if not parts:
+            continue
+        pages = sorted(parts)
+        height = max(parts[p]["image"].shape[0] for p in pages)
+        placed, x = {}, 0
+        for page in pages:
+            strip = parts[page]
+            scale = height / strip["image"].shape[0]
+            width = max(1, round(strip["image"].shape[1] * scale))
+            placed[page] = {**strip, "scale": scale, "x": x,
+                            "image": cv2.resize(strip["image"], (width, height))}
+            x += width + _ROW_PAGE_GAP
+        total = x - _ROW_PAGE_GAP
+        picture = np.full((height, total, 3), 255, dtype=np.uint8)
+        for part in placed.values():
+            img = part["image"]
+            if img.ndim == 2:
+                img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+            picture[:, part["x"]:part["x"] + img.shape[1]] = img
+
+        shrink = min(1.0, _ROW_MAX_WIDTH / total)
+        if shrink < 1.0:
+            picture = cv2.resize(picture, (round(total * shrink), max(1, round(height * shrink))),
+                                 interpolation=cv2.INTER_AREA)
+
+        folder = os.path.join(config.REVIEW_CROPS_FOLDER, upload_id)
+        os.makedirs(folder, exist_ok=True)
+        filename = f"s{row['spread']}_r{row['row']}_row.png"
+        cv2.imwrite(os.path.join(folder, filename), picture)
+
+        for field in row["fields"]:
+            part = placed.get(field["page"])
+            field["row_crop"] = f"{upload_id}/{filename}"
+            if part is None:
+                field["row_box"] = None
+                continue
+            x1, y1, x2, y2 = field["bbox"]
+            left = part["x"] + (x1 - part["x0"]) * part["scale"]
+            top = (y1 - part["y0"]) * part["scale"]
+            field["row_box"] = [
+                round(max(0.0, left / total), 4),
+                round(max(0.0, top / height), 4),
+                round(min(1.0, (x2 - x1) * part["scale"] / total), 4),
+                round(min(1.0, (y2 - y1) * part["scale"] / height), 4),
+            ]
+
+
+# Cells read together in one batch: big enough for batching to pay off,
+# small enough for the progress bar to keep moving.
+_BATCH_CELLS = 12
+
+
+def _read_batch(batch_ocr_fn, crops):
+    """Each crop's tokens read in one batch, or None for each (read one at
+    a time by ocr_cell) without a batch reader or if the batch fails."""
+    if batch_ocr_fn is None:
+        return [None] * len(crops)
+    try:
+        return batch_ocr_fn(crops)
+    except Exception:
+        logger.exception("Batch reading failed; reading these cells one at a time")
+        return [None] * len(crops)
+
+
+def build_review_rows(path, ocr_fn, templates, upload_id=None, progress=None, corrector=None,
+                      batch_ocr_fn=None):
     """Run steps 1-7 on one uploaded file. No database access.
 
     ocr_fn(image) -> [{"text", "confidence"}, ...]   (ocr_engine.extract_text_from_array)
+    batch_ocr_fn  -> optional: the same for a list of images in one batch
+                     (ocr_engine.read_many), about twice as fast; cells are
+                     read with ocr_fn one at a time without it, or if a
+                     batch fails
     templates     -> saved grid template payloads    (template_store.load_template_payloads)
     corrector     -> optional AI second look (paddle_assist.make_corrector),
                      called once as corrector([(field, crop), ...], progress=
@@ -274,7 +403,8 @@ def build_review_rows(path, ocr_fn, templates, upload_id=None, progress=None, co
 
     where each field is {"category", "page", "row", "column", "bbox",
     "raw_text", "confidence", "tokens", "ocr_error", "possibly_incomplete",
-    "status", "routed_status", "value", "best_guess", "crop", "target_fields", "ai"}.
+    "status", "routed_status", "value", "best_guess", "crop", "row_crop",
+    "row_box", "target_fields", "ai"} - row_crop/row_box: see _save_row_crops.
     """
     upload_id = upload_id or uuid.uuid4().hex
     unsure = []  # (field, crop) pairs for the AI second look
@@ -282,6 +412,7 @@ def build_review_rows(path, ocr_fn, templates, upload_id=None, progress=None, co
 
     iq_pages, page_reports = [], []
     rows_by_key = {}
+    row_strips = {}  # (spread, row) -> {page: whole-row strip}, see _save_row_crops
     spread = -1
     carried_rows = None  # odd page's rows, as fractions of page height
     carried_rules = None  # odd page's rows in pixels + its ruled lines
@@ -305,20 +436,23 @@ def build_review_rows(path, ocr_fn, templates, upload_id=None, progress=None, co
                   "match_score": None, "rows": 0, "alignment": None, "error": None}
         page_reports.append(report)
 
-        template, score = match_templates(templates, analyze_document_layout(image), page_parity=parity)
+        rules = detect_ruling_lines(image)
+        template, score = match_templates(templates, analyze_document_layout(image), page_parity=parity,
+                                          vertical_rules=rules["vertical"])
         report["match_score"] = score
         if template is None or score is None or score < config.TEMPLATE_MATCH_THRESHOLD:
             report["error"] = (
-                "No saved grid template matches this page "
+                "No logbook setup matches this page's printed columns "
                 f"(best score {score or 0:.2f}, needs {config.TEMPLATE_MATCH_THRESHOLD:.2f}). "
-                "Calibrate a template for this page layout first."
+                "If the scan is clear and straight, this logbook has a different "
+                "layout: set it up once on the Set up a logbook page."
             )
             carried_rows = carried_rules = None
             continue
         report["template"] = template.get("filename") or template.get("name")
 
         height = image.shape[0]
-        ruled_lines = detect_ruling_lines(image)["horizontal"]
+        ruled_lines = rules["horizontal"]
         paired = parity == "even" and carried_rows is not None
         if not paired:
             spread += 1
@@ -335,7 +469,7 @@ def build_review_rows(path, ocr_fn, templates, upload_id=None, progress=None, co
 
         placement = detector.auto_place_template(
             image, template, auto_align=True, forced_rows=forced_rows,
-            rows_start_y=None if paired else _first_entry_line(template, ruled_lines, height),
+            rows_start_y=None if paired else _first_entry_line(template, ruled_lines, height, image, ocr_fn),
         )
         if not placement.get("success"):
             report["error"] = "The template could not be placed on this page."
@@ -350,25 +484,35 @@ def build_review_rows(path, ocr_fn, templates, upload_id=None, progress=None, co
         ] if parity == "odd" else None
         carried_rules = {"rows": placement["rows"], "lines": ruled_lines} if parity == "odd" else None
 
-        cell_count = max(1, len(placement["cells"]))
-        for cell_index, cell_data in enumerate(placement["cells"]):
-            report_progress(read_share * (page_index + (cell_index + 1) / cell_count) / page_count,
-                            f"Reading page {page_number} of {page_count}")
+        row_bounds = _row_bounds(placement["cells"])
+        cells = []  # (cell, category, crop) for every cell to read
+        for cell_data in placement["cells"]:
             category = _page_category_for_column(template, cell_data["column"])
             if category is None:
                 continue
             cell = Cell(row=cell_data["row"], column=cell_data["column"],
                         x1=cell_data["x1"], y1=cell_data["y1"], x2=cell_data["x2"], y2=cell_data["y2"])
             crop = extract_crop_from_cell(image, cell)
-            if crop is None:
-                continue
+            if crop is not None:
+                cells.append((cell, category, crop))
+        cell_count = max(1, len(cells))
+        first_reads = []
+        for cell_index, (cell, category, crop) in enumerate(cells):
+            report_progress(read_share * (page_index + (cell_index + 1) / cell_count) / page_count,
+                            f"Reading page {page_number} of {page_count}")
+            if cell_index % _BATCH_CELLS == 0:
+                first_reads = _read_batch(batch_ocr_fn, [c[2] for c in cells[cell_index:cell_index + _BATCH_CELLS]])
 
-            raw_text, confidence, tokens, ocr_error, flags = ocr_cell(crop, ocr_fn)
+            raw_text, confidence, tokens, ocr_error, flags = ocr_cell(
+                crop, ocr_fn, first_reads[cell_index % _BATCH_CELLS])
             status = field_status(category, confidence, flags)
             key = (spread, cell.row)
             row = rows_by_key.setdefault(key, {"spread": spread, "row": cell.row, "pages": [], "fields": []})
             if page_number not in row["pages"]:
                 row["pages"].append(page_number)
+                strip = _row_strip(image, row_bounds[cell.row])
+                if strip is not None:
+                    row_strips.setdefault(key, {})[page_number] = strip
             field = {
                 "category": category,
                 "page": page_number,
@@ -404,6 +548,7 @@ def build_review_rows(path, ocr_fn, templates, upload_id=None, progress=None, co
                   progress=lambda message, fraction: report_progress(
                       read_share + (1 - read_share) * fraction, message))
     fill_best_guesses(rows)
+    _save_row_crops(rows, row_strips, upload_id)
     for report in page_reports:
         if report["error"]:
             logger.warning("Page %s skipped: %s", report["page"], report["error"])
