@@ -32,17 +32,6 @@ const VAL_FIELDS = {
     { key:'dateDischarge', label:'Date Discharged' },
     { key:'patientDOB',    label:'Patient Date of Birth' },
   ],
-  cf2: [
-    { key:'hciPAN',        label:'HCI Accreditation No. (PAN)' },
-    { key:'hciName',       label:'Health Care Institution Name' },
-    { key:'patientName',   label:'Patient Name' },
-    { key:'dateAdmitted',  label:'Date Admitted' },
-    { key:'dateDischarge', label:'Date Discharged' },
-    { key:'disposition',   label:'Patient Disposition' },
-    { key:'accommodation', label:'Type of Accommodation' },
-    { key:'admissionDx',   label:'Admission Diagnosis' },
-    { key:'dxADiagnosis',  label:'Discharge Diagnosis' },
-  ],
   cf4: [
     { key:'memberPIN',            label:'Member PhilHealth PIN' },
     { key:'patientName',          label:'Patient Name' },
@@ -64,16 +53,15 @@ const VAL_FIELDS = {
     { key:'civilStatus',   label:'Civil Status' },
     { key:'citizenship',   label:'Citizenship' },
     { key:'fullAddress',   label:'Permanent Home Address' },
-    { key:'mobile',        label:'Mobile Number' },
     { key:'memberType',    label:'Member Type' },
     { key:'patientName',   label:'Dependent Name' },
   ],
 };
 
-const VAL_FORM_KEYS = ['csf', 'cf2', 'cf4', 'pmrf'];
+const VAL_FORM_KEYS = ['csf', 'cf4', 'pmrf'];
 
 const FORM_LABELS = {
-  csf: 'CSF', cf2: 'CF2', cf4: 'CF4', pmrf: 'PMRF',
+  csf: 'CSF', cf4: 'CF4', pmrf: 'PMRF',
 };
 
 /* ── Helpers ─────────────────────────────────────────────── */
@@ -136,12 +124,6 @@ function computeFeatures(getValue, data) {
   f.pin_match_across_forms    = 1;
   f.dates_match_across_forms  = 1;
   f.name_match_across_forms   = 1;
-  f.diagnosis_match_cf2_cf4   = (() => {
-    const cf2 = String(getValue('dxADiagnosis') || '').trim().toLowerCase();
-    const cf4 = String(getValue('cf4FinalDiagnosis') || '').trim().toLowerCase();
-    if (!cf2 || !cf4) return 1; // can't mismatch until both are filled
-    return cf2 === cf4 ? 1 : 0;
-  })();
 
   // Date ordering
   const adm  = parseDisplayDate(getValue('dateAdmitted'));
@@ -225,12 +207,12 @@ const RULES = [
 
   { id:'MF-04', category:'Missing Field', action:'block_submission',
     test: f => f.dateAdmitted_present === 0,
-    message:'Date of admission is missing. Type it in Patient details, part 3 (Stay at the clinic) - CF2 needs it.',
+    message:'Date of admission is missing. Type it in Patient details, part 3 (Stay at the clinic).',
     field:'dateAdmitted', source:'PhilHealth guidelines' },
 
   { id:'MF-05', category:'Missing Field', action:'block_submission',
     test: f => f.dateDischarge_present === 0,
-    message:'Date of discharge (went home) is missing. Type it in Patient details, part 3 (Stay at the clinic) - CF2 needs it.',
+    message:'Date of discharge (went home) is missing. Type it in Patient details, part 3 (Stay at the clinic).',
     field:'dateDischarge', source:'PhilHealth guidelines' },
 
   { id:'MF-06', category:'Missing Field', action:'flag_high_risk',
@@ -307,13 +289,9 @@ const RULES = [
 
   { id:'IC-07', category:'Inconsistent Entry', action:'block_submission',
     test: f => f.dates_match_across_forms === 0,
-    message:'Admission and discharge dates are not the same across CSF, CF2, and CF4.',
+    message:'Admission and discharge dates are not the same across CSF and CF4.',
     source:'Historical RTH analysis' },
 
-  { id:'IC-08', category:'Inconsistent Entry', action:'block_submission',
-    test: f => f.diagnosis_match_cf2_cf4 === 0,
-    message:'The final diagnosis on CF2 does not match the diagnosis on CF4.',
-    field:'cf4FinalDiagnosis', form:'cf4', source:'PhilHealth CF4 requirement' },
 
   /* ── Category 4: Signature Presence ──
      Before printing these produce the signing checklist. They only fire as
@@ -326,8 +304,8 @@ const RULES = [
 
   { id:'SP-02', category:'Signature', action:'block_submission',
     test: f => f._signatureCheckActive && f.attending_midwife_signature_present === 0,
-    message:"Attending midwife's signature is missing on CF2.",
-    checklist:'Attending midwife / physician — CF2',
+    message:"Attending midwife's signature is missing on CF4.",
+    checklist:'Attending midwife / physician — CF4',
     source:'PhilHealth Circular No. 21, s. 2014' },
 
   { id:'SP-03', category:'Signature', action:'block_submission',

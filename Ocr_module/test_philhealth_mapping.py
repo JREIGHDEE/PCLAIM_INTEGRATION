@@ -68,9 +68,7 @@ class MappingServiceTests(unittest.TestCase):
     def test_complete_data_maps_cleanly_with_no_missing_fields(self):
         patient, encounter, claims_row = self._complete_rows()
         result = mapping_service.map_claim(patient, encounter, claims_row)
-        self.assertTrue(result["forms"]["cf2"]["complete"])
         self.assertTrue(result["forms"]["csf"]["complete"])
-        self.assertEqual(result["forms"]["cf2"]["missing_required"], [])
         self.assertEqual(result["forms"]["csf"]["missing_required"], [])
 
     def test_missing_required_patient_info_is_reported(self):
@@ -84,33 +82,22 @@ class MappingServiceTests(unittest.TestCase):
         patient["middle_name"] = None
         patient["name_ext"] = None
         result = mapping_service.map_claim(patient, encounter, claims_row)
-        self.assertFalse(result["forms"]["cf2"]["complete"])
-        self.assertIn("Patient Name", result["forms"]["cf2"]["missing_required"])
+        self.assertFalse(result["forms"]["csf"]["complete"])
+        self.assertIn("Patient Name", result["forms"]["csf"]["missing_required"])
 
-    def test_missing_philhealth_member_info_blocks_csf_only(self):
+    def test_missing_philhealth_member_info_blocks_csf(self):
         patient, encounter, claims_row = self._complete_rows()
         claims_row["member_pin"] = None
         result = mapping_service.map_claim(patient, encounter, claims_row)
-        self.assertTrue(result["forms"]["cf2"]["complete"])
         self.assertFalse(result["forms"]["csf"]["complete"])
         self.assertIn("Member PhilHealth PIN", result["forms"]["csf"]["missing_required"])
-
-    def test_missing_diagnosis_blocks_cf2_only(self):
-        patient, encounter, claims_row = self._complete_rows()
-        encounter["admission_dx"] = None
-        encounter["discharge_dx"] = ""
-        result = mapping_service.map_claim(patient, encounter, claims_row)
-        self.assertFalse(result["forms"]["cf2"]["complete"])
-        self.assertIn("Admission Diagnosis", result["forms"]["cf2"]["missing_required"])
-        self.assertIn("Discharge Diagnosis", result["forms"]["cf2"]["missing_required"])
-        self.assertTrue(result["forms"]["csf"]["complete"])
 
     def test_invalid_date_is_a_validation_error_not_a_silent_pass(self):
         patient, encounter, claims_row = self._complete_rows()
         encounter["date_admitted"] = "not-a-real-date"
         result = mapping_service.map_claim(patient, encounter, claims_row)
-        self.assertFalse(result["forms"]["cf2"]["complete"])
-        self.assertTrue(any("not a valid date" in e for e in result["forms"]["cf2"]["validation_errors"]))
+        self.assertFalse(result["forms"]["csf"]["complete"])
+        self.assertTrue(any("not a valid date" in e for e in result["forms"]["csf"]["validation_errors"]))
 
     def test_invalid_pin_format_is_a_validation_error(self):
         patient, encounter, claims_row = self._complete_rows()
@@ -129,9 +116,8 @@ class MappingServiceTests(unittest.TestCase):
 
     def test_no_rows_at_all_reports_everything_missing_without_crashing(self):
         result = mapping_service.map_claim(None, None, None)
-        self.assertFalse(result["forms"]["cf2"]["complete"])
         self.assertFalse(result["forms"]["csf"]["complete"])
-        self.assertGreater(len(result["forms"]["cf2"]["missing_required"]), 0)
+        self.assertGreater(len(result["forms"]["csf"]["missing_required"]), 0)
 
     def test_mapping_does_not_mutate_input_dicts(self):
         patient, encounter, claims_row = self._complete_rows()
@@ -234,11 +220,6 @@ class PdfExportTests(unittest.TestCase):
 
     def _complete_rows(self):
         return MappingServiceTests._complete_rows(self)
-
-    def test_export_cf2_produces_a_pdf(self):
-        patient, encounter, claims_row = self._complete_rows()
-        pdf_bytes = pdf_export.export_claim_pdf("cf2", patient, encounter, claims_row)
-        self.assertTrue(pdf_bytes.startswith(b"%PDF"))
 
     def test_export_csf_produces_a_pdf(self):
         patient, encounter, claims_row = self._complete_rows()
@@ -371,9 +352,9 @@ class ClaimsStoreIntegrationTests(unittest.TestCase):
         self.assertEqual(rows["claim"]["am_pm_delivery"], "AM")
 
         mapped = mapping_service.map_claim(rows["patient"], rows["encounter"], rows["claim"])
-        # Disposition/accommodation/member info have no OCR source - expected missing.
-        self.assertFalse(mapped["forms"]["cf2"]["complete"])
-        self.assertIn("Patient Disposition", mapped["forms"]["cf2"]["missing_required"])
+        # Member info has no OCR source - expected missing.
+        self.assertFalse(mapped["forms"]["csf"]["complete"])
+        self.assertIn("Member PhilHealth PIN", mapped["forms"]["csf"]["missing_required"])
 
     def test_status_advances_draft_to_ready_to_exported_and_never_regresses(self):
         self.case_session_store.save_reviewed_session(self.case_id, "Test Case", {
@@ -391,7 +372,7 @@ class ClaimsStoreIntegrationTests(unittest.TestCase):
 
         # OCR alone never supplies disposition/accommodation/member info/PINs/
         # HCI defaults (this dev environment has no PHILHEALTH_HCI_* set) -
-        # cf2/csf are both incomplete, so status stays 'draft'.
+        # csf is incomplete, so status stays 'draft'.
         rows = self.claims_store.get_claim(claim_id)
         self.assertEqual(rows["claim"]["status"], "draft")
 

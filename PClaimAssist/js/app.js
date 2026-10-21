@@ -75,10 +75,7 @@ const state = {
     dateDischarge:'', timeDischarge:'', amPmDischarge:'AM',
     disposition:'', accommodation:'', chiefComplaint:'', admissionDx:'', dischargeDx:'',
     /* Series numbers (printed top-right of each claim form) */
-    csfSeries:'', cf2Series:'',
-    /* CF2 – special procedures, TB-DOTS and newborn care packages */
-    cf2SpecialProcedures:[], cf2SpecialProcedureDetail:'',
-    cf2TbPhase:'', cf2NewbornCare:[],
+    csfSeries:'',
     /* CF4 – Clinical Record (encoded manually; the logbook does not record these) */
     patientAge:'', cf4Series:'',
     hciBldg:'', hciZip:'',
@@ -113,10 +110,10 @@ const state = {
     cf4CourseDate1:'', cf4CourseOrder1:'', cf4CourseDate2:'', cf4CourseOrder2:'', cf4CourseDate3:'', cf4CourseOrder3:'', cf4CourseDate4:'', cf4CourseOrder4:'', cf4CourseDate5:'', cf4CourseOrder5:'', cf4CourseDate6:'', cf4CourseOrder6:'', cf4CourseDate7:'', cf4CourseOrder7:'', cf4CourseDate8:'', cf4CourseOrder8:'', cf4CourseDate9:'', cf4CourseOrder9:'', cf4CourseDate10:'', cf4CourseOrder10:'', cf4CourseDate11:'', cf4CourseOrder11:'', cf4CourseDate12:'', cf4CourseOrder12:'', cf4CourseDate13:'', cf4CourseOrder13:'', cf4CourseDate14:'', cf4CourseOrder14:'', cf4CourseDate15:'', cf4CourseOrder15:'',
     /* CF4 drug rows */
     cf4DrugName1:'', cf4DrugDose1:'', cf4DrugCost1:'', cf4DrugName1b:'', cf4DrugDose1b:'', cf4DrugCost1b:'', cf4DrugName2:'', cf4DrugDose2:'', cf4DrugCost2:'', cf4DrugName2b:'', cf4DrugDose2b:'', cf4DrugCost2b:'', cf4DrugName3:'', cf4DrugDose3:'', cf4DrugCost3:'', cf4DrugName3b:'', cf4DrugDose3b:'', cf4DrugCost3b:'', cf4DrugName4:'', cf4DrugDose4:'', cf4DrugCost4:'', cf4DrugName4b:'', cf4DrugDose4b:'', cf4DrugCost4b:'', cf4DrugName5:'', cf4DrugDose5:'', cf4DrugCost5:'', cf4DrugName5b:'', cf4DrugDose5b:'', cf4DrugCost5b:'', cf4DrugName6:'', cf4DrugDose6:'', cf4DrugCost6:'', cf4DrugName6b:'', cf4DrugDose6b:'', cf4DrugCost6b:'', cf4DrugName7:'', cf4DrugDose7:'', cf4DrugCost7:'', cf4DrugName7b:'', cf4DrugDose7b:'', cf4DrugCost7b:'',
-    /* CF2 – Referral */
+    /* Referral */
     referredByHCI:'', referralHciName:'', referralStreet:'', referralCity:'',
     referralProvince:'', referralZip:'',
-    /* CF2 – Discharge Diagnosis table (2 diagnoses x up to 3 procedures each) */
+    /* Discharge Diagnosis table (2 diagnoses x up to 3 procedures each) */
     dxADiagnosis:'', dxAIcd10:'',
     dxAProcI:'', dxARvsI:'', dxADateI:'', dxALatI:'',
     dxAProcII:'', dxARvsII:'', dxADateII:'', dxALatII:'',
@@ -148,16 +145,6 @@ const state = {
     csfFirstCaseRate:'', csfSecondCaseRate:'',
     providerRepName:'', providerCapacity:'', providerSignedDate:'',
 
-    /* CF2 Item 10 – Accreditation/Signature/Date Signed + Co-pay (up to 3 rows) */
-    cf2Prof1AccredNo:'', cf2Prof1Name:'', cf2Prof1DateSigned:'', cf2Prof1Copay:'', cf2Prof1CopayAmount:'',
-    cf2Prof2AccredNo:'', cf2Prof2Name:'', cf2Prof2DateSigned:'', cf2Prof2Copay:'', cf2Prof2CopayAmount:'',
-    cf2Prof3AccredNo:'', cf2Prof3Name:'', cf2Prof3DateSigned:'', cf2Prof3Copay:'', cf2Prof3CopayAmount:'',
-    /* CF2 Part III-B – Consent to Access Patient Record/s */
-    cf2PatientRepName:'', cf2PatientRepSignedDate:'',
-    cf2PatientRepRelationship:'', cf2PatientRepRelationshipOther:'',
-    cf2PatientReason:'', cf2PatientReasonOther:'',
-    /* CF2 Part IV – Certification of Consumption of Health Care Institution */
-    cf2ProviderRepName:'', cf2ProviderCapacity:'', cf2ProviderSignedDate:'',
     /* Member Profile – PMRF */
     civilStatus:'', placeOfBirth:'', citizenship:'',
     motherLastName:'', motherFirstName:'', motherMiddleName:'',
@@ -178,7 +165,7 @@ const state = {
     memberNoMiddleName:false, memberMononym:false,
     motherNoMiddleName:false, motherMononym:false,
     spouseNoMiddleName:false, spouseMononym:false,
-    /* PMRF – Dependent 1 extras (shares patientLastName/FirstName/etc with CSF/CF2) */
+    /* PMRF – Dependent 1 extras (shares patientLastName/FirstName/etc with CSF) */
     patientCitizenship:'', dep1NoMiddleName:false, dep1Mononym:false, dep1Disability:false,
     /* PMRF – Dependents 2–4 */
     dep2LastName:'', dep2FirstName:'', dep2Ext:'', dep2MiddleName:'',
@@ -249,9 +236,7 @@ const SAMPLE_DATA = {
   dxADiagnosis:'Normal Spontaneous Delivery, Full Term, Live Birth',
   dxAIcd10:'O80',
   hciPAN:'000001234', hciName:'Mapagpala Maternity Clinic',
-  csfSeries:'2026000123456', cf2Series:'2026000123457',
-  cf2SpecialProcedures:[], cf2SpecialProcedureDetail:'',
-  cf2TbPhase:'', cf2NewbornCare:['Essential Newborn Care','Newborn Screening Test'],
+  csfSeries:'2026000123456',
   hciStreet:'456 Bonifacio Avenue', hciCity:'Quezon City', hciProvince:'Metro Manila',
   employerPEN:'', employerPhone:'', employerName:'',
   civilStatus:'Married', placeOfBirth:'Quezon City, Metro Manila', citizenship:'FILIPINO',
@@ -311,10 +296,19 @@ const DATE_FIELDS = new Set([
   'dxADateI','dxADateII','dxADateIII','dxBDateI','dxBDateII','dxBDateIII',
   'memberSignedDate','repSignedDate','employerSignedDate','patientRepSignedDate',
   'hciProf1DateSigned','hciProf2DateSigned','hciProf3DateSigned','providerSignedDate',
-  'cf2Prof1DateSigned','cf2Prof2DateSigned','cf2Prof3DateSigned',
-  'cf2PatientRepSignedDate','cf2ProviderSignedDate',
   'dep2DOB','dep3DOB','dep4DOB','memberSignatureDate',
 ]);
+
+/* "JUAN D. CRUZ" — the form prints this above the signature line, so it has
+   to fit a narrow box. Middle name becomes a single initial. */
+function signatureName(first, middle, last) {
+  const f = (first || '').trim();
+  const l = (last || '').trim();
+  if (!f && !l) return '';
+  const m = (middle || '').trim();
+  const initial = m ? m.charAt(0).toUpperCase() + '.' : '';
+  return [f, initial, l].filter(Boolean).join(' ');
+}
 
 function getComputedValue(key) {
   const d = state.data;
@@ -326,6 +320,40 @@ function getComputedValue(key) {
     case 'memberName':
       return [d.memberLastName, d.memberFirstName, d.memberNameExt, d.memberMiddleName]
         .filter(x => x && x.trim()).join(' ');
+
+    // Printed above a signature line. The clinic asked for the name to be
+    // printed so staff only have to sign: handwriting it was running over
+    // the small boxes on the form. "First M. Last" keeps it short.
+    case 'memberSignName':
+      return signatureName(d.memberFirstName, d.memberMiddleName, d.memberLastName);
+    case 'patientSignName':
+      return signatureName(d.patientFirstName, d.patientMiddleName, d.patientLastName);
+
+    // Shown with a peso sign on the form, as it is on the printed PMRF.
+    case 'monthlyIncomeDisplay': {
+      const amount = (d.monthlyIncome || '').trim();
+      return amount ? '₱' + amount.replace(/^₱\s*/, '') : '';
+    }
+    // The course in the ward is typed as dated lines, not one box. It
+    // counts as filled when any line has an order written on it.
+    case 'cf4CourseInWard': {
+      for (let i = 1; i <= 15; i++) {
+        const order = (d['cf4CourseOrder' + i] || '').trim();
+        if (order) return order;
+      }
+      return '';
+    }
+    // Drugs are typed as a table, not one box. Counted as filled when any
+    // line names a medicine; the left and right halves both count.
+    case 'cf4DrugsAdministered': {
+      for (let i = 1; i <= 7; i++) {
+        const left = (d['cf4DrugName' + i] || '').trim();
+        if (left) return left;
+        const right = (d['cf4DrugName' + i + 'b'] || '').trim();
+        if (right) return right;
+      }
+      return '';
+    }
     case 'motherMaidenName':
       return [d.motherLastName, d.motherFirstName, d.motherMiddleName]
         .filter(x => x && x.trim()).join(' ');
@@ -350,15 +378,11 @@ function getComputedValue(key) {
       return time12hDigits(d.timeAdmitted);
     case 'timeDischargeDigits':
       return time12hDigits(d.timeDischarge);
-    /* CF2 Time Admitted/Discharged: the PDF has two ruled hh:mm boxes per
-       row, one before the printed "AM" label and one before "PM" — the
-       box position itself indicates the period, so the value goes in
-       whichever box matches (the other stays blank). */
     case 'timeAdmittedAM':   return isPMTime(d.timeAdmitted) === false ? bareTime(d.timeAdmitted) : '';
     case 'timeAdmittedPM':   return isPMTime(d.timeAdmitted) === true  ? bareTime(d.timeAdmitted) : '';
     case 'timeDischargeAM':  return isPMTime(d.timeDischarge) === false ? bareTime(d.timeDischarge) : '';
     case 'timeDischargePM':  return isPMTime(d.timeDischarge) === true  ? bareTime(d.timeDischarge) : '';
-    /* CF2 HCI Accreditation No. (PAN): one character per ruled digit box */
+    /* HCI Accreditation No. (PAN): one character per ruled digit box */
     case 'hciPANc1': return (d.hciPAN || '').charAt(0);
     case 'hciPANc2': return (d.hciPAN || '').charAt(1);
     case 'hciPANc3': return (d.hciPAN || '').charAt(2);
@@ -423,15 +447,8 @@ const PREVIEW_MAP = [
   /* CSF – Part II: Employer */
   ['csf-employerPEN','employerPEN'],   ['csf-employerPhone','employerPhone'],
   ['csf-employerName','employerName'],
-  /* CF2 – Part I: HCI */
-  ['cf2-hciPAN','hciPAN'],             ['cf2-hciName','hciName'],
-  ['cf2-hciAddress','hciAddress'],
-  /* CF2 – Part II: Patient Confinement */
-  ['cf2-patientName','patientName'],
-  ['cf2-dateAdmitted','dateAdmitted'], ['cf2-timeAdmitted','timeAdmittedStr'],
-  ['cf2-dateDischarge','dateDischarge'],['cf2-timeDischarge','timeDischargeStr'],
-  ['cf2-disposition','disposition'],   ['cf2-accommodation','accommodation'],
-  ['cf2-admissionDx','admissionDx'],   ['cf2-dischargeDx','dischargeDx'],
+  /* Part I: HCI */
+  /* Part II: Patient Confinement */
   /* PMRF – Section I: Personal Details */
   ['pmrf-memberPIN','memberPIN'],      ['pmrf-memberName','memberName'],
   ['pmrf-memberDOB','memberDOB'],      ['pmrf-memberSex','memberSex'],
@@ -455,7 +472,7 @@ const PREVIEW_MAP = [
 /* ══════════════════════════════════════════════════════════
    NAVIGATION
 ══════════════════════════════════════════════════════════ */
-const VALID_SECTIONS = ['dashboard','patient','csf','cf2','cf4','pmrf','validation','profile','settings'];
+const VALID_SECTIONS = ['dashboard','patient','csf','cf4','pmrf','validation','profile','settings'];
 
 function navigateTo(section, opts) {
   opts = opts || {};
@@ -620,6 +637,9 @@ function updateFormPreviews() {
 }
 
 function syncAllAutofillElements() {
+  // Course-in-the-ward lines may have been filled from a saved claim, so
+  // reveal as many as hold data once the boxes are written.
+  if (window.PCACourseRows) setTimeout(window.PCACourseRows.refresh, 0);
   const seen = new Set();
   document.querySelectorAll('[data-autofill]').forEach(el => {
     const key = el.dataset.autofill;
@@ -654,9 +674,6 @@ function syncBtnCheckGroups() {
       btn.classList.toggle('active', btn.dataset.value === val);
     });
   });
-
-  const referralDetails = document.getElementById('cf2-referral-details');
-  if (referralDetails) referralDetails.style.display = state.data.referredByHCI === 'Yes' ? '' : 'none';
 }
 
 const AMPM_TIME_KEY = { amPmAdmitted: 'timeAdmitted', amPmDischarge: 'timeDischarge', amPmDelivery: 'deliveryTime' };
@@ -719,29 +736,16 @@ function time12hDigits(hhmm) {
 /* Fields that describe the same clinical fact on more than one form.
    Editing the source propagates to each target that is still empty or
    still holds the previous source value, so the five forms stay
-   consistent and IC-08 (CF2 vs CF4 diagnosis) does not fire spuriously.
+   consistent across the forms that share them.
    A target the user has deliberately edited is left alone. */
 /* Most boxes that mean the same thing on several forms are one key (e.g.
-   patientLastName on Patient details, CSF, CF2, CF4, PMRF), so typing it
+   patientLastName on Patient details, CSF, CF4, PMRF), so typing it
    anywhere fills it everywhere. These are separate keys on different
    forms for the same fact: typing in any of them fills the others (both
    ways), on the rule above. */
 const LINKED_FIELD_GROUPS = [
   ['dischargeDx', 'dxADiagnosis', 'cf4FinalDiagnosis'],
   ['chiefComplaint', 'cf4ChiefComplaint'],
-  // Health care professionals: CSF Part III and CF2 Part II
-  ...[1, 2, 3].flatMap(n => [
-    [`hciProf${n}Name`, `cf2Prof${n}Name`],
-    [`hciProf${n}AccredNo`, `cf2Prof${n}AccredNo`],
-    [`hciProf${n}DateSigned`, `cf2Prof${n}DateSigned`],
-  ]),
-  // The clinic's authorized representative: CSF and CF2
-  ['providerRepName', 'cf2ProviderRepName'], ['providerCapacity', 'cf2ProviderCapacity'],
-  ['providerSignedDate', 'cf2ProviderSignedDate'],
-  // Who signs for the patient, and why: CSF and CF2
-  ['patientRepName', 'cf2PatientRepName'], ['patientRepRelationship', 'cf2PatientRepRelationship'],
-  ['patientRepRelationshipOther', 'cf2PatientRepRelationshipOther'], ['patientReason', 'cf2PatientReason'],
-  ['patientReasonOther', 'cf2PatientReasonOther'], ['patientRepSignedDate', 'cf2PatientRepSignedDate'],
 ];
 const MIRRORED_FIELDS = {};
 LINKED_FIELD_GROUPS.forEach(group => group.forEach(key => {
@@ -778,15 +782,18 @@ function toFormCase(el) {
   const kind = el.tagName === 'TEXTAREA' ? 'textarea' : (el.type || '');
   if (el.tagName === 'SELECT' || !FREE_TEXT_TYPES.has(kind) ||
       el.dataset.keepCase !== undefined) return raw;
-  const upper = raw.toUpperCase();
-  if (el.value !== upper && el.value.trim() === raw) {
+  // Upper-case what is in the box WITHOUT trimming it: writing the trimmed
+  // text back deleted the space the moment it was typed, so no one could
+  // type a second word. Trimming belongs to the stored value only.
+  const shown = el.value.toUpperCase();
+  if (el.value !== shown) {
     const at = el.selectionStart;
-    el.value = upper;
+    el.value = shown;
     if (at !== null && at !== undefined && el.setSelectionRange) {
       try { el.setSelectionRange(at, at); } catch (e) { /* no text selection */ }
     }
   }
-  return upper;
+  return raw.toUpperCase();
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -803,7 +810,7 @@ function toFormCase(el) {
    one line at the top of each form saying where to change
    them. Fields a form owns on its own stay editable.
 ══════════════════════════════════════════════════════════ */
-const FORM_SECTIONS = ['csf', 'cf2', 'cf4', 'pmrf'];
+const FORM_SECTIONS = ['csf', 'cf4', 'pmrf'];
 // Switches, not details: these choose how other boxes are filled, so
 // they stay usable on the form itself.
 const PATIENT_PANEL_CONTROLS = new Set(['memberIsPatient']);
@@ -996,7 +1003,7 @@ function bindInputListeners() {
 
 /* ══════════════════════════════════════════════════════════
    SEGMENTED "BOX" INPUTS
-   Some CF2 fields (dates, HCI Accreditation No./PAN) print as
+   Some fields (dates, HCI Accreditation No./PAN) print as
    individual ruled boxes on the PDF. These groups render as
    separate per-character/segment boxes in the data-entry panel
    to match, while still feeding the same state.data[key] the
@@ -1114,7 +1121,6 @@ let lastValidationResult = null;
 ══════════════════════════════════════════════════════════ */
 const VAL_FORM_META = {
   csf:  { title:'CSF',      abbr:'CSF'  },
-  cf2:  { title:'CSF 2',        abbr:'CF2'  },
   cf4:  { title:'Clinical Record',           abbr:'CF4'  },
   pmrf: { title:'PMRF',  abbr:'PMRF' },
 };
@@ -1594,6 +1600,7 @@ function applyFormData(values) {
     else if (el.type === 'checkbox') el.checked = !!values[key];
     else el.value = values[key];
   });
+  applyFixedFields();
   updateFormPreviews();
 }
 
@@ -1609,6 +1616,8 @@ function resetFormData() {
     else if (el.type === 'checkbox') el.checked = false;
     else el.value = '';
   });
+  // A new patient still has this clinic's fixed values.
+  applyFixedFields();
   updateFormPreviews();
 }
 
@@ -1682,6 +1691,41 @@ function escHtml(str) {
 /* ══════════════════════════════════════════════════════════
    INIT
 ══════════════════════════════════════════════════════════ */
+/* Fields whose value is fixed for this clinic (citizenship, manner of
+   delivery, fetal outcome). The value lives in the HTML as the input's
+   value attribute, and the box is readonly so nobody can change it.
+
+   Read from getAttribute('value'), not el.value: by the time anything
+   runs, syncAllAutofillElements() may already have written the empty
+   state over the live value, and reading the property back would capture
+   that blank for good. The attribute keeps what the markup declared.
+
+   These must show at all times - before a logbook is read, on a brand-new
+   patient, and after "Start a new patient" - so applyFixedFields() is
+   called again by anything that rewrites the boxes wholesale. */
+const FIXED_FIELD_VALUES = (function readFixedFields() {
+  const fixed = {};
+  document.querySelectorAll('input[readonly][data-autofill]').forEach(el => {
+    const key = el.dataset.autofill;
+    const value = el.getAttribute('value');
+    if (value && !(key in fixed)) fixed[key] = value;
+  });
+  return fixed;
+})();
+
+function applyFixedFields() {
+  Object.entries(FIXED_FIELD_VALUES).forEach(([key, value]) => {
+    state.data[key] = value;
+    document.querySelectorAll(`[data-autofill="${key}"]`).forEach(el => {
+      if (el.value !== value) el.value = value;
+    });
+  });
+}
+
+/* Seed them before the first updateFormPreviews() below, which would
+   otherwise sync the still-empty state over these boxes. */
+applyFixedFields();
+
 buildValidationAccordion();
 bindInputListeners();
 bindBoxGroupListeners();
@@ -1856,7 +1900,7 @@ async function loadStaffAccounts() {
    CLINIC SETTINGS
    Table 3.1 lists clinic name, accreditation number and address as
    "System settings (entered once)". Loading them here fills the same
-   fields on CF2/CF4, so they are never retyped per claim.
+   fields on CF4, so they are never retyped per claim.
 ══════════════════════════════════════════════════════════ */
 const CLINIC_FIELDS = {
   clinicName:     'hciName',
@@ -1918,7 +1962,138 @@ async function loadClinicSettings() {
     const savedAt = document.getElementById('clinicSavedAt');
     if (savedAt) savedAt.textContent = 'Last saved just now';
     showToast('Clinic details saved',
-              'These now fill in automatically on CF2 and CF4.', 'success');
+              'These now fill in automatically on CF4.', 'success');
     logActivity('Clinic details updated', 'success');
   });
+})();
+
+/* ══════════════════════════════════════════════════════════
+   DATE DISCHARGED — "same day as admitted"
+   Most mothers are discharged the day they are admitted, so the
+   date is mirrored from the admission date by default. Unticking
+   lets staff type a different date (clinic user testing).
+══════════════════════════════════════════════════════════ */
+(function setupSameDayDischarge() {
+  const toggle = document.getElementById('dischargeSameDay');
+  if (!toggle) return;
+  const field = document.querySelector('input[type="date"][data-autofill="dateDischarge"]');
+  if (!field) return;
+
+  function apply() {
+    const same = toggle.checked;
+    field.readOnly = same;
+    field.classList.toggle('is-locked', same);
+    if (same && state.data.dateAdmitted) {
+      state.data.dateDischarge = state.data.dateAdmitted;
+      field.value = state.data.dateAdmitted;
+      updateFormPreviews();
+    }
+  }
+
+  toggle.addEventListener('change', apply);
+
+  // Keep it in step while the admission date is still being typed.
+  document.querySelectorAll('[data-autofill="dateAdmitted"]').forEach(el =>
+    el.addEventListener('change', () => { if (toggle.checked) apply(); }));
+
+  apply();
+})();
+
+/* ═══════════════════════════════════════════════════════════
+   Long entry tables — show one line at a time
+
+   The course in the ward (15 dated lines) and the drugs list (7 printed
+   lines) were too much to look at, so only the first line is shown.
+   "Add" reveals the next, the minus button puts it away again. A line
+   that has been filled in is never hidden, so nothing typed can vanish.
+
+   A printed line can be more than one row on screen: on the CF4 the
+   drugs table has a left and a right half that share the same line on
+   paper, and both are revealed together via data-drug-row.
+═══════════════════════════════════════════════════════════ */
+function setupExpandingRows(opts) {
+  const wrap = document.getElementById(opts.wrapId);
+  const addBtn = document.getElementById(opts.addId);
+  const delBtn = document.getElementById(opts.removeId);
+  const count = document.getElementById(opts.countId);
+  if (!wrap || !addBtn || !delBtn) return null;
+
+  const all = Array.from(wrap.querySelectorAll('.' + opts.rowClass));
+  if (!all.length) return null;
+
+  // Group the rows by the printed line they belong to, keeping order.
+  const groups = [];
+  const seen = new Map();
+  all.forEach(row => {
+    const id = row.dataset[opts.dataKey] || String(groups.length + 1);
+    if (!seen.has(id)) { seen.set(id, []); groups.push(seen.get(id)); }
+    seen.get(id).push(row);
+  });
+
+  const TOTAL = groups.length + 1;          // + the always-visible first line
+  const filled = group => group.some(row =>
+    Array.from(row.querySelectorAll('[data-autofill]'))
+         .some(el => (el.value || '').trim() !== ''));
+
+  let shown = 0;
+  const lastFilled = () => {
+    let n = 0;
+    groups.forEach((g, i) => { if (filled(g)) n = i + 1; });
+    return n;
+  };
+
+  function render() {
+    shown = Math.max(shown, lastFilled());
+    groups.forEach((g, i) => g.forEach(row => { row.hidden = i >= shown; }));
+    wrap.hidden = shown === 0;
+    addBtn.hidden = shown >= groups.length;
+    addBtn.setAttribute('aria-expanded', shown > 0 ? 'true' : 'false');
+    // Only offer to hide a line that is still empty.
+    delBtn.hidden = shown === 0 || shown <= lastFilled();
+    if (count) {
+      count.textContent = shown + 1 === TOTAL
+        ? 'All ' + TOTAL + ' ' + opts.noun + ' shown'
+        : (opts.label || 'Line') + ' ' + (shown + 1) + ' of ' + TOTAL;
+    }
+  }
+
+  addBtn.addEventListener('click', () => {
+    if (shown < groups.length) shown++;
+    render();
+    const group = groups[shown - 1];
+    const first = group && group[0] && group[0].querySelector('[data-autofill]');
+    if (first) first.focus();
+  });
+
+  delBtn.addEventListener('click', () => {
+    if (shown > lastFilled()) shown--;
+    render();
+  });
+
+  // Loading a saved claim or the sample data fills these boxes directly,
+  // so re-check after anything writes to them.
+  wrap.addEventListener('input', render);
+  render();
+  return { refresh: render };
+}
+
+(function setupLongTables() {
+  const course = setupExpandingRows({
+    wrapId: 'cf4CourseExtraRows', addId: 'cf4CourseAddRow',
+    removeId: 'cf4CourseRemoveRow', countId: 'cf4CourseRowCount',
+    rowClass: 'course-row', dataKey: 'courseRow',
+    label: 'Line', noun: 'lines',
+  });
+  const drugs = setupExpandingRows({
+    wrapId: 'cf4DrugExtraRows', addId: 'cf4DrugAddRow',
+    removeId: 'cf4DrugRemoveRow', countId: 'cf4DrugRowCount',
+    rowClass: 'drug-row', dataKey: 'drugRow',
+    label: 'Medicine', noun: 'medicines',
+  });
+  window.PCACourseRows = {
+    refresh() {
+      if (course) course.refresh();
+      if (drugs) drugs.refresh();
+    },
+  };
 })();

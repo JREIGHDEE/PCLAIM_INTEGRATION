@@ -143,7 +143,7 @@ async function loadClaimFromUrl() {
   // Required fields start empty, even ones with a default (e.g. AM/PM).
   Object.entries(body.fields).forEach(([key, f]) => { if (f.status === 'required') values[key] = ''; });
   // Boxes on other forms that repeat a logbook value (the final diagnosis
-  // on CF2's diagnosis line and CF4) are filled from it too, with the same
+  // on CF4's diagnosis line) are filled from it too, with the same
   // tag, instead of being typed again (app.js MIRRORED_FIELDS - normally
   // copied only as someone types).
   Object.entries(MIRRORED_FIELDS).forEach(([source, targets]) => {

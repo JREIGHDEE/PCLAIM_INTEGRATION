@@ -8,7 +8,7 @@
    (Ocr_module/paddle_assist.py) then knows which entries are common and
    can suggest them when PaddleOCR misreads a logbook scan.
 
-   Sent once per patient: checking, then exporting CSF, CF2, CF4… for the
+   Sent once per patient: checking, then exporting CSF, CF4… for the
    same patient counts their entries only once. Never blocks or slows
    anything.
 ═══════════════════════════════════════════════════════════ */

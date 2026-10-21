@@ -1,4 +1,4 @@
-"""Fills the real CF2/CSF PhilHealth PDF templates with mapped claim data.
+"""Fills the real CSF PhilHealth PDF template with mapped claim data.
 
 Uses PyMuPDF (fitz, already a project dependency - see requirements.txt),
 reusing the exact field coordinates PClaimAssist's own client-side export
@@ -20,7 +20,7 @@ from philhealth.field_catalog import resolve_computed_value
 from philhealth.mapping_service import build_flat_data
 from philhealth.overlays import OVERLAYS
 
-TEMPLATE_FILENAMES = {"cf2": "CF2.pdf", "csf": "CSF.pdf"}
+TEMPLATE_FILENAMES = {"csf": "CSF.pdf"}
 
 # Matches the baselineOffset constant in PClaimAssist/js/pdf/pdf-overlay.js.
 BASELINE_OFFSET = 6
@@ -52,7 +52,7 @@ def _draw_field(page, field, value, page_width, page_height):
 
 
 def export_claim_pdf(form_key, patient=None, encounter=None, claims_row=None):
-    """Returns the filled PDF (bytes) for `form_key` ('cf2' or 'csf').
+    """Returns the filled PDF (bytes) for `form_key` ('csf').
 
     Callers are expected to have already validated required fields (see
     mapping_service.map_claim()["forms"][form_key]) - this function fills

@@ -2,7 +2,7 @@
 
 Bridges data already stored by the OCR/case-session pipeline (case_sessions,
 patients, encounters) onto the claims-table field vocabulary the database
-schema already defines, then fills/exports the real CF2/CSF PhilHealth PDF
+schema already defines, then fills/exports the real CSF PhilHealth PDF
 templates in PClaimAssist/forms/.
 
 See field_catalog.py for the field lists (ported from PClaimAssist's own

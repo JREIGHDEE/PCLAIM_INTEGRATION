@@ -442,13 +442,21 @@ body {
    its own colour so staff can find one by sight rather than by reading
    every label. Five equal columns that drop to two, then one, on
    narrower screens. */
+/* The cards centre themselves and keep a sensible width whatever the form
+   count is, so removing a form leaves no gap in the row. */
 .readiness-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: .75rem;
 }
-@media (max-width: 1200px) { .readiness-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 575px)  { .readiness-grid { grid-template-columns: 1fr; } }
+.readiness-grid > .form-status-card {
+  flex: 1 1 200px;
+  max-width: 260px;
+}
+@media (max-width: 575px) {
+  .readiness-grid > .form-status-card { flex-basis: 100%; max-width: none; }
+}
 
 .form-status-card {
   --fs-color: var(--primary);
@@ -496,7 +504,6 @@ body {
 .fs-action { font-size: .78rem; color: var(--fs-color); font-weight: 700; }
 
 .fs--csf  { --fs-color: var(--primary); }
-.fs--cf2  { --fs-color: var(--teal); }
 .fs--cf3  { --fs-color: var(--purple); }
 .fs--cf4  { --fs-color: var(--orange); }
 .fs--pmrf { --fs-color: #DB2777; }
@@ -886,7 +893,6 @@ body {
   vertical-align: middle;
   margin-left: .3rem;
 }
-.form-badge-header.cf2 { background: var(--teal-light); color: var(--teal); }
 .form-badge-header.cf3 { background: var(--orange-light); color: var(--orange); }
 .form-badge-header.pmrf { background: var(--purple-light); color: var(--purple); }
 
@@ -1395,10 +1401,14 @@ body {
   overflow: hidden;
   max-height: 8em;
 }
-/* Per-character digit boxes (PAN, some date groups) centered within their
-   printed cell instead of hugging the left edge */
+/* Centred within the printed cell instead of hugging its left edge:
+   per-character digit boxes (PAN, some date groups), and the printed name
+   above a signature line, which sits over the middle of the rule.
+
+   display:block is what makes this work - .pdf-field is a <span>, and an
+   inline box ignores both the width set on it and text-align. */
 .pdf-field--center {
-  justify-content: center;
+  display: block;
   text-align: center;
 }
 
@@ -1796,7 +1806,8 @@ body {
 /* Filled from the patient's details ("The patient is the member"). */
 .btn-check-group.is-locked {
   pointer-events: none;
-  opacity: .6;
+  /* Not opacity: that fades the wording as well. Dim only the chrome. */
+  filter: saturate(.55);
 }
 
 /* "The patient is the PhilHealth member" tick box: one click instead of
@@ -1850,7 +1861,7 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   CF2 DISCHARGE DIAGNOSIS TABLE (Diagnosis A/B + procedures)
+   DISCHARGE DIAGNOSIS TABLE (Diagnosis A/B + procedures)
 ═══════════════════════════════════════════════════════════ */
 .dx-group-card {
   border: 1.5px solid var(--border);
@@ -2511,3 +2522,46 @@ textarea.from-patient-details:focus {
 }
 .export-all-sub { font-size: .92rem; color: #4a6353; margin-top: .15rem; }
 .btn-export--all { font-size: 1rem; padding: .7rem 1.3rem; }
+
+/* A value this clinic never changes (citizenship, manner of delivery,
+   fetal outcome) or one copied from another field (discharge date when
+   "same day" is ticked). The box is dimmed so it reads as settled rather
+   than broken, but the text itself stays full strength: staff still have
+   to read and check the value before the form is printed. */
+.pca-input[readonly],
+.pca-input.is-locked {
+  background-color: #EEF2F7;
+  border-color: var(--border, #E2E8F0);
+  color: var(--text, #1E293B);
+  cursor: default;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   COURSE IN THE WARD — add / hide a line
+   Fifteen dated lines at once was too much to read, so the rest
+   stay out of sight behind these two small buttons.
+═══════════════════════════════════════════════════════════ */
+.course-row-controls {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  flex-wrap: wrap;
+}
+.course-row-btn {
+  border: 1px dashed var(--border);
+  background: transparent;
+  color: var(--text-muted, #6c757d);
+  font-size: .78rem;
+  padding: .2rem .6rem;
+  border-radius: var(--radius-sm);
+}
+.course-row-btn:hover {
+  border-style: solid;
+  border-color: var(--primary, #0d6efd);
+  color: var(--primary, #0d6efd);
+  background: var(--primary-light, rgba(13, 110, 253, .06));
+}
+.course-row-count {
+  font-size: .72rem;
+  margin-left: auto;
+}

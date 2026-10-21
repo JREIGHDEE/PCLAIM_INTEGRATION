@@ -13,7 +13,6 @@ if (typeof pdfjsLib !== 'undefined') {
 /* ── Per-form state ──────────────────────────────────────── */
 const pdfState = {
   csf:  { doc: null, page: 1, totalPages: 1, rendered: false },
-  cf2:  { doc: null, page: 1, totalPages: 2, rendered: false },
   cf4:  { doc: null, page: 1, totalPages: 2, rendered: false },
   pmrf: { doc: null, page: 1, totalPages: 2, rendered: false },
 };
@@ -21,18 +20,30 @@ const pdfState = {
 /* Every form the PDF layer manages. CF4 is included ahead of the file
    being supplied; until forms/CF4.pdf exists its panel shows the
    standard "PDF not found" state. */
-const PDF_FORM_KEYS = ['csf', 'cf2', 'cf4', 'pmrf'];
+const PDF_FORM_KEYS = ['csf', 'cf4', 'pmrf'];
 
 /* ── Overlay field coordinate maps ──────────────────────────
    OVERLAY_MAP itself is defined in js/pdf/overlays/index.js,
-   built from the per-form maps in js/pdf/overlays/{csf,cf2,cf4,pmrf}.js.
+   built from the per-form maps in js/pdf/overlays/{csf,cf4,pmrf}.js.
    Those files must be loaded before this one (see index.html).
 ─────────────────────────────────────────────────────────── */
 
 /* ── PDF file paths ──────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════
+   TEMPORARY - FOR LAYOUT CHECKING ONLY.
+   SET BACK TO false BEFORE THE CAPSTONE DEFENSE.
+
+   Research design §3.4.2.5 step 10 requires that a PDF is generated only
+   once every critical (block_submission) error has been resolved, so this
+   must be false in the system that is demonstrated and submitted. It is
+   true now only so the printed layout can be checked without filling in
+   every box first. It affects both "Save as PDF to print" and "export all
+   forms".
+═══════════════════════════════════════════════════════════ */
+const SKIP_VALIDATION_FOR_EXPORT = true;
+
 const PDF_PATHS = {
   csf:  'forms/CSF.pdf',
-  cf2:  'forms/CF2.pdf',
   cf4:  'forms/CF4.pdf',
   pmrf: 'forms/PMRF.pdf',
 };
@@ -222,7 +233,7 @@ function injectOverlaySpans(formKey) {
   if (!overlay) return;
   overlay.innerHTML = '';
 
-  const PAGE_H = { csf: 936, cf2: 936, cf4: 1008, pmrf: 841.5 };
+  const PAGE_H = { csf: 936, cf4: 1008, pmrf: 841.5 };
   const refH = PAGE_H[formKey] || 936;
 
   (OVERLAY_MAP[formKey] || []).forEach(f => {
@@ -230,12 +241,22 @@ function injectOverlaySpans(formKey) {
     span.className     = 'pdf-field' + (f.wrap ? ' pdf-field--wrap' : '') + (f.center ? ' pdf-field--center' : '');
     span.id            = 'pof-' + formKey + '-' + f.id;
     span.dataset.page  = f.page;
-    span.dataset.fsPct = (f.fs || 8) / refH;
-    // translateY in em (not %) so the anchor stays put as text wraps to
-    // more lines — a % offset is relative to the span's own (growing)
-    // height and would shift multi-line text too far up.
+    const fs = f.fs || 8;
+    span.dataset.fsPct = fs / refH;
+    /* Line the preview up with what exportFilledPDF actually prints.
+       The exporter puts the text BASELINE at (top% of the page) + 6pt.
+       A span's baseline sits about 0.83em below its own top edge, so the
+       span has to shift by (6pt - 0.83em). Expressed in em — 6pt is
+       (6 / fs) em — the offset survives the font scaling that
+       scaleOverlayFonts() applies, and stays put as text wraps, which a
+       percentage offset would not (it is relative to the span's own
+       growing height).
+
+       This previously used a flat -0.7em, which drew the preview about
+       0.65em higher than the printed PDF for every form. */
+    const dy = (6 / fs) - 0.83;
     span.style.cssText =
-      `top:${f.top}%;left:${f.left}%;width:${f.w}%;transform:translateY(-0.7em);`;
+      `top:${f.top}%;left:${f.left}%;width:${f.w}%;transform:translateY(${dy.toFixed(3)}em);`;
     overlay.appendChild(span);
   });
   scaleOverlayFonts(formKey);
@@ -436,10 +457,8 @@ async function exportFilledPDF(formKey) {
     return;
   }
 
-  // Research design §3.4.2.5 step 10: PDFs are generated only when all
-  // critical (block_submission) errors have been resolved.
   const v = window.lastValidationResult;
-  if (v && !v.canGeneratePDF) {
+  if (!SKIP_VALIDATION_FOR_EXPORT && v && !v.canGeneratePDF) {
     const n = v.critical.length;
     showToast(
       'Not ready to print yet',
@@ -488,7 +507,7 @@ async function exportAllForms() {
     return;
   }
   const v = window.lastValidationResult;
-  if (v && !v.canGeneratePDF) {
+  if (!SKIP_VALIDATION_FOR_EXPORT && v && !v.canGeneratePDF) {
     const n = v.critical.length;
     showToast('Not ready to print yet',
       `${n} important thing${n === 1 ? ' is' : 's are'} still missing or wrong.`, 'danger');

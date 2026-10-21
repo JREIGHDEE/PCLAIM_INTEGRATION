@@ -2,7 +2,7 @@
 
 Implements the "System settings (entered once)" source in the research
 design's Table 3.1 for clinic name, accreditation number and address, which
-CF2 and CF4 all need. Previously these were retyped per form.
+CF4 needs. Previously these were retyped per form.
 
 Same conventions as the other stores: raw PyMySQL via db.get_db_cursor(),
 plain dicts, a fixed column whitelist (never column names built from
@@ -78,7 +78,7 @@ def update_settings(values, updated_by=None):
                 f"{form_key} must be {limit} characters or fewer.")
         columns[column] = text
 
-    # The PAN is printed into fixed digit boxes on CF2, so reject
+    # The PAN is printed into fixed digit boxes, so reject
     # anything that would not fit them rather than truncate silently.
     pan = columns.get("hci_pan")
     if pan:

@@ -1,7 +1,7 @@
 """PhilHealth claim generation/review/export endpoints.
 
 Bridges a reviewed OCR case_sessions row into patients/encounters/claims
-(claims_store.py), maps/validates the result onto the CF2/CSF field
+(claims_store.py), maps/validates the result onto the CSF field
 vocabulary (philhealth/mapping_service.py), and exports a filled PDF
 (philhealth/pdf_export.py) once required fields are present. See
 philhealth/__init__.py for the overall pipeline.
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 claims_bp = Blueprint("claims", __name__, url_prefix="/api/claims")
 
-_SUPPORTED_FORMS = ("cf2", "csf")
+_SUPPORTED_FORMS = ("csf",)
 
 
 def _mapped_view(claim_id, rows):
@@ -70,7 +70,7 @@ def get_claim(claim_id):
 
 @claims_bp.route("/<int:claim_id>/form-data", methods=["GET"])
 def get_claim_form_data(claim_id):
-    """The claim as PClaimAssist form values (PMRF, CSF, CF2, CF4), keyed by
+    """The claim as PClaimAssist form values (PMRF, CSF, CF4), keyed by
     form key, with each OCR-sourced field's review status - see
     philhealth/form_prefill.py. PClaimAssist loads this by claim id; patient
     data never travels in a URL."""
