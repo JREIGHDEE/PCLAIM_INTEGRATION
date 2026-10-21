@@ -2351,3 +2351,40 @@ textarea.from-patient-details:focus {
   border-color: #cdd4da;
   color: #44525e;
 }
+
+/* ── Boxes the checker is still waiting for ──────────────── */
+.field-missing,
+.field-missing.form-control,
+.field-missing.form-select {
+  border-color: var(--danger, #e74c3c) !important;
+  background-color: #fff7f7;
+}
+.field-missing:focus,
+.field-missing.form-control:focus {
+  border-color: var(--danger, #e74c3c) !important;
+  box-shadow: 0 0 0 .18rem rgba(231, 76, 60, .18);
+}
+.pca-box-group.field-missing,
+.box-input.field-missing {
+  outline: 2px solid var(--danger, #e74c3c);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+.btn-check-group.field-missing {
+  outline: 2px solid var(--danger, #e74c3c);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+/* A rule violation says more than "nothing here yet", so it wins. */
+.field-invalid.field-missing { background-color: #fff6f6; }
+/* A copy of a Patient details box still says when the form wants it: the
+   grey fill keeps it reading as "not typed here", the red edge says it is
+   missing, and the note under it points at where to put it. */
+.from-patient-details.field-missing {
+  border-color: var(--danger, #e74c3c) !important;
+  background-color: #fdf4f4 !important;
+}
+.pca-box-group.from-patient-details.field-missing,
+.box-input.from-patient-details.field-missing {
+  outline: 2px solid var(--danger, #e74c3c);
+}

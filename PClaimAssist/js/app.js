@@ -1196,10 +1196,71 @@ function renderRuleFeedback(result) {
   });
 }
 
-/* Jump to the first input bound to a key and highlight it. */
+/* Some things the checker asks for are not one box you can type in.
+   "Patient Name" is built from the surname and first name; "Course in the
+   Ward" and the drug list are whole tables of boxes. Those used to leave
+   "Fix this" pointing at nothing, so the button did nothing at all. Each
+   one is sent to the first box a person actually fills instead. */
+const FIX_FIELD_ALIASES = {
+  patientName:  'patientLastName',
+  memberName:   'memberLastName',
+  motherMaidenName: 'motherLastName',
+  spouseName:   'spouseLastName',
+  fullAddress:  'addrStreet',
+  hciAddress:   'hciStreet',
+  obHistory:    'gravida',
+  timeAdmittedStr:  'timeAdmitted',
+  timeDischargeStr: 'timeDischarge',
+  deliveryTimeStr:  'deliveryTime',
+  cf4CourseInWard:      'cf4CourseDate1',
+  cf4DrugsAdministered: 'cf4DrugName1',
+};
+
+/* Where a key can actually be typed.
+
+   A key often has several boxes: the one on Patient details, a read-only
+   copy on each form, and sometimes a hidden input behind a row of
+   per-character boxes. Jumping to the hidden one scrolls nowhere and
+   focuses nothing, and jumping to a read-only copy offers a box that
+   refuses typing - both of which made "Fix this" look broken. Prefer, in
+   order: a box that takes typing, the visible box row standing in for a
+   hidden input, and only then whatever carries the key. */
+function editableFieldFor(key) {
+  const name = FIX_FIELD_ALIASES[key] || key;
+  const all = Array.from(document.querySelectorAll(
+    `[data-autofill="${name}"], [data-box-key="${name}"]`));
+  if (!all.length) return null;
+
+  // Visibility is no guide here: the checker runs from its own page, so
+  // every form section is hidden at the time and would look unusable. What
+  // matters is whether the box would take typing once its page is open.
+  const usable = el => {
+    const input = el.matches('input,select,textarea') ? el
+                : el.querySelector('input,select,textarea');
+    if (!input) return false;
+    return input.type !== 'hidden' && !input.disabled && !input.readOnly;
+  };
+  const inPatient = el => el.closest('#section-patient') !== null;
+  // Most of these are typed on Patient details; go there by choice, so one
+  // detail is always corrected in the same place.
+  const typed = all.find(el => usable(el) && inPatient(el)) || all.find(usable);
+  if (typed) return typed;
+
+  // Hidden input: show the row of boxes that stands in for it.
+  for (const el of all) {
+    if (el.id) {
+      const row = document.querySelector(`.box-input[data-target="#${el.id}"]`);
+      if (row) return row;
+    }
+    const group = el.closest('.pca-box-group');
+    if (group) return group;
+  }
+  return all[0];
+}
+
+/* Jump to where a key is typed and highlight it. */
 function focusField(key) {
-  const el = document.querySelector(`[data-autofill="${key}"]`) ||
-             document.querySelector(`[data-box-key="${key}"]`);
+  const el = editableFieldFor(key);
   if (!el) return;
   const section = el.closest('.content-section');
   if (section && !section.classList.contains('active')) {
@@ -1208,10 +1269,10 @@ function focusField(key) {
   setTimeout(() => {
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     const target = el.matches('input,select,textarea') ? el : el.querySelector('input,select,textarea');
-    if (target) target.focus({ preventScroll: true });
+    if (target && !target.disabled && !target.readOnly) target.focus({ preventScroll: true });
     el.classList.add('field-flash');
     setTimeout(() => el.classList.remove('field-flash'), 1600);
-  }, 120);
+  }, 180);
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -1225,6 +1286,7 @@ function applyInlineFieldFlags(result) {
     el.removeAttribute('title');
   });
   document.querySelectorAll('.field-rule-note').forEach(n => n.remove());
+  markMissingRequiredFields();
 
   result.violations.forEach(v => {
     if (!v.field) return;
@@ -1243,6 +1305,57 @@ function applyInlineFieldFlags(result) {
           `${v.message}`;
         anchor.appendChild(note);
       }
+    });
+  });
+}
+
+/* ══════════════════════════════════════════════════════════
+   MISSING BOXES, MARKED RED ON THE FORM ITSELF
+   The checker lists what a form still needs, but the form was
+   the one place that didn't say. Every box the checker counts
+   (VAL_FIELDS) that has nothing in it is outlined red where it
+   lives - on the form, and on Patient details where most of
+   them are typed - so a glance at the page shows what is left.
+   A box filled from somewhere else is not marked: it is not
+   the clinic's to type.
+══════════════════════════════════════════════════════════ */
+function markMissingRequiredFields() {
+  document.querySelectorAll('.field-missing').forEach(el => {
+    el.classList.remove('field-missing');
+    if (el.dataset.missingTitle !== undefined) {
+      el.removeAttribute('title');
+      delete el.dataset.missingTitle;
+    }
+  });
+
+  const needed = new Map();   // key -> the label the checker uses
+  VAL_FORM_KEYS.forEach(form => {
+    (VAL_FIELDS[form] || []).forEach(({ key, label }) => {
+      if (!getComputedValue(key)) needed.set(key, label);
+    });
+  });
+
+  needed.forEach((label, key) => {
+    const name = FIX_FIELD_ALIASES[key] || key;
+    document.querySelectorAll(
+      `[data-autofill="${name}"], [data-box-key="${name}"]`).forEach(el => {
+      const input = el.matches('input,select,textarea') ? el
+                  : el.querySelector('input,select,textarea');
+      if (input && input.type === 'hidden') return;
+      el.classList.add('field-missing');
+      if (!el.getAttribute('title')) {
+        const where = el.classList.contains('from-patient-details')
+          ? ' - type it on the Patient details page'
+          : ' - still needs to be filled in';
+        el.setAttribute('title', label + where);
+        el.dataset.missingTitle = '';
+      }
+    });
+    // A hidden field is typed through its row of per-character boxes.
+    document.querySelectorAll(`[data-autofill="${name}"]`).forEach(el => {
+      if (!el.id) return;
+      const row = document.querySelector(`.box-input[data-target="#${el.id}"]`);
+      if (row) row.classList.add('field-missing');
     });
   });
 }
