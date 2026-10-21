@@ -2489,3 +2489,25 @@ textarea.from-patient-details:focus {
 }
 .entry-page-btn--back:hover { background: #f1f4f7; }
 .entry-page-done { font-size: .9rem; color: #6b7a88; }
+
+/* ── One button for the whole claim, on the checker page ─── */
+.export-all-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid #b7e2c4;
+  border-left: 4px solid #2e9e55;
+  background: #f3fbf5;
+}
+.export-all-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1d6b38;
+  display: flex;
+  align-items: center;
+}
+.export-all-sub { font-size: .92rem; color: #4a6353; margin-top: .15rem; }
+.btn-export--all { font-size: 1rem; padding: .7rem 1.3rem; }

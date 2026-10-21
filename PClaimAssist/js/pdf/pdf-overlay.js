@@ -385,35 +385,15 @@ function needsRedraw(formKey) {
 }
 
 /* ── Export: filled PDF via pdf-lib ─────────────────────── */
-async function exportFilledPDF(formKey) {
-  if (!window.PDFLib) {
-    showToast('Cannot make the PDF right now', 'Check that the computer is connected to the internet, then reload the page.', 'danger');
-    return;
-  }
-
-  // Research design §3.4.2.5 step 10: PDFs are generated only when all
-  // critical (block_submission) errors have been resolved.
-  const v = window.lastValidationResult;
-  if (v && !v.canGeneratePDF) {
-    const n = v.critical.length;
-    showToast(
-      'Not ready to print yet',
-      `${n} important thing${n === 1 ? ' is' : 's are'} still missing or wrong. ` +
-      'The list is shown now - fix those boxes, then try again.',
-      'danger');
-    if (typeof navigateTo === 'function') navigateTo('validation');
-    return;
-  }
-  const btn = document.getElementById('export-' + formKey + '-btn');
-  if (btn) { btn.disabled = true; btn.textContent = 'Making the PDF, please wait…'; }
-
-  try {
-    const bytes = await fetch(PDF_PATHS[formKey]).then(r => {
-      if (!r.ok) throw new Error('PDF not found');
-      return r.arrayBuffer();
-    });
-    
-    const pdfDoc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
+/* One form, filled: the blank PDF with every overlay value drawn on it.
+   Used for saving a single form and for putting all of them into one
+   document (exportAllForms). */
+async function buildFilledPdf(formKey) {
+  const bytes = await fetch(PDF_PATHS[formKey]).then(r => {
+    if (!r.ok) throw new Error('PDF not found: ' + formKey);
+    return r.arrayBuffer();
+  });
+  const pdfDoc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
     const pages = pdfDoc.getPages();
     const { StandardFonts } = PDFLib;
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -447,6 +427,33 @@ async function exportFilledPDF(formKey) {
       });
     });
 
+  return pdfDoc;
+}
+
+async function exportFilledPDF(formKey) {
+  if (!window.PDFLib) {
+    showToast('Cannot make the PDF right now', 'Check that the computer is connected to the internet, then reload the page.', 'danger');
+    return;
+  }
+
+  // Research design §3.4.2.5 step 10: PDFs are generated only when all
+  // critical (block_submission) errors have been resolved.
+  const v = window.lastValidationResult;
+  if (v && !v.canGeneratePDF) {
+    const n = v.critical.length;
+    showToast(
+      'Not ready to print yet',
+      `${n} important thing${n === 1 ? ' is' : 's are'} still missing or wrong. ` +
+      'The list is shown now - fix those boxes, then try again.',
+      'danger');
+    if (typeof navigateTo === 'function') navigateTo('validation');
+    return;
+  }
+  const btn = document.getElementById('export-' + formKey + '-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Making the PDF, please wait…'; }
+
+  try {
+    const pdfDoc = await buildFilledPdf(formKey);
     const pdfBytes = await pdfDoc.save();
     const blob = new Blob([pdfBytes], { type: 'application/pdf' });
     const url = URL.createObjectURL(blob);
@@ -465,6 +472,71 @@ async function exportFilledPDF(formKey) {
   } finally {
     if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-printer me-2"></i>Save as PDF to print'; }
   }
+}
+
+/* ── Every form, in one document ─────────────────────────
+   A claim is not sent one form at a time, so there is one button for the
+   lot of it, on the "Check for missing information" page, and it appears
+   only once nothing is missing. The forms are put into a single PDF in
+   the order they are filed rather than downloaded as four files: a
+   browser blocks a burst of downloads, and one document prints in one
+   go. */
+async function exportAllForms() {
+  if (!window.PDFLib) {
+    showToast('Cannot make the PDF right now',
+      'Check that the computer is connected to the internet, then reload the page.', 'danger');
+    return;
+  }
+  const v = window.lastValidationResult;
+  if (v && !v.canGeneratePDF) {
+    const n = v.critical.length;
+    showToast('Not ready to print yet',
+      `${n} important thing${n === 1 ? ' is' : 's are'} still missing or wrong.`, 'danger');
+    return;
+  }
+
+  const btn = document.getElementById('exportAllBtn');
+  const label = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Making the forms, please wait…'; }
+
+  try {
+    const merged = await PDFLib.PDFDocument.create();
+    for (const formKey of PDF_FORM_KEYS) {
+      const filled = await buildFilledPdf(formKey);
+      const pages = await merged.copyPages(filled, filled.getPageIndices());
+      pages.forEach(page => merged.addPage(page));
+    }
+    const pdfBytes = await merged.save();
+    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `PClaimAssist_forms_${claimFileStamp()}.pdf`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    showToast('All forms saved',
+      `${PDF_FORM_KEYS.length} forms were saved to your Downloads folder as one file. ` +
+      'Open it there to print them all.', 'success');
+    if (typeof PCALearning !== 'undefined') PCALearning.recordFormEntries();
+  } catch (err) {
+    showToast('The forms could not be made',
+      'Please try again. If it keeps happening, tell the clinic administrator.', 'danger');
+    console.error('[PCA] Export-all error:', err);
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = label; }
+  }
+}
+
+/* The patient's surname and today's date, so the saved file says whose
+   claim it is without having to be opened. */
+function claimFileStamp() {
+  const data = (typeof state !== 'undefined' && state.data) ? state.data : {};
+  const name = String(data.patientLastName || '').trim().replace(/[^A-Za-z0-9]+/g, '');
+  const today = new Date();
+  const date = today.getFullYear() + '-' +
+    String(today.getMonth() + 1).padStart(2, '0') + '-' +
+    String(today.getDate()).padStart(2, '0');
+  return (name ? name + '_' : '') + date;
 }
 
 /* ── Init: setup nav buttons + resize handler ────────────── */

@@ -7,7 +7,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" rel="stylesheet">
-  <link href="css/style.css?v=20261022g" rel="stylesheet">
+  <link href="css/style.css?v=20261022h" rel="stylesheet">
   <link href="css/easy.css?v=20261021d" rel="stylesheet">
 </head>
 <body class="easy">
@@ -823,9 +823,6 @@
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
       <span id="val-csf-score" class="val-score">0/9 Fields</span>
-      <button class="btn-export" id="export-csf-btn" onclick="exportFilledPDF('csf')">
-        <i class="bi bi-printer me-2"></i>Save as PDF to print
-      </button>
       <div id="status-csf"><span class="badge badge-pending">Not started</span></div>
     </div>
   </div>
@@ -1190,9 +1187,6 @@
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
       <span id="val-cf2-score" class="val-score">0/9 Fields</span>
-      <button class="btn-export" id="export-cf2-btn" onclick="exportFilledPDF('cf2')">
-        <i class="bi bi-printer me-2"></i>Save as PDF to print
-      </button>
       <div id="status-cf2"><span class="badge badge-pending">Not started</span></div>
     </div>
   </div>
@@ -1707,9 +1701,6 @@
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
       <span id="val-cf4-score" class="val-score">0/12 Fields</span>
-      <button class="btn-export" id="export-cf4-btn" onclick="exportFilledPDF('cf4')">
-        <i class="bi bi-printer me-2"></i>Save as PDF to print
-      </button>
       <div id="status-cf4"><span class="badge badge-pending">Not started</span></div>
     </div>
   </div>
@@ -2513,9 +2504,6 @@
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
       <span id="val-pmrf-score" class="val-score">0/9 Fields</span>
-      <button class="btn-export" id="export-pmrf-btn" onclick="exportFilledPDF('pmrf')">
-        <i class="bi bi-printer me-2"></i>Save as PDF to print
-      </button>
       <div id="status-pmrf"><span class="badge badge-pending">Not started</span></div>
     </div>
   </div>
@@ -3186,6 +3174,24 @@
     </div>
   </div>
 
+  <!-- ── One button for the whole claim ──────────────────────
+       A claim is filed as a set, so the forms are saved as a set, and
+       only once the checker has nothing left to report. Until then this
+       is hidden and the page shows what is still missing. -->
+  <div class="pca-card export-all-card mb-3" id="exportAllCard" hidden>
+    <div class="export-all-text">
+      <div class="export-all-title">
+        <i class="bi bi-check-circle-fill me-2" aria-hidden="true"></i>Everything is filled in
+      </div>
+      <div class="export-all-sub">
+        All <span id="exportAllCount">4</span> forms are ready. Save them as one file, then print it.
+      </div>
+    </div>
+    <button class="btn-export btn-export--all" id="exportAllBtn" onclick="exportAllForms()">
+      <i class="bi bi-printer me-2"></i>Save all forms as PDF
+    </button>
+  </div>
+
   <!-- ── Overall score: one big number, readable across the room ── -->
   <div class="pca-card score-hero mb-3" data-aos="fade-up">
     <div class="score-hero-main">
@@ -3525,7 +3531,7 @@
 <script src="js/pdf/overlays/pmrf.js?v=20261012c"></script>
 <script src="js/pdf/overlays/index.js?v=20261012c"></script>
 <script src="js/entry-learning.js?v=20261015a"></script>
-<script src="js/pdf/pdf-overlay.js?v=20261022c"></script>
+<script src="js/pdf/pdf-overlay.js?v=20261022d"></script>
 <script src="js/pdf/pdf-calibrate.js?v=20261015a"></script>
 <!-- Rule-based validation engine (must load before app.js) -->
 <script src="js/validation-rules.js?v=20261021a"></script>
@@ -3533,7 +3539,7 @@
 <!-- Segmented inputs: date/PAN boxes and the PhilHealth PIN (2-9-1) -->
 <script src="js/box-input.js?v=20261022a"></script>
 <script src="js/pin-input.js?v=20261012c"></script>
-<script src="js/app.js?v=20261022k"></script>
+<script src="js/app.js?v=20261022l"></script>
 <script src="js/easy.js?v=20261021f"></script>
 <!-- Loads a claim sent from the OCR review: index.html?claim=<id> -->
 <script src="js/claim-loader.js?v=20261021d"></script>

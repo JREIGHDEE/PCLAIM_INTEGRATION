@@ -1254,7 +1254,7 @@ function updateValidation() {
   // Steps 7–8: compile and dispatch rule feedback
   renderRuleFeedback(result);
   applyInlineFieldFlags(result);
-  updateExportGate(result);
+  updateExportGate(result, totalComplete, totalFields);
   renderSigningChecklist(result);
 }
 
@@ -1528,19 +1528,12 @@ function markMissingRequiredFields() {
    EXPORT GATE — PDFs generate only once every critical error
    is resolved (research design §3.4.2.5, step 10).
 ══════════════════════════════════════════════════════════ */
-function updateExportGate(result) {
+function updateExportGate(result, totalComplete, totalFields) {
   const blocked = !result.canGeneratePDF;
   const reason  = blocked
     ? 'Not ready yet: ' + result.critical.length + ' important thing' +
       (result.critical.length === 1 ? ' is' : 's are') + ' still missing or wrong'
     : '';
-
-  VAL_FORM_KEYS.forEach(form => {
-    const btn = document.getElementById('export-' + form + '-btn');
-    if (!btn) return;
-    btn.classList.toggle('is-blocked', blocked);
-    btn.setAttribute('title', reason || 'Save the filled form as a PDF, ready to print');
-  });
 
   const banner = document.getElementById('exportGateBanner');
   if (banner) {
@@ -1548,6 +1541,16 @@ function updateExportGate(result) {
     const txt = document.getElementById('exportGateText');
     if (txt) txt.textContent = reason;
   }
+
+  // The one button for the whole claim shows only when there is nothing
+  // left to report: every box the checker counts is filled, and no rule
+  // is still complaining. Parts marked "Not needed" are already out of
+  // that count, so a claim can be complete without every box on paper.
+  const ready = !blocked && totalFields > 0 && totalComplete >= totalFields;
+  const card  = document.getElementById('exportAllCard');
+  if (card) card.hidden = !ready;
+  const count = document.getElementById('exportAllCount');
+  if (count) count.textContent = VAL_FORM_KEYS.length;
 }
 
 /* ══════════════════════════════════════════════════════════
