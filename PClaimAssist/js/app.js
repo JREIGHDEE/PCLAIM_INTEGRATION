@@ -761,17 +761,25 @@ function propagateMirroredField(key, prevValue) {
    anything the page marks data-keep-case. The caret is put back where it
    was, otherwise replacing the value would send it to the end of the line
    on every keystroke. */
+const FREE_TEXT_TYPES = new Set(['text', 'search', 'tel', 'url', 'textarea', '']);
+
 function toFormCase(el) {
   const raw = typeof el.value === 'string' ? el.value.trim() : el.value;
   if (typeof raw !== 'string') return raw;
-  if (el.type === 'email' || el.type === 'password' || el.type === 'date' ||
-      el.type === 'time' || el.dataset.keepCase !== undefined) return raw;
+  // A dropdown's value comes from its own <option> list, not from typing.
+  // Upper-casing it would produce a value no option carries, and assigning
+  // that back clears the dropdown - which is what emptied these boxes.
+  // Dates, times, email and anything marked data-keep-case are left alone
+  // for the same reason: their value has a format of its own.
+  const kind = el.tagName === 'TEXTAREA' ? 'textarea' : (el.type || '');
+  if (el.tagName === 'SELECT' || !FREE_TEXT_TYPES.has(kind) ||
+      el.dataset.keepCase !== undefined) return raw;
   const upper = raw.toUpperCase();
   if (el.value !== upper && el.value.trim() === raw) {
     const at = el.selectionStart;
     el.value = upper;
-    if (at !== null && el.setSelectionRange) {
-      try { el.setSelectionRange(at, at); } catch (e) { /* not a text input */ }
+    if (at !== null && at !== undefined && el.setSelectionRange) {
+      try { el.setSelectionRange(at, at); } catch (e) { /* no text selection */ }
     }
   }
   return upper;
