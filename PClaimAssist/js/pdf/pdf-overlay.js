@@ -117,14 +117,8 @@ async function renderPDFPage(formKey, pageNum) {
     overlay.style.height = '100%';
   }
 
-  const pageLabel = document.getElementById(formKey + '-page-info');
-  if (pageLabel) pageLabel.textContent = `Page ${pageNum} / ${st.totalPages}`;
-
-  const prevBtn = document.getElementById(formKey + '-prev-page');
-  const nextBtn = document.getElementById(formKey + '-next-page');
-  if (prevBtn) prevBtn.disabled = pageNum <= 1;
-  if (nextBtn) nextBtn.disabled = pageNum >= st.totalPages;
-
+  // The page is turned from the foot of the data-entry panel
+  // (renderEntryPageNav), which also shows which page is being looked at.
   st.page = pageNum;
   scaleOverlayFonts(formKey);
   updateOverlayForForm(formKey);
@@ -135,12 +129,12 @@ async function renderPDFPage(formKey, pageNum) {
 function syncEntryPanelPageGroups(formKey, pageNum) {
   const panel = document.querySelector(`#section-${formKey} .entry-panel-body`);
   if (!panel) return;
-  const groups = panel.querySelectorAll('.pdf-page-group[data-pdf-page]');
-  if (!groups.length) return;
-  groups.forEach(group => {
+  // Only some forms keep their boxes in per-page blocks; the turner below
+  // is drawn for every form of more than one page either way.
+  panel.querySelectorAll('.pdf-page-group[data-pdf-page]').forEach(group => {
     group.hidden = Number(group.dataset.pdfPage) !== pageNum;
   });
-  renderEntryPageNav(panel, formKey, pageNum, groups);
+  renderEntryPageNav(panel, formKey, pageNum);
 }
 
 /* ── A page turner at the foot of "Type the details here" ──
@@ -148,16 +142,18 @@ function syncEntryPanelPageGroups(formKey, pageNum) {
    arrows above the preview were used, so the second page was easy to miss
    entirely. The same turn is offered where it is noticed: at the end of
    the boxes, where someone who has filled the last one is looking. */
-function renderEntryPageNav(panel, formKey, pageNum, groups) {
-  const pages = new Set();
-  groups.forEach(g => pages.add(Number(g.dataset.pdfPage)));
+function renderEntryPageNav(panel, formKey, pageNum) {
+  // The form's own page count decides this, not how the boxes happen to be
+  // arranged: PMRF shows all of its boxes in one scroll but is still a form
+  // of two pages, and the turner moves the preview to the page being
+  // checked. A form of one page has nothing to turn to.
+  const total = (pdfState[formKey] && pdfState[formKey].totalPages) || 1;
   let nav = panel.querySelector('.entry-page-nav');
 
-  if (pages.size < 2) {            // one page: nothing to turn to
+  if (total < 2) {
     if (nav) nav.remove();
     return;
   }
-  const total = Math.max(...pages);
   if (!nav) {
     nav = document.createElement('div');
     nav.className = 'entry-page-nav';
@@ -167,13 +163,12 @@ function renderEntryPageNav(panel, formKey, pageNum, groups) {
 
   const back = pageNum > 1
     ? `<button type="button" class="entry-page-btn entry-page-btn--back" data-go="${pageNum - 1}">
-         <i class="bi bi-arrow-left" aria-hidden="true"></i> Back to page ${pageNum - 1}
+         <i class="bi bi-arrow-left" aria-hidden="true"></i> Previous page
        </button>`
     : '<span></span>';
   const forward = pageNum < total
     ? `<button type="button" class="entry-page-btn entry-page-btn--next" data-go="${pageNum + 1}">
-         There is more to fill in on page ${pageNum + 1}
-         <i class="bi bi-arrow-right" aria-hidden="true"></i>
+         Next page <i class="bi bi-arrow-right" aria-hidden="true"></i>
        </button>`
     : '<span class="entry-page-done">This is the last page of this form.</span>';
 
@@ -360,19 +355,11 @@ function updateAllOverlays() {
   });
 }
 
-/* ── Page navigation ─────────────────────────────────────── */
-function setupPageNav(formKey) {
-  const prev = document.getElementById(formKey + '-prev-page');
-  const next = document.getElementById(formKey + '-next-page');
-  if (prev) prev.addEventListener('click', () => {
-    const st = pdfState[formKey];
-    if (st.page > 1) renderPDFPage(formKey, st.page - 1);
-  });
-  if (next) next.addEventListener('click', () => {
-    const st = pdfState[formKey];
-    if (st.page < st.totalPages) renderPDFPage(formKey, st.page + 1);
-  });
-}
+/* ── Page navigation ───────────────────────────────────────
+   The arrows that used to sit above the preview are gone: the page is
+   turned at the foot of "Type the details here", where someone who has
+   filled the last box is already looking. */
+function setupPageNav() { /* nothing to wire up any more */ }
 
 /* ── Lazy load: only render PDF when its section opens ───── */
 function onFormSectionActivated(formKey) {
