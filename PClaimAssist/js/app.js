@@ -53,6 +53,10 @@ AOS.init({ duration: 500, once: true, offset: 30 });
 ══════════════════════════════════════════════════════════ */
 const state = {
   currentSection: 'dashboard',
+  /* Parts of a form the clinic has marked as not applying to this patient,
+     keyed "<form>|<heading>". Kept beside data, not inside it: these are a
+     note about the claim, not a value printed on it. */
+  notNeeded: {},
   data: {
     /* Patient (dependent / person confined) */
     patientLastName:'', patientFirstName:'', patientMiddleName:'', patientNameExt:'',
@@ -870,6 +874,100 @@ function addPatientDetailsNote(section) {
   });
 }
 
+/* ══════════════════════════════════════════════════════════
+   PARTS THAT DO NOT APPLY TO THIS PATIENT
+   Not every part of a form is wanted every time - a patient
+   with no employer, no referral, no TB-DOTS or newborn care
+   package. Those boxes would sit outlined red for ever, and
+   the form would never read as finished. Each part heading
+   carries a "Not needed" tick box: ticking it greys the part,
+   stops its boxes being marked, and leaves it out of the
+   count on the checker.
+══════════════════════════════════════════════════════════ */
+function partId(form, heading) {
+  return form + '|' + heading.replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+/* Headings sit beside their fields rather than wrapping them, so each
+   heading and the rows that follow it are gathered into one box first -
+   there is otherwise nothing to grey out or skip. */
+function groupEntryParts() {
+  FORM_SECTIONS.forEach(form => {
+    const section = document.getElementById('section-' + form);
+    if (!section) return;
+    const panel = section.querySelector('.entry-panel-body') ||
+                  section.querySelector('.form-entry-panel');
+    if (!panel || panel.querySelector('.entry-part')) return;
+
+    // A heading is not always a direct child of the panel - CSF 4 and the
+    // later pages of CSF 2 keep theirs inside a .pdf-page-group - so each
+    // one is gathered among its own siblings rather than the panel's.
+    Array.from(panel.querySelectorAll('.entry-section-title')).forEach(title => {
+      if (title.closest('.entry-part')) return;
+      const container = title.parentElement;
+      if (!container) return;
+      const heading = title.textContent.trim();
+      const wrap = document.createElement('div');
+      wrap.className = 'entry-part';
+      wrap.dataset.partId = partId(form, heading);
+      container.insertBefore(wrap, title);
+      let node = title;
+      // Stop at the next heading, and at any block that carries headings of
+      // its own - CSF 2 keeps its later pages in such a block, and swallowing
+      // it would hide those parts inside this one.
+      const boundary = n => n !== title && n.nodeType === 1 &&
+        (n.classList.contains('entry-section-title') ||
+         n.querySelector('.entry-section-title'));
+      while (node && !boundary(node)) {
+        const next = node.nextSibling;
+        wrap.appendChild(node);
+        node = next;
+      }
+      addNotNeededTick(wrap, heading);
+    });
+  });
+}
+
+function addNotNeededTick(wrap, heading) {
+  const title = wrap.querySelector('.entry-section-title');
+  if (!title || title.querySelector('.part-skip')) return;
+  const id = wrap.dataset.partId;
+  const label = document.createElement('label');
+  label.className = 'part-skip';
+  label.innerHTML =
+    '<input type="checkbox" class="part-skip-box">' +
+    '<span>Not needed</span>';
+  const box = label.querySelector('input');
+  box.checked = !!state.notNeeded[id];
+  box.setAttribute('aria-label', 'Mark "' + heading + '" as not needed for this patient');
+  box.addEventListener('change', () => {
+    if (box.checked) state.notNeeded[id] = true;
+    else delete state.notNeeded[id];
+    applyNotNeededParts();
+    updateFormPreviews();
+  });
+  title.appendChild(label);
+}
+
+function applyNotNeededParts() {
+  document.querySelectorAll('.entry-part').forEach(wrap => {
+    const off = !!state.notNeeded[wrap.dataset.partId];
+    wrap.classList.toggle('part-not-needed', off);
+    const box = wrap.querySelector('.part-skip-box');
+    if (box && box.checked !== off) box.checked = off;
+  });
+}
+
+/* True when a key's box on this form sits in a part marked not needed. */
+function keyIsSkipped(form, key) {
+  const name = FIX_FIELD_ALIASES[key] || key;
+  const section = document.getElementById('section-' + form);
+  if (!section) return false;
+  const el = section.querySelector(
+    `[data-autofill="${name}"], [data-box-key="${name}"]`);
+  return !!(el && el.closest('.part-not-needed'));
+}
+
 function bindInputListeners() {
   document.querySelectorAll('[data-autofill]').forEach(el => {
     const key = el.dataset.autofill;
@@ -1067,9 +1165,17 @@ function updateValidation() {
   window.lastValidationResult = result;
 
   VAL_FORM_KEYS.forEach(form => {
-    const fields = VAL_FIELDS[form];
+    const allFields = VAL_FIELDS[form];
+    // A part the clinic marked "Not needed" is not counted as missing.
+    const fields = allFields.filter(({ key }) => !keyIsSkipped(form, key));
+    const skipped = allFields.length - fields.length;
     let formComplete = 0;
     totalFields += fields.length;
+
+    allFields.forEach(({ key }) => {
+      const item = document.querySelector(`.val-item[data-field="${key}"][data-form="${form}"]`);
+      if (item) item.classList.toggle('skipped', keyIsSkipped(form, key));
+    });
 
     fields.forEach(({ key }) => {
       const val  = getComputedValue(key);
@@ -1089,7 +1195,8 @@ function updateValidation() {
       }
     });
 
-    const scoreText = `${formComplete} of ${fields.length} filled in`;
+    const scoreText = `${formComplete} of ${fields.length} filled in`
+      + (skipped ? ` · ${skipped} not needed` : '');
     const scoreEl   = document.getElementById(`val-${form}-score`);
     if (scoreEl)    scoreEl.textContent = scoreText;
     const scoreEl2  = document.getElementById(`val-${form}-score-2`);
@@ -1107,12 +1214,13 @@ function updateValidation() {
       }
     }
 
-    const pct = Math.round((formComplete / fields.length) * 100);
+    // Every part switched off leaves nothing to ask for - that counts as done.
+    const pct = fields.length ? Math.round((formComplete / fields.length) * 100) : 100;
     const bar = document.getElementById(`prog-${form}-bar`);
     if (bar) bar.style.width = pct + '%';
   });
 
-  const overall     = Math.round((totalComplete / totalFields) * 100);
+  const overall     = totalFields ? Math.round((totalComplete / totalFields) * 100) : 100;
   const scoreVal    = document.getElementById('scoreValue');
   const scoreCircle = document.getElementById('scoreCircle');
   const legComp     = document.getElementById('legendComplete');
@@ -1348,6 +1456,7 @@ function markFieldsNeedingTyping() {
       // Boxes the page is keeping out of sight are not being asked for.
       if (el.classList.contains('d-none') || el.hidden ||
           el.closest('.d-none, [hidden]')) return;
+      if (el.closest('.part-not-needed')) return;
       // A tick box or a choice is never "blank" in the way a typed box is.
       if (el.type === 'checkbox' || el.type === 'radio') return;
       if (String(el.value || '').trim()) return;
@@ -1395,6 +1504,7 @@ function markMissingRequiredFields() {
       const input = el.matches('input,select,textarea') ? el
                   : el.querySelector('input,select,textarea');
       if (input && input.type === 'hidden') return;
+      if (el.closest('.part-not-needed')) return;
       el.classList.add('field-missing');
       if (!el.getAttribute('title')) {
         const where = el.classList.contains('from-patient-details')
@@ -1572,6 +1682,8 @@ buildValidationAccordion();
 bindInputListeners();
 bindBoxGroupListeners();
 markPatientOwnedFields();
+groupEntryParts();
+applyNotNeededParts();
 updateFormPreviews();
 
 const initialSection = VALID_SECTIONS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'dashboard';

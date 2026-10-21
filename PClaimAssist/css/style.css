@@ -2409,3 +2409,36 @@ textarea.from-patient-details:focus {
   outline-offset: 3px;
   border-radius: 6px;
 }
+
+/* ── Parts of a form that do not apply to this patient ───── */
+.entry-part { position: relative; }
+.part-skip {
+  float: right;
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  font-size: .8rem;
+  font-weight: 500;
+  color: #6b7a88;
+  cursor: pointer;
+  user-select: none;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.part-skip input { cursor: pointer; margin: 0; }
+.part-skip:hover { color: #35485a; }
+
+.entry-part.part-not-needed > *:not(.entry-section-title) { opacity: .45; }
+.entry-part.part-not-needed .entry-section-title { color: #8a97a3; }
+.entry-part.part-not-needed input:not(.part-skip-box),
+.entry-part.part-not-needed select,
+.entry-part.part-not-needed textarea {
+  pointer-events: none;
+  background-color: #f6f7f8 !important;
+  border-color: #e3e7ea !important;
+}
+.entry-part.part-not-needed .part-skip { color: #35485a; font-weight: 600; }
+
+/* A checklist line for a part that is not needed is struck through. */
+.val-item.skipped { opacity: .5; }
+.val-item.skipped .val-label { text-decoration: line-through; }
