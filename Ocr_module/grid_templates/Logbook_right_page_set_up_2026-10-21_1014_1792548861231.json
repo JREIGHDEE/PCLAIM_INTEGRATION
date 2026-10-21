@@ -1,5 +1,5 @@
 {
-  "name": "Logbook right page (set up 2026-10-21 01:44)",
+  "name": "Logbook right page (set up 2026-10-21 10:14)",
   "gridLines": [
     0.01,
     0.3386,
@@ -31,12 +31,12 @@
     "spacing": 32.0
   },
   "cropPresets": [],
-  "created_at": 1792518252905,
+  "created_at": 1792548861231,
   "metadata": {
     "source": "guided_setup",
     "pageParity": "even",
-    "setupId": "a643a8cf0e434343a181e419e8095424",
-    "setupBy": "admin@email.com"
+    "setupId": "a3a0f40080a847a8a29f0b16f0eded51",
+    "setupBy": "midwife@clinic.ph"
   },
   "imageWidth": 1066,
   "imageHeight": 1468

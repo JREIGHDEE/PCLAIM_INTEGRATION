@@ -5,6 +5,19 @@
    rest of the app (state.data, PDF overlay, export) is unaffected.
 ═══════════════════════════════════════════════════════════ */
 
+/* Every rendered box group's own refresh, so values that arrive without a
+   keystroke - copied from Patient details, loaded from a saved claim, filled
+   by the OCR - still reach the boxes. The widgets used to refresh only on the
+   real input's "input" event, which a programmatic assignment does not fire,
+   so those boxes stayed blank while the value sat in the field behind them. */
+const BOX_INPUT_SYNCS = [];
+
+function refreshBoxInputs() {
+  BOX_INPUT_SYNCS.forEach(sync => {
+    try { sync(); } catch (e) { /* a group removed from the page */ }
+  });
+}
+
 /* groups: array of digit-group sizes, e.g. [2,9,1] or [2,2,4] */
 function initBoxInput(wrapEl) {
   const groups = wrapEl.dataset.groups.split(',').map(Number);
@@ -80,6 +93,7 @@ function initBoxInput(wrapEl) {
   });
 
   syncFromReal();
+  BOX_INPUT_SYNCS.push(syncFromReal);
 }
 
 /* groups: array of digit-group sizes for a date, always [2,2,4] (MM-DD-YYYY),
@@ -177,6 +191,7 @@ function initDateBoxInput(wrapEl) {
   });
 
   syncFromReal();
+  BOX_INPUT_SYNCS.push(syncFromReal);
 }
 
 /* 12-hour time as 2 boxed groups (hour, minute), backed by a real
@@ -289,6 +304,7 @@ function initTimeBoxInput(wrapEl) {
   });
 
   syncFromReal();
+  BOX_INPUT_SYNCS.push(syncFromReal);
 }
 
 document.addEventListener('DOMContentLoaded', () => {

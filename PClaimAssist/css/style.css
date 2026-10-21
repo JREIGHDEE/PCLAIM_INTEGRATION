@@ -2277,3 +2277,77 @@ body {
   font-size: .76rem;
   color: #1e8449;
 }
+
+/* ══════════════════════════════════════════════════════════
+   CAPITAL LETTERS ON EVERY FORM FIELD
+   The PhilHealth forms say "PLEASE WRITE IN CAPITAL LETTERS",
+   so the boxes show capitals as they are typed. app.js stores
+   the value upper-cased too (toFormCase), so what is printed
+   matches what is on screen. Email keeps its own case - it is
+   a login, not something printed on a form.
+══════════════════════════════════════════════════════════ */
+input[data-autofill]:not([type="email"]):not([type="date"]):not([type="time"]),
+textarea[data-autofill],
+.pca-box,
+.entry-panel-body input[type="text"]:not([data-keep-case]),
+.entry-panel-body textarea:not([data-keep-case]) {
+  text-transform: uppercase;
+}
+
+input[data-autofill][type="email"],
+input[data-keep-case],
+textarea[data-keep-case] {
+  text-transform: none;
+}
+
+/* ══════════════════════════════════════════════════════════
+   COPIES OF "PATIENT DETAILS" FIELDS
+   Shown on each form so the page still reads as the form, but
+   not editable: the one place to type them is Patient details
+   (see markPatientOwnedFields in js/app.js).
+══════════════════════════════════════════════════════════ */
+.from-patient-note {
+  display: flex;
+  gap: .55rem;
+  align-items: flex-start;
+  margin: 0 0 1.1rem;
+  padding: .7rem .85rem;
+  border: 1px solid #bcd9f2;
+  border-left: 3px solid #2f80c9;
+  border-radius: .5rem;
+  background: #f3f9ff;
+  color: #1f3c55;
+  font-size: .92rem;
+  line-height: 1.45;
+}
+.from-patient-note i { color: #2f80c9; margin-top: .12rem; }
+.from-patient-link { color: #1b6fb8; font-weight: 600; text-decoration: underline; }
+.from-patient-link:hover { color: #114d81; }
+
+input.from-patient-details,
+textarea.from-patient-details,
+select.from-patient-details {
+  background-color: #f1f3f5 !important;
+  color: #44525e !important;
+  border-color: #dde2e7 !important;
+  cursor: not-allowed;
+  opacity: 1;            /* a disabled select must not fade out of readability */
+}
+input.from-patient-details:focus,
+textarea.from-patient-details:focus {
+  box-shadow: none;
+  border-color: #dde2e7 !important;
+}
+.pca-box-group.from-patient-details .pca-box {
+  background-color: #f1f3f5;
+  color: #44525e;
+  border-color: #dde2e7;
+  cursor: not-allowed;
+}
+.btn-check-group.from-patient-details { opacity: .75; }
+.btn-check-group.from-patient-details .btn-check-option { cursor: not-allowed; }
+.btn-check-group.from-patient-details .btn-check-option.active {
+  background-color: #e4e8ec;
+  border-color: #cdd4da;
+  color: #44525e;
+}

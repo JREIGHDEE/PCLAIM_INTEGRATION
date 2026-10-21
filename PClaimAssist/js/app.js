@@ -604,6 +604,9 @@ function updateFormPreviews() {
   if (typeof refreshPinBoxes === 'function') refreshPinBoxes();
   // Sync segmented box-group inputs (dates, PAN) from state
   syncBoxGroupsFromState();
+  // ...and the per-character box rows (CSF/PMRF PIN, dates), which mirror a
+  // real input and so never saw a value that was set rather than typed.
+  if (typeof refreshBoxInputs === 'function') refreshBoxInputs();
   // Update PDF canvas overlays
   if (typeof updateAllOverlays === 'function') updateAllOverlays();
   updateValidation();
@@ -658,6 +661,8 @@ document.querySelectorAll('.btn-check-group[data-autofill]').forEach(group => {
   const key = group.dataset.autofill;
   group.querySelectorAll('.btn-check-option').forEach(btn => {
     btn.addEventListener('click', () => {
+      // A copy of a Patient details field is shown here, not edited here.
+      if (group.classList.contains('from-patient-details')) return;
       const alreadyActive = btn.classList.contains('active');
       const newVal = alreadyActive ? '' : btn.dataset.value;
       const prev = state.data[key];
@@ -749,6 +754,114 @@ function propagateMirroredField(key, prevValue) {
   });
 }
 
+/* PhilHealth forms are completed in capital letters ("PLEASE WRITE IN
+   CAPITAL LETTERS" on the CSF itself), so every typed value is stored
+   upper-cased and the boxes are drawn that way. An email address is left
+   as typed - it is a login, not something printed on a form - and so is
+   anything the page marks data-keep-case. The caret is put back where it
+   was, otherwise replacing the value would send it to the end of the line
+   on every keystroke. */
+function toFormCase(el) {
+  const raw = typeof el.value === 'string' ? el.value.trim() : el.value;
+  if (typeof raw !== 'string') return raw;
+  if (el.type === 'email' || el.type === 'password' || el.type === 'date' ||
+      el.type === 'time' || el.dataset.keepCase !== undefined) return raw;
+  const upper = raw.toUpperCase();
+  if (el.value !== upper && el.value.trim() === raw) {
+    const at = el.selectionStart;
+    el.value = upper;
+    if (at !== null && el.setSelectionRange) {
+      try { el.setSelectionRange(at, at); } catch (e) { /* not a text input */ }
+    }
+  }
+  return upper;
+}
+
+/* ══════════════════════════════════════════════════════════
+   FIELDS THAT BELONG TO "PATIENT DETAILS"
+   Ninety boxes are the same fact asked twice: the patient's
+   name, PIN, address and confinement dates appear both on the
+   Patient details page and again inside CSF, CSF 2, CSF 4 and
+   PMRF. They were already kept in step by
+   syncAllAutofillElements(), but a box you can type in invites
+   typing, so the same detail got entered several times and a
+   form looked empty whenever the typing had been done on a
+   different page.
+   Those copies are now shown, filled, but not editable, with
+   one line at the top of each form saying where to change
+   them. Fields a form owns on its own stay editable.
+══════════════════════════════════════════════════════════ */
+const FORM_SECTIONS = ['csf', 'cf2', 'cf4', 'pmrf'];
+// Switches, not details: these choose how other boxes are filled, so
+// they stay usable on the form itself.
+const PATIENT_PANEL_CONTROLS = new Set(['memberIsPatient']);
+
+function patientOwnedKeys() {
+  const keys = new Set();
+  document.querySelectorAll('#section-patient [data-autofill]').forEach(el => {
+    keys.add(el.dataset.autofill);
+  });
+  document.querySelectorAll('#section-patient .pca-box-group[data-box-key]').forEach(el => {
+    keys.add(el.dataset.boxKey);
+  });
+  return keys;
+}
+
+function lockToPatientDetails(el) {
+  if (el.dataset.fromPatient !== undefined) return;
+  el.dataset.fromPatient = '';
+  el.classList.add('from-patient-details');
+  // readOnly keeps the value selectable and copyable; radios, checkboxes
+  // and selects have no readOnly, so those are disabled instead.
+  if (el.tagName === 'SELECT' || el.type === 'radio' || el.type === 'checkbox') {
+    el.disabled = true;
+  } else {
+    el.readOnly = true;
+  }
+  el.setAttribute('title', 'Entered on the Patient details page - change it there');
+}
+
+function markPatientOwnedFields() {
+  const owned = patientOwnedKeys();
+  FORM_SECTIONS.forEach(form => {
+    const section = document.getElementById('section-' + form);
+    if (!section) return;
+    section.querySelectorAll('[data-autofill]').forEach(el => {
+      if (PATIENT_PANEL_CONTROLS.has(el.dataset.autofill)) return;
+      if (owned.has(el.dataset.autofill)) lockToPatientDetails(el);
+    });
+    section.querySelectorAll('.pca-box-group[data-box-key]').forEach(group => {
+      if (!owned.has(group.dataset.boxKey)) return;
+      group.classList.add('from-patient-details');
+      group.querySelectorAll('.pca-box').forEach(lockToPatientDetails);
+    });
+    // A button-check group (e.g. Relationship) is a row of divs, so it is
+    // switched off with a class the stylesheet and the click handler read.
+    section.querySelectorAll('.btn-check-group[data-autofill]').forEach(group => {
+      if (owned.has(group.dataset.autofill)) group.classList.add('from-patient-details');
+    });
+    addPatientDetailsNote(section);
+  });
+}
+
+function addPatientDetailsNote(section) {
+  const panel = section.querySelector('.entry-panel-body') ||
+                section.querySelector('.form-entry-panel');
+  if (!panel || panel.querySelector('.from-patient-note')) return;
+  if (!section.querySelector('.from-patient-details')) return;
+  const note = document.createElement('div');
+  note.className = 'from-patient-note';
+  note.innerHTML =
+    '<i class="bi bi-info-circle" aria-hidden="true"></i>' +
+    '<span>The grey boxes were filled in from <strong>Patient details</strong>. ' +
+    'To change them, <a href="#patient" class="from-patient-link">open Patient details</a>.</span>';
+  panel.insertBefore(note, panel.firstChild);
+  note.querySelector('.from-patient-link').addEventListener('click', e => {
+    e.preventDefault();
+    navigateTo('patient');
+  });
+}
+
 function bindInputListeners() {
   document.querySelectorAll('[data-autofill]').forEach(el => {
     const key = el.dataset.autofill;
@@ -765,7 +878,7 @@ function bindInputListeners() {
         state.data[key] = list;
       }
       else if (el.type === 'checkbox') state.data[key] = el.checked;
-      else state.data[key] = el.value.trim ? el.value.trim() : el.value;
+      else state.data[key] = toFormCase(el);
       propagateMirroredField(key, prev);
       updateFormPreviews();
     };
@@ -1284,6 +1397,7 @@ function escHtml(str) {
 buildValidationAccordion();
 bindInputListeners();
 bindBoxGroupListeners();
+markPatientOwnedFields();
 updateFormPreviews();
 
 const initialSection = VALID_SECTIONS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'dashboard';
