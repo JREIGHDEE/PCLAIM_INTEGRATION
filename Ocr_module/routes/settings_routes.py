@@ -4,7 +4,7 @@
   POST /api/settings/clinic   (admin)   update them
 
 Table 3.1 of the research design lists clinic name, accreditation number
-and address as "System settings (entered once)", shared by CF2, CF3 and
+and address as "System settings (entered once)", shared by CF2 and
 CF4. Reading is open to any signed-in user because every claim form needs
 these values; only an administrator may change them.
 """

@@ -230,24 +230,16 @@ def get_claim(claim_id):
 
 def get_claim_form_source(claim_id):
     """Everything philhealth/form_prefill.build_form_data() needs for one
-    claim: its rows, CF3 prenatal visits and postpartum care rows, and the
-    OCR case session it was generated from (None for a manual claim).
-    Returns None if the claim doesn't exist."""
+    claim: its rows and the OCR case session it was generated from
+    (None for a manual claim). Returns None if the claim doesn't exist."""
     from case_session_store import get_session
 
     rows = get_claim(claim_id)
     if rows is None:
         return None
-    with get_db_cursor() as cursor:
-        cursor.execute("SELECT * FROM claim_prenatal_visits WHERE claim_id = %s", (claim_id,))
-        prenatal_visits = cursor.fetchall()
-        cursor.execute("SELECT * FROM claim_postpartum_care WHERE claim_id = %s", (claim_id,))
-        postpartum_care = cursor.fetchall()
     session_id = (rows["encounter"] or {}).get("case_session_id")
     return {
         "rows": rows,
-        "prenatal_visits": prenatal_visits,
-        "postpartum_care": postpartum_care,
         "session": get_session(session_id) if session_id else None,
     }
 

@@ -30,10 +30,8 @@ from datetime import date
 # ---------------------------------------------------------------------------
 FormField = namedtuple("FormField", "table column kind row", defaults=("text", None))
 
-
 def _claims(column, kind="text"):
     return FormField("claims", column, kind)
-
 
 FORM_FIELDS = {
     # patients
@@ -105,7 +103,7 @@ FORM_FIELDS = {
     "mobile": _claims("mobile"),
     "homePhone": _claims("home_phone"),
     "email": _claims("email"),
-    # claims - maternity / delivery (CF3)
+    # claims - maternity / delivery
     "lmp": _claims("lmp", "date"),
     "ageOfMenarche": _claims("age_of_menarche", "number"),
     "gravida": _claims("gravida", "number"),
@@ -120,77 +118,13 @@ FORM_FIELDS = {
     "birthWeight": _claims("birth_weight"),
     "apgarScore": _claims("apgar_score", "number"),
     "briefHistory": _claims("brief_history"),
-    # claims - physical exam, course, labs (CF3 part I)
-    "vitalBP": _claims("vital_bp"),
-    "vitalCR": _claims("vital_cr"),
-    "vitalRR": _claims("vital_rr"),
-    "vitalTemp": _claims("vital_temp"),
-    "peHEENT": _claims("pe_heent"),
-    "peAbdomen": _claims("pe_abdomen"),
-    "peChestLungs": _claims("pe_chest_lungs"),
-    "peGU": _claims("pe_gu"),
-    "peCVS": _claims("pe_cvs"),
-    "peSkinExtremities": _claims("pe_skin_extremities"),
-    "peNeuroExam": _claims("pe_neuro_exam"),
-    "courseInWards": _claims("course_in_wards"),
-    "labFindings": _claims("lab_findings"),
-    # claims - maternity care package (CF3 part II)
-    "initialPrenatalDate": _claims("initial_prenatal_date", "date"),
-    "vitalSignsNormal": _claims("vital_signs_normal", "bool"),
-    "pregnancyLowRisk": _claims("pregnancy_low_risk", "bool"),
+    # claims - physical exam
+    # claims - obstetric history
     "obTerm": _claims("ob_term", "number"),
     "obPreterm": _claims("ob_preterm", "number"),
     "obAbortion": _claims("ob_abortion", "number"),
     "obLiving": _claims("ob_living", "number"),
-    "riskMultiplePregnancy": _claims("risk_multiple_pregnancy", "bool"),
-    "riskOvarianCyst": _claims("risk_ovarian_cyst", "bool"),
-    "riskMyomaUteri": _claims("risk_myoma_uteri", "bool"),
-    "riskPlacentaPrevia": _claims("risk_placenta_previa", "bool"),
-    "riskMiscarriages": _claims("risk_miscarriages", "bool"),
-    "riskStillbirth": _claims("risk_stillbirth", "bool"),
-    "riskPreeclampsia": _claims("risk_preeclampsia", "bool"),
-    "riskEclampsia": _claims("risk_eclampsia", "bool"),
-    "riskPrematureContraction": _claims("risk_premature_contraction", "bool"),
-    "riskHypertension": _claims("risk_hypertension", "bool"),
-    "riskHeartDisease": _claims("risk_heart_disease", "bool"),
-    "riskDiabetes": _claims("risk_diabetes", "bool"),
-    "riskThyroidDisorder": _claims("risk_thyroid_disorder", "bool"),
-    "riskObesity": _claims("risk_obesity", "bool"),
-    "riskAsthma": _claims("risk_asthma", "bool"),
-    "riskEpilepsy": _claims("risk_epilepsy", "bool"),
-    "riskRenalDisease": _claims("risk_renal_disease", "bool"),
-    "riskBleedingDisorders": _claims("risk_bleeding_disorders", "bool"),
-    "riskPrevCesarian": _claims("risk_prev_cesarian", "bool"),
-    "riskUterineMyomectomy": _claims("risk_uterine_myomectomy", "bool"),
-    "mcpOrientation": _claims("mcp_orientation"),
-    "obstetricIndex": _claims("obstetric_index"),
-    "pregnancyUterineAOG": _claims("pregnancy_uterine_aog"),
-    "presentation": _claims("presentation"),
-    "postpartumFollowupDate": _claims("postpartum_followup_date", "date"),
-    "attendingPhysicianName": _claims("attending_physician_name"),
-    "dateSigned": _claims("date_signed", "date"),
 }
-
-# CF3 follow-up prenatal visits 2-12: pncDate2..pncTemp12 -> one
-# claim_prenatal_visits row per visit number.
-_PRENATAL_COLUMNS = {
-    "Date": ("visit_date", "date"), "Aog": ("aog", "text"), "Weight": ("weight", "number"),
-    "Cr": ("cr", "text"), "Rr": ("rr", "text"), "Bp": ("bp", "text"), "Temp": ("temp", "number"),
-}
-for _visit in range(2, 13):
-    for _suffix, (_column, _kind) in _PRENATAL_COLUMNS.items():
-        FORM_FIELDS[f"pnc{_suffix}{_visit}"] = FormField("claim_prenatal_visits", _column, _kind, _visit)
-
-# CF3 postpartum care checklist: pp<Item>Done / pp<Item>Remarks -> one
-# claim_postpartum_care row per care_item.
-_POSTPARTUM_ITEMS = {
-    "Perineal": "perineal", "Complications": "complications", "Breastfeeding": "breastfeeding",
-    "FamilyPlanning": "family_planning", "FPService": "fp_service",
-    "ReferredVSS": "referred_vss", "ScheduleNext": "schedule_next",
-}
-for _item, _care_item in _POSTPARTUM_ITEMS.items():
-    FORM_FIELDS[f"pp{_item}Done"] = FormField("claim_postpartum_care", "done", "bool", _care_item)
-    FORM_FIELDS[f"pp{_item}Remarks"] = FormField("claim_postpartum_care", "remarks", "text", _care_item)
 
 # Keys that are not PClaimAssist form inputs (see patientAddress above).
 NON_FORM_KEYS = {"patientAddress"}
@@ -307,7 +241,7 @@ VAL_FIELDS = {
 # Ported from PClaimAssist/js/app.js DATE_FIELDS, plus deliveryDate (added
 # once case_bridge.py started capturing "DATE & TIME OF DELIVERY" from the
 # OCR logbook - see field_catalog KEY_SOURCE above). expectedDD/lmp remain
-# CF3-only entries omitted here - out of v1 scope (no OCR source and no
+# Entries omitted here - out of v1 scope (no OCR source and no
 # backend route reads/writes them yet).
 DATE_FIELDS = {"memberDOB", "patientDOB", "dateAdmitted", "dateDischarge", "deliveryDate"}
 
@@ -325,7 +259,6 @@ ENUM_CHOICES = {
 AUTO_OCR_KEYS = {key for keys in OCR_CATEGORY_KEYS.values() for key in keys}
 AUTO_CONFIG_KEYS = {"hciPAN", "hciName", "hciStreet", "hciCity", "hciProvince"}
 
-
 def source_kind(key):
     """'auto_ocr' | 'auto_config' | 'manual' - for the review UI's Source column."""
     if key in AUTO_OCR_KEYS:
@@ -334,11 +267,9 @@ def source_kind(key):
         return "auto_config"
     return "manual"
 
-
 # From PClaimAssist/index.html's own PIN input placeholders
 # ("12-345678901-2" / "##-#########-#") - not an invented format.
 PIN_PATTERN = re.compile(r"^\d{2}-\d{9}-\d{1}$")
-
 
 def format_date(iso_date):
     """Port of app.js formatDate: 'YYYY-MM-DD' -> 'MM-DD-YYYY'.
@@ -355,7 +286,6 @@ def format_date(iso_date):
         return str(iso_date)
     return f"{parsed.month:02d}-{parsed.day:02d}-{parsed.year}"
 
-
 def format_time_12h(hhmm):
     """Port of app.js formatTime12h: 'HH:MM' (24h) -> 'hh:mm AM/PM'."""
     if not hhmm:
@@ -371,11 +301,9 @@ def format_time_12h(hhmm):
     h = h % 12 or 12
     return f"{h:02d}:{parts[1]} {period}"
 
-
 def bare_time(hhmm):
     """Port of app.js bareTime: formatTime12h() with the AM/PM suffix stripped."""
     return re.sub(r"\s*(AM|PM)$", "", format_time_12h(hhmm))
-
 
 def is_valid_date_string(value):
     """True if `value` parses as an ISO 'YYYY-MM-DD' date."""
@@ -387,7 +315,6 @@ def is_valid_date_string(value):
         return True
     except (ValueError, TypeError):
         return False
-
 
 def resolve_computed_value(key, data):
     """Port of app.js getComputedValue, restricted to CF2/CSF's computed keys.

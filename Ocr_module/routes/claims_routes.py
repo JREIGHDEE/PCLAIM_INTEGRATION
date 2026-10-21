@@ -70,16 +70,14 @@ def get_claim(claim_id):
 
 @claims_bp.route("/<int:claim_id>/form-data", methods=["GET"])
 def get_claim_form_data(claim_id):
-    """The claim as PClaimAssist form values (PMRF, CSF, CF2, CF3), keyed by
+    """The claim as PClaimAssist form values (PMRF, CSF, CF2, CF4), keyed by
     form key, with each OCR-sourced field's review status - see
     philhealth/form_prefill.py. PClaimAssist loads this by claim id; patient
     data never travels in a URL."""
     source = claims_store.get_claim_form_source(claim_id)
     if source is None:
         return jsonify({"success": False, "error": f"No claim found with id {claim_id}."}), 404
-    prefill = form_prefill.build_form_data(
-        source["rows"], source["prenatal_visits"], source["postpartum_care"], source["session"]
-    )
+    prefill = form_prefill.build_form_data(source["rows"], source["session"])
     session = source["session"]
     return jsonify({
         "success": True,

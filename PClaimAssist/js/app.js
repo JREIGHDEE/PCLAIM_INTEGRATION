@@ -159,68 +159,22 @@ const state = {
     motherLastName:'', motherFirstName:'', motherMiddleName:'',
     spouseLastName:'', spouseFirstName:'', spouseMiddleName:'',
     memberType:'', profession:'', monthlyIncome:'',
-    /* Maternity / Delivery – CF3 */
+    /* Maternity / Delivery */
     lmp:'', ageOfMenarche:'', gravida:'', para:'',
     expectedDD:'', deliveryDate:'', deliveryTime:'', amPmDelivery:'AM',
     mannerOfDelivery:'', fetalOutcome:'', babySex:'', birthWeight:'', apgarScore:'',
     briefHistory:'',
-    /* Physical Examination – CF3 Part I, Section 7 */
-    vitalBP:'', vitalCR:'', vitalRR:'', vitalTemp:'',
-    peHEENT:'', peAbdomen:'', peChestLungs:'', peGU:'', peCVS:'', peSkinExtremities:'', peNeuroExam:'',
-    /* Course in the Wards / Lab Findings – CF3 Part I, Sections 8–9 */
-    courseInWards:'', labFindings:'',
-
-    /* CF3 Page 2 – Part II: Maternity Care Package */
-    initialPrenatalDate:'', vitalSignsNormal:false, pregnancyLowRisk:false,
+    /* Physical Examination */
+    /* Maternity Care Package */
     obTerm:'', obPreterm:'', obAbortion:'', obLiving:'',
-    /* Obstetric risk factors (section 3) */
-    riskMultiplePregnancy:false, riskOvarianCyst:false, riskMyomaUteri:false,
-    riskPlacentaPrevia:false, riskMiscarriages:false, riskStillbirth:false,
-    riskPreeclampsia:false, riskEclampsia:false, riskPrematureContraction:false,
-    /* Medical/Surgical risk factors (section 4) */
-    riskHypertension:false, riskHeartDisease:false, riskDiabetes:false,
-    riskThyroidDisorder:false, riskObesity:false, riskAsthma:false,
-    riskEpilepsy:false, riskRenalDisease:false, riskBleedingDisorders:false,
-    riskPrevCesarian:false, riskUterineMyomectomy:false,
-    /* Delivery plan */
-    mcpOrientation:'',
-    /* Follow-up Prenatal Consultation grid (visits 2nd–12th) */
-    pncDate2:'', pncDate3:'', pncDate4:'', pncDate5:'', pncDate6:'', pncDate7:'',
-    pncDate8:'', pncDate9:'', pncDate10:'', pncDate11:'', pncDate12:'',
-    pncAog2:'', pncAog3:'', pncAog4:'', pncAog5:'', pncAog6:'', pncAog7:'',
-    pncAog8:'', pncAog9:'', pncAog10:'', pncAog11:'', pncAog12:'',
-    pncWeight2:'', pncWeight3:'', pncWeight4:'', pncWeight5:'', pncWeight6:'', pncWeight7:'',
-    pncWeight8:'', pncWeight9:'', pncWeight10:'', pncWeight11:'', pncWeight12:'',
-    pncCr2:'', pncCr3:'', pncCr4:'', pncCr5:'', pncCr6:'', pncCr7:'',
-    pncCr8:'', pncCr9:'', pncCr10:'', pncCr11:'', pncCr12:'',
-    pncRr2:'', pncRr3:'', pncRr4:'', pncRr5:'', pncRr6:'', pncRr7:'',
-    pncRr8:'', pncRr9:'', pncRr10:'', pncRr11:'', pncRr12:'',
-    pncBp2:'', pncBp3:'', pncBp4:'', pncBp5:'', pncBp6:'', pncBp7:'',
-    pncBp8:'', pncBp9:'', pncBp10:'', pncBp11:'', pncBp12:'',
-    pncTemp2:'', pncTemp3:'', pncTemp4:'', pncTemp5:'', pncTemp6:'', pncTemp7:'',
-    pncTemp8:'', pncTemp9:'', pncTemp10:'', pncTemp11:'', pncTemp12:'',
     /* Maternal / Birth Outcome extras not already covered by Part I fields */
-    obstetricIndex:'', pregnancyUterineAOG:'', presentation:'',
-    /* Postpartum follow-up + discharge */
-    postpartumFollowupDate:'',
-    /* Postpartum Care checklist (sections 13–18) */
-    ppPerinealDone:false, ppPerinealRemarks:'',
-    ppComplicationsDone:false, ppComplicationsRemarks:'',
-    ppBreastfeedingDone:false, ppBreastfeedingRemarks:'',
-    ppFamilyPlanningDone:false, ppFamilyPlanningRemarks:'',
-    ppFPServiceDone:false, ppFPServiceRemarks:'',
-    ppReferredVSSDone:false, ppReferredVSSRemarks:'',
-    ppScheduleNextDone:false, ppScheduleNextRemarks:'',
-    /* Certification of Attending Physician/Midwife (section 19) */
-    attendingPhysicianName:'', dateSigned:'',
-
-    /* PMRF – Purpose / PhilSys / TIN */
+      /* PMRF – Purpose / PhilSys / TIN */
     registrationPurpose:'', preferredKonsulta:'', philsysId:'', tin:'',
     /* PMRF – Name table checkboxes (Member / Mother / Spouse) */
     memberNoMiddleName:false, memberMononym:false,
     motherNoMiddleName:false, motherMononym:false,
     spouseNoMiddleName:false, spouseMononym:false,
-    /* PMRF – Dependent 1 extras (shares patientLastName/FirstName/etc with CSF/CF2/CF3) */
+    /* PMRF – Dependent 1 extras (shares patientLastName/FirstName/etc with CSF/CF2) */
     patientCitizenship:'', dep1NoMiddleName:false, dep1Mononym:false, dep1Disability:false,
     /* PMRF – Dependents 2–4 */
     dep2LastName:'', dep2FirstName:'', dep2Ext:'', dep2MiddleName:'',
@@ -306,48 +260,9 @@ const SAMPLE_DATA = {
   mannerOfDelivery:'Normal Spontaneous Delivery (NSD)',
   fetalOutcome:'Live Birth', babySex:'Female', birthWeight:'3200', apgarScore:'9',
   briefHistory:'G2P1 (1001), 39 weeks AOG by LMP. Admitted for active labor with regular uterine contractions every 5 minutes. No previous complications noted.',
-  vitalBP:'120/80', vitalCR:'82', vitalRR:'18', vitalTemp:'36.5',
-  peHEENT:'Anicteric sclerae, pink palpebral conjunctivae', peAbdomen:'Gravid, FH cephalic, FHT 140s',
-  peChestLungs:'Clear breath sounds, no retractions', peGU:'Cervix 5cm dilated, 80% effaced',
-  peCVS:'Normal rate, regular rhythm, no murmurs', peSkinExtremities:'No edema, no rashes',
-  peNeuroExam:'Grossly intact, oriented to time, place, person',
-  courseInWards:'Patient tolerated labor well. Delivered via NSD with no complications. Stable vital signs post-partum.',
-  labFindings:'CBC: Hgb 120 g/L, Hct 0.36, WBC 10.5, Platelet 250. Urinalysis: unremarkable.',
-
-  /* CF3 Page 2 – Part II: Maternity Care Package */
-  initialPrenatalDate:'2025-11-15', vitalSignsNormal:true, pregnancyLowRisk:true,
+  /* Maternity Care Package */
   obTerm:'1', obPreterm:'0', obAbortion:'0', obLiving:'1',
-  riskMultiplePregnancy:false, riskOvarianCyst:false, riskMyomaUteri:false,
-  riskPlacentaPrevia:false, riskMiscarriages:false, riskStillbirth:false,
-  riskPreeclampsia:false, riskEclampsia:false, riskPrematureContraction:false,
-  riskHypertension:false, riskHeartDisease:false, riskDiabetes:false,
-  riskThyroidDisorder:false, riskObesity:false, riskAsthma:false,
-  riskEpilepsy:false, riskRenalDisease:false, riskBleedingDisorders:false,
-  riskPrevCesarian:false, riskUterineMyomectomy:false,
-  mcpOrientation:'yes',
-  pncDate2:'11/15/25', pncAog2:'8', pncWeight2:'58', pncCr2:'80', pncRr2:'18', pncBp2:'110/70', pncTemp2:'36.5',
-  pncDate3:'12/13/25', pncAog3:'12', pncWeight3:'60', pncCr3:'82', pncRr3:'18', pncBp3:'112/72', pncTemp3:'36.6',
-  pncDate4:'', pncAog4:'', pncWeight4:'', pncCr4:'', pncRr4:'', pncBp4:'', pncTemp4:'',
-  pncDate5:'', pncAog5:'', pncWeight5:'', pncCr5:'', pncRr5:'', pncBp5:'', pncTemp5:'',
-  pncDate6:'', pncAog6:'', pncWeight6:'', pncCr6:'', pncRr6:'', pncBp6:'', pncTemp6:'',
-  pncDate7:'', pncAog7:'', pncWeight7:'', pncCr7:'', pncRr7:'', pncBp7:'', pncTemp7:'',
-  pncDate8:'', pncAog8:'', pncWeight8:'', pncCr8:'', pncRr8:'', pncBp8:'', pncTemp8:'',
-  pncDate9:'', pncAog9:'', pncWeight9:'', pncCr9:'', pncRr9:'', pncBp9:'', pncTemp9:'',
-  pncDate10:'', pncAog10:'', pncWeight10:'', pncCr10:'', pncRr10:'', pncBp10:'', pncTemp10:'',
-  pncDate11:'', pncAog11:'', pncWeight11:'', pncCr11:'', pncRr11:'', pncBp11:'', pncTemp11:'',
-  pncDate12:'', pncAog12:'', pncWeight12:'', pncCr12:'', pncRr12:'', pncBp12:'', pncTemp12:'',
-  obstetricIndex:'G2P2', pregnancyUterineAOG:'Term, 39 weeks AOG', presentation:'Cephalic',
-  postpartumFollowupDate:'2026-06-20',
-  ppPerinealDone:true, ppPerinealRemarks:'Intact, no laceration',
-  ppComplicationsDone:true, ppComplicationsRemarks:'None noted',
-  ppBreastfeedingDone:true, ppBreastfeedingRemarks:'Latching well',
-  ppFamilyPlanningDone:true, ppFamilyPlanningRemarks:'Discussed options',
-  ppFPServiceDone:false, ppFPServiceRemarks:'',
-  ppReferredVSSDone:false, ppReferredVSSRemarks:'',
-  ppScheduleNextDone:true, ppScheduleNextRemarks:'1 week post-partum check',
-  attendingPhysicianName:'Dr. Ana Reyes, M.D.', dateSigned:'2026-06-13',
-
-  /* PMRF – Purpose / PhilSys / TIN */
+    /* PMRF – Purpose / PhilSys / TIN */
   registrationPurpose:'Registration', preferredKonsulta:'Mapagpala Maternity Clinic',
   philsysId:'1234-5678-9012', tin:'123-456-789-000',
   /* PMRF – Name table checkboxes */
@@ -427,13 +342,11 @@ function getComputedValue(key) {
       return formatTime12h(d.timeAdmitted);
     case 'timeDischargeStr':
       return formatTime12h(d.timeDischarge);
-    case 'deliveryTimeStr':
-      return formatTime12h(d.deliveryTime);
     case 'timeAdmittedDigits':
       return time12hDigits(d.timeAdmitted);
     case 'timeDischargeDigits':
       return time12hDigits(d.timeDischarge);
-    /* CF3 Time Admitted/Discharged: the PDF has two ruled hh:mm boxes per
+    /* CF2 Time Admitted/Discharged: the PDF has two ruled hh:mm boxes per
        row, one before the printed "AM" label and one before "PM" — the
        box position itself indicates the period, so the value goes in
        whichever box matches (the other stays blank). */
@@ -441,14 +354,7 @@ function getComputedValue(key) {
     case 'timeAdmittedPM':   return isPMTime(d.timeAdmitted) === true  ? bareTime(d.timeAdmitted) : '';
     case 'timeDischargeAM':  return isPMTime(d.timeDischarge) === false ? bareTime(d.timeDischarge) : '';
     case 'timeDischargePM':  return isPMTime(d.timeDischarge) === true  ? bareTime(d.timeDischarge) : '';
-    /* CF3 Disposition on Discharge: a checkmark in whichever printed
-       checkbox matches the selected value, instead of writing the word */
-    case 'dispositionImproved':   return d.disposition === 'Improved'    ? '✓' : '';
-    case 'dispositionTransferred':return d.disposition === 'Transferred' ? '✓' : '';
-    case 'dispositionHAMA':       return d.disposition === 'HAMA'        ? '✓' : '';
-    case 'dispositionAbsconded':  return d.disposition === 'Absconded'   ? '✓' : '';
-    case 'dispositionExpired':    return d.disposition === 'Expired'     ? '✓' : '';
-    /* CF3 HCI Accreditation No. (PAN): one character per ruled digit box */
+    /* CF2 HCI Accreditation No. (PAN): one character per ruled digit box */
     case 'hciPANc1': return (d.hciPAN || '').charAt(0);
     case 'hciPANc2': return (d.hciPAN || '').charAt(1);
     case 'hciPANc3': return (d.hciPAN || '').charAt(2);
@@ -522,20 +428,6 @@ const PREVIEW_MAP = [
   ['cf2-dateDischarge','dateDischarge'],['cf2-timeDischarge','timeDischargeStr'],
   ['cf2-disposition','disposition'],   ['cf2-accommodation','accommodation'],
   ['cf2-admissionDx','admissionDx'],   ['cf2-dischargeDx','dischargeDx'],
-  /* CF3 – Part I: Patient Clinical Record */
-  ['cf3-hciPAN','hciPAN'],             ['cf3-patientName','patientName'],
-  ['cf3-chiefComplaint','chiefComplaint'],
-  ['cf3-dateAdmitted','dateAdmitted'], ['cf3-timeAdmitted','timeAdmittedStr'],
-  ['cf3-dateDischarge','dateDischarge'],['cf3-timeDischarge','timeDischargeStr'],
-  ['cf3-briefHistory','briefHistory'], ['cf3-disposition','disposition'],
-  /* CF3 – Part II: Maternity */
-  ['cf3-lmp','lmp'],                   ['cf3-ageOfMenarche','ageOfMenarche'],
-  ['cf3-obHistory','obHistory'],       ['cf3-expectedDD','expectedDD'],
-  ['cf3-admissionDx','admissionDx'],
-  ['cf3-deliveryDate','deliveryDate'], ['cf3-deliveryTime','deliveryTimeStr'],
-  ['cf3-mannerOfDelivery','mannerOfDelivery'],
-  ['cf3-fetalOutcome','fetalOutcome'], ['cf3-babySex','babySex'],
-  ['cf3-birthWeight','birthWeight'],   ['cf3-apgarScore','apgarScore'],
   /* PMRF – Section I: Personal Details */
   ['pmrf-memberPIN','memberPIN'],      ['pmrf-memberName','memberName'],
   ['pmrf-memberDOB','memberDOB'],      ['pmrf-memberSex','memberSex'],
@@ -559,7 +451,7 @@ const PREVIEW_MAP = [
 /* ══════════════════════════════════════════════════════════
    NAVIGATION
 ══════════════════════════════════════════════════════════ */
-const VALID_SECTIONS = ['dashboard','patient','csf','cf2','cf3','cf4','pmrf','validation','profile','settings'];
+const VALID_SECTIONS = ['dashboard','patient','csf','cf2','cf4','pmrf','validation','profile','settings'];
 
 function navigateTo(section, opts) {
   opts = opts || {};
@@ -828,8 +720,6 @@ function time12hDigits(hhmm) {
 const LINKED_FIELD_GROUPS = [
   ['dischargeDx', 'dxADiagnosis', 'cf4FinalDiagnosis'],
   ['chiefComplaint', 'cf4ChiefComplaint'],
-  // Vital signs on admission: CF3 and CF4
-  ['vitalBP', 'cf4VitalBP'], ['vitalCR', 'cf4VitalHR'], ['vitalRR', 'cf4VitalRR'], ['vitalTemp', 'cf4VitalTemp'],
   // Health care professionals: CSF Part III and CF2 Part II
   ...[1, 2, 3].flatMap(n => [
     [`hciProf${n}Name`, `cf2Prof${n}Name`],
@@ -886,7 +776,7 @@ function bindInputListeners() {
 
 /* ══════════════════════════════════════════════════════════
    SEGMENTED "BOX" INPUTS
-   Some CF3 fields (dates, HCI Accreditation No./PAN) print as
+   Some CF2 fields (dates, HCI Accreditation No./PAN) print as
    individual ruled boxes on the PDF. These groups render as
    separate per-character/segment boxes in the data-entry panel
    to match, while still feeding the same state.data[key] the
@@ -1005,7 +895,6 @@ let lastValidationResult = null;
 const VAL_FORM_META = {
   csf:  { title:'CSF',      abbr:'CSF'  },
   cf2:  { title:'CSF 2',        abbr:'CF2'  },
-  cf3:  { title:'CSF 3',        abbr:'CF3'  },
   cf4:  { title:'Clinical Record',           abbr:'CF4'  },
   pmrf: { title:'PMRF',  abbr:'PMRF' },
 };
@@ -1329,7 +1218,6 @@ function loadSampleData() {
   navigateTo('patient');
 }
 
-
 document.getElementById('clearFormBtn').addEventListener('click', () => {
   if (!confirm('Start a new patient?\n\nThis clears everything typed for the current patient. ' +
                'Press OK to clear, or Cancel to keep it.')) return;
@@ -1380,8 +1268,6 @@ function showToast(title, message, type = 'info') {
   container.appendChild(div);
   setTimeout(() => div.remove(), 10000);
 }
-
-
 
 /* ══════════════════════════════════════════════════════════
    UTILITIES
@@ -1566,7 +1452,7 @@ async function loadStaffAccounts() {
    CLINIC SETTINGS
    Table 3.1 lists clinic name, accreditation number and address as
    "System settings (entered once)". Loading them here fills the same
-   fields on CF2/CF3/CF4, so they are never retyped per claim.
+   fields on CF2/CF4, so they are never retyped per claim.
 ══════════════════════════════════════════════════════════ */
 const CLINIC_FIELDS = {
   clinicName:     'hciName',
@@ -1628,7 +1514,7 @@ async function loadClinicSettings() {
     const savedAt = document.getElementById('clinicSavedAt');
     if (savedAt) savedAt.textContent = 'Last saved just now';
     showToast('Clinic details saved',
-              'These now fill in automatically on CF2, CF3 and CF4.', 'success');
+              'These now fill in automatically on CF2 and CF4.', 'success');
     logActivity('Clinic details updated', 'success');
   });
 })();

@@ -92,23 +92,12 @@ def _session(*fields):
 
 class BuildFormDataTests(unittest.TestCase):
     def test_values_are_keyed_by_form_key_and_serialized(self):
-        result = form_prefill.build_form_data(
-            _rows(),
-            prenatal_visits=[{"visit_number": 3, "visit_date": date(2026, 2, 1), "weight": Decimal("61.50"),
-                              "aog": "20 wks", "cr": None, "rr": None, "bp": "110/70", "temp": None}],
-            postpartum_care=[{"care_item": "breastfeeding", "done": 1, "remarks": "Exclusive"}],
-        )
+        result = form_prefill.build_form_data(_rows())
         data = result["data"]
         self.assertEqual(data["patientLastName"], "Dela Cruz")
         self.assertEqual(data["patientDOB"], "1995-03-15")
         self.assertEqual(data["timeAdmitted"], "08:30")
-        self.assertIs(data["riskAsthma"], True)
         self.assertEqual(data["ageOfMenarche"], "13")
-        self.assertEqual(data["pncDate3"], "2026-02-01")
-        self.assertEqual(data["pncWeight3"], "61.5")
-        self.assertEqual(data["pncBp3"], "110/70")
-        self.assertIs(data["ppBreastfeedingDone"], True)
-        self.assertEqual(data["ppBreastfeedingRemarks"], "Exclusive")
         # Nulls are left out, and the logbook address is not a form field.
         self.assertNotIn("dateDischarge", data)
         self.assertNotIn("patientAddress", data)
@@ -172,7 +161,6 @@ class BuildFormDataTests(unittest.TestCase):
         no_source = set(form_prefill.build_form_data(_rows())["no_ocr_source"])
         self.assertIn("memberPIN", no_source)
         self.assertIn("disposition", no_source)
-        self.assertIn("pncTemp12", no_source)
         self.assertNotIn("patientLastName", no_source)
         self.assertNotIn("hciPAN", no_source)
         self.assertEqual(no_source | field_catalog.AUTO_OCR_KEYS | field_catalog.AUTO_CONFIG_KEYS,

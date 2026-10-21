@@ -1,4 +1,4 @@
-"""Claim rows -> PClaimAssist form data (all four forms: PMRF, CSF, CF2, CF3).
+"""Claim rows -> PClaimAssist form data (all four forms: PMRF, CSF, CF2, CF4).
 
 Pure (no DB, no Flask). build_form_data() turns a claim's stored rows into
 values keyed by PClaimAssist form key, using field_catalog.FORM_FIELDS as
@@ -55,25 +55,16 @@ def _serialize(value, kind):
     return str(value)
 
 
-def _source_rows(rows, prenatal_visits, postpartum_care):
-    tables = {
+def _source_rows(rows):
+    return {
         "patients": rows.get("patient") or {},
         "encounters": rows.get("encounter") or {},
         "claims": rows.get("claim") or {},
     }
-    prenatal = {r["visit_number"]: r for r in prenatal_visits or ()}
-    postpartum = {r["care_item"]: r for r in postpartum_care or ()}
-    return tables, prenatal, postpartum
 
 
-def _stored_value(field, tables, prenatal, postpartum):
-    if field.table == "claim_prenatal_visits":
-        row = prenatal.get(field.row) or {}
-    elif field.table == "claim_postpartum_care":
-        row = postpartum.get(field.row) or {}
-    else:
-        row = tables[field.table]
-    return _serialize(row.get(field.column), field.kind)
+def _stored_value(field, tables):
+    return _serialize(tables[field.table].get(field.column), field.kind)
 
 
 def _blank(value):
@@ -98,7 +89,7 @@ def _ocr_field_status(ocr_field, key, value, data):
     return ACCEPTED
 
 
-def build_form_data(rows, prenatal_visits=(), postpartum_care=(), session=None):
+def build_form_data(rows, session=None):
     """rows: {"patient", "encounter", "claim"} dicts (claims_store.get_claim).
     session: the claim's case session (case_session_store.get_session), or
     None for a claim that didn't come from an OCR review.
@@ -112,13 +103,13 @@ def build_form_data(rows, prenatal_visits=(), postpartum_care=(), session=None):
       "no_ocr_source": [form_key, ...] - form keys no OCR column can fill,
     }
     """
-    tables, prenatal, postpartum = _source_rows(rows, prenatal_visits, postpartum_care)
+    tables = _source_rows(rows)
 
     data = {}
     for key, field in FORM_FIELDS.items():
         if key in NON_FORM_KEYS:
             continue
-        value = _stored_value(field, tables, prenatal, postpartum)
+        value = _stored_value(field, tables)
         if value is not None:
             data[key] = value
 
@@ -133,7 +124,7 @@ def build_form_data(rows, prenatal_visits=(), postpartum_care=(), session=None):
     for category, ocr_field in ocr_fields.items():
         for key in OCR_CATEGORY_KEYS.get(category, ()):
             if key in NON_FORM_KEYS:
-                text = _stored_value(FORM_FIELDS[key], tables, prenatal, postpartum) or ocr_field.get("value")
+                text = _stored_value(FORM_FIELDS[key], tables) or ocr_field.get("value")
                 if text:
                     ocr_reference[category] = text
                 continue
@@ -160,7 +151,7 @@ def build_form_data(rows, prenatal_visits=(), postpartum_care=(), session=None):
     # Worked out from the logbook rather than copied (address parts, sex):
     # filled, but always "please check", with where it came from.
     address = ocr_reference.get("ADDRESS") or data.get("patientAddress") \
-        or _stored_value(FORM_FIELDS["patientAddress"], tables, prenatal, postpartum)
+        or _stored_value(FORM_FIELDS["patientAddress"], tables)
     for category, keys in DERIVED_OCR_KEYS.items():
         for key in keys:
             if _blank(data.get(key)) or key in fields:
