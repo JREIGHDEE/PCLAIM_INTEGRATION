@@ -917,6 +917,7 @@ function groupEntryParts() {
       // it would hide those parts inside this one.
       const boundary = n => n !== title && n.nodeType === 1 &&
         (n.classList.contains('entry-section-title') ||
+         n.classList.contains('entry-page-nav') ||
          n.querySelector('.entry-section-title'));
       while (node && !boundary(node)) {
         const next = node.nextSibling;

@@ -2442,3 +2442,50 @@ textarea.from-patient-details:focus {
 /* A checklist line for a part that is not needed is struck through. */
 .val-item.skipped { opacity: .5; }
 .val-item.skipped .val-label { text-decoration: line-through; }
+
+/* ── Page turner at the foot of the data-entry panel ─────── */
+.entry-page-nav {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border-top: 2px solid #e6eaee;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+}
+.entry-page-count {
+  font-size: .9rem;
+  font-weight: 600;
+  color: #5d6b78;
+}
+.entry-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem;
+}
+.entry-page-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .6rem 1.05rem;
+  border-radius: .5rem;
+  border: 1px solid transparent;
+  font-size: .95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.entry-page-btn--next {
+  background: #1b6fb8;
+  border-color: #1b6fb8;
+  color: #fff;
+}
+.entry-page-btn--next:hover { background: #145a96; border-color: #145a96; }
+.entry-page-btn--back {
+  background: #fff;
+  border-color: #c8d2db;
+  color: #35485a;
+}
+.entry-page-btn--back:hover { background: #f1f4f7; }
+.entry-page-done { font-size: .9rem; color: #6b7a88; }

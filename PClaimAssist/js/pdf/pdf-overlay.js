@@ -140,6 +140,55 @@ function syncEntryPanelPageGroups(formKey, pageNum) {
   groups.forEach(group => {
     group.hidden = Number(group.dataset.pdfPage) !== pageNum;
   });
+  renderEntryPageNav(panel, formKey, pageNum, groups);
+}
+
+/* ── A page turner at the foot of "Type the details here" ──
+   A form of two pages only showed the second page's boxes when the small
+   arrows above the preview were used, so the second page was easy to miss
+   entirely. The same turn is offered where it is noticed: at the end of
+   the boxes, where someone who has filled the last one is looking. */
+function renderEntryPageNav(panel, formKey, pageNum, groups) {
+  const pages = new Set();
+  groups.forEach(g => pages.add(Number(g.dataset.pdfPage)));
+  let nav = panel.querySelector('.entry-page-nav');
+
+  if (pages.size < 2) {            // one page: nothing to turn to
+    if (nav) nav.remove();
+    return;
+  }
+  const total = Math.max(...pages);
+  if (!nav) {
+    nav = document.createElement('div');
+    nav.className = 'entry-page-nav';
+    panel.appendChild(nav);
+  }
+  panel.appendChild(nav);          // always the last thing on the panel
+
+  const back = pageNum > 1
+    ? `<button type="button" class="entry-page-btn entry-page-btn--back" data-go="${pageNum - 1}">
+         <i class="bi bi-arrow-left" aria-hidden="true"></i> Back to page ${pageNum - 1}
+       </button>`
+    : '<span></span>';
+  const forward = pageNum < total
+    ? `<button type="button" class="entry-page-btn entry-page-btn--next" data-go="${pageNum + 1}">
+         There is more to fill in on page ${pageNum + 1}
+         <i class="bi bi-arrow-right" aria-hidden="true"></i>
+       </button>`
+    : '<span class="entry-page-done">This is the last page of this form.</span>';
+
+  nav.innerHTML =
+    `<div class="entry-page-count">Page ${pageNum} of ${total}</div>
+     <div class="entry-page-actions">${back}${forward}</div>`;
+
+  nav.querySelectorAll('[data-go]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      renderPDFPage(formKey, Number(btn.dataset.go));
+      panel.scrollTop = 0;
+      const head = panel.closest('.form-entry-panel') || panel;
+      head.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
 }
 
 /* ── Load PDF and show first page ───────────────────────── */
