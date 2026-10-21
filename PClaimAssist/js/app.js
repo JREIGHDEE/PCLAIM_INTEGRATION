@@ -1319,7 +1319,60 @@ function applyInlineFieldFlags(result) {
    A box filled from somewhere else is not marked: it is not
    the clinic's to type.
 ══════════════════════════════════════════════════════════ */
+/* Which boxes in a form's "Type the details here" panel are the clinic's
+   to fill. Grey ones came from Patient details and must not be typed into;
+   everything else is theirs - but an empty white box looks the same as an
+   empty box that is simply not needed yet, which is what made it unclear.
+   Every box they still have to type is outlined red until it has something
+   in it, so the panel reads at a glance: grey, leave it; red, type it. */
+function markFieldsNeedingTyping() {
+  document.querySelectorAll('.field-needs-typing').forEach(el => {
+    el.classList.remove('field-needs-typing');
+    if (el.dataset.typeHint !== undefined) {
+      el.removeAttribute('title');
+      delete el.dataset.typeHint;
+    }
+  });
+
+  FORM_SECTIONS.forEach(form => {
+    const section = document.getElementById('section-' + form);
+    if (!section) return;
+    const panel = section.querySelector('.entry-panel-body') ||
+                  section.querySelector('.form-entry-panel');
+    if (!panel) return;
+
+    panel.querySelectorAll('input, select, textarea').forEach(el => {
+      if (el.type === 'hidden' || el.disabled || el.readOnly) return;
+      if (el.classList.contains('from-patient-details')) return;
+      if (el.closest('.from-patient-details')) return;
+      // Boxes the page is keeping out of sight are not being asked for.
+      if (el.classList.contains('d-none') || el.hidden ||
+          el.closest('.d-none, [hidden]')) return;
+      // A tick box or a choice is never "blank" in the way a typed box is.
+      if (el.type === 'checkbox' || el.type === 'radio') return;
+      if (String(el.value || '').trim()) return;
+      // One outline around a whole row of per-character boxes, not one
+      // around each box - eight red squares for a date reads as eight
+      // problems rather than one date still to type.
+      const row = el.closest(
+        '.box-input, .box-input-date, .box-input-time, .pca-box-group');
+      const mark = row || el;
+      if (row && row.querySelector('.pca-box, .box-input-cell, input')) {
+        const anyFilled = Array.from(row.querySelectorAll('input'))
+          .some(i => String(i.value || '').trim());
+        if (anyFilled) return;
+      }
+      mark.classList.add('field-needs-typing');
+      if (!mark.getAttribute('title')) {
+        mark.setAttribute('title', 'This one is for you to type');
+        mark.dataset.typeHint = '';
+      }
+    });
+  });
+}
+
 function markMissingRequiredFields() {
+  markFieldsNeedingTyping();
   document.querySelectorAll('.field-missing').forEach(el => {
     el.classList.remove('field-missing');
     if (el.dataset.missingTitle !== undefined) {

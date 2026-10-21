@@ -2388,3 +2388,24 @@ textarea.from-patient-details:focus {
 .box-input.from-patient-details.field-missing {
   outline: 2px solid var(--danger, #e74c3c);
 }
+
+/* ── Boxes the clinic still has to type ──────────────────── */
+.field-needs-typing,
+.field-needs-typing.form-control,
+.field-needs-typing.form-select {
+  border-color: var(--danger, #e74c3c) !important;
+  background-color: #fff7f7;
+}
+.field-needs-typing:focus,
+.field-needs-typing.form-control:focus {
+  border-color: var(--danger, #e74c3c) !important;
+  box-shadow: 0 0 0 .18rem rgba(231, 76, 60, .18);
+}
+.box-input.field-needs-typing,
+.box-input-date.field-needs-typing,
+.box-input-time.field-needs-typing,
+.pca-box-group.field-needs-typing {
+  outline: 2px solid var(--danger, #e74c3c);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
