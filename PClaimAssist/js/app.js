@@ -493,6 +493,7 @@ function navigateTo(section, opts) {
     overlay && overlay.classList.remove('active');
   }
   window.scrollTo({ top: 0, behavior: 'smooth' });
+  refreshRedMarksSoon();   // the form just opened shows its red boxes at once
   // Checking phase: once the Validation Checker shows no critical errors,
   // teach the offline OCR AI the entries (js/entry-learning.js; sent once
   // per patient, so a later PDF export doesn't count them again).
@@ -570,6 +571,7 @@ const MEMBER_FROM_PATIENT = {
   memberLastName: 'patientLastName', memberFirstName: 'patientFirstName',
   memberMiddleName: 'patientMiddleName', memberNameExt: 'patientNameExt',
   memberDOB: 'patientDOB', memberSex: 'patientSex',
+  memberNoPhilhealth: 'patientNoPhilhealth',
 };
 const MEMBER_LOCKED_KEYS = [...Object.keys(MEMBER_FROM_PATIENT), 'memberPIN', 'relationship'];
 
@@ -601,8 +603,39 @@ function applyMemberIsPatient() {
   });
 }
 
+/* "No PhilHealth" beside the patient's and the member's PIN on Patient
+   details: that PIN is then not asked for (keyIsSkipped) and its boxes are
+   greyed out. What was typed stays, and is back in use when the tick is
+   taken off. The member's tick follows the patient's while the patient is
+   the member (MEMBER_FROM_PATIENT). Kept with this patient only: neither is
+   one of the database's claim fields. */
+const NO_PHILHEALTH = { patientPIN: 'patientNoPhilhealth', memberPIN: 'memberNoPhilhealth' };
+
+/* True for a PIN whose "No PhilHealth" is ticked (also read by js/easy.js). */
+function pinNotAsked(key) {
+  return !!(NO_PHILHEALTH[key] && state.data[NO_PHILHEALTH[key]]);
+}
+
+function applyNoPhilhealth() {
+  Object.entries(NO_PHILHEALTH).forEach(([pinKey, tickKey]) => {
+    const none = !!state.data[tickKey];
+    // The member's PIN is also locked while it is copied from the patient.
+    const locked = none || (pinKey === 'memberPIN' && !!state.data.memberIsPatient);
+    const why = none ? 'Not needed: no PhilHealth'
+              : locked ? 'Filled from the patient\'s details (the patient is the member)' : '';
+    // Only the boxes on Patient details: the forms' copies are read-only
+    // already (lockToPatientDetails).
+    document.querySelectorAll(`#section-patient [data-autofill="${pinKey}"]`).forEach(el => {
+      const pinBoxes = el.nextElementSibling;
+      if (!pinBoxes || !pinBoxes.classList.contains('pin-boxes')) return;
+      pinBoxes.querySelectorAll('.pin-box').forEach(box => { box.disabled = locked; box.title = why; });
+    });
+  });
+}
+
 function updateFormPreviews() {
   applyMemberIsPatient();
+  applyNoPhilhealth();
   PREVIEW_MAP.forEach(([id, key]) => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -859,25 +892,8 @@ function markPatientOwnedFields() {
     section.querySelectorAll('.btn-check-group[data-autofill]').forEach(group => {
       if (owned.has(group.dataset.autofill)) group.classList.add('from-patient-details');
     });
-    addPatientDetailsNote(section);
-  });
-}
-
-function addPatientDetailsNote(section) {
-  const panel = section.querySelector('.entry-panel-body') ||
-                section.querySelector('.form-entry-panel');
-  if (!panel || panel.querySelector('.from-patient-note')) return;
-  if (!section.querySelector('.from-patient-details')) return;
-  const note = document.createElement('div');
-  note.className = 'from-patient-note';
-  note.innerHTML =
-    '<i class="bi bi-info-circle" aria-hidden="true"></i>' +
-    '<span>The grey boxes were filled in from <strong>Patient details</strong>. ' +
-    'To change them, <a href="#patient" class="from-patient-link">open Patient details</a>.</span>';
-  panel.insertBefore(note, panel.firstChild);
-  note.querySelector('.from-patient-link').addEventListener('click', e => {
-    e.preventDefault();
-    navigateTo('patient');
+    // No note at the top of the form: each grey box says where it is
+    // changed when pointed at (its title, set in lockToPatientDetails).
   });
 }
 
@@ -966,8 +982,10 @@ function applyNotNeededParts() {
   });
 }
 
-/* True when a key's box on this form sits in a part marked not needed. */
+/* True when a key's box on this form sits in a part marked not needed -
+   or it is a PIN whose "No PhilHealth" is ticked (NO_PHILHEALTH). */
 function keyIsSkipped(form, key) {
+  if (pinNotAsked(key)) return true;
   const name = FIX_FIELD_ALIASES[key] || key;
   const section = document.getElementById('section-' + form);
   if (!section) return false;
@@ -1021,6 +1039,12 @@ function bindBoxGroupListeners() {
       box.addEventListener('keydown', e => {
         if (e.key === 'Backspace' && !box.value && boxes[i - 1]) boxes[i - 1].focus();
       });
+      // A one-digit month or day ("3") means 03, as on paper.
+      if (group.dataset.boxType === 'date' && box.maxLength === 2) {
+        box.addEventListener('blur', () => {
+          if (box.value.length === 1) { box.value = '0' + box.value; commitBoxGroup(group); }
+        });
+      }
       box.addEventListener('paste', e => {
         const text = (e.clipboardData || window.clipboardData).getData('text');
         if (!text) return;
@@ -1052,6 +1076,10 @@ function commitBoxGroup(group) {
   } else {
     state.data[key] = boxes.map(b => b.value).join('');
   }
+  // Typed in part: the date stays empty until it is whole, and the boxes
+  // keep what was typed instead of being redrawn from that empty date.
+  if (!state.data[key] && boxes.some(b => b.value)) group.dataset.unfinished = '';
+  else delete group.dataset.unfinished;
   updateFormPreviews();
 }
 
@@ -1062,6 +1090,8 @@ function syncBoxGroupsFromState() {
     const type  = group.dataset.boxType;
     const boxes = Array.from(group.querySelectorAll('.pca-box'));
     const val   = state.data[key] || '';
+    if (!val && group.dataset.unfinished !== undefined) return;
+    delete group.dataset.unfinished;
     if (type === 'date') {
       const [yyyy, mm, dd] = val ? val.split('-') : ['', '', ''];
       boxes[0].value = mm || '';
@@ -1209,17 +1239,17 @@ function updateValidation() {
     const scoreEl2  = document.getElementById(`val-${form}-score-2`);
     if (scoreEl2)   scoreEl2.textContent = scoreText;
 
-    const statusEl = document.getElementById(`status-${form}`);
-    if (statusEl) {
-      if (formComplete === fields.length) {
-        formsComplete++;
-        statusEl.innerHTML = '<span class="badge badge-ready">Ready to print</span>';
-      } else if (formComplete > 0) {
-        statusEl.innerHTML = `<span class="badge badge-pending">Not finished (${formComplete} of ${fields.length})</span>`;
-      } else {
-        statusEl.innerHTML = '<span class="badge badge-pending">Not started</span>';
-      }
-    }
+    if (formComplete === fields.length) formsComplete++;
+    const statusHtml = formComplete === fields.length
+      ? '<span class="badge badge-ready">Ready to print</span>'
+      : formComplete > 0
+        ? `<span class="badge badge-pending">Not finished (${formComplete} of ${fields.length})</span>`
+        : '<span class="badge badge-pending">Not started</span>';
+    // One badge on the dashboard, one in the form's own header.
+    [`status-${form}`, `status-${form}-2`].forEach(id => {
+      const statusEl = document.getElementById(id);
+      if (statusEl) statusEl.innerHTML = statusHtml;
+    });
 
     // Every part switched off leaves nothing to ask for - that counts as done.
     const pct = fields.length ? Math.round((formComplete / fields.length) * 100) : 100;
@@ -1259,6 +1289,7 @@ function updateValidation() {
 
   // Steps 7–8: compile and dispatch rule feedback
   renderRuleFeedback(result);
+  renderFormIssues(result);
   applyInlineFieldFlags(result);
   updateExportGate(result, totalComplete, totalFields);
   renderSigningChecklist(result);
@@ -1311,6 +1342,92 @@ function renderRuleFeedback(result) {
   });
 }
 
+/* ══════════════════════════════════════════════════════════
+   ON EACH FORM — what is missing, and which rules are broken
+   The same findings as "Check for missing information", shown at the top
+   of each form's "Type the details here" panel for that form alone, so
+   staff see them while typing instead of only on that page:
+     - the boxes of this form still empty (parts marked "Not needed" are
+       left out), each with "Fix this";
+     - the rules broken for this form (critical in red, warnings in amber):
+       a rule's own form, or the form whose boxes hold its field.
+   Rules about the claim as a whole (no form, no field) are counted on one
+   line that leads to the checker, rather than repeated on every form.
+══════════════════════════════════════════════════════════ */
+const FORM_ISSUES_OPEN = {};   // folded or not, per form, while the page is open
+
+function formHasField(form, key) {
+  if ((VAL_FIELDS[form] || []).some(f => f.key === key)) return true;
+  const name = FIX_FIELD_ALIASES[key] || key;
+  const section = document.getElementById('section-' + form);
+  return !!(section && section.querySelector(`[data-autofill="${name}"], [data-box-key="${name}"]`));
+}
+
+function renderFormIssues(result) {
+  VAL_FORM_KEYS.forEach(form => {
+    const section = document.getElementById('section-' + form);
+    const header = section && section.querySelector('.form-entry-panel .entry-panel-header');
+    if (!header) return;
+    let box = section.querySelector('.form-issues');
+    if (!box) {
+      box = document.createElement('details');
+      box.className = 'form-issues';
+      header.insertAdjacentElement('afterend', box);
+      box.addEventListener('click', e => {
+        // Folded or opened by the person (not when the code sets it).
+        if (e.target.closest('summary')) FORM_ISSUES_OPEN[form] = !box.open;
+        const fix = e.target.closest('[data-fix-field]');
+        if (fix) { e.preventDefault(); focusField(fix.dataset.fixField); }
+        const all = e.target.closest('[data-go-validation]');
+        if (all) { e.preventDefault(); navigateTo('validation'); }
+      });
+    }
+
+    const missing = (VAL_FIELDS[form] || []).filter(({ key }) =>
+      !keyIsSkipped(form, key) && !getComputedValue(key));
+    const mine = v => (v.form && v.form === form) || (!v.form && v.field && formHasField(form, v.field));
+    // A missing box already listed above is not listed again as a rule.
+    const missingKeys = new Set(missing.map(m => m.key));
+    const rules = result.violations.filter(v => mine(v) && !(v.field && missingKeys.has(v.field) &&
+      v.category === 'Missing Field'));
+    const general = result.violations.filter(v => !v.form && !v.field);
+    const critical = rules.filter(v => v.severity.critical);
+    const warnings = rules.filter(v => !v.severity.critical);
+
+    const fixBtn = key => key
+      ? `<button type="button" class="form-issue-fix" data-fix-field="${escHtml(key)}">Fix this</button>` : '';
+    const ruleRow = v => `<li class="form-issue form-issue--${v.severity.critical ? 'critical' : 'warning'}">
+        <i class="bi ${v.severity.critical ? 'bi-x-octagon-fill' : 'bi-exclamation-triangle-fill'}" aria-hidden="true"></i>
+        <span><code>${escHtml(v.id)}</code> ${v.message}</span>${fixBtn(v.field)}</li>`;
+    const missRow = m => `<li class="form-issue form-issue--missing">
+        <i class="bi bi-dash-circle" aria-hidden="true"></i>
+        <span><strong>${escHtml(m.label)}</strong> is not filled in yet</span>${fixBtn(m.key)}</li>`;
+
+    const counts = [];
+    if (missing.length) counts.push(`${missing.length} missing`);
+    if (critical.length) counts.push(`${critical.length} must be fixed`);
+    if (warnings.length) counts.push(`${warnings.length} to check`);
+    const clean = !counts.length;
+    box.classList.toggle('form-issues--clean', clean);
+    box.classList.toggle('form-issues--critical', critical.length > 0);
+
+    const html = `<summary>
+        <i class="bi ${clean ? 'bi-check-circle-fill' : critical.length ? 'bi-exclamation-octagon-fill' : 'bi-exclamation-circle-fill'}" aria-hidden="true"></i>
+        <span>${clean ? 'Nothing missing on this form' : 'On this form: ' + counts.join(' · ')}</span>
+      </summary>
+      ${clean ? '' : `<ul class="form-issue-list">
+        ${critical.map(ruleRow).join('')}${missing.map(missRow).join('')}${warnings.map(ruleRow).join('')}
+      </ul>`}
+      ${general.length ? `<p class="form-issues-general">${general.length} more about the whole claim -
+        <a href="#validation" data-go-validation>see Check for missing information</a></p>` : ''}`;
+    if (box.dataset.html !== html) {
+      box.innerHTML = html;
+      box.dataset.html = html;
+    }
+    box.open = clean ? false : (FORM_ISSUES_OPEN[form] !== undefined ? FORM_ISSUES_OPEN[form] : true);
+  });
+}
+
 /* Some things the checker asks for are not one box you can type in.
    "Patient Name" is built from the surname and first name; "Course in the
    Ward" and the drug list are whole tables of boxes. Those used to leave
@@ -1359,7 +1476,14 @@ function editableFieldFor(key) {
   // Most of these are typed on Patient details; go there by choice, so one
   // detail is always corrected in the same place.
   const typed = all.find(el => usable(el) && inPatient(el)) || all.find(usable);
-  if (typed) return typed;
+  // A date is typed in the MM/DD/YYYY box standing in for it (js/date-text.js).
+  if (typed) return typed.pcaDateText || typed;
+
+  // Discharged the day after delivery: the date follows the delivery date,
+  // so the place to go is that tick (keep it and fill the delivery date, or
+  // untick it).
+  const dayAfter = document.getElementById('dischargeDayAfter');
+  if (name === 'dateDischarge' && dayAfter && dayAfter.checked) return dayAfter;
 
   // Hidden input: show the row of boxes that stands in for it.
   for (const el of all) {
@@ -1373,7 +1497,29 @@ function editableFieldFor(key) {
   return all[0];
 }
 
-/* Jump to where a key is typed and highlight it. */
+/* Jump to where a key is typed and highlight it.
+
+   The box can be out of sight in more than its section: on a Patient
+   details tab that is not open, or on a form's other page. Going to the
+   section alone then focused nothing - "Fix this" seemed to do nothing for
+   dates, civil status, the address and the like - so the tab is opened and
+   the page turned first. A row of choice buttons (Member Type) takes the
+   focus on its first button. */
+function revealForTyping(el) {
+  const pane = el.closest('.tab-pane');
+  if (pane && !pane.classList.contains('active') && pane.id && window.bootstrap) {
+    const tab = document.querySelector(`[data-bs-target="#${pane.id}"], [href="#${pane.id}"]`);
+    if (tab) bootstrap.Tab.getOrCreateInstance(tab).show();
+  }
+  const pageGroup = el.closest('.pdf-page-group[data-pdf-page]');
+  if (pageGroup && pageGroup.hidden) {
+    const form = pageGroup.closest('.content-section').id.replace('section-', '');
+    const page = Number(pageGroup.dataset.pdfPage);
+    if (typeof syncEntryPanelPageGroups === 'function') syncEntryPanelPageGroups(form, page);
+    if (typeof renderPDFPage === 'function') renderPDFPage(form, page);
+  }
+}
+
 function focusField(key) {
   const el = editableFieldFor(key);
   if (!el) return;
@@ -1381,13 +1527,16 @@ function focusField(key) {
   if (section && !section.classList.contains('active')) {
     navigateTo(section.id.replace('section-', ''));
   }
+  revealForTyping(el);
+  // Long enough for a tab's fade to finish, so the box can take the focus.
   setTimeout(() => {
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    const target = el.matches('input,select,textarea') ? el : el.querySelector('input,select,textarea');
+    const target = el.matches('input,select,textarea,button') ? el
+                 : el.querySelector('input:not([type=hidden]),select,textarea,button');
     if (target && !target.disabled && !target.readOnly) target.focus({ preventScroll: true });
     el.classList.add('field-flash');
     setTimeout(() => el.classList.remove('field-flash'), 1600);
-  }, 180);
+  }, 350);
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -1487,6 +1636,17 @@ function markFieldsNeedingTyping() {
   });
 }
 
+/* The red marks are worked out from the boxes on screen, so boxes that
+   appear later were left unmarked until the next keystroke or click: the
+   per-character rows (built once the page has loaded), a form's second
+   page when it is turned to, a course-in-the-ward line shown with "+".
+   Each of those asks for the marks again; a burst of asks is one redo. */
+function refreshRedMarksSoon() {
+  clearTimeout(window.pcaRedMarksTimer);
+  window.pcaRedMarksTimer = setTimeout(() => markMissingRequiredFields(), 0);
+}
+document.addEventListener('DOMContentLoaded', refreshRedMarksSoon);
+
 function markMissingRequiredFields() {
   markFieldsNeedingTyping();
   document.querySelectorAll('.field-missing').forEach(el => {
@@ -1500,7 +1660,7 @@ function markMissingRequiredFields() {
   const needed = new Map();   // key -> the label the checker uses
   VAL_FORM_KEYS.forEach(form => {
     (VAL_FIELDS[form] || []).forEach(({ key, label }) => {
-      if (!getComputedValue(key)) needed.set(key, label);
+      if (!keyIsSkipped(form, key) && !getComputedValue(key)) needed.set(key, label);
     });
   });
 
@@ -1521,11 +1681,15 @@ function markMissingRequiredFields() {
         el.dataset.missingTitle = '';
       }
     });
-    // A hidden field is typed through its row of per-character boxes.
+    // A hidden field is typed through its row of per-character boxes, or
+    // (a PhilHealth PIN, js/pin-input.js) the three boxes right after it.
     document.querySelectorAll(`[data-autofill="${name}"]`).forEach(el => {
-      if (!el.id) return;
-      const row = document.querySelector(`.box-input[data-target="#${el.id}"]`);
+      const row = el.id && document.querySelector(`.box-input[data-target="#${el.id}"]`);
       if (row) row.classList.add('field-missing');
+      const pinBoxes = el.nextElementSibling;
+      if (el.type === 'hidden' && pinBoxes && pinBoxes.classList.contains('pin-boxes')) {
+        pinBoxes.querySelectorAll('.pin-box').forEach(box => box.classList.add('field-missing'));
+      }
     });
   });
 }
@@ -1548,15 +1712,22 @@ function updateExportGate(result, totalComplete, totalFields) {
     if (txt) txt.textContent = reason;
   }
 
-  // The one button for the whole claim shows only when there is nothing
-  // left to report: every box the checker counts is filled, and no rule
-  // is still complaining. Parts marked "Not needed" are already out of
-  // that count, so a claim can be complete without every box on paper.
+  // The forms can be saved at any time, one by one or together; the card
+  // says whether anything is still missing. Ready means nothing left to
+  // report: every box the checker counts is filled, and no rule is still
+  // complaining. Parts marked "Not needed" are already out of that count.
   const ready = !blocked && totalFields > 0 && totalComplete >= totalFields;
   const card  = document.getElementById('exportAllCard');
-  if (card) card.hidden = !ready;
-  const count = document.getElementById('exportAllCount');
-  if (count) count.textContent = VAL_FORM_KEYS.length;
+  if (card) card.classList.toggle('export-all-card--missing', !ready);
+  const title = document.getElementById('exportAllTitle');
+  const sub   = document.getElementById('exportAllSub');
+  const forms = (typeof PDF_FORM_KEYS !== 'undefined' ? PDF_FORM_KEYS : VAL_FORM_KEYS).length;
+  if (title) title.innerHTML = ready
+    ? '<i class="bi bi-check-circle-fill me-2" aria-hidden="true"></i>Everything is filled in'
+    : '<i class="bi bi-exclamation-circle-fill me-2" aria-hidden="true"></i>Some boxes are still empty';
+  if (sub) sub.textContent = ready
+    ? `All ${forms} forms are ready. Save them, then print.`
+    : 'The list below shows what is missing. A form saved now prints with those boxes blank.';
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -1598,8 +1769,15 @@ function applyFormData(values) {
     if (!(key in values)) return;
     if (el.type === 'radio') el.checked = el.value === values[key];
     else if (el.type === 'checkbox') el.checked = !!values[key];
-    else el.value = values[key];
+    else {
+      el.value = values[key];
+      // A claim sent from the OCR review is in capitals like anything typed
+      // here (toFormCase leaves dates, dropdowns and the like alone).
+      if (typeof values[key] === 'string') state.data[key] = toFormCase(el);
+    }
   });
+  refreshDischargeTick();
+  refreshFinalDxTick(values);
   applyFixedFields();
   updateFormPreviews();
 }
@@ -1616,6 +1794,14 @@ function resetFormData() {
     else if (el.type === 'checkbox') el.checked = false;
     else el.value = '';
   });
+  // ...and any date typed only in part.
+  document.querySelectorAll('.pca-box-group[data-unfinished]').forEach(group => {
+    delete group.dataset.unfinished;
+  });
+  if (typeof clearUnfinishedEntries === 'function') clearUnfinishedEntries();
+  // Discharge back to following the delivery date.
+  refreshDischargeTick();
+  refreshFinalDxTick();
   // A new patient still has this clinic's fixed values.
   applyFixedFields();
   updateFormPreviews();
@@ -1691,9 +1877,9 @@ function escHtml(str) {
 /* ══════════════════════════════════════════════════════════
    INIT
 ══════════════════════════════════════════════════════════ */
-/* Fields whose value is fixed for this clinic (citizenship, manner of
-   delivery, fetal outcome). The value lives in the HTML as the input's
-   value attribute, and the box is readonly so nobody can change it.
+/* Fields whose value is fixed for this clinic (manner of delivery, fetal
+   outcome). The value lives in the HTML as the input's value attribute,
+   and the box is readonly so nobody can change it.
 
    Read from getAttribute('value'), not el.value: by the time anything
    runs, syncAllAutofillElements() may already have written the empty
@@ -1713,12 +1899,30 @@ const FIXED_FIELD_VALUES = (function readFixedFields() {
   return fixed;
 })();
 
+/* Fields that start with a usual value but stay editable (citizenship:
+   almost every patient here is FILIPINO). Declared as data-default on the
+   input; filled in only while the field is empty, so whatever was typed or
+   loaded from a claim is never overwritten. */
+const DEFAULT_FIELD_VALUES = (function readDefaultFields() {
+  const defaults = {};
+  document.querySelectorAll('[data-default][data-autofill]').forEach(el => {
+    const key = el.dataset.autofill;
+    if (!(key in defaults)) defaults[key] = el.dataset.default;
+  });
+  return defaults;
+})();
+
 function applyFixedFields() {
   Object.entries(FIXED_FIELD_VALUES).forEach(([key, value]) => {
     state.data[key] = value;
     document.querySelectorAll(`[data-autofill="${key}"]`).forEach(el => {
       if (el.value !== value) el.value = value;
     });
+  });
+  Object.entries(DEFAULT_FIELD_VALUES).forEach(([key, value]) => {
+    if (String(state.data[key] ?? '').trim()) return;
+    state.data[key] = value;
+    document.querySelectorAll(`[data-autofill="${key}"]`).forEach(el => { el.value = value; });
   });
 }
 
@@ -1968,35 +2172,351 @@ async function loadClinicSettings() {
 })();
 
 /* ══════════════════════════════════════════════════════════
-   DATE DISCHARGED — "same day as admitted"
-   Most mothers are discharged the day they are admitted, so the
-   date is mirrored from the admission date by default. Unticking
-   lets staff type a different date (clinic user testing).
+   DATE DISCHARGED — "the day after delivery"
+   A mother goes home the day after delivering at the earliest
+   (rule IC-08), most often exactly then, so the date follows the
+   delivery date by default. Unticking lets staff type a later
+   date for a longer stay.
 ══════════════════════════════════════════════════════════ */
-(function setupSameDayDischarge() {
-  const toggle = document.getElementById('dischargeSameDay');
+function dayAfterIso(iso) {
+  const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return '';
+  const next = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + 1);
+  return [next.getFullYear(), String(next.getMonth() + 1).padStart(2, '0'),
+          String(next.getDate()).padStart(2, '0')].join('-');
+}
+
+// Called when a claim is loaded or cleared; the setup below fills in .run.
+function refreshDischargeTick() {
+  if (refreshDischargeTick.run) refreshDischargeTick.run();
+}
+
+(function setupDayAfterDischarge() {
+  const toggle = document.getElementById('dischargeDayAfter');
   if (!toggle) return;
   const field = document.querySelector('input[type="date"][data-autofill="dateDischarge"]');
   if (!field) return;
 
   function apply() {
-    const same = toggle.checked;
-    field.readOnly = same;
-    field.classList.toggle('is-locked', same);
-    if (same && state.data.dateAdmitted) {
-      state.data.dateDischarge = state.data.dateAdmitted;
-      field.value = state.data.dateAdmitted;
+    const follow = toggle.checked;
+    field.readOnly = follow;
+    field.classList.toggle('is-locked', follow);
+    const next = dayAfterIso(state.data.deliveryDate);
+    if (follow && next) {
+      state.data.dateDischarge = next;
+      field.value = next;
       updateFormPreviews();
     }
   }
 
   toggle.addEventListener('change', apply);
 
-  // Keep it in step while the admission date is still being typed.
-  document.querySelectorAll('[data-autofill="dateAdmitted"]').forEach(el =>
+  // Keep it in step while the delivery date is still being typed.
+  document.querySelectorAll('[data-autofill="deliveryDate"]').forEach(el =>
     el.addEventListener('change', () => { if (toggle.checked) apply(); }));
 
+  // A claim loaded with its own discharge date (from the logbook) keeps
+  // it: the tick stays on only when that date is the day after delivery.
+  refreshDischargeTick.run = () => {
+    const given = state.data.dateDischarge;
+    toggle.checked = !given || given === dayAfterIso(state.data.deliveryDate);
+    apply();
+  };
+
   apply();
+})();
+
+/* ══════════════════════════════════════════════════════════
+   FINAL DIAGNOSIS — "same as the admission diagnosis"
+   Ticked, the final diagnosis is the admission diagnosis and keeps
+   following it. It is written as if typed, so the CSF and CF4 copies
+   (LINKED_FIELD_GROUPS) follow too. Off by default: the two usually
+   differ (in labour on admission, delivered at discharge).
+══════════════════════════════════════════════════════════ */
+// Called when a claim is loaded or cleared; the setup below fills in .run.
+function refreshFinalDxTick(values) {
+  if (refreshFinalDxTick.run) refreshFinalDxTick.run(values);
+}
+
+(function setupFinalDxSameAsAdmission() {
+  const toggle = document.getElementById('finalDxSameAsAdmission');
+  if (!toggle) return;
+  const field = document.querySelector('#section-patient [data-autofill="dischargeDx"]');
+  if (!field) return;
+
+  function apply() {
+    const follow = toggle.checked;
+    field.readOnly = follow;
+    field.classList.toggle('is-locked', follow);
+    const admission = state.data.admissionDx || '';
+    if (follow && field.value !== admission) {
+      field.value = admission;
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  }
+
+  toggle.addEventListener('change', apply);
+
+  // Keep it in step with the admission diagnosis, wherever that is typed
+  // (Patient details, CF4, or "Put this in the box").
+  document.addEventListener('input', e => {
+    if (toggle.checked && e.target.dataset && e.target.dataset.autofill === 'admissionDx') apply();
+  });
+
+  // A loaded claim (values with a final diagnosis): ticked only when both
+  // diagnoses are there and the same. Other updates, such as the delivery
+  // message put in the admission diagnosis, leave the tick as it is.
+  refreshFinalDxTick.run = values => {
+    if (!values || 'dischargeDx' in values) {
+      const admission = state.data.admissionDx, final = state.data.dischargeDx;
+      toggle.checked = !!admission && admission === final;
+    }
+    apply();
+  };
+})();
+
+/* ══════════════════════════════════════════════════════════
+   NAMES WRITTEN BY HAND — "leave blank" tick boxes
+   The printed name over a signature line is usually written in pen after
+   the forms are printed. Each name box (and CSF Part I's two lines) has a
+   tick box that leaves that line blank on the form: the box is greyed out
+   and no longer asked for, and the line prints empty. What was typed is
+   kept, and comes back when the tick is taken off.
+
+   A tick names the overlay lines it blanks (js/pdf/overlays/*.js ids), not
+   the field: CSF and PMRF print the member's name from the same field, and
+   leaving one form's line blank must not blank the other's. It is the
+   clinic's way of working rather than a detail of one patient, so it is
+   remembered on this computer and stays for the next patient.
+══════════════════════════════════════════════════════════ */
+const PCA_HANDWRITTEN = new Set();
+(function setupHandwrittenNames() {
+  const STORE = 'pclaimassist.handwrittenNames';
+  try { (JSON.parse(localStorage.getItem(STORE)) || []).forEach(id => PCA_HANDWRITTEN.add(id)); }
+  catch (e) { /* storage off: nothing ticked */ }
+  window.PCA_HANDWRITTEN = PCA_HANDWRITTEN;
+  const style = document.createElement('style');
+  style.textContent = '.handwritten-check-label{display:flex;gap:8px;align-items:flex-start;' +
+    'margin:6px 0 0;font-size:.85rem;cursor:pointer}' +
+    '.handwritten-check-label .form-check-input{margin:2px 0 0;flex:none}' +
+    '.pca-input.is-handwritten{background:#f1f5f9;color:#94a3b8;text-decoration:line-through}';
+  document.head.appendChild(style);
+
+  document.querySelectorAll('.handwritten-check[data-handwritten]').forEach(slot => {
+    const ids = slot.dataset.handwritten.split(',');
+    const input = slot.dataset.handwrittenInput
+      ? slot.parentElement.querySelector(`[data-autofill="${slot.dataset.handwrittenInput}"]`) : null;
+    const label = document.createElement('label');
+    label.className = 'form-check pca-check handwritten-check-label';
+    label.innerHTML = '<input type="checkbox" class="form-check-input">' +
+      '<span class="form-check-label"></span>';
+    label.querySelector('span').textContent = slot.dataset.handwrittenLabel ||
+      'Leave blank - the name is written by hand after printing';
+    const tick = label.querySelector('input');
+    slot.appendChild(label);
+
+    function apply() {
+      const on = tick.checked;
+      ids.forEach(id => on ? PCA_HANDWRITTEN.add(id) : PCA_HANDWRITTEN.delete(id));
+      if (input) {
+        input.disabled = on;
+        input.classList.toggle('is-handwritten', on);
+        input.title = on ? 'Left blank: written by hand after printing' : '';
+      }
+    }
+    tick.checked = ids.every(id => PCA_HANDWRITTEN.has(id));
+    apply();
+    tick.addEventListener('change', () => {
+      apply();
+      try { localStorage.setItem(STORE, JSON.stringify([...PCA_HANDWRITTEN])); } catch (e) { /* not remembered */ }
+      updateFormPreviews();
+    });
+  });
+})();
+
+/* ══════════════════════════════════════════════════════════
+   ADMISSION DIAGNOSIS — the doctors' usual wording
+   A claim is only made for a delivery, so the admitting diagnosis is
+   nearly always the same sentence (as the clinic's doctors write it):
+     PUFT 39 3/7 wks AOG delivered via NSVD to a live term baby boy AGA
+     w/ AS of 8 & 9; G2P2 (2002)
+   "Use the delivery message" opens it with only its blanks to fill, each
+   already filled from what is typed elsewhere where it can be: the weeks
+   from the LMP to the delivery (or admission) date, the baby's sex, G, P,
+   the term/preterm/abortion/living count and the APGAR score. A blank
+   typed here fills that field too, if it was still empty.
+══════════════════════════════════════════════════════════ */
+(function setupAdmissionDxTemplate() {
+  const host = document.getElementById('admissionDxTemplate');
+  if (!host) return;
+
+  const style = document.createElement('style');
+  style.textContent =
+    '.dx-template{margin-top:8px;padding:12px 14px;border:2px solid #bfdbfe;border-radius:10px;background:#f8fbff}' +
+    '.dx-template .dx-sentence{line-height:2.6;font-size:.95rem}' +
+    '.dx-template input,.dx-template select{display:inline-block;width:3.4em;padding:2px 4px;margin:0 2px;' +
+    'border:1px solid #93c5fd;border-radius:6px;text-align:center;font-weight:600;background:#fff}' +
+    '.dx-template select{width:auto}' +
+    '.dx-template .dx-empty{border-color:#dc2626;background:#fef2f2}' +
+    '.dx-template .dx-preview{margin:10px 0;padding:8px 10px;background:#fff;border:1px dashed #94a3b8;border-radius:8px;font-weight:600}' +
+    '.dx-template .dx-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}' +
+    '.dx-template .dx-confirm{margin-top:10px;padding:10px 12px;border:2px solid #f59e0b;border-radius:10px;background:#fffbeb}' +
+    '.dx-template .dx-confirm-title{font-weight:700;color:#92400e;margin-bottom:6px}' +
+    '.dx-template .dx-confirm-old{margin-bottom:8px;padding:6px 8px;background:#fff;border-radius:6px;font-size:.88rem;color:#475569}';
+  document.head.appendChild(style);
+
+  const open = document.createElement('button');
+  open.type = 'button';
+  open.className = 'btn btn-outline-primary btn-sm mt-2';
+  open.innerHTML = '<i class="bi bi-magic me-1"></i>Use the delivery message';
+  host.appendChild(open);
+
+  const box = document.createElement('div');
+  box.className = 'dx-template';
+  box.hidden = true;
+  const num = (name, label, w) =>
+    `<input type="text" inputmode="numeric" maxlength="2" data-dx="${name}" aria-label="${label}"${w ? ` style="width:${w}"` : ''}>`;
+  box.innerHTML =
+    '<div class="dx-sentence">PUFT ' + num('weeks', 'Weeks AOG') + ' ' + num('days', 'Days (out of 7)', '2.6em') +
+    '/7 wks AOG delivered via NSVD to a live term baby ' +
+    '<select data-dx="sex" aria-label="Baby boy or girl"><option value="">boy / girl</option>' +
+    '<option value="boy">boy</option><option value="girl">girl</option></select> ' +
+    '<select data-dx="size" aria-label="Size for gestational age"><option>AGA</option><option>SGA</option><option>LGA</option></select>' +
+    ' w/ AS of ' + num('apgar1', 'APGAR score at 1 minute', '2.6em') + ' &amp; ' + num('apgar5', 'APGAR score at 5 minutes', '2.6em') +
+    '; G' + num('g', 'Gravida', '2.6em') + 'P' + num('p', 'Para', '2.6em') + ' (' +
+    num('t', 'Term', '2.2em') + num('pre', 'Preterm', '2.2em') + num('a', 'Abortion', '2.2em') + num('l', 'Living', '2.2em') + ')</div>' +
+    '<div class="dx-preview" aria-live="polite"></div>' +
+    '<div class="dx-actions"><button type="button" class="btn btn-primary btn-sm" data-dx-use>' +
+    'Put this in Admission Diagnosis</button><button type="button" class="btn btn-link btn-sm" data-dx-close>Close</button>' +
+    '<span class="text-danger small" data-dx-note></span></div>' +
+    // Asked here, in the page - not with the browser's own pop-up.
+    '<div class="dx-confirm" role="alertdialog" aria-labelledby="dxConfirmTitle" hidden>' +
+    '<div class="dx-confirm-title" id="dxConfirmTitle"><i class="bi bi-exclamation-triangle-fill me-2"></i>' +
+    'Admission Diagnosis already has something in it</div>' +
+    '<div class="dx-confirm-old" data-dx-old></div>' +
+    '<div class="dx-actions"><button type="button" class="btn btn-warning btn-sm" data-dx-replace>Replace it</button>' +
+    '<button type="button" class="btn btn-outline-secondary btn-sm" data-dx-keep>Keep what is there</button></div></div>';
+  host.appendChild(box);
+
+  const f = name => box.querySelector(`[data-dx="${name}"]`);
+  const val = name => String(f(name).value || '').trim();
+  const PARTS = ['weeks', 'days', 'sex', 'apgar1', 'apgar5', 'g', 'p', 't', 'pre', 'a', 'l'];
+
+  // Weeks + days from the LMP to the delivery (or admission) date.
+  function aogFromDates() {
+    const d = state.data;
+    const end = d.deliveryDate || d.dateAdmitted;
+    if (!d.lmp || !end) return null;
+    const days = Math.round((new Date(end) - new Date(d.lmp)) / 86400000);
+    if (!(days >= 20 * 7 && days <= 45 * 7)) return null;
+    return { weeks: Math.floor(days / 7), days: days % 7 };
+  }
+
+  function prefill() {
+    const d = state.data;
+    const aog = aogFromDates();
+    const set = (name, value) => { if (value !== undefined && value !== null && value !== '') f(name).value = String(value); };
+    PARTS.forEach(name => { f(name).value = ''; });
+    f('size').value = 'AGA';
+    if (aog) { set('weeks', aog.weeks); set('days', aog.days); }
+    set('sex', d.babySex === 'Male' ? 'boy' : d.babySex === 'Female' ? 'girl' : '');
+    set('apgar5', d.apgarScore);
+    set('g', d.gravida); set('p', d.para);
+    set('t', d.obTerm); set('pre', d.obPreterm); set('a', d.obAbortion); set('l', d.obLiving);
+    // Anything still blank, from what is already in the box (usually read
+    // from the logbook): "PUFT 38 2/7 WKS ... G3P2 (2002)".
+    const found = readDxWording(d.admissionDx);
+    Object.entries(found).forEach(([name, value]) => {
+      if (!f(name).value || (name === 'size' && /AGA|SGA|LGA/.test(String(d.admissionDx).toUpperCase()))) set(name, value);
+    });
+  }
+
+  // The same reading as the Logbook Reader's (templates/review.html readDx).
+  function readDxWording(text) {
+    const t = String(text || '').toUpperCase();
+    const out = {};
+    let m;
+    if ((m = t.match(/\b(\d{2})\s*(?:(\d)\s*\/\s*7)?\s*W/))) { out.weeks = m[1]; if (m[2]) out.days = m[2]; }
+    if ((m = t.match(/\b(BOY|GIRL)\b/))) out.sex = m[1].toLowerCase();
+    if ((m = t.match(/\b(AGA|SGA|LGA)\b/))) out.size = m[1];
+    if ((m = t.match(/AS\s*(?:OF)?\s*(\d{1,2})\s*(?:&|AND|,|\/)\s*(\d{1,2})/))) { out.apgar1 = m[1]; out.apgar5 = m[2]; }
+    if ((m = t.match(/G\s*(\d{1,2})\s*P\s*(\d{1,2})/))) { out.g = m[1]; out.p = m[2]; }
+    if ((m = t.match(/\(\s*(\d)\s*-?\s*(\d)\s*-?\s*(\d)\s*-?\s*(\d)\s*\)/))) {
+      out.t = m[1]; out.pre = m[2]; out.a = m[3]; out.l = m[4];
+    }
+    return out;
+  }
+
+  function sentence() {
+    const days = val('days');
+    const age = val('weeks') + (days && days !== '0' ? ` ${days}/7` : '');
+    // In capitals, like everything typed into the forms.
+    return (`PUFT ${age} wks AOG delivered via NSVD to a live term baby ${val('sex')} ${val('size')} ` +
+      `w/ AS of ${val('apgar1')} & ${val('apgar5')}; G${val('g')}P${val('p')} ` +
+      `(${val('t')}${val('pre')}${val('a')}${val('l')})`).toUpperCase();
+  }
+
+  function missing() {
+    return PARTS.filter(name => name !== 'days' && !val(name));
+  }
+
+  function refresh() {
+    box.querySelectorAll('input[data-dx]').forEach(input => {
+      input.value = input.value.replace(/\D/g, '');
+      input.classList.toggle('dx-empty', input.dataset.dx !== 'days' && !input.value);
+    });
+    f('sex').classList.toggle('dx-empty', !f('sex').value);
+    box.querySelector('.dx-preview').textContent = sentence();
+    const left = missing().length;
+    box.querySelector('[data-dx-use]').disabled = left > 0;
+    box.querySelector('[data-dx-note]').textContent =
+      left ? `Fill in the ${left} red blank${left === 1 ? '' : 's'} first.` : '';
+  }
+
+  open.addEventListener('click', () => {
+    prefill();
+    box.querySelector('.dx-confirm').hidden = true;
+    box.hidden = false;
+    refresh();
+    const first = box.querySelector('input.dx-empty');
+    (first || f('weeks')).focus();
+  });
+  box.addEventListener('input', refresh);
+  box.addEventListener('change', refresh);
+  box.querySelector('[data-dx-close]').addEventListener('click', () => { box.hidden = true; });
+
+  const ask = box.querySelector('.dx-confirm');
+  box.querySelector('[data-dx-use]').addEventListener('click', () => {
+    const current = String(state.data.admissionDx || '').trim();
+    if (current && current !== sentence()) {
+      box.querySelector('[data-dx-old]').textContent = current;
+      ask.hidden = false;
+      box.querySelector('[data-dx-replace]').focus();
+      return;
+    }
+    putIn();
+  });
+  box.querySelector('[data-dx-replace]').addEventListener('click', putIn);
+  box.querySelector('[data-dx-keep]').addEventListener('click', () => {
+    ask.hidden = true;
+    box.querySelector('[data-dx-use]').focus();
+  });
+
+  function putIn() {
+    ask.hidden = true;
+    const values = { admissionDx: sentence() };
+    // Blanks filled here also fill their own fields, if those are empty.
+    const fillIfEmpty = (key, value) => { if (value && !String(state.data[key] || '').trim()) values[key] = value; };
+    fillIfEmpty('gravida', val('g')); fillIfEmpty('para', val('p'));
+    fillIfEmpty('obTerm', val('t')); fillIfEmpty('obPreterm', val('pre'));
+    fillIfEmpty('obAbortion', val('a')); fillIfEmpty('obLiving', val('l'));
+    fillIfEmpty('apgarScore', val('apgar5'));
+    fillIfEmpty('babySex', { boy: 'Male', girl: 'Female' }[val('sex')]);
+    applyFormData(values);
+    box.hidden = true;
+    showToast('Delivery message put in',
+      'Admission Diagnosis now has the delivery message. CSF 4 prints it as the admitting diagnosis.', 'success');
+  }
 })();
 
 /* ═══════════════════════════════════════════════════════════
@@ -2050,6 +2570,7 @@ function setupExpandingRows(opts) {
     addBtn.setAttribute('aria-expanded', shown > 0 ? 'true' : 'false');
     // Only offer to hide a line that is still empty.
     delBtn.hidden = shown === 0 || shown <= lastFilled();
+    refreshRedMarksSoon();   // a line just shown is marked if empty
     if (count) {
       count.textContent = shown + 1 === TOTAL
         ? 'All ' + TOTAL + ' ' + opts.noun + ' shown'

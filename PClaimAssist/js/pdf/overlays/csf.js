@@ -115,8 +115,10 @@ window.PDF_OVERLAY_CSF = [
   // ═══ Part I – Certification of Member (signature block) ═══
   // Printed above each signature line so staff only sign (user testing:
   // handwritten names were overrunning these narrow boxes).
-  { id:'csfMemberSignName', key:'memberSignName', page:1, top:37.992, left:15.33, w:26.0, fs:7, center:true },
-  { id:'csfRepSignName',    key:'patientSignName', page:1, top:37.992, left:57.95, w:26.0, fs:7, center:true },
+  // `computed`: the name is worked out from the member's / patient's name
+  // (getComputedValue); there is no field of that name to read.
+  { id:'csfMemberSignName', key:'memberSignName', computed:'memberSignName', page:1, top:37.992, left:15.33, w:26.0, fs:7, center:true },
+  { id:'csfRepSignName',    key:'patientSignName', computed:'patientSignName', page:1, top:37.992, left:57.95, w:26.0, fs:7, center:true },
   { id:'memberSignedDateD1', key:'memberSignedDateD1', page:1, top:41.192, left:20.806, w:2, fs:7, digit:0, digitKey:'memberSignedDate', digitOrder:'mmddyyyy' },
   { id:'memberSignedDateD2', key:'memberSignedDateD2', page:1, top:41.192, left:22.818, w:2, fs:7, digit:1, digitKey:'memberSignedDate', digitOrder:'mmddyyyy' },
   { id:'memberSignedDateD3', key:'memberSignedDateD3', page:1, top:41.192, left:25.988, w:2, fs:7, digit:2, digitKey:'memberSignedDate', digitOrder:'mmddyyyy' },

@@ -2,7 +2,11 @@
 
   POST /api/review/upload                 run the full OCR flow on one scan,
                                           create one pending session per row
-  POST /api/review/jobs                   same, in the background (review page)
+  POST /api/review/jobs                   same, in the background
+  POST /api/review/jobs/checked           read a scan whose columns were just
+                                          checked ({setup_id, pages}, see
+                                          logbook_setup.checked_templates) -
+                                          what the review page does
   GET  /api/review/jobs/<job_id>          its progress, then the same result
   GET  /api/review/uploads/<upload_id>    the sessions created by one upload
   GET  /api/review/sessions/<id>          one session with its OCR fields
@@ -23,9 +27,11 @@ import tempfile
 from flask import Blueprint, jsonify, request, send_from_directory
 from werkzeug.utils import secure_filename
 
+import auth
 import case_session_store
 import config
 import logbook_pipeline
+import logbook_setup
 import paddle_assist
 import review_jobs
 from errors import InvalidRequestError, ReviewCheckError, ReviewIncompleteError, SessionNotFoundError
@@ -43,6 +49,13 @@ def _with_inputs(field):
     """A field plus what the review screen needs to show its inputs: its
     kind, and its parts - as reviewed, or suggested from the current text."""
     category = field["category"]
+    value = field.get("value")
+    if not field.get("parts_reviewed") and field.get("status") != logbook_pipeline.ACCEPTED:
+        # Not checked yet: an unsure reading gets the fixes added since the
+        # scan was read (e.g. "CASANTANDAUAO CY" -> "CABANTIAN DAVAO CITY").
+        value = paddle_assist.fix_saved_reading(category, value)
+    # Scans read before values were kept in capitals get them here too.
+    field = {**field, "value": review_fields.in_capitals(category, value)}
     parts = field.get("parts") if field.get("parts_reviewed") else None
     found_blank = field.get("status") == logbook_pipeline.EMPTY
     if parts is None and found_blank and category not in field_catalog.OCR_CLAIM_REQUIRED_CATEGORIES:
@@ -72,16 +85,16 @@ def _session_view(session):
     }
 
 
-def _read_logbook(path, source_document, progress=None):
+def _read_logbook(path, source_document, progress=None, page_templates=None):
     """Run the full flow on one saved upload and save one pending session
     per patient row. Returns the upload response payload. Raises
     ValueError (message for the user) if the file can't be read."""
     # Cells and the AI's image versions are read in batches (about twice as
     # fast); the one-at-a-time reader is kept for retries and fallback.
     result = logbook_pipeline.build_review_rows(
-        path, extract_tokens_from_array, load_template_payloads(), progress=progress,
+        path, extract_tokens_from_array, [] if page_templates else load_template_payloads(), progress=progress,
         corrector=paddle_assist.make_corrector(extract_tokens_from_array, batch_reader=read_versions_many),
-        batch_ocr_fn=read_many)
+        batch_ocr_fn=read_many, page_templates=page_templates)
     if progress:
         progress(1.0, "Saving the patients")
     session_ids = logbook_pipeline.persist_review_rows(result, source_document)
@@ -128,6 +141,25 @@ def start_logbook_job():
     os.close(handle)
     file.save(path)
     job_id = review_jobs.start(lambda progress: _read_logbook(path, source_document, progress), path)
+    return jsonify({"success": True, "job_id": job_id}), 202
+
+
+@review_bp.route("/jobs/checked", methods=["POST"])
+@auth.login_required
+def start_checked_job():
+    """Read a scan uploaded once through POST /api/logbook-setup/read, with
+    the columns the person checked on it. Answers with a job id, like /jobs."""
+    data = request.get_json(silent=True) or {}
+    setup_id = data.get("setup_id") or ""
+    path, source_document, templates = logbook_setup.checked_templates(setup_id, data.get("pages") or [])
+
+    def work(progress):
+        try:
+            return _read_logbook(path, source_document or os.path.basename(path), progress, templates)
+        finally:
+            logbook_setup.remove_scan(setup_id)
+
+    job_id = review_jobs.start(work, path)
     return jsonify({"success": True, "job_id": job_id}), 202
 
 

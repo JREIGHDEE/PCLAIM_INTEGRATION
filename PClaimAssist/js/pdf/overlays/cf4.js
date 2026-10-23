@@ -2,10 +2,13 @@
    Overlay field coordinate map — CF4 (Claim Form 4, Aug 2018)
    Page size 612 x 1008 pt, 2 pages.
 
-   Coordinates derived from the actual PDF via PyMuPDF
-   (page.get_text('words') for labels, page.get_drawings() for
-   the checkbox rects and table rules), so they line up with the
-   printed form rather than being eyeballed.
+   CF4.pdf is a fillable PDF, so every position here is taken from the
+   form's own editable boxes (its AcroForm widgets, read with PyMuPDF):
+   text starts 2pt inside its box and sits on the box's middle; digits
+   and tick marks are centred in their cell (the date/time/series boxes
+   are "comb" fields, one cell per character). Positions were eyeballed
+   before, and a good share of them printed above, below or beside the
+   box they belonged in.
 
    Checkboxes use checkbox:true + checkValue; the renderer draws a
    check glyph when state[key] matches checkValue. Multi-select
@@ -17,203 +20,302 @@ window.PDF_OVERLAY_CF4 = [
   /* ═══ PAGE 1 ═══ */
 
   // Series # — 13 digit boxes across the top
-  ...[0,1,2,3,4,5,6,7,8,9,10,11,12].map(i => ({
-    id:'cf4SeriesD' + (i+1), key:'cf4SeriesD' + (i+1), page:1,
-    top:9.25, left:66.2 + i*2.19, w:2.0, fs:7,
-    digit:i, digitKey:'cf4Series',
-  })),
+  { id:'cf4SeriesD1', key:'cf4SeriesD1', page:1, top:8.405, left:65.843, w:2.202, fs:7, center:true, digit:0, digitKey:'cf4Series' },
+  { id:'cf4SeriesD2', key:'cf4SeriesD2', page:1, top:8.405, left:68.045, w:2.202, fs:7, center:true, digit:1, digitKey:'cf4Series' },
+  { id:'cf4SeriesD3', key:'cf4SeriesD3', page:1, top:8.405, left:70.247, w:2.202, fs:7, center:true, digit:2, digitKey:'cf4Series' },
+  { id:'cf4SeriesD4', key:'cf4SeriesD4', page:1, top:8.405, left:72.449, w:2.202, fs:7, center:true, digit:3, digitKey:'cf4Series' },
+  { id:'cf4SeriesD5', key:'cf4SeriesD5', page:1, top:8.405, left:74.652, w:2.202, fs:7, center:true, digit:4, digitKey:'cf4Series' },
+  { id:'cf4SeriesD6', key:'cf4SeriesD6', page:1, top:8.405, left:76.854, w:2.202, fs:7, center:true, digit:5, digitKey:'cf4Series' },
+  { id:'cf4SeriesD7', key:'cf4SeriesD7', page:1, top:8.405, left:79.056, w:2.202, fs:7, center:true, digit:6, digitKey:'cf4Series' },
+  { id:'cf4SeriesD8', key:'cf4SeriesD8', page:1, top:8.405, left:81.258, w:2.202, fs:7, center:true, digit:7, digitKey:'cf4Series' },
+  { id:'cf4SeriesD9', key:'cf4SeriesD9', page:1, top:8.405, left:83.46, w:2.202, fs:7, center:true, digit:8, digitKey:'cf4Series' },
+  { id:'cf4SeriesD10', key:'cf4SeriesD10', page:1, top:8.405, left:85.662, w:2.202, fs:7, center:true, digit:9, digitKey:'cf4Series' },
+  { id:'cf4SeriesD11', key:'cf4SeriesD11', page:1, top:8.405, left:87.864, w:2.202, fs:7, center:true, digit:10, digitKey:'cf4Series' },
+  { id:'cf4SeriesD12', key:'cf4SeriesD12', page:1, top:8.405, left:90.066, w:2.202, fs:7, center:true, digit:11, digitKey:'cf4Series' },
+  { id:'cf4SeriesD13', key:'cf4SeriesD13', page:1, top:8.405, left:92.268, w:2.202, fs:7, center:true, digit:12, digitKey:'cf4Series' },
 
-  // I. Health Care Institution
-  { id:'cf4HciName',    key:'hciName',    page:1, top:16.3, left:6.3,  w:50.0, fs:8 },
-  { id:'cf4HciPAN',     key:'hciPAN',     page:1, top:16.3, left:61.2, w:30.0, fs:8 },
-  { id:'cf4HciBldg',    key:'hciBldg',    page:1, top:20, left:4.5,  w:16.0, fs:6.5 },
-  { id:'cf4HciStreet',  key:'hciStreet',  page:1, top:20, left:21.5, w:17.0, fs:6.5 },
-  { id:'cf4HciBarangay',key:'hciCity',    page:1, top:20, left:39.5, w:21.0, fs:6.5 },
-  { id:'cf4HciProvince',key:'hciProvince',page:1, top:20, left:61.5, w:19.0, fs:6.5 },
-  { id:'cf4HciZip',     key:'hciZip',     page:1, top:20, left:81.5, w:12.0, fs:6.5 },
+  // I. Health Care Institution (the address is one wide box; each part
+  // goes in the column of its printed sub-label underneath)
+  { id:'cf4HciName', key:'hciName', page:1, top:16.018, left:4.778, w:53.954, fs:8 },
+  { id:'cf4HciPAN', key:'hciPAN', page:1, top:16.018, left:59.66, w:35.562, fs:8 },
+  { id:'cf4HciBldg', key:'hciBldg', page:1, top:18.694, left:4.771, w:13.333, fs:6.5 },
+  { id:'cf4HciStreet', key:'hciStreet', page:1, top:18.694, left:18.758, w:12.108, fs:6.5 },
+  { id:'cf4HciBarangay', key:'hciCity', page:1, top:18.694, left:31.52, w:23.235, fs:6.5 },
+  { id:'cf4HciProvince', key:'hciProvince', page:1, top:18.694, left:55.408, w:30.114, fs:6.5 },
+  { id:'cf4HciZip', key:'hciZip', page:1, top:18.694, left:86.176, w:9.183, fs:6.5 },
 
   // II. Patient's Data
-  { id:'cf4PatientLastName',   key:'patientLastName',   page:1, top:24.2, left:5.0,  w:21.0, fs:8 },
-  { id:'cf4PatientFirstName',  key:'patientFirstName',  page:1, top:24.2, left:26.5, w:21.0, fs:8 },
-  { id:'cf4PatientMiddleName', key:'patientMiddleName', page:1, top:24.2, left:48.5, w:21.0, fs:8 },
-  { id:'cf4PatientPIN',        key:'memberPIN',         page:1, top:24.3, left:72.2, w:25.0, fs:8 },
-  { id:'cf4PatientAge',        key:'patientAge',        page:1, top:26.6, left:76.5, w:8.0,  fs:8 },
-
-  { id:'cf4SexMale',   key:'patientSex', page:1, top:27.95, left:79.5, w:2, fs:9, checkbox:true, checkValue:'Male' },
-  { id:'cf4SexFemale', key:'patientSex', page:1, top:27.95, left:85.4, w:2, fs:9, checkbox:true, checkValue:'Female' },
-
-  { id:'cf4ChiefComplaint', key:'cf4ChiefComplaint', page:1, top:27.3, left:6.3, w:62.0, fs:7, wrap:true, maxLines:2 },
-  { id:'cf4AdmittingDx',    key:'admissionDx',       page:1, top:30.7, left:6.3, w:31.0, fs:7, wrap:true, maxLines:3 },
-  { id:'cf4DischargeDx',    key:'cf4FinalDiagnosis', page:1, top:30.7, left:39.0, w:33.0, fs:7, wrap:true, maxLines:3 },
-  { id:'cf4CaseRate1',      key:'cf4IcdCode',        page:1, top:30.9, left:75.7, w:22.0, fs:7 },
-  { id:'cf4CaseRate2',      key:'cf4RvsCode',        page:1, top:33.2, left:76.1, w:22.0, fs:7 },
+  { id:'cf4PatientLastName', key:'patientLastName', page:1, top:23.583, left:4.758, w:19.687, fs:8 },
+  { id:'cf4PatientFirstName', key:'patientFirstName', page:1, top:23.605, left:25.231, w:19.687, fs:8 },
+  { id:'cf4PatientMiddleName', key:'patientMiddleName', page:1, top:23.621, left:45.56, w:23.905, fs:8 },
+  { id:'cf4PatientPIN', key:'memberPIN', page:1, top:23.512, left:70.621, w:24.641, fs:8 },
+  { id:'cf4PatientAge', key:'patientAge', page:1, top:25.851, left:70.621, w:24.621, fs:8 },
+  { id:'cf4SexMale', key:'patientSex', page:1, top:27.497, left:79.308, w:2.311, fs:9, center:true, checkbox:true, checkValue:'Male' },
+  { id:'cf4SexFemale', key:'patientSex', page:1, top:27.497, left:85.226, w:2.311, fs:9, center:true, checkbox:true, checkValue:'Female' },
+  { id:'cf4ChiefComplaint', key:'cf4ChiefComplaint', page:1, top:27.134, left:4.921, w:64.993, fs:7, wrap:true, maxLines:2 },
+  { id:'cf4AdmittingDx', key:'admissionDx', page:1, top:30.378, left:4.856, w:31.523, fs:7, wrap:true, maxLines:3 },
+  { id:'cf4DischargeDx', key:'cf4FinalDiagnosis', page:1, top:30.374, left:37.189, w:32.339, fs:7, wrap:true, maxLines:3 },
+  { id:'cf4CaseRate1', key:'cf4IcdCode', page:1, top:30.5, left:70.601, w:24.641, fs:7 },
+  { id:'cf4CaseRate2', key:'cf4RvsCode', page:1, top:32.833, left:70.601, w:24.641, fs:7 },
 
   // 9. Date / Time Admitted — mm dd yyyy, hh mm
-  ...[0,1].map(i => ({ id:'cf4AdmMM'+(i+1), key:'cf4AdmMM'+(i+1), page:1, top:35.15, left:19.2+i*2.18, w:2, fs:7, digit:i,   digitKey:'dateAdmitted', digitOrder:'mmddyyyy' })),
-  ...[0,1].map(i => ({ id:'cf4AdmDD'+(i+1), key:'cf4AdmDD'+(i+1), page:1, top:35.15, left:24.9+i*2.18, w:2, fs:7, digit:i+2, digitKey:'dateAdmitted', digitOrder:'mmddyyyy' })),
-  ...[0,1,2,3].map(i => ({ id:'cf4AdmYY'+(i+1), key:'cf4AdmYY'+(i+1), page:1, top:35.15, left:30.6+i*2.18, w:2, fs:7, digit:i+4, digitKey:'dateAdmitted', digitOrder:'mmddyyyy' })),
-  ...[0,1].map(i => ({ id:'cf4AdmHH'+(i+1), key:'cf4AdmHH'+(i+1), page:1, top:35.15, left:68.8+i*2.18, w:2, fs:7, digit:i,   digitKey:'cf4TimeAdmittedDigits' })),
-  ...[0,1].map(i => ({ id:'cf4AdmMI'+(i+1), key:'cf4AdmMI'+(i+1), page:1, top:35.15, left:74.5+i*2.18, w:2, fs:7, digit:i+2, digitKey:'cf4TimeAdmittedDigits' })),
-  { id:'cf4AdmAM', key:'amPmAdmitted', page:1, top:35.05, left:79.3, w:2, fs:9, checkbox:true, checkValue:'AM' },
-  { id:'cf4AdmPM', key:'amPmAdmitted', page:1, top:35.05, left:83.75, w:2, fs:9, checkbox:true, checkValue:'PM' },
+  { id:'cf4AdmMM1', key:'cf4AdmMM1', page:1, top:34.423, left:18.922, w:2.176, fs:7, center:true, digit:0, digitKey:'dateAdmitted', digitOrder:'mmddyyyy' },
+  { id:'cf4AdmMM2', key:'cf4AdmMM2', page:1, top:34.423, left:21.098, w:2.176, fs:7, center:true, digit:1, digitKey:'dateAdmitted', digitOrder:'mmddyyyy' },
+  { id:'cf4AdmDD1', key:'cf4AdmDD1', page:1, top:34.423, left:24.647, w:2.176, fs:7, center:true, digit:2, digitKey:'dateAdmitted', digitOrder:'mmddyyyy' },
+  { id:'cf4AdmDD2', key:'cf4AdmDD2', page:1, top:34.423, left:26.824, w:2.176, fs:7, center:true, digit:3, digitKey:'dateAdmitted', digitOrder:'mmddyyyy' },
+  { id:'cf4AdmYY1', key:'cf4AdmYY1', page:1, top:34.411, left:30.412, w:2.191, fs:7, center:true, digit:4, digitKey:'dateAdmitted', digitOrder:'mmddyyyy' },
+  { id:'cf4AdmYY2', key:'cf4AdmYY2', page:1, top:34.411, left:32.603, w:2.191, fs:7, center:true, digit:5, digitKey:'dateAdmitted', digitOrder:'mmddyyyy' },
+  { id:'cf4AdmYY3', key:'cf4AdmYY3', page:1, top:34.411, left:34.794, w:2.191, fs:7, center:true, digit:6, digitKey:'dateAdmitted', digitOrder:'mmddyyyy' },
+  { id:'cf4AdmYY4', key:'cf4AdmYY4', page:1, top:34.411, left:36.985, w:2.191, fs:7, center:true, digit:7, digitKey:'dateAdmitted', digitOrder:'mmddyyyy' },
+  { id:'cf4AdmHH1', key:'cf4AdmHH1', page:1, top:34.452, left:68.608, w:2.176, fs:7, center:true, digit:0, digitKey:'cf4TimeAdmittedDigits' },
+  { id:'cf4AdmHH2', key:'cf4AdmHH2', page:1, top:34.452, left:70.784, w:2.176, fs:7, center:true, digit:1, digitKey:'cf4TimeAdmittedDigits' },
+  { id:'cf4AdmMI1', key:'cf4AdmMI1', page:1, top:34.435, left:74.333, w:2.176, fs:7, center:true, digit:2, digitKey:'cf4TimeAdmittedDigits' },
+  { id:'cf4AdmMI2', key:'cf4AdmMI2', page:1, top:34.435, left:76.51, w:2.176, fs:7, center:true, digit:3, digitKey:'cf4TimeAdmittedDigits' },
+  { id:'cf4AdmAM', key:'amPmAdmitted', page:1, top:34.668, left:79.141, w:2.311, fs:9, center:true, checkbox:true, checkValue:'AM' },
+  { id:'cf4AdmPM', key:'amPmAdmitted', page:1, top:34.64, left:83.586, w:2.311, fs:9, center:true, checkbox:true, checkValue:'PM' },
 
   // 10. Date / Time Discharged
-  ...[0,1].map(i => ({ id:'cf4DisMM'+(i+1), key:'cf4DisMM'+(i+1), page:1, top:37.48, left:19.2+i*2.18, w:2, fs:7, digit:i,   digitKey:'dateDischarge', digitOrder:'mmddyyyy' })),
-  ...[0,1].map(i => ({ id:'cf4DisDD'+(i+1), key:'cf4DisDD'+(i+1), page:1, top:37.48, left:24.9+i*2.18, w:2, fs:7, digit:i+2, digitKey:'dateDischarge', digitOrder:'mmddyyyy' })),
-  ...[0,1,2,3].map(i => ({ id:'cf4DisYY'+(i+1), key:'cf4DisYY'+(i+1), page:1, top:37.48, left:30.6+i*2.18, w:2, fs:7, digit:i+4, digitKey:'dateDischarge', digitOrder:'mmddyyyy' })),
-  ...[0,1].map(i => ({ id:'cf4DisHH'+(i+1), key:'cf4DisHH'+(i+1), page:1, top:37.48, left:68.8+i*2.18, w:2, fs:7, digit:i,   digitKey:'cf4TimeDischargeDigits' })),
-  ...[0,1].map(i => ({ id:'cf4DisMI'+(i+1), key:'cf4DisMI'+(i+1), page:1, top:37.48, left:74.5+i*2.18, w:2, fs:7, digit:i+2, digitKey:'cf4TimeDischargeDigits' })),
-  { id:'cf4DisAM', key:'amPmDischarge', page:1, top:37.42, left:79.3, w:2, fs:9, checkbox:true, checkValue:'AM' },
-  { id:'cf4DisPM', key:'amPmDischarge', page:1, top:37.42, left:83.75, w:2, fs:9, checkbox:true, checkValue:'PM' },
+  { id:'cf4DisMM1', key:'cf4DisMM1', page:1, top:36.756, left:18.922, w:2.176, fs:7, center:true, digit:0, digitKey:'dateDischarge', digitOrder:'mmddyyyy' },
+  { id:'cf4DisMM2', key:'cf4DisMM2', page:1, top:36.756, left:21.098, w:2.176, fs:7, center:true, digit:1, digitKey:'dateDischarge', digitOrder:'mmddyyyy' },
+  { id:'cf4DisDD1', key:'cf4DisDD1', page:1, top:36.756, left:24.647, w:2.176, fs:7, center:true, digit:2, digitKey:'dateDischarge', digitOrder:'mmddyyyy' },
+  { id:'cf4DisDD2', key:'cf4DisDD2', page:1, top:36.756, left:26.824, w:2.176, fs:7, center:true, digit:3, digitKey:'dateDischarge', digitOrder:'mmddyyyy' },
+  { id:'cf4DisYY1', key:'cf4DisYY1', page:1, top:36.744, left:30.412, w:2.191, fs:7, center:true, digit:4, digitKey:'dateDischarge', digitOrder:'mmddyyyy' },
+  { id:'cf4DisYY2', key:'cf4DisYY2', page:1, top:36.744, left:32.603, w:2.191, fs:7, center:true, digit:5, digitKey:'dateDischarge', digitOrder:'mmddyyyy' },
+  { id:'cf4DisYY3', key:'cf4DisYY3', page:1, top:36.744, left:34.794, w:2.191, fs:7, center:true, digit:6, digitKey:'dateDischarge', digitOrder:'mmddyyyy' },
+  { id:'cf4DisYY4', key:'cf4DisYY4', page:1, top:36.744, left:36.985, w:2.191, fs:7, center:true, digit:7, digitKey:'dateDischarge', digitOrder:'mmddyyyy' },
+  { id:'cf4DisHH1', key:'cf4DisHH1', page:1, top:36.786, left:68.608, w:2.176, fs:7, center:true, digit:0, digitKey:'cf4TimeDischargeDigits' },
+  { id:'cf4DisHH2', key:'cf4DisHH2', page:1, top:36.786, left:70.784, w:2.176, fs:7, center:true, digit:1, digitKey:'cf4TimeDischargeDigits' },
+  { id:'cf4DisMI1', key:'cf4DisMI1', page:1, top:36.768, left:74.333, w:2.186, fs:7, center:true, digit:2, digitKey:'cf4TimeDischargeDigits' },
+  { id:'cf4DisMI2', key:'cf4DisMI2', page:1, top:36.768, left:76.52, w:2.186, fs:7, center:true, digit:3, digitKey:'cf4TimeDischargeDigits' },
+  { id:'cf4DisAM', key:'amPmDischarge', page:1, top:37.035, left:79.153, w:2.311, fs:9, center:true, checkbox:true, checkValue:'AM' },
+  { id:'cf4DisPM', key:'amPmDischarge', page:1, top:37.006, left:83.598, w:2.311, fs:9, center:true, checkbox:true, checkValue:'PM' },
 
   // III. Reason for Admission
-  { id:'cf4HistoryPresentIllness', key:'cf4HistoryPresentIllness', page:1, top:42.1, left:5.5, w:89.0, fs:7, wrap:true, maxLines:9 },
-  { id:'cf4PastMedicalHistory',    key:'cf4PastMedicalHistory',    page:1, top:53, left:5.5, w:89.0, fs:7, wrap:true, maxLines:4 },
+  { id:'cf4HistoryPresentIllness', key:'cf4HistoryPresentIllness', page:1, top:40.926, left:4.856, w:90.268, fs:7, wrap:true, maxLines:9 },
+  { id:'cf4PastMedicalHistory', key:'cf4PastMedicalHistory', page:1, top:52.178, left:4.626, w:90.538, fs:7, wrap:true, maxLines:4 },
 
   // 2.b OB/GYN history: G _ P _ ( _ - _ - _ - _ ) LMP: ____
-  { id:'cf4Gravida', key:'gravida', page:1, top:59.15, left:9.6,  w:4.0, fs:7 },
-  { id:'cf4Para',    key:'para',    page:1, top:59.15, left:15.3, w:4.0, fs:7 },
-  { id:'cf4ObT',     key:'obTerm',      page:1, top:59.15, left:21.0, w:3.5, fs:7 },
-  { id:'cf4ObP',     key:'obPreterm',   page:1, top:59.15, left:25.8, w:3.5, fs:7 },
-  { id:'cf4ObA',     key:'obAbortion',  page:1, top:59.15, left:30.3, w:3.5, fs:7 },
-  { id:'cf4ObL',     key:'obLiving',    page:1, top:59.15, left:34.8, w:3.5, fs:7 },
-  { id:'cf4Lmp',     key:'lmp',         page:1, top:59.15, left:40.0, w:16.0, fs:7 },
-  { id:'cf4LmpNA',   key:'cf4LmpNA',    page:1, top:59, left:51.7, w:2, fs:9, checkbox:true, checkValue:true },
+  { id:'cf4Gravida', key:'gravida', page:1, top:58.673, left:6.895, w:2.346, fs:7 },
+  { id:'cf4Para', key:'para', page:1, top:58.661, left:12.033, w:2.366, fs:7 },
+  { id:'cf4ObT', key:'obTerm', page:1, top:58.601, left:17.346, w:2.033, fs:7 },
+  { id:'cf4ObP', key:'obPreterm', page:1, top:58.565, left:21.621, w:2.346, fs:7 },
+  { id:'cf4ObA', key:'obAbortion', page:1, top:58.589, left:26.386, w:2.346, fs:7 },
+  { id:'cf4ObL', key:'obLiving', page:1, top:58.601, left:31.033, w:2.346, fs:7 },
+  { id:'cf4Lmp', key:'lmp', page:1, top:58.577, left:38.739, w:10.935, fs:7 },
+  { id:'cf4LmpNA', key:'cf4LmpNA', page:1, top:58.687, left:51.572, w:2.311, fs:9, center:true, checkbox:true, checkValue:true },
 
-  // 3. Pertinent signs and symptoms — 4 columns x 12 rows (multi-select)
-  ...(() => {
-    const COLS = [
-      { left:5.78,  items:['Altered mental sensorium','Abdominal cramp/pain','Anorexia','Bleeding gums','Body weakness','Blurring of vision','Chest pain/discomfort','Constipation','Cough'] },
-      { left:26.39, items:['Diarrhea','Dizziness','Dysphagia','Dyspnea','Dysuria','Epistaxis','Fever','Frequency of urination','Headache'] },
-      { left:45.84, items:['Hematemesis','Hematuria','Hemoptysis','Irritability','Jaundice','Lower extremity edema','Myalgia','Orthopnea','Pain'] },
-      { left:65.73, items:['Palpitations','Seizures','Skin rashes','Stool, bloody/black tarry/mucoid','Sweating','Urgency','Vomiting','Weight loss','Others'] },
-    ];
-    const TOPS = [63.36, 64.98, 66.62, 68.25, 69.96, 71.58, 73.23, 74.85, 76.61];
-    const out = [];
-    COLS.forEach((col, ci) => col.items.forEach((label, ri) => out.push({
-      id: `cf4Sym_${ci}_${ri}`, key:'cf4Symptoms', page:1,
-      top: TOPS[ri], left: col.left, w:2, fs:9,
-      checkboxMulti:true, checkValue:label,
-    })));
-    return out;
-  })(),
-  { id:'cf4PainSite',    key:'cf4PainSite',    page:1, top:76.65, left:49.5, w:12.0, fs:6.5 },
-  { id:'cf4SymptomOther',key:'cf4SymptomOther',page:1, top:76.65, left:69.5, w:24.0, fs:6.5 },
+  // 3. Pertinent signs and symptoms — 4 columns x 9 rows (multi-select)
+  { id:'cf4Sym_0_0', key:'cf4Symptoms', page:1, top:63.137, left:5.761, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Altered mental sensorium' },
+  { id:'cf4Sym_0_1', key:'cf4Symptoms', page:1, top:64.758, left:5.788, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Abdominal cramp/pain' },
+  { id:'cf4Sym_0_2', key:'cf4Symptoms', page:1, top:66.407, left:5.762, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Anorexia' },
+  { id:'cf4Sym_0_3', key:'cf4Symptoms', page:1, top:68.028, left:5.789, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Bleeding gums' },
+  { id:'cf4Sym_0_4', key:'cf4Symptoms', page:1, top:69.745, left:5.761, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Body weakness' },
+  { id:'cf4Sym_0_5', key:'cf4Symptoms', page:1, top:71.366, left:5.788, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Blurring of vision' },
+  { id:'cf4Sym_0_6', key:'cf4Symptoms', page:1, top:73.015, left:5.762, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Chest pain/discomfort' },
+  { id:'cf4Sym_0_7', key:'cf4Symptoms', page:1, top:74.636, left:5.789, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Constipation' },
+  { id:'cf4Sym_0_8', key:'cf4Symptoms', page:1, top:76.399, left:5.792, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Cough' },
+  { id:'cf4Sym_1_0', key:'cf4Symptoms', page:1, top:63.101, left:26.372, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Diarrhea' },
+  { id:'cf4Sym_1_1', key:'cf4Symptoms', page:1, top:64.722, left:26.399, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Dizziness' },
+  { id:'cf4Sym_1_2', key:'cf4Symptoms', page:1, top:66.371, left:26.373, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Dysphagia' },
+  { id:'cf4Sym_1_3', key:'cf4Symptoms', page:1, top:67.992, left:26.4, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Dyspnea' },
+  { id:'cf4Sym_1_4', key:'cf4Symptoms', page:1, top:69.709, left:26.372, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Dysuria' },
+  { id:'cf4Sym_1_5', key:'cf4Symptoms', page:1, top:71.33, left:26.4, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Epistaxis' },
+  { id:'cf4Sym_1_6', key:'cf4Symptoms', page:1, top:72.979, left:26.374, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Fever' },
+  { id:'cf4Sym_1_7', key:'cf4Symptoms', page:1, top:74.6, left:26.4, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Frequency of urination' },
+  { id:'cf4Sym_1_8', key:'cf4Symptoms', page:1, top:76.362, left:26.403, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Headache' },
+  { id:'cf4Sym_2_0', key:'cf4Symptoms', page:1, top:63.049, left:45.818, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Hematemesis' },
+  { id:'cf4Sym_2_1', key:'cf4Symptoms', page:1, top:64.67, left:45.845, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Hematuria' },
+  { id:'cf4Sym_2_2', key:'cf4Symptoms', page:1, top:66.318, left:45.819, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Hemoptysis' },
+  { id:'cf4Sym_2_3', key:'cf4Symptoms', page:1, top:67.939, left:45.846, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Irritability' },
+  { id:'cf4Sym_2_4', key:'cf4Symptoms', page:1, top:69.657, left:45.819, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Jaundice' },
+  { id:'cf4Sym_2_5', key:'cf4Symptoms', page:1, top:71.278, left:45.846, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Lower extremity edema' },
+  { id:'cf4Sym_2_6', key:'cf4Symptoms', page:1, top:72.926, left:45.82, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Myalgia' },
+  { id:'cf4Sym_2_7', key:'cf4Symptoms', page:1, top:74.547, left:45.847, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Orthopnea' },
+  { id:'cf4Sym_2_8', key:'cf4Symptoms', page:1, top:76.31, left:45.849, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Pain' },
+  { id:'cf4Sym_3_0', key:'cf4Symptoms', page:1, top:63.106, left:65.715, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Palpitations' },
+  { id:'cf4Sym_3_1', key:'cf4Symptoms', page:1, top:64.727, left:65.742, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Seizures' },
+  { id:'cf4Sym_3_2', key:'cf4Symptoms', page:1, top:66.376, left:65.716, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Skin rashes' },
+  { id:'cf4Sym_3_3', key:'cf4Symptoms', page:1, top:67.997, left:65.743, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Stool, bloody/black tarry/mucoid' },
+  { id:'cf4Sym_3_4', key:'cf4Symptoms', page:1, top:69.714, left:65.715, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Sweating' },
+  { id:'cf4Sym_3_5', key:'cf4Symptoms', page:1, top:71.335, left:65.742, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Urgency' },
+  { id:'cf4Sym_3_6', key:'cf4Symptoms', page:1, top:72.983, left:65.716, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Vomiting' },
+  { id:'cf4Sym_3_7', key:'cf4Symptoms', page:1, top:74.604, left:65.743, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Weight loss' },
+  { id:'cf4Sym_3_8', key:'cf4Symptoms', page:1, top:76.367, left:65.746, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Others' },
+  { id:'cf4PainSite', key:'cf4PainSite', page:1, top:75.643, left:51.876, w:8.092, fs:6.5 },
+  { id:'cf4SymptomOther', key:'cf4SymptomOther', page:1, top:76.179, left:73.621, w:20.758, fs:6.5 },
 
   // 4. Referred from another HCI
-  { id:'cf4RefNo',  key:'cf4Referred', page:1, top:80.42, left:37.3, w:2, fs:9, checkbox:true, checkValue:'No' },
-  { id:'cf4RefYes', key:'cf4Referred', page:1, top:80.42, left:43.3, w:2, fs:9, checkbox:true, checkValue:'Yes' },
-  { id:'cf4RefReason', key:'cf4ReferralReason', page:1, top:80.5, left:62.0, w:32.0, fs:7 },
-  { id:'cf4RefHci',    key:'cf4ReferralHci',    page:1, top:82.25, left:62.0, w:32.0, fs:7 },
+  { id:'cf4RefNo', key:'cf4Referred', page:1, top:80.087, left:37.279, w:2.311, fs:9, center:true, checkbox:true, checkValue:'No' },
+  { id:'cf4RefYes', key:'cf4Referred', page:1, top:80.087, left:43.309, w:2.311, fs:9, center:true, checkbox:true, checkValue:'Yes' },
+  { id:'cf4RefReason', key:'cf4ReferralReason', page:1, top:79.899, left:57.248, w:36.895, fs:7 },
+  { id:'cf4RefHci', key:'cf4ReferralHci', page:1, top:81.696, left:59.582, w:34.542, fs:7 },
 
   // 5. Physical examination on admission
-  { id:'cf4PeAwake',    key:'cf4GeneralSurvey', page:1, top:86.73, left:19.0, w:2, fs:9, checkbox:true, checkValue:'Awake and alert' },
-  { id:'cf4PeAltered',  key:'cf4GeneralSurvey', page:1, top:86.73, left:37.1, w:2, fs:9, checkbox:true, checkValue:'Altered sensorium' },
-  { id:'cf4PeAlteredTxt', key:'cf4AlteredSensorium', page:1, top:86.75, left:48.5, w:26.0, fs:6.5 },
-
-  { id:'cf4VsBP',   key:'cf4VitalBP',   page:1, top:88.45, left:23.0, w:13.0, fs:7 },
-  { id:'cf4VsHR',   key:'cf4VitalHR',   page:1, top:88.45, left:41.0, w:10.0, fs:7 },
-  { id:'cf4VsRR',   key:'cf4VitalRR',   page:1, top:88.45, left:56.0, w:11.0, fs:7 },
-  { id:'cf4VsTemp', key:'cf4VitalTemp', page:1, top:88.45, left:72.5, w:12.0, fs:7 },
-
-  ...(() => {
-    const HEENT = [
-      { top:90.15, left:19.01, v:'Essentially normal' },
-      { top:90.15, left:37.11, v:'Abnormal pupillary reaction' },
-      { top:90.15, left:56.81, v:'Cervical lymphadenopathy' },
-      { top:90.15, left:74.99, v:'Dry mucous membrane' },
-      { top:91.88, left:19.09, v:'Icteric sclerae' },
-      { top:91.88, left:37.12, v:'Pale conjunctivae' },
-      { top:91.88, left:56.84, v:'Sunken eyeballs' },
-      { top:91.88, left:75.08, v:'Sunken fontanelle' },
-    ];
-    return HEENT.map((b,i) => ({ id:'cf4Heent'+i, key:'cf4Heent', page:1, top:b.top, left:b.left, w:2, fs:9, checkboxMulti:true, checkValue:b.v }));
-  })(),
-  { id:'cf4HeentOthers', key:'cf4HeentOthers', page:1, top:93.85, left:27.5, w:26.0, fs:6.5 },
+  { id:'cf4PeAwake', key:'cf4GeneralSurvey', page:1, top:86.399, left:19.007, w:2.311, fs:9, center:true, checkbox:true, checkValue:'Awake and alert' },
+  { id:'cf4PeAltered', key:'cf4GeneralSurvey', page:1, top:86.371, left:37.113, w:2.311, fs:9, center:true, checkbox:true, checkValue:'Altered sensorium' },
+  { id:'cf4PeAlteredTxt', key:'cf4AlteredSensorium', page:1, top:86.214, left:51.268, w:20.739, fs:6.5 },
+  { id:'cf4VsBP', key:'cf4VitalBP', page:1, top:87.875, left:22.17, w:10.935, fs:7 },
+  { id:'cf4VsHR', key:'cf4VitalHR', page:1, top:87.899, left:40.17, w:10.935, fs:7 },
+  { id:'cf4VsRR', key:'cf4VitalRR', page:1, top:87.893, left:55.288, w:10.935, fs:7 },
+  { id:'cf4VsTemp', key:'cf4VitalTemp', page:1, top:87.911, left:73.17, w:10.935, fs:7 },
+  { id:'cf4Heent0', key:'cf4Heent', page:1, top:89.842, left:19.007, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Essentially normal' },
+  { id:'cf4Heent1', key:'cf4Heent', page:1, top:89.814, left:37.113, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Abnormal pupillary reaction' },
+  { id:'cf4Heent2', key:'cf4Heent', page:1, top:89.816, left:56.813, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Cervical lymphadenopathy' },
+  { id:'cf4Heent3', key:'cf4Heent', page:1, top:89.841, left:74.991, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Dry mucous membrane' },
+  { id:'cf4Heent4', key:'cf4Heent', page:1, top:91.594, left:19.011, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Icteric sclerae' },
+  { id:'cf4Heent5', key:'cf4Heent', page:1, top:91.565, left:37.117, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Pale conjunctivae' },
+  { id:'cf4Heent6', key:'cf4Heent', page:1, top:91.567, left:56.817, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Sunken eyeballs' },
+  { id:'cf4Heent7', key:'cf4Heent', page:1, top:91.592, left:74.995, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Sunken fontanelle' },
+  { id:'cf4HeentOthers', key:'cf4HeentOthers', page:1, top:93.19, left:24.621, w:20.523, fs:6.5 },
 
   /* ═══ PAGE 2 ═══ */
 
   // 5. Physical examination continued — six systems, multi-select
-  ...(() => {
-    const SYS = [
-      { key:'cf4Chest', rows:[
-        { top:6.6, cells:[[18.90,'Essentially normal'],[36.96,'Asymmetrical chest expansion'],[56.60,'Decreased breath sounds'],[74.83,'Wheezes']] },
-        { top:8.26, cells:[[18.90,'Lump/s over breast(s)'],[36.97,'Rales/crackles/rhonchi'],[56.60,'Intercostal rib/clavicular retraction']] },
-      ], others:{ key:'cf4ChestOthers', top:10.08, left:27.5 } },
-      { key:'cf4Cvs', rows:[
-        { top:11.67, cells:[[18.92,'Essentially normal'],[36.98,'Displaced apex beat'],[56.62,'Heaves and/or thrills'],[74.85,'Pericardial bulge']] },
-        { top:13.32, cells:[[18.92,'Irregular rhythm'],[36.99,'Muffled heart sounds'],[56.63,'Murmur']] },
-      ], others:{ key:'cf4CvsOthers', top:15.2, left:27.5 } },
-      { key:'cf4Abdomen', rows:[
-        { top:16.77, cells:[[19.00,'Essentially normal'],[36.90,'Abdominal rigidity'],[56.70,'Abdomen tenderness'],[74.93,'Hyperactive bowel sounds']] },
-        { top:18.42, cells:[[19.00,'Palpable mass(es)'],[36.90,'Tympanitic/dull abdomen'],[56.70,'Uterine contraction']] },
-      ], others:{ key:'cf4AbdomenOthers', top:20.34, left:27.5 } },
-      { key:'cf4Gu', rows:[
-        { top:22.03, cells:[[18.91,'Essentially normal'],[36.82,'Blood stained in exam finger'],[56.62,'Cervical dilatation'],[74.85,'Presence of abnormal discharge']] },
-      ], others:{ key:'cf4GuOthers', top:23.96, left:27.5 } },
-      { key:'cf4Skin', rows:[
-        { top:25.67, cells:[[18.99,'Essentially normal'],[36.73,'Clubbing'],[56.70,'Cold clammy skin'],[74.93,'Cyanosis/mottled skin']] },
-        { top:27.26, cells:[[19.00,'Edema/swelling'],[36.74,'Decreased mobility'],[56.70,'Pale nailbeds'],[74.84,'Poor skin turgor']] },
-        { top:28.85, cells:[[18.91,'Rashes/petechiae'],[36.81,'Weak pulses']] },
-      ], others:{ key:'cf4SkinOthers', top:30.61, left:27.5 } },
-      { key:'cf4Neuro', rows:[
-        { top:32.19, cells:[[18.90,'Essentially normal'],[36.96,'Abnormal gait'],[56.60,'Abnormal position sense'],[74.83,'Abnormal/decreased sensation']] },
-        { top:33.8, cells:[[18.90,'Abnormal reflex(es)'],[36.97,'Poor/altered memory'],[56.60,'Poor muscle tone/strength'],[74.86,'Poor coordination']] },
-      ], others:{ key:'cf4NeuroOthers', top:35.72, left:27.5 } },
-    ];
-    const out = [];
-    SYS.forEach(sys => {
-      sys.rows.forEach((row, ri) => row.cells.forEach(([left, v], ci) => out.push({
-        id: `${sys.key}_${ri}_${ci}`, key: sys.key, page:2,
-        top: row.top, left, w:2, fs:9, checkboxMulti:true, checkValue:v,
-      })));
-      out.push({ id: sys.others.key, key: sys.others.key, page:2,
-                 top: sys.others.top, left: sys.others.left, w:26.0, fs:6.5 });
-    });
-    return out;
-  })(),
+  { id:'cf4Chest_0_0', key:'cf4Chest', page:2, top:6.269, left:18.895, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Essentially normal' },
+  { id:'cf4Chest_0_1', key:'cf4Chest', page:2, top:6.264, left:36.962, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Asymmetrical chest expansion' },
+  { id:'cf4Chest_0_2', key:'cf4Chest', page:2, top:6.279, left:56.599, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Decreased breath sounds' },
+  { id:'cf4Chest_0_3', key:'cf4Chest', page:2, top:6.274, left:74.829, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Wheezes' },
+  { id:'cf4Chest_1_0', key:'cf4Chest', page:2, top:7.921, left:18.899, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Lump/s over breast(s)' },
+  { id:'cf4Chest_1_1', key:'cf4Chest', page:2, top:7.917, left:36.967, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Rales/crackles/rhonchi' },
+  { id:'cf4Chest_1_2', key:'cf4Chest', page:2, top:7.931, left:56.603, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Intercostal rib/clavicular retraction' },
+  { id:'cf4ChestOthers', key:'cf4ChestOthers', page:2, top:9.375, left:24.549, w:20.523, fs:6.5 },
+  { id:'cf4Cvs_0_0', key:'cf4Cvs', page:2, top:11.338, left:18.918, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Essentially normal' },
+  { id:'cf4Cvs_0_1', key:'cf4Cvs', page:2, top:11.333, left:36.985, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Displaced apex beat' },
+  { id:'cf4Cvs_0_2', key:'cf4Cvs', page:2, top:11.348, left:56.621, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Heaves and/or thrills' },
+  { id:'cf4Cvs_0_3', key:'cf4Cvs', page:2, top:11.343, left:74.852, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Pericardial bulge' },
+  { id:'cf4Cvs_1_0', key:'cf4Cvs', page:2, top:12.99, left:18.922, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Irregular rhythm' },
+  { id:'cf4Cvs_1_1', key:'cf4Cvs', page:2, top:12.985, left:36.989, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Muffled heart sounds' },
+  { id:'cf4Cvs_1_2', key:'cf4Cvs', page:2, top:13, left:56.625, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Murmur' },
+  { id:'cf4CvsOthers', key:'cf4CvsOthers', page:2, top:14.494, left:24.588, w:20.503, fs:6.5 },
+  { id:'cf4Abdomen_0_0', key:'cf4Abdomen', page:2, top:16.439, left:18.995, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Essentially normal' },
+  { id:'cf4Abdomen_0_1', key:'cf4Abdomen', page:2, top:16.434, left:36.899, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Abdominal rigidity' },
+  { id:'cf4Abdomen_0_2', key:'cf4Abdomen', page:2, top:16.449, left:56.699, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Abdomen tenderness' },
+  { id:'cf4Abdomen_0_3', key:'cf4Abdomen', page:2, top:16.444, left:74.929, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Hyperactive bowel sounds' },
+  { id:'cf4Abdomen_1_0', key:'cf4Abdomen', page:2, top:18.091, left:18.999, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Palpable mass(es)' },
+  { id:'cf4Abdomen_1_1', key:'cf4Abdomen', page:2, top:18.086, left:36.903, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Tympanitic/dull abdomen' },
+  { id:'cf4Abdomen_1_2', key:'cf4Abdomen', page:2, top:18.101, left:56.703, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Uterine contraction' },
+  { id:'cf4AbdomenOthers', key:'cf4AbdomenOthers', page:2, top:19.636, left:24.569, w:20.503, fs:6.5 },
+  { id:'cf4Gu_0_0', key:'cf4Gu', page:2, top:21.691, left:18.912, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Essentially normal' },
+  { id:'cf4Gu_0_1', key:'cf4Gu', page:2, top:21.786, left:36.816, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Blood stained in exam finger' },
+  { id:'cf4Gu_0_2', key:'cf4Gu', page:2, top:21.701, left:56.615, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Cervical dilatation' },
+  { id:'cf4Gu_0_3', key:'cf4Gu', page:2, top:21.795, left:74.846, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Presence of abnormal discharge' },
+  { id:'cf4GuOthers', key:'cf4GuOthers', page:2, top:23.255, left:24.588, w:20.503, fs:6.5 },
+  { id:'cf4Skin_0_0', key:'cf4Skin', page:2, top:25.337, left:18.992, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Essentially normal' },
+  { id:'cf4Skin_0_1', key:'cf4Skin', page:2, top:25.332, left:36.733, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Clubbing' },
+  { id:'cf4Skin_0_2', key:'cf4Skin', page:2, top:25.347, left:56.695, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Cold clammy skin' },
+  { id:'cf4Skin_0_3', key:'cf4Skin', page:2, top:25.342, left:74.926, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Cyanosis/mottled skin' },
+  { id:'cf4Skin_1_0', key:'cf4Skin', page:2, top:26.989, left:18.996, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Edema/swelling' },
+  { id:'cf4Skin_1_1', key:'cf4Skin', page:2, top:26.984, left:36.737, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Decreased mobility' },
+  { id:'cf4Skin_1_2', key:'cf4Skin', page:2, top:26.999, left:56.7, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Pale nailbeds' },
+  { id:'cf4Skin_1_3', key:'cf4Skin', page:2, top:26.916, left:74.841, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Poor skin turgor' },
+  { id:'cf4Skin_2_0', key:'cf4Skin', page:2, top:28.575, left:18.914, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Rashes/petechiae' },
+  { id:'cf4Skin_2_1', key:'cf4Skin', page:2, top:28.546, left:36.813, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Weak pulses' },
+  { id:'cf4SkinOthers', key:'cf4SkinOthers', page:2, top:29.97, left:24.569, w:20.503, fs:6.5 },
+  { id:'cf4Neuro_0_0', key:'cf4Neuro', page:2, top:31.859, left:18.897, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Essentially normal' },
+  { id:'cf4Neuro_0_1', key:'cf4Neuro', page:2, top:31.854, left:36.964, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Abnormal gait' },
+  { id:'cf4Neuro_0_2', key:'cf4Neuro', page:2, top:31.869, left:56.6, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Abnormal position sense' },
+  { id:'cf4Neuro_0_3', key:'cf4Neuro', page:2, top:31.864, left:74.831, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Abnormal/decreased sensation' },
+  { id:'cf4Neuro_1_0', key:'cf4Neuro', page:2, top:33.511, left:18.901, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Abnormal reflex(es)' },
+  { id:'cf4Neuro_1_1', key:'cf4Neuro', page:2, top:33.506, left:36.968, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Poor/altered memory' },
+  { id:'cf4Neuro_1_2', key:'cf4Neuro', page:2, top:33.521, left:56.604, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Poor muscle tone/strength' },
+  { id:'cf4Neuro_1_3', key:'cf4Neuro', page:2, top:33.452, left:74.862, w:2.311, fs:9, center:true, checkboxMulti:true, checkValue:'Poor coordination' },
+  { id:'cf4NeuroOthers', key:'cf4NeuroOthers', page:2, top:35.017, left:24.569, w:20.523, fs:6.5 },
 
   // IV. Course in the ward — 15 rows (date + doctor's order)
-  { id:'cf4CourseExtra', key:'cf4CourseExtraSheet', page:2, top:38.3, left:61.8, w:2, fs:9, checkbox:true, checkValue:true },
-  ...(() => {
-    const TOPS = [42, 43.9, 45.6, 47.3, 49, 50.8, 52.5, 54.3, 56, 57.8, 59.6, 61.4, 63.1, 64.9, 66.6];
-    const out = [];
-    TOPS.forEach((top, i) => {
-      out.push({ id:`cf4CourseDate${i+1}`,  key:`cf4CourseDate${i+1}`,  page:2, top, left:5.0,  w:13.0, fs:6.5 });
-      out.push({ id:`cf4CourseOrder${i+1}`, key:`cf4CourseOrder${i+1}`, page:2, top, left:20.0, w:73.0, fs:6.5 });
-    });
-    return out;
-  })(),
-  { id:'cf4SurgicalProcedure', key:'cf4SurgicalProcedure', page:2, top:68.3, left:36.0, w:58.0, fs:7 },
+  { id:'cf4CourseExtra', key:'cf4CourseExtraSheet', page:2, top:37.964, left:61.805, w:2.311, fs:9, center:true, checkbox:true, checkValue:true },
+  { id:'cf4CourseDate1', key:'cf4CourseDate1', page:2, top:41.587, left:4.763, w:15.817, fs:6.5 },
+  { id:'cf4CourseOrder1', key:'cf4CourseOrder1', page:2, top:41.587, left:21.469, w:73.719, fs:6.5 },
+  { id:'cf4CourseDate2', key:'cf4CourseDate2', page:2, top:43.384, left:4.763, w:15.817, fs:6.5 },
+  { id:'cf4CourseOrder2', key:'cf4CourseOrder2', page:2, top:43.384, left:21.469, w:73.719, fs:6.5 },
+  { id:'cf4CourseDate3', key:'cf4CourseDate3', page:2, top:45.105, left:4.763, w:15.817, fs:6.5 },
+  { id:'cf4CourseOrder3', key:'cf4CourseOrder3', page:2, top:45.105, left:21.469, w:73.719, fs:6.5 },
+  { id:'cf4CourseDate4', key:'cf4CourseDate4', page:2, top:46.825, left:4.763, w:15.817, fs:6.5 },
+  { id:'cf4CourseOrder4', key:'cf4CourseOrder4', page:2, top:46.825, left:21.469, w:73.719, fs:6.5 },
+  { id:'cf4CourseDate5', key:'cf4CourseDate5', page:2, top:48.545, left:4.763, w:15.817, fs:6.5 },
+  { id:'cf4CourseOrder5', key:'cf4CourseOrder5', page:2, top:48.545, left:21.469, w:73.719, fs:6.5 },
+  { id:'cf4CourseDate6', key:'cf4CourseDate6', page:2, top:50.265, left:4.763, w:15.817, fs:6.5 },
+  { id:'cf4CourseOrder6', key:'cf4CourseOrder6', page:2, top:50.265, left:21.469, w:73.719, fs:6.5 },
+  { id:'cf4CourseDate7', key:'cf4CourseDate7', page:2, top:52.015, left:4.763, w:15.817, fs:6.5 },
+  { id:'cf4CourseOrder7', key:'cf4CourseOrder7', page:2, top:52.015, left:21.469, w:73.719, fs:6.5 },
+  { id:'cf4CourseDate8', key:'cf4CourseDate8', page:2, top:53.789, left:4.763, w:15.817, fs:6.5 },
+  { id:'cf4CourseOrder8', key:'cf4CourseOrder8', page:2, top:53.789, left:21.469, w:73.719, fs:6.5 },
+  { id:'cf4CourseDate9', key:'cf4CourseDate9', page:2, top:55.557, left:4.763, w:15.817, fs:6.5 },
+  { id:'cf4CourseOrder9', key:'cf4CourseOrder9', page:2, top:55.557, left:21.469, w:73.719, fs:6.5 },
+  { id:'cf4CourseDate10', key:'cf4CourseDate10', page:2, top:57.325, left:4.763, w:15.817, fs:6.5 },
+  { id:'cf4CourseOrder10', key:'cf4CourseOrder10', page:2, top:57.325, left:21.469, w:73.719, fs:6.5 },
+  { id:'cf4CourseDate11', key:'cf4CourseDate11', page:2, top:59.099, left:4.763, w:15.817, fs:6.5 },
+  { id:'cf4CourseOrder11', key:'cf4CourseOrder11', page:2, top:59.099, left:21.469, w:73.719, fs:6.5 },
+  { id:'cf4CourseDate12', key:'cf4CourseDate12', page:2, top:60.873, left:4.763, w:15.817, fs:6.5 },
+  { id:'cf4CourseOrder12', key:'cf4CourseOrder12', page:2, top:60.873, left:21.469, w:73.719, fs:6.5 },
+  { id:'cf4CourseDate13', key:'cf4CourseDate13', page:2, top:62.64, left:4.763, w:15.817, fs:6.5 },
+  { id:'cf4CourseOrder13', key:'cf4CourseOrder13', page:2, top:62.64, left:21.469, w:73.719, fs:6.5 },
+  { id:'cf4CourseDate14', key:'cf4CourseDate14', page:2, top:64.408, left:4.763, w:15.817, fs:6.5 },
+  { id:'cf4CourseOrder14', key:'cf4CourseOrder14', page:2, top:64.408, left:21.469, w:73.719, fs:6.5 },
+  { id:'cf4CourseDate15', key:'cf4CourseDate15', page:2, top:66.164, left:4.763, w:15.817, fs:6.5 },
+  { id:'cf4CourseOrder15', key:'cf4CourseOrder15', page:2, top:66.164, left:21.469, w:73.719, fs:6.5 },
+  { id:'cf4SurgicalProcedure', key:'cf4SurgicalProcedure', page:2, top:68.503, left:4.685, w:90.523, fs:7 },
 
   // V. Drugs / medicines — 7 rows x 2 column-groups
-  { id:'cf4DrugsExtra', key:'cf4DrugsExtraSheet', page:2, top:70.45, left:44.7, w:2, fs:9, checkbox:true, checkValue:true },
-  ...(() => {
-    const TOPS = [73.8, 75.4, 77.1, 78.7, 80.4, 82.1, 83.7];
-    const out = [];
-    TOPS.forEach((top, i) => {
-      const n = i + 1;
-      out.push({ id:`cf4DrugName${n}`,  key:`cf4DrugName${n}`,  page:2, top, left:5.0,  w:13.0, fs:6.5 });
-      out.push({ id:`cf4DrugDose${n}`,  key:`cf4DrugDose${n}`,  page:2, top, left:19.5, w:19.0, fs:6.5 });
-      out.push({ id:`cf4DrugCost${n}`,  key:`cf4DrugCost${n}`,  page:2, top, left:40.5, w:8.0,  fs:6.5 });
-      out.push({ id:`cf4DrugName${n}b`, key:`cf4DrugName${n}b`, page:2, top, left:50.0, w:13.0, fs:6.5 });
-      out.push({ id:`cf4DrugDose${n}b`, key:`cf4DrugDose${n}b`, page:2, top, left:64.8, w:19.0, fs:6.5 });
-      out.push({ id:`cf4DrugCost${n}b`, key:`cf4DrugCost${n}b`, page:2, top, left:85.0, w:8.0,  fs:6.5 });
-    });
-    return out;
-  })(),
+  { id:'cf4DrugsExtra', key:'cf4DrugsExtraSheet', page:2, top:70.115, left:44.74, w:2.311, fs:9, center:true, checkbox:true, checkValue:true },
+  { id:'cf4DrugName1', key:'cf4DrugName1', page:2, top:73.475, left:4.756, w:13.738, fs:6.5 },
+  { id:'cf4DrugDose1', key:'cf4DrugDose1', page:2, top:73.475, left:19.384, w:19.974, fs:6.5 },
+  { id:'cf4DrugCost1', key:'cf4DrugCost1', page:2, top:73.475, left:40.246, w:8.719, fs:6.5 },
+  { id:'cf4DrugName1b', key:'cf4DrugName1b', page:2, top:73.475, left:49.854, w:14.033, fs:6.5 },
+  { id:'cf4DrugDose1b', key:'cf4DrugDose1b', page:2, top:73.475, left:64.776, w:20.052, fs:6.5 },
+  { id:'cf4DrugCost1b', key:'cf4DrugCost1b', page:2, top:73.475, left:85.717, w:9.444, fs:6.5 },
+  { id:'cf4DrugName2', key:'cf4DrugName2', page:2, top:75.135, left:4.756, w:13.738, fs:6.5 },
+  { id:'cf4DrugDose2', key:'cf4DrugDose2', page:2, top:75.135, left:19.384, w:19.974, fs:6.5 },
+  { id:'cf4DrugCost2', key:'cf4DrugCost2', page:2, top:75.135, left:40.246, w:8.719, fs:6.5 },
+  { id:'cf4DrugName2b', key:'cf4DrugName2b', page:2, top:75.135, left:49.854, w:14.033, fs:6.5 },
+  { id:'cf4DrugDose2b', key:'cf4DrugDose2b', page:2, top:75.135, left:64.776, w:20.052, fs:6.5 },
+  { id:'cf4DrugCost2b', key:'cf4DrugCost2b', page:2, top:75.135, left:85.717, w:9.444, fs:6.5 },
+  { id:'cf4DrugName3', key:'cf4DrugName3', page:2, top:76.79, left:4.756, w:13.738, fs:6.5 },
+  { id:'cf4DrugDose3', key:'cf4DrugDose3', page:2, top:76.79, left:19.384, w:19.974, fs:6.5 },
+  { id:'cf4DrugCost3', key:'cf4DrugCost3', page:2, top:76.79, left:40.246, w:8.719, fs:6.5 },
+  { id:'cf4DrugName3b', key:'cf4DrugName3b', page:2, top:76.79, left:49.854, w:14.033, fs:6.5 },
+  { id:'cf4DrugDose3b', key:'cf4DrugDose3b', page:2, top:76.79, left:64.776, w:20.052, fs:6.5 },
+  { id:'cf4DrugCost3b', key:'cf4DrugCost3b', page:2, top:76.79, left:85.717, w:9.444, fs:6.5 },
+  { id:'cf4DrugName4', key:'cf4DrugName4', page:2, top:78.445, left:4.756, w:13.738, fs:6.5 },
+  { id:'cf4DrugDose4', key:'cf4DrugDose4', page:2, top:78.445, left:19.384, w:19.974, fs:6.5 },
+  { id:'cf4DrugCost4', key:'cf4DrugCost4', page:2, top:78.445, left:40.246, w:8.719, fs:6.5 },
+  { id:'cf4DrugName4b', key:'cf4DrugName4b', page:2, top:78.445, left:49.854, w:14.033, fs:6.5 },
+  { id:'cf4DrugDose4b', key:'cf4DrugDose4b', page:2, top:78.445, left:64.776, w:20.052, fs:6.5 },
+  { id:'cf4DrugCost4b', key:'cf4DrugCost4b', page:2, top:78.445, left:85.717, w:9.444, fs:6.5 },
+  { id:'cf4DrugName5', key:'cf4DrugName5', page:2, top:80.1, left:4.756, w:13.738, fs:6.5 },
+  { id:'cf4DrugDose5', key:'cf4DrugDose5', page:2, top:80.1, left:19.384, w:19.974, fs:6.5 },
+  { id:'cf4DrugCost5', key:'cf4DrugCost5', page:2, top:80.1, left:40.246, w:8.719, fs:6.5 },
+  { id:'cf4DrugName5b', key:'cf4DrugName5b', page:2, top:80.1, left:49.854, w:14.033, fs:6.5 },
+  { id:'cf4DrugDose5b', key:'cf4DrugDose5b', page:2, top:80.1, left:64.776, w:20.052, fs:6.5 },
+  { id:'cf4DrugCost5b', key:'cf4DrugCost5b', page:2, top:80.1, left:85.717, w:9.444, fs:6.5 },
+  { id:'cf4DrugName6', key:'cf4DrugName6', page:2, top:81.76, left:4.756, w:13.738, fs:6.5 },
+  { id:'cf4DrugDose6', key:'cf4DrugDose6', page:2, top:81.76, left:19.384, w:19.974, fs:6.5 },
+  { id:'cf4DrugCost6', key:'cf4DrugCost6', page:2, top:81.76, left:40.246, w:8.719, fs:6.5 },
+  { id:'cf4DrugName6b', key:'cf4DrugName6b', page:2, top:81.76, left:49.854, w:14.033, fs:6.5 },
+  { id:'cf4DrugDose6b', key:'cf4DrugDose6b', page:2, top:81.76, left:64.776, w:20.052, fs:6.5 },
+  { id:'cf4DrugCost6b', key:'cf4DrugCost6b', page:2, top:81.76, left:85.717, w:9.444, fs:6.5 },
+  { id:'cf4DrugName7', key:'cf4DrugName7', page:2, top:83.409, left:4.756, w:13.738, fs:6.5 },
+  { id:'cf4DrugDose7', key:'cf4DrugDose7', page:2, top:83.409, left:19.384, w:19.974, fs:6.5 },
+  { id:'cf4DrugCost7', key:'cf4DrugCost7', page:2, top:83.409, left:40.246, w:8.719, fs:6.5 },
+  { id:'cf4DrugName7b', key:'cf4DrugName7b', page:2, top:83.409, left:49.854, w:14.033, fs:6.5 },
+  { id:'cf4DrugDose7b', key:'cf4DrugDose7b', page:2, top:83.409, left:64.776, w:20.052, fs:6.5 },
+  { id:'cf4DrugCost7b', key:'cf4DrugCost7b', page:2, top:83.409, left:85.717, w:9.444, fs:6.5 },
 
   // VI. Outcome of treatment
-  { id:'cf4OutImproved',   key:'disposition', page:2, top:87.48, left:5.71,  w:2, fs:9, checkbox:true, checkValue:'Improved' },
-  { id:'cf4OutHama',       key:'disposition', page:2, top:87.48, left:17.31, w:2, fs:9, checkbox:true, checkValue:'HAMA' },
-  { id:'cf4OutExpired',    key:'disposition', page:2, top:87.48, left:27.79, w:2, fs:9, checkbox:true, checkValue:'Expired' },
-  { id:'cf4OutAbsconded',  key:'disposition', page:2, top:87.48, left:39.75, w:2, fs:9, checkbox:true, checkValue:'Absconded' },
-  { id:'cf4OutTransferred',key:'disposition', page:2, top:87.48, left:53.20, w:2, fs:9, checkbox:true, checkValue:'Transferred' },
-  { id:'cf4TransferReason',key:'cf4TransferReason', page:2, top:87.5, left:76.0, w:18.0, fs:6.5 },
+  { id:'cf4OutImproved', key:'disposition', page:2, top:87.157, left:5.715, w:2.311, fs:9, center:true, checkbox:true, checkValue:'Improved' },
+  { id:'cf4OutHama', key:'disposition', page:2, top:87.143, left:17.313, w:2.311, fs:9, center:true, checkbox:true, checkValue:'HAMA' },
+  { id:'cf4OutExpired', key:'disposition', page:2, top:87.143, left:27.794, w:2.311, fs:9, center:true, checkbox:true, checkValue:'Expired' },
+  { id:'cf4OutAbsconded', key:'disposition', page:2, top:87.128, left:39.749, w:2.311, fs:9, center:true, checkbox:true, checkValue:'Absconded' },
+  { id:'cf4OutTransferred', key:'disposition', page:2, top:87.114, left:53.201, w:2.311, fs:9, center:true, checkbox:true, checkValue:'Transferred' },
+  { id:'cf4TransferReason', key:'cf4TransferReason', page:2, top:86.707, left:73.835, w:15.072, fs:6.5 },
 
   // VII. Certification — name is typed; the signature itself stays wet-ink
-  { id:'cf4AttendingProvider', key:'cf4AttendingProvider', page:2, top:94.1, left:18.0, w:40.0, fs:7 },
-  ...[0,1].map(i => ({ id:'cf4SignMM'+(i+1), key:'cf4SignMM'+(i+1), page:2, top:94.25, left:74.3+i*2.18, w:2, fs:7, digit:i,   digitKey:'cf4ProviderSignedDate', digitOrder:'mmddyyyy' })),
-  ...[0,1].map(i => ({ id:'cf4SignDD'+(i+1), key:'cf4SignDD'+(i+1), page:2, top:94.25, left:80.3+i*2.18, w:2, fs:7, digit:i+2, digitKey:'cf4ProviderSignedDate', digitOrder:'mmddyyyy' })),
-  ...[0,1,2,3].map(i => ({ id:'cf4SignYY'+(i+1), key:'cf4SignYY'+(i+1), page:2, top:94.25, left:86.3+i*2.18, w:2, fs:7, digit:i+4, digitKey:'cf4ProviderSignedDate', digitOrder:'mmddyyyy' })),
+  { id:'cf4AttendingProvider', key:'cf4AttendingProvider', page:2, top:93.296, left:17.141, w:33.865, fs:7 },
+  { id:'cf4SignMM1', key:'cf4SignMM1', page:2, top:93.123, left:73.978, w:2.176, fs:7, center:true, digit:0, digitKey:'cf4ProviderSignedDate', digitOrder:'mmddyyyy' },
+  { id:'cf4SignMM2', key:'cf4SignMM2', page:2, top:93.123, left:76.155, w:2.176, fs:7, center:true, digit:1, digitKey:'cf4ProviderSignedDate', digitOrder:'mmddyyyy' },
+  { id:'cf4SignDD1', key:'cf4SignDD1', page:2, top:93.123, left:79.704, w:2.167, fs:7, center:true, digit:2, digitKey:'cf4ProviderSignedDate', digitOrder:'mmddyyyy' },
+  { id:'cf4SignDD2', key:'cf4SignDD2', page:2, top:93.123, left:81.871, w:2.167, fs:7, center:true, digit:3, digitKey:'cf4ProviderSignedDate', digitOrder:'mmddyyyy' },
+  { id:'cf4SignYY1', key:'cf4SignYY1', page:2, top:93.1, left:85.469, w:2.191, fs:7, center:true, digit:4, digitKey:'cf4ProviderSignedDate', digitOrder:'mmddyyyy' },
+  { id:'cf4SignYY2', key:'cf4SignYY2', page:2, top:93.1, left:87.66, w:2.191, fs:7, center:true, digit:5, digitKey:'cf4ProviderSignedDate', digitOrder:'mmddyyyy' },
+  { id:'cf4SignYY3', key:'cf4SignYY3', page:2, top:93.1, left:89.851, w:2.191, fs:7, center:true, digit:6, digitKey:'cf4ProviderSignedDate', digitOrder:'mmddyyyy' },
+  { id:'cf4SignYY4', key:'cf4SignYY4', page:2, top:93.1, left:92.042, w:2.191, fs:7, center:true, digit:7, digitKey:'cf4ProviderSignedDate', digitOrder:'mmddyyyy' },
 ];

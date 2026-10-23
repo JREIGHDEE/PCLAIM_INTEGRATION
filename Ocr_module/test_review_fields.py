@@ -51,7 +51,7 @@ class SuggestPartsTests(unittest.TestCase):
 
     def test_name_without_comma_is_a_flagged_guess(self):
         parts = review_fields.suggest_parts(NAME, "Maria Santos Dela Cruz")
-        self.assertEqual((parts["last"], parts["first"], parts["middle"]), ("Dela Cruz", "Maria", "Santos"))
+        self.assertEqual((parts["last"], parts["first"], parts["middle"]), ("DELA CRUZ", "MARIA", "SANTOS"))
         self.assertTrue(parts["guessed"])
         self.assertFalse(review_fields.suggest_parts(NAME, "Dela Cruz, Maria Santos")["guessed"])
 
@@ -94,6 +94,15 @@ class CheckTests(unittest.TestCase):
     def test_went_home_before_admitted_must_be_fixed(self):
         problems, _ = review_fields.check(_row(**{DISCHARGE_DT: {"date": "2026-06-23", "hour": "9", "minute": "00", "am_pm": "AM"}}), TODAY)
         self.assertTrue(_messages(problems, DISCHARGE_DT))
+
+    def test_went_home_at_least_a_day_after_delivery(self):
+        same_day = {"date": "2026-06-23", "hour": "11", "minute": "00", "am_pm": "PM"}  # after the 8:01 PM delivery
+        problems, _ = review_fields.check(_row(**{DISCHARGE_DT: same_day}), TODAY)
+        self.assertTrue(any("one day after the delivery" in m and "06/24/2026" in m
+                            for m in _messages(problems, DISCHARGE_DT)))
+        day_after = {"date": "2026-06-24", "hour": "8", "minute": "00", "am_pm": "AM"}
+        problems, _ = review_fields.check(_row(**{DISCHARGE_DT: day_after}), TODAY)
+        self.assertEqual(_messages(problems, DISCHARGE_DT), [])
 
     def test_unusual_answers_are_warnings_not_problems(self):
         problems, warnings = review_fields.check(_row(**{
@@ -139,7 +148,7 @@ class ClaimFieldsTests(unittest.TestCase):
         )
         # A two-word first name stays the first name - no re-guessing.
         self.assertEqual((patient["last_name"], patient["first_name"], patient["middle_name"]),
-                         ("Damian", "Mary Deyine", "Israel"))
+                         ("DAMIAN", "MARY DEYINE", "ISRAEL"))
         self.assertEqual(patient["date_of_birth"], "1995-05-04")
         self.assertEqual((encounter["date_admitted"], encounter["time_admitted"], encounter["am_pm_admitted"]),
                          ("2026-06-23", "11:15", "AM"))
@@ -148,7 +157,7 @@ class ClaimFieldsTests(unittest.TestCase):
 
     def test_suffix_goes_to_name_extension(self):
         fields = review_fields.claim_fields(NAME, {"last": "Reyes", "first": "Jose", "middle": "", "suffix": "Jr."})
-        self.assertEqual(fields[("patients", "name_ext")], "Jr.")
+        self.assertEqual(fields[("patients", "name_ext")], "JR")
 
     def test_composed_text_reads_naturally(self):
         self.assertEqual(review_fields.compose_text(NAME, _row()[NAME]), "Damian, Mary Deyine Israel")

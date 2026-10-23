@@ -97,7 +97,10 @@ function computeFeatures(getValue, data) {
   VAL_FORM_KEYS.forEach(form => VAL_FIELDS[form].forEach(({ key }) => requiredKeys.add(key)));
   let blank = 0;
   requiredKeys.forEach(key => {
-    const present = !isBlank(getValue(key));
+    // No PhilHealth (Patient details): that person's PIN is not asked for.
+    const notAsked = data && ((key === 'patientPIN' && data.patientNoPhilhealth) ||
+                              (key === 'memberPIN' && data.memberNoPhilhealth));
+    const present = notAsked || !isBlank(getValue(key));
     f[key + '_present'] = present ? 1 : 0;
     if (!present) blank++;
   });
@@ -105,6 +108,7 @@ function computeFeatures(getValue, data) {
 
   // PhilHealth PIN format
   const pinRaw = getValue('memberPIN');
+  f._memberNoPhilhealth = data && data.memberNoPhilhealth ? 1 : 0;
   f.philhealth_pin_length = valDigitsOnly(pinRaw).length;
   f.philhealth_pin_contains_letters = (!isBlank(pinRaw) && /[^\d\s-]/.test(String(pinRaw))) ? 1 : 0;
 
@@ -133,6 +137,9 @@ function computeFeatures(getValue, data) {
   f._dischargeBeforeAdmission = (adm && dis && dis < adm) ? 1 : 0;
   f._dobAfterAdmission        = (adm && dob && dob > adm) ? 1 : 0;
   f._deliveryOutsideStay      = (adm && dis && del && (del < adm || del > dis)) ? 1 : 0;
+  // Dates only, so the same day counts: a mother goes home the day after
+  // delivering at the earliest.
+  f._dischargeNotAfterDelivery = (dis && del && dis <= del) ? 1 : 0;
 
   // Member vs patient identity + relationship
   const memberName  = String(getValue('memberName')  || '').trim().toLowerCase();
@@ -237,7 +244,7 @@ const RULES = [
 
   /* ── Category 2: Invalid Formats ── */
   { id:'IF-01', category:'Invalid Format', action:'block_submission',
-    test: f => f.memberPIN_present === 1 && f.philhealth_pin_length !== 12,
+    test: f => f.memberPIN_present === 1 && !f._memberNoPhilhealth && f.philhealth_pin_length !== 12,
     message:'PhilHealth PIN must be exactly 12 digits.',
     field:'memberPIN', source:'PhilHealth guidelines' },
 
@@ -291,6 +298,11 @@ const RULES = [
     test: f => f.dates_match_across_forms === 0,
     message:'Admission and discharge dates are not the same across CSF and CF4.',
     source:'Historical RTH analysis' },
+
+  { id:'IC-08', category:'Inconsistent Entry', action:'block_submission',
+    test: f => f._dischargeNotAfterDelivery === 1,
+    message:'Discharge date must be at least one day after the delivery date.',
+    field:'dateDischarge', source:'Clinic practice' },
 
 
   /* ── Category 4: Signature Presence ──

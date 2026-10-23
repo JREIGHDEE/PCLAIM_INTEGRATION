@@ -7,7 +7,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" rel="stylesheet">
-  <link href="css/style.css?v=20261022d" rel="stylesheet">
+  <link href="css/style.css?v=20261022o" rel="stylesheet">
   <link href="css/easy.css?v=20261022d" rel="stylesheet">
 </head>
 <body class="easy">
@@ -283,7 +283,15 @@
             </div>
           </div>
           <div class="col-md-4">
-            <label class="pca-label">PhilHealth PIN</label>
+            <!-- Red while empty, like every needed box; "No PhilHealth" (js/app.js
+                 applyNoPhilhealth) takes it off the list for this patient. -->
+            <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+              <label class="pca-label mb-0">PhilHealth PIN <span class="required-dot">*</span></label>
+              <div class="form-check pca-checkbox mb-0">
+                <input type="checkbox" class="form-check-input" data-autofill="patientNoPhilhealth" id="patientNoPhilhealth">
+                <label class="form-check-label" for="patientNoPhilhealth">No PhilHealth</label>
+              </div>
+            </div>
             <input type="text" class="form-control pca-input" data-autofill="patientPIN" placeholder="##-#########-#">
             <div class="form-hint">Format: 12-345678901-3</div>
           </div>
@@ -333,7 +341,13 @@
             </div>
           </div>
           <div class="col-md-4">
-            <label class="pca-label">PhilHealth PIN (Member) <span class="required-dot">*</span></label>
+            <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+              <label class="pca-label mb-0">PhilHealth PIN (Member) <span class="required-dot">*</span></label>
+              <div class="form-check pca-checkbox mb-0">
+                <input type="checkbox" class="form-check-input" data-autofill="memberNoPhilhealth" id="memberNoPhilhealth">
+                <label class="form-check-label" for="memberNoPhilhealth">No PhilHealth</label>
+              </div>
+            </div>
             <input type="text" class="form-control pca-input" data-autofill="memberPIN" placeholder="##-#########-#">
           </div>
           <div class="col-md-4">
@@ -461,12 +475,13 @@
           </div>
           <div class="col-md-4">
             <label class="pca-label">Date Discharged <span class="required-dot">*</span></label>
-            <!-- Most mothers go home the same day, but not all, so the date
-                 is copied from the admission date by default and can be
-                 typed instead. -->
+            <!-- A mother goes home the day after delivering at the earliest
+                 (rule IC-08), most often exactly then, so the date is the
+                 day after the delivery date by default and can be typed
+                 instead for a longer stay. -->
             <div class="form-check pca-checkbox mb-1">
-              <input class="form-check-input" type="checkbox" id="dischargeSameDay" checked>
-              <label class="form-check-label" for="dischargeSameDay">Same day as admitted</label>
+              <input class="form-check-input" type="checkbox" id="dischargeDayAfter" checked>
+              <label class="form-check-label" for="dischargeDayAfter">The day after delivery</label>
             </div>
             <input type="date" class="form-control pca-input" data-autofill="dateDischarge">
           </div>
@@ -526,9 +541,17 @@
           <div class="col-12">
             <label class="pca-label">Admission Diagnosis <span class="required-dot">*</span></label>
             <textarea class="form-control pca-input" data-autofill="admissionDx" rows="3" placeholder="e.g., Term Pregnancy in Active Labor, 39 weeks AOG"></textarea>
+            <!-- "Use the usual wording": the doctors' usual sentence with its blanks (js/app.js) -->
+            <div id="admissionDxTemplate"></div>
           </div>
           <div class="col-12">
             <label class="pca-label">Discharge / Final Diagnosis <span class="required-dot">*</span></label>
+            <!-- Copies the admission diagnosis and keeps following it (js/app.js);
+                 the CSF and CF4 copies follow as for typing. -->
+            <div class="form-check pca-checkbox mb-1">
+              <input class="form-check-input" type="checkbox" id="finalDxSameAsAdmission">
+              <label class="form-check-label" for="finalDxSameAsAdmission">Same as the admission diagnosis</label>
+            </div>
             <textarea class="form-control pca-input" data-autofill="dischargeDx" rows="3" placeholder="e.g., Normal Spontaneous Delivery, Full Term, Live Birth"></textarea>
           </div>
         </div>
@@ -650,7 +673,13 @@
           <div class="col-md-4">
             <label class="pca-label">Citizenship</label>
             <input type="text" class="form-control pca-input" data-autofill="citizenship"
-                   value="FILIPINO" readonly aria-readonly="true">
+                   data-default="FILIPINO" list="citizenshipOptions">
+            <!-- The three the PMRF has boxes for; anything typed is kept. -->
+            <datalist id="citizenshipOptions">
+              <option value="FILIPINO"></option>
+              <option value="DUAL CITIZEN"></option>
+              <option value="FOREIGN NATIONAL"></option>
+            </datalist>
           </div>
         </div>
 
@@ -817,7 +846,7 @@
       <button class="btn-export" id="export-csf-btn" onclick="exportFilledPDF('csf')">
         <i class="bi bi-printer me-2"></i>Save as PDF to print
       </button>
-      <div id="status-csf"><span class="badge badge-pending">Not started</span></div>
+      <div id="status-csf-2"><span class="badge badge-pending">Not started</span></div>
     </div>
   </div>
 
@@ -978,6 +1007,11 @@
             </div>
           </div>
           <div class="col-12">
+            <!-- The names printed over the member's and the representative's signature lines. -->
+            <div class="handwritten-check" data-handwritten="csfMemberSignName,csfRepSignName"
+                 data-handwritten-label="Leave the names on both signature lines blank - they are written by hand after printing"></div>
+          </div>
+          <div class="col-12">
             <label class="pca-label">Date Signed (Member)</label>
             <input type="date" class="d-none" id="csf-memberSignedDate-real" data-autofill="memberSignedDate">
             <div class="box-input-date" data-target="#csf-memberSignedDate-real"></div>
@@ -1019,6 +1053,7 @@
           <div class="col-12">
             <label class="pca-label">Signature Over Printed Name of Employer/Authorized Representative</label>
             <input type="text" class="form-control pca-input" data-autofill="employerRepName" placeholder="Juan Dela Cruz">
+            <div class="handwritten-check" data-handwritten="employerRepName" data-handwritten-input="employerRepName"></div>
           </div>
           <div class="col-12">
             <label class="pca-label">Official Capacity/Designation</label>
@@ -1036,6 +1071,7 @@
           <div class="col-12">
             <label class="pca-label">Signature Over Printed Name of Member/Patient/Authorized Representative</label>
             <input type="text" class="form-control pca-input" data-autofill="patientRepName" placeholder="Maria Dela Cruz">
+            <div class="handwritten-check" data-handwritten="patientRepName" data-handwritten-input="patientRepName"></div>
           </div>
           <div class="col-12">
             <label class="pca-label">Date Signed</label>
@@ -1088,6 +1124,7 @@
             <div class="col-12">
               <label class="pca-label">Signature Over Printed Name</label>
               <input type="text" class="form-control pca-input" data-autofill="hciProf1Name" placeholder="Dr. Juan Dela Cruz">
+              <div class="handwritten-check" data-handwritten="hciProf1Name" data-handwritten-input="hciProf1Name"></div>
             </div>
             <div class="col-12">
               <label class="pca-label">Date Signed</label>
@@ -1107,6 +1144,7 @@
             <div class="col-12">
               <label class="pca-label">Signature Over Printed Name</label>
               <input type="text" class="form-control pca-input" data-autofill="hciProf2Name" placeholder="">
+              <div class="handwritten-check" data-handwritten="hciProf2Name" data-handwritten-input="hciProf2Name"></div>
             </div>
             <div class="col-12">
               <label class="pca-label">Date Signed</label>
@@ -1126,6 +1164,7 @@
             <div class="col-12">
               <label class="pca-label">Signature Over Printed Name</label>
               <input type="text" class="form-control pca-input" data-autofill="hciProf3Name" placeholder="">
+              <div class="handwritten-check" data-handwritten="hciProf3Name" data-handwritten-input="hciProf3Name"></div>
             </div>
             <div class="col-12">
               <label class="pca-label">Date Signed</label>
@@ -1148,6 +1187,7 @@
           <div class="col-12">
             <label class="pca-label">Signature Over Printed Name of Authorized HCI Representative</label>
             <input type="text" class="form-control pca-input" data-autofill="providerRepName" placeholder="">
+            <div class="handwritten-check" data-handwritten="providerRepName" data-handwritten-input="providerRepName"></div>
           </div>
           <div class="col-12">
             <label class="pca-label">Official Capacity/Designation</label>
@@ -1193,7 +1233,7 @@
       <button class="btn-export" id="export-cf4-btn" onclick="exportFilledPDF('cf4')">
         <i class="bi bi-printer me-2"></i>Save as PDF to print
       </button>
-      <div id="status-cf4"><span class="badge badge-pending">Not started</span></div>
+      <div id="status-cf4-2"><span class="badge badge-pending">Not started</span></div>
     </div>
   </div>
 
@@ -1360,157 +1400,165 @@
         </div>
 
         <div class="entry-section-title">3. Pertinent Signs &amp; Symptoms on Admission</div>
-        <div class="row g-1">
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_53424" data-autofill="cf4Symptoms" data-multi value="Altered mental sensorium">
-            <label class="form-check-label" for="cf4Symptoms_53424">Altered mental sensorium</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_38534" data-autofill="cf4Symptoms" data-multi value="Abdominal cramp/pain">
-            <label class="form-check-label" for="cf4Symptoms_38534">Abdominal cramp/pain</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_43984" data-autofill="cf4Symptoms" data-multi value="Anorexia">
-            <label class="form-check-label" for="cf4Symptoms_43984">Anorexia</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_73942" data-autofill="cf4Symptoms" data-multi value="Bleeding gums">
-            <label class="form-check-label" for="cf4Symptoms_73942">Bleeding gums</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_45197" data-autofill="cf4Symptoms" data-multi value="Body weakness">
-            <label class="form-check-label" for="cf4Symptoms_45197">Body weakness</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_91699" data-autofill="cf4Symptoms" data-multi value="Blurring of vision">
-            <label class="form-check-label" for="cf4Symptoms_91699">Blurring of vision</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_33991" data-autofill="cf4Symptoms" data-multi value="Chest pain/discomfort">
-            <label class="form-check-label" for="cf4Symptoms_33991">Chest pain/discomfort</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_74708" data-autofill="cf4Symptoms" data-multi value="Constipation">
-            <label class="form-check-label" for="cf4Symptoms_74708">Constipation</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_86814" data-autofill="cf4Symptoms" data-multi value="Cough">
-            <label class="form-check-label" for="cf4Symptoms_86814">Cough</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_35301" data-autofill="cf4Symptoms" data-multi value="Diarrhea">
-            <label class="form-check-label" for="cf4Symptoms_35301">Diarrhea</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_96586" data-autofill="cf4Symptoms" data-multi value="Dizziness">
-            <label class="form-check-label" for="cf4Symptoms_96586">Dizziness</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_2243" data-autofill="cf4Symptoms" data-multi value="Dysphagia">
-            <label class="form-check-label" for="cf4Symptoms_2243">Dysphagia</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_44213" data-autofill="cf4Symptoms" data-multi value="Dyspnea">
-            <label class="form-check-label" for="cf4Symptoms_44213">Dyspnea</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_54914" data-autofill="cf4Symptoms" data-multi value="Dysuria">
-            <label class="form-check-label" for="cf4Symptoms_54914">Dysuria</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_35739" data-autofill="cf4Symptoms" data-multi value="Epistaxis">
-            <label class="form-check-label" for="cf4Symptoms_35739">Epistaxis</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_72752" data-autofill="cf4Symptoms" data-multi value="Fever">
-            <label class="form-check-label" for="cf4Symptoms_72752">Fever</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_45644" data-autofill="cf4Symptoms" data-multi value="Frequency of urination">
-            <label class="form-check-label" for="cf4Symptoms_45644">Frequency of urination</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_27476" data-autofill="cf4Symptoms" data-multi value="Headache">
-            <label class="form-check-label" for="cf4Symptoms_27476">Headache</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_39666" data-autofill="cf4Symptoms" data-multi value="Hematemesis">
-            <label class="form-check-label" for="cf4Symptoms_39666">Hematemesis</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_75549" data-autofill="cf4Symptoms" data-multi value="Hematuria">
-            <label class="form-check-label" for="cf4Symptoms_75549">Hematuria</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_97731" data-autofill="cf4Symptoms" data-multi value="Hemoptysis">
-            <label class="form-check-label" for="cf4Symptoms_97731">Hemoptysis</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_61451" data-autofill="cf4Symptoms" data-multi value="Irritability">
-            <label class="form-check-label" for="cf4Symptoms_61451">Irritability</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_51403" data-autofill="cf4Symptoms" data-multi value="Jaundice">
-            <label class="form-check-label" for="cf4Symptoms_51403">Jaundice</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_82424" data-autofill="cf4Symptoms" data-multi value="Lower extremity edema">
-            <label class="form-check-label" for="cf4Symptoms_82424">Lower extremity edema</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_95920" data-autofill="cf4Symptoms" data-multi value="Myalgia">
-            <label class="form-check-label" for="cf4Symptoms_95920">Myalgia</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_47388" data-autofill="cf4Symptoms" data-multi value="Orthopnea">
-            <label class="form-check-label" for="cf4Symptoms_47388">Orthopnea</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_81095" data-autofill="cf4Symptoms" data-multi value="Pain">
-            <label class="form-check-label" for="cf4Symptoms_81095">Pain</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_97255" data-autofill="cf4Symptoms" data-multi value="Palpitations">
-            <label class="form-check-label" for="cf4Symptoms_97255">Palpitations</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_47521" data-autofill="cf4Symptoms" data-multi value="Seizures">
-            <label class="form-check-label" for="cf4Symptoms_47521">Seizures</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_76112" data-autofill="cf4Symptoms" data-multi value="Skin rashes">
-            <label class="form-check-label" for="cf4Symptoms_76112">Skin rashes</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_17331" data-autofill="cf4Symptoms" data-multi value="Stool, bloody/black tarry/mucoid">
-            <label class="form-check-label" for="cf4Symptoms_17331">Stool, bloody/black tarry/mucoid</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_58992" data-autofill="cf4Symptoms" data-multi value="Sweating">
-            <label class="form-check-label" for="cf4Symptoms_58992">Sweating</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_53253" data-autofill="cf4Symptoms" data-multi value="Urgency">
-            <label class="form-check-label" for="cf4Symptoms_53253">Urgency</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_77305" data-autofill="cf4Symptoms" data-multi value="Vomiting">
-            <label class="form-check-label" for="cf4Symptoms_77305">Vomiting</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_54515" data-autofill="cf4Symptoms" data-multi value="Weight loss">
-            <label class="form-check-label" for="cf4Symptoms_54515">Weight loss</label>
-          </div></div>
-          <div class="col-md-6 col-lg-4"><div class="form-check pca-check">
-            <input class="form-check-input" type="checkbox" id="cf4Symptoms_98420" data-autofill="cf4Symptoms" data-multi value="Others">
-            <label class="form-check-label" for="cf4Symptoms_98420">Others</label>
-          </div></div>
-        </div>
-        <div class="row g-2 mt-1">
-          <div class="col-md-6"><label class="pca-label">Pain &mdash; site</label>
-            <input type="text" class="form-control pca-input" data-autofill="cf4PainSite" placeholder="e.g. lower abdomen"></div>
-          <div class="col-md-6"><label class="pca-label">Other symptoms</label>
-            <input type="text" class="form-control pca-input" data-autofill="cf4SymptomOther" placeholder="Specify"></div>
+        <!-- The printed CF4's own layout: 4 columns of 9, read down each column,
+             with the Pain site and Others boxes beside their tick, as on paper. -->
+        <div class="symptom-grid">
+          <div class="symptom-col">
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_53424" data-autofill="cf4Symptoms" data-multi value="Altered mental sensorium">
+              <label class="form-check-label" for="cf4Symptoms_53424">Altered mental sensorium</label>
+            </div>
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_38534" data-autofill="cf4Symptoms" data-multi value="Abdominal cramp/pain">
+              <label class="form-check-label" for="cf4Symptoms_38534">Abdominal cramp/pain</label>
+            </div>
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_43984" data-autofill="cf4Symptoms" data-multi value="Anorexia">
+              <label class="form-check-label" for="cf4Symptoms_43984">Anorexia</label>
+            </div>
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_73942" data-autofill="cf4Symptoms" data-multi value="Bleeding gums">
+              <label class="form-check-label" for="cf4Symptoms_73942">Bleeding gums</label>
+            </div>
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_45197" data-autofill="cf4Symptoms" data-multi value="Body weakness">
+              <label class="form-check-label" for="cf4Symptoms_45197">Body weakness</label>
+            </div>
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_91699" data-autofill="cf4Symptoms" data-multi value="Blurring of vision">
+              <label class="form-check-label" for="cf4Symptoms_91699">Blurring of vision</label>
+            </div>
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_33991" data-autofill="cf4Symptoms" data-multi value="Chest pain/discomfort">
+              <label class="form-check-label" for="cf4Symptoms_33991">Chest pain/discomfort</label>
+            </div>
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_74708" data-autofill="cf4Symptoms" data-multi value="Constipation">
+              <label class="form-check-label" for="cf4Symptoms_74708">Constipation</label>
+            </div>
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_86814" data-autofill="cf4Symptoms" data-multi value="Cough">
+              <label class="form-check-label" for="cf4Symptoms_86814">Cough</label>
+            </div>
+          </div>
+          <div class="symptom-col">
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_35301" data-autofill="cf4Symptoms" data-multi value="Diarrhea">
+              <label class="form-check-label" for="cf4Symptoms_35301">Diarrhea</label>
+            </div>
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_96586" data-autofill="cf4Symptoms" data-multi value="Dizziness">
+              <label class="form-check-label" for="cf4Symptoms_96586">Dizziness</label>
+            </div>
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_2243" data-autofill="cf4Symptoms" data-multi value="Dysphagia">
+              <label class="form-check-label" for="cf4Symptoms_2243">Dysphagia</label>
+            </div>
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_44213" data-autofill="cf4Symptoms" data-multi value="Dyspnea">
+              <label class="form-check-label" for="cf4Symptoms_44213">Dyspnea</label>
+            </div>
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_54914" data-autofill="cf4Symptoms" data-multi value="Dysuria">
+              <label class="form-check-label" for="cf4Symptoms_54914">Dysuria</label>
+            </div>
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_35739" data-autofill="cf4Symptoms" data-multi value="Epistaxis">
+              <label class="form-check-label" for="cf4Symptoms_35739">Epistaxis</label>
+            </div>
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_72752" data-autofill="cf4Symptoms" data-multi value="Fever">
+              <label class="form-check-label" for="cf4Symptoms_72752">Fever</label>
+            </div>
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_45644" data-autofill="cf4Symptoms" data-multi value="Frequency of urination">
+              <label class="form-check-label" for="cf4Symptoms_45644">Frequency of urination</label>
+            </div>
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_27476" data-autofill="cf4Symptoms" data-multi value="Headache">
+              <label class="form-check-label" for="cf4Symptoms_27476">Headache</label>
+            </div>
+          </div>
+          <div class="symptom-col">
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_39666" data-autofill="cf4Symptoms" data-multi value="Hematemesis">
+              <label class="form-check-label" for="cf4Symptoms_39666">Hematemesis</label>
+            </div>
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_75549" data-autofill="cf4Symptoms" data-multi value="Hematuria">
+              <label class="form-check-label" for="cf4Symptoms_75549">Hematuria</label>
+            </div>
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_97731" data-autofill="cf4Symptoms" data-multi value="Hemoptysis">
+              <label class="form-check-label" for="cf4Symptoms_97731">Hemoptysis</label>
+            </div>
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_61451" data-autofill="cf4Symptoms" data-multi value="Irritability">
+              <label class="form-check-label" for="cf4Symptoms_61451">Irritability</label>
+            </div>
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_51403" data-autofill="cf4Symptoms" data-multi value="Jaundice">
+              <label class="form-check-label" for="cf4Symptoms_51403">Jaundice</label>
+            </div>
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_82424" data-autofill="cf4Symptoms" data-multi value="Lower extremity edema">
+              <label class="form-check-label" for="cf4Symptoms_82424">Lower extremity edema</label>
+            </div>
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_95920" data-autofill="cf4Symptoms" data-multi value="Myalgia">
+              <label class="form-check-label" for="cf4Symptoms_95920">Myalgia</label>
+            </div>
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_47388" data-autofill="cf4Symptoms" data-multi value="Orthopnea">
+              <label class="form-check-label" for="cf4Symptoms_47388">Orthopnea</label>
+            </div>
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_81095" data-autofill="cf4Symptoms" data-multi value="Pain">
+              <label class="form-check-label" for="cf4Symptoms_81095">Pain</label>
+            </div>
+            <label class="symptom-inline"><span>Site of the pain</span>
+              <input type="text" class="form-control pca-input" data-autofill="cf4PainSite"></label>
+          </div>
+          <div class="symptom-col">
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_97255" data-autofill="cf4Symptoms" data-multi value="Palpitations">
+              <label class="form-check-label" for="cf4Symptoms_97255">Palpitations</label>
+            </div>
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_47521" data-autofill="cf4Symptoms" data-multi value="Seizures">
+              <label class="form-check-label" for="cf4Symptoms_47521">Seizures</label>
+            </div>
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_76112" data-autofill="cf4Symptoms" data-multi value="Skin rashes">
+              <label class="form-check-label" for="cf4Symptoms_76112">Skin rashes</label>
+            </div>
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_17331" data-autofill="cf4Symptoms" data-multi value="Stool, bloody/black tarry/mucoid">
+              <label class="form-check-label" for="cf4Symptoms_17331">Stool, bloody/black tarry/mucoid</label>
+            </div>
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_58992" data-autofill="cf4Symptoms" data-multi value="Sweating">
+              <label class="form-check-label" for="cf4Symptoms_58992">Sweating</label>
+            </div>
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_53253" data-autofill="cf4Symptoms" data-multi value="Urgency">
+              <label class="form-check-label" for="cf4Symptoms_53253">Urgency</label>
+            </div>
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_77305" data-autofill="cf4Symptoms" data-multi value="Vomiting">
+              <label class="form-check-label" for="cf4Symptoms_77305">Vomiting</label>
+            </div>
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_54515" data-autofill="cf4Symptoms" data-multi value="Weight loss">
+              <label class="form-check-label" for="cf4Symptoms_54515">Weight loss</label>
+            </div>
+            <div class="form-check pca-check">
+              <input class="form-check-input" type="checkbox" id="cf4Symptoms_98420" data-autofill="cf4Symptoms" data-multi value="Others">
+              <label class="form-check-label" for="cf4Symptoms_98420">Others</label>
+            </div>
+            <label class="symptom-inline"><span>Other symptoms</span>
+              <input type="text" class="form-control pca-input" data-autofill="cf4SymptomOther"></label>
+          </div>
         </div>
 
         <div class="entry-section-title">4. Referred from another HCI</div>
@@ -1987,7 +2035,8 @@
         <div class="entry-section-title">VII. Certification of Health Care Professional</div>
         <div class="row g-2">
           <div class="col-12"><label class="pca-label">Printed Name of Attending Health Care Professional</label>
-            <input type="text" class="form-control pca-input" data-autofill="cf4AttendingProvider" placeholder="ROSARIO M. ALCANTARA, RM"></div>
+            <input type="text" class="form-control pca-input" data-autofill="cf4AttendingProvider" placeholder="ROSARIO M. ALCANTARA, RM">
+            <div class="handwritten-check" data-handwritten="cf4AttendingProvider" data-handwritten-input="cf4AttendingProvider"></div></div>
           <div class="col-md-6"><label class="pca-label">Provider Accreditation No. (PAN)</label>
             <input type="text" class="form-control pca-input" data-autofill="cf4ProviderPAN" placeholder="000005678"></div>
           <div class="col-md-6"><label class="pca-label">Date Signed</label>
@@ -2023,7 +2072,7 @@
       <button class="btn-export" id="export-pmrf-btn" onclick="exportFilledPDF('pmrf')">
         <i class="bi bi-printer me-2"></i>Save as PDF to print
       </button>
-      <div id="status-pmrf"><span class="badge badge-pending">Not started</span></div>
+      <div id="status-pmrf-2"><span class="badge badge-pending">Not started</span></div>
     </div>
   </div>
 
@@ -2159,7 +2208,7 @@
           <div class="col-6">
             <label class="pca-label">Citizenship</label>
             <input type="text" class="form-control pca-input" data-autofill="citizenship"
-                   value="FILIPINO" readonly aria-readonly="true">
+                   data-default="FILIPINO" list="citizenshipOptions">
           </div>
           <div class="col-6">
             <label class="pca-label">Place of Birth</label>
@@ -2370,7 +2419,7 @@
           <div class="col-4">
             <label class="pca-label">Citizenship</label>
             <input type="text" class="form-control pca-input" data-autofill="patientCitizenship"
-                   value="FILIPINO" readonly aria-readonly="true">
+                   data-default="FILIPINO" list="citizenshipOptions">
           </div>
           <div class="col-6">
             <label class="pca-label">Relationship</label>
@@ -2669,6 +2718,7 @@
           <div class="col-8">
             <label class="pca-label">Member's Signature over Printed Name</label>
             <input type="text" class="form-control pca-input" data-autofill="memberSignatureName" placeholder="Pedro R. Dela Cruz">
+            <div class="handwritten-check" data-handwritten="memberSignatureName" data-handwritten-input="memberSignatureName"></div>
           </div>
           <div class="col-4">
             <label class="pca-label">Date</label>
@@ -2692,21 +2742,30 @@
     </div>
   </div>
 
-  <!-- ── One button for the whole claim ──────────────────────
-       A claim is filed as a set, so the forms are saved as a set, and
-       only once the checker has nothing left to report. Until then this
-       is hidden and the page shows what is still missing. -->
-  <div class="pca-card export-all-card mb-3" id="exportAllCard" hidden>
+  <!-- ── Saving the forms as PDF ─────────────────────────────
+       Each form on its own, or the ticked ones together as one file (one
+       file prints in one go; a browser blocks a burst of downloads). The
+       heading says whether anything is still missing (updateExportGate). -->
+  <div class="pca-card export-all-card mb-3" id="exportAllCard">
     <div class="export-all-text">
-      <div class="export-all-title">
+      <div class="export-all-title" id="exportAllTitle">
         <i class="bi bi-check-circle-fill me-2" aria-hidden="true"></i>Everything is filled in
       </div>
-      <div class="export-all-sub">
-        All <span id="exportAllCount">4</span> forms are ready. Save them as one file, then print it.
+      <div class="export-all-sub" id="exportAllSub">
+        All <span id="exportAllCount">3</span> forms are ready. Save them, then print.
       </div>
     </div>
-    <button class="btn-export btn-export--all" id="exportAllBtn" onclick="exportAllForms()">
-      <i class="bi bi-printer me-2"></i>Save all forms as PDF
+    <ul class="export-form-list" aria-label="Forms to save">
+      <li><label class="export-chip"><input type="checkbox" data-export-form="csf" data-label="CSF" checked>
+        <i class="bi bi-check-lg" aria-hidden="true"></i>CSF</label></li>
+      <li><label class="export-chip"><input type="checkbox" data-export-form="cf4" data-label="CSF 4" checked>
+        <i class="bi bi-check-lg" aria-hidden="true"></i>CSF 4</label></li>
+      <li><label class="export-chip"><input type="checkbox" data-export-form="pmrf" data-label="PMRF" checked>
+        <i class="bi bi-check-lg" aria-hidden="true"></i>PMRF</label></li>
+    </ul>
+    <!-- One button: its words follow what is ticked (pdf-overlay.js labelExportButton). -->
+    <button class="btn-export btn-export--all" id="exportAllBtn" onclick="exportTickedForms()">
+      <i class="bi bi-printer me-2"></i><span id="exportAllLabel">Save all 3 forms as one PDF</span>
     </button>
   </div>
 
@@ -3038,26 +3097,27 @@
 <!-- pdf-lib: write filled text onto PDF for export -->
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <!-- Shared sidebar (must load before app.js, which binds to .sidebar-item) -->
-<script src="js/sidebar.js?v=20261022d"></script>
+<script src="js/sidebar.js?v=20261022e"></script>
 <script>PCASidebar.render({ page: 'app', active: 'dashboard' });</script>
 <!-- Authentication client (must load before app.js) -->
 <script src="js/auth-client.js?v=20261022d"></script>
 <!-- PDF overlay coordinate maps (must load before pdf-overlay.js) -->
-<script src="js/pdf/overlays/csf.js?v=20261022d"></script>
-<script src="js/pdf/overlays/cf4.js?v=20261022d"></script>
-<script src="js/pdf/overlays/pmrf.js?v=20261022d"></script>
+<script src="js/pdf/overlays/csf.js?v=20261022h"></script>
+<script src="js/pdf/overlays/cf4.js?v=20261022h"></script>
+<script src="js/pdf/overlays/pmrf.js?v=20261022h"></script>
 <script src="js/pdf/overlays/index.js?v=20261022d"></script>
 <script src="js/entry-learning.js?v=20261022d"></script>
-<script src="js/pdf/pdf-overlay.js?v=20261022d"></script>
+<script src="js/pdf/pdf-overlay.js?v=20261022k"></script>
 <script src="js/pdf/pdf-calibrate.js?v=20261022d"></script>
 <!-- Rule-based validation engine (must load before app.js) -->
-<script src="js/validation-rules.js?v=20261022d"></script>
+<script src="js/validation-rules.js?v=20261023c"></script>
 <script src="js/ocr-review.js?v=20261022d"></script>
 <!-- Segmented inputs: date/PAN boxes and the PhilHealth PIN (2-9-1) -->
-<script src="js/box-input.js?v=20261022d"></script>
-<script src="js/pin-input.js?v=20261022d"></script>
-<script src="js/app.js?v=20261022d"></script>
-<script src="js/easy.js?v=20261022d"></script>
+<script src="js/box-input.js?v=20261022g"></script>
+<script src="js/date-text.js?v=20261022g"></script>
+<script src="js/pin-input.js?v=20261023a"></script>
+<script src="js/app.js?v=20261023g"></script>
+<script src="js/easy.js?v=20261023b"></script>
 <!-- Loads a claim sent from the OCR review: index.html?claim=<id> -->
 <script src="js/claim-loader.js?v=20261022d"></script>
 

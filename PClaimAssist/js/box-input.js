@@ -11,11 +11,21 @@
    real input's "input" event, which a programmatic assignment does not fire,
    so those boxes stayed blank while the value sat in the field behind them. */
 const BOX_INPUT_SYNCS = [];
+// Each date row's way to forget a half-typed date ("Start a new patient").
+const BOX_INPUT_RESETS = [];
 
 function refreshBoxInputs() {
   BOX_INPUT_SYNCS.forEach(sync => {
     try { sync(); } catch (e) { /* a group removed from the page */ }
   });
+}
+
+/* Clear every half-typed date - these rows, the MM/DD/YYYY boxes
+   (js/date-text.js) - for a new patient; a whole date is cleared by the
+   value behind it like any other field. */
+function clearUnfinishedEntries() {
+  BOX_INPUT_RESETS.forEach(reset => reset());
+  if (typeof DATE_TEXT_RESETS !== 'undefined') DATE_TEXT_RESETS.forEach(reset => reset());
 }
 
 /* groups: array of digit-group sizes, e.g. [2,9,1] or [2,2,4] */
@@ -93,7 +103,7 @@ function initBoxInput(wrapEl) {
   });
 
   syncFromReal();
-  BOX_INPUT_SYNCS.push(syncFromReal);
+  BOX_INPUT_SYNCS.push(() => { if (!boxes.includes(document.activeElement)) syncFromReal(); });
 }
 
 /* groups: array of digit-group sizes for a date, always [2,2,4] (MM-DD-YYYY),
@@ -125,6 +135,9 @@ function initDateBoxInput(wrapEl) {
       box.maxLength = 1;
       box.className = 'box-input-cell';
       box.autocomplete = 'off';
+      // The format, in the empty boxes themselves: M M - D D - Y Y Y Y.
+      box.placeholder = spec.label[0].toUpperCase();
+      box.setAttribute('aria-label', `${spec.label}, digit ${i + 1} of ${spec.size}`);
       wrapEl.appendChild(box);
       boxes.push(box);
     }
@@ -133,8 +146,20 @@ function initDateBoxInput(wrapEl) {
 
   const allBoxes = groupBoxes.flat();
 
+  // A copy of a date typed on Patient details: shown, not typed here.
+  if (realInput.readOnly || realInput.disabled) {
+    allBoxes.forEach(box => { box.readOnly = true; });
+    wrapEl.classList.add('from-patient-details');
+    wrapEl.title = realInput.title || 'Entered on the Patient details page - change it there';
+  }
+
+  // Some boxes typed but not the whole date yet: the date behind them is
+  // empty until it is complete, which must not wipe what is on screen.
+  let unfinished = false;
+
   function syncFromReal() {
     const iso = realInput.value || '';
+    if (!iso && unfinished) return;
     const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
     const mm = m ? m[2] : '';
     const dd = m ? m[3] : '';
@@ -149,11 +174,18 @@ function initDateBoxInput(wrapEl) {
     const yyyy = groupBoxes[2].map(b => b.value).join('');
     if (mm.length === 2 && dd.length === 2 && yyyy.length === 4) {
       realInput.value = `${yyyy}-${mm}-${dd}`;
+      unfinished = false;
     } else {
       realInput.value = '';
+      unfinished = allBoxes.some(b => b.value);
     }
     realInput.dispatchEvent(new Event('input', { bubbles: true }));
   }
+
+  BOX_INPUT_RESETS.push(() => {
+    unfinished = false;
+    allBoxes.forEach(box => { box.value = ''; });
+  });
 
   allBoxes.forEach((box, i) => {
     box.addEventListener('input', () => {
@@ -191,7 +223,9 @@ function initDateBoxInput(wrapEl) {
   });
 
   syncFromReal();
-  BOX_INPUT_SYNCS.push(syncFromReal);
+  // Never redraw the row being typed in: each digit used to be wiped as
+  // soon as it was typed, because the date behind it is still empty.
+  BOX_INPUT_SYNCS.push(() => { if (!allBoxes.includes(document.activeElement)) syncFromReal(); });
 }
 
 /* 12-hour time as 2 boxed groups (hour, minute), backed by a real
@@ -304,7 +338,9 @@ function initTimeBoxInput(wrapEl) {
   });
 
   syncFromReal();
-  BOX_INPUT_SYNCS.push(syncFromReal);
+  // Never redraw the row being typed in: each digit used to be wiped as
+  // soon as it was typed, because the date behind it is still empty.
+  BOX_INPUT_SYNCS.push(() => { if (!allBoxes.includes(document.activeElement)) syncFromReal(); });
 }
 
 document.addEventListener('DOMContentLoaded', () => {

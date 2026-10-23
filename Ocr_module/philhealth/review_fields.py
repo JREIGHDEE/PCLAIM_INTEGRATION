@@ -17,7 +17,7 @@ The browser only filters keystrokes (e.g. digits only) for convenience;
 every rule here is enforced by the server on save.
 """
 import re
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from philhealth import case_bridge, field_catalog
 from philhealth.case_bridge import (
@@ -53,8 +53,9 @@ FIELD_NAMES = {
 
 _CASE_NUMBER_RE = re.compile(r"^\d+(-\d+)*$")
 # Letters (any alphabet, so ñ/é are fine), spaces, and the punctuation
-# real names use: hyphen, period, apostrophe.
-_NAME_RE = re.compile(r"^[^\W\d_]+(?:[ .'\-]+[^\W\d_]*)*\.?$", re.UNICODE)
+# real names use: hyphen and apostrophe (periods are taken out, see
+# clean_name_part).
+_NAME_RE = re.compile(r"^[^\W\d_]+(?:[ '\-]+[^\W\d_]*)*$", re.UNICODE)
 _MAX_TEXT = 255          # patients.address is VARCHAR(255)
 _MAX_NAME_PART = 100     # patients name columns are VARCHAR(100)
 _MAX_SUFFIX = 10         # patients.name_ext is VARCHAR(10)
@@ -66,6 +67,31 @@ _LONGEST_STAY_DAYS = 30
 
 def kind_of(category):
     return KIND.get(category, TEXT_KIND)
+
+
+# Punctuation in a name other than a hyphen or apostrophe: periods ("JR.",
+# "MA."), "!", commas, ...
+_NAME_PUNCTUATION = re.compile(r"[^\w\s'\-]|_", re.UNICODE)
+
+
+def clean_name_part(text, drop_digits=False):
+    """One name box as it goes on the forms: capitals, no punctuation
+    ("Jr." -> "JR", "Ma.Liza" -> "MA LIZA"), single spaces. Digits are
+    dropped only from an OCR reading (drop_digits); typed ones are kept so
+    check() asks for the name to be fixed instead of guessing."""
+    text = _NAME_PUNCTUATION.sub(" ", _s(text))
+    if drop_digits:
+        text = re.sub(r"\d", " ", text)
+    return re.sub(r"\s+", " ", text).strip().upper()
+
+
+def in_capitals(category, text):
+    """Names and free text go on the forms in capitals. Dates and numbers
+    are left as read: their parsing turns OCR look-alike letters into digits
+    by case ("l" is 1, "b" is 6, "B" is 8), so capitals would misread them."""
+    if kind_of(category) in (NAME_KIND, TEXT_KIND):
+        return str(text if text is not None else "").upper()
+    return text
 
 
 # ── Suggestions from OCR text ───────────────────────────────────────────
@@ -84,13 +110,14 @@ def _split_time(text):
 
 def suggest_parts(category, text):
     """Pre-fill for the review inputs, from (OCR or previously typed) text."""
-    text = (text or "").strip()
+    text = in_capitals(category, (text or "").strip())
     kind = kind_of(category)
     if kind == CASE_NUMBER_KIND:
         return {"number": "-".join(re.findall(r"\d+", text))}
     if kind == NAME_KIND:
         last, first, middle, warning = case_bridge._split_name(text) if text else (None, None, None, None)
-        return {"last": last or "", "first": first or "", "middle": middle or "", "suffix": "",
+        return {"last": clean_name_part(last, drop_digits=True), "first": clean_name_part(first, drop_digits=True),
+                "middle": clean_name_part(middle, drop_digits=True), "suffix": "",
                 "guessed": bool(text) and bool(warning)}
     if kind == DATE_KIND:
         return {"date": case_bridge._parse_date_flexible(text) or ""}
@@ -121,9 +148,16 @@ def normalize(category, parts):
         return {"empty": True}
     kind = kind_of(category)
     if kind == CASE_NUMBER_KIND:
-        return {"number": re.sub(r"\s+", "", _s(parts.get("number")))}
+        number = re.sub(r"\s+", "", _s(parts.get("number")))
+        # The review starts the box with the year ("2026-"); left at that,
+        # nothing was typed. A dash left at the end is dropped.
+        if re.fullmatch(r"(?:19|20)\d{2}-+", number):
+            number = ""
+        return {"number": number.rstrip("-")}
+    # Names and free text are kept in capitals, the way every PhilHealth
+    # form is filled in (and how PClaimAssist stores what is typed there).
     if kind == NAME_KIND:
-        return {k: re.sub(r"\s+", " ", _s(parts.get(k))) for k in ("last", "first", "middle", "suffix")}
+        return {k: clean_name_part(parts.get(k)) for k in ("last", "first", "middle", "suffix")}
     if kind == DATE_KIND:
         return {"date": _s(parts.get("date"))}
     if kind == DATETIME_KIND:
@@ -134,7 +168,7 @@ def normalize(category, parts):
             "minute": minute.zfill(2) if minute.isdigit() and len(minute) == 1 else minute,
             "am_pm": _s(parts.get("am_pm")).upper(),
         }
-    return {"text": re.sub(r"[ \t]+", " ", _s(parts.get("text")))}
+    return {"text": re.sub(r"[ \t]+", " ", _s(parts.get("text"))).upper()}
 
 
 def is_blank(category, parts):
@@ -290,9 +324,13 @@ def check(parts_by_category, today=None):
     if delivered and admitted and delivered.date() < admitted.date():
         warnings.append({"category": DELIVERY_DT,
                          "message": "The baby was delivered before the admission date. Is that right?"})
-    if delivered and went_home and delivered > went_home:
-        warnings.append({"category": DELIVERY_DT,
-                         "message": "The baby was delivered after \"Went home\". Is that right?"})
+    # A mother goes home a day after delivering at the earliest - never the
+    # same day (the forms check the same, rule IC-08).
+    if delivered and went_home and went_home.date() <= delivered.date():
+        day_after = (delivered.date() + timedelta(days=1)).strftime("%m/%d/%Y")
+        problems.append({"category": DISCHARGE_DT,
+                         "message": "\"Went home\" must be at least one day after the delivery "
+                                    f"(the day after is {day_after}). Please check both dates."})
     if birthday and admitted:
         on = admitted.date()
         age = on.year - birthday.year - ((on.month, on.day) < (birthday.month, birthday.day))

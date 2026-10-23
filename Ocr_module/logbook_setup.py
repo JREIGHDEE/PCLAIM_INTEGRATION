@@ -17,6 +17,11 @@ hand in the calibration workspace (templates/index.html).
 A setup is needed once per kind of logbook, not per scan: matching by the
 printed columns and finding the first row from the printed header
 (logbook_layout) make one setup fit every scan of that logbook.
+
+Reading a logbook uses step 1 the same way: every scan is uploaded once,
+its columns are found here and checked by the person, and then the scan
+itself is read with what they checked (checked_templates) - nothing is
+saved as a setup. read_scan() keeps a copy of the scan for that.
 """
 import json
 import logging
@@ -55,14 +60,17 @@ def preview_path(setup_id, page_index):
     return _setup_dir(setup_id) / f"page{int(page_index)}.jpg"
 
 
-def read_scan(path, ocr_fn):
+def read_scan(path, ocr_fn, source_document=None):
     """Find each page's layout. Returns {"setup_id", "pages": [...]} where
     each page is logbook_layout.propose_page()'s result plus "index" and
-    "picture" (the preview's file name)."""
+    "picture" (the preview's file name). A copy of the scan is kept with
+    the setup, so it can be read once its columns are checked."""
     pages = load_pages(path)[:2]
     setup_id = uuid.uuid4().hex
     folder = _setup_dir(setup_id)
     os.makedirs(folder, exist_ok=True)
+    scan = "scan" + os.path.splitext(str(path))[1].lower()
+    shutil.copyfile(path, folder / scan)
 
     proposals = []
     for index, (page_number, image, parity) in enumerate(pages):
@@ -93,13 +101,31 @@ def read_scan(path, ocr_fn):
                               "height": round(r["height"] / right["height"], 4)} for r in mapped]
 
     with open(folder / "setup.json", "w", encoding="utf-8") as handle:
-        json.dump({"pages": proposals}, handle)
-    for proposal in proposals:
-        proposal.pop("ruled_lines", None)
-        proposal.pop("row_template", None)
+        json.dump({"pages": proposals, "scan": scan, "source_document": source_document}, handle)
     logger.info("Logbook setup %s: read %d page(s): %s", setup_id, len(proposals),
                 [(p["side"], p["categories"]) for p in proposals])
-    return {"setup_id": setup_id, "pages": proposals}
+    return {"setup_id": setup_id, "pages": [_public(p) for p in proposals]}
+
+
+def _public(proposal):
+    """A page as the checking screen gets it (without the reader's internals)."""
+    return {k: v for k, v in proposal.items() if k not in ("ruled_lines", "row_template")}
+
+
+def _load(setup_id):
+    try:
+        with open(_setup_dir(setup_id) / "setup.json", encoding="utf-8") as handle:
+            return json.load(handle)
+    except FileNotFoundError:
+        raise InvalidRequestError("This scan has expired. Please upload it again.")
+
+
+def get_setup(setup_id):
+    """A scan whose columns are being checked: {"setup_id", "pages",
+    "source_document"} - the same as read_scan() returned."""
+    found = _load(setup_id)
+    return {"setup_id": setup_id, "pages": [_public(p) for p in found["pages"]],
+            "source_document": found.get("source_document")}
 
 
 def _clean_page(page):
@@ -127,47 +153,77 @@ def _clean_page(page):
     return side, lines, categories
 
 
+def _checked_pages(found, pages):
+    """The person's checked pages, validated: [(proposal, side, lines,
+    categories)]."""
+    by_index = {p["index"]: p for p in found["pages"]}
+    if not pages:
+        raise InvalidRequestError("There is nothing to save.")
+    cleaned = []
+    for page in pages:
+        index = page.get("index")
+        if index not in by_index:
+            raise InvalidRequestError("This setup is not valid. Please start again.")
+        cleaned.append((by_index[index],) + _clean_page(page))
+    sides = [side for _, side, _, _ in cleaned]
+    if len(sides) != len(set(sides)):
+        raise InvalidRequestError("Both pages are marked as the same side. One must be the left page and one the right.")
+    return cleaned
+
+
+def _template(setup_id, proposal, side, lines, categories, name, source, saved_by=None):
+    return build_template_payload(
+        name=name,
+        grid_lines=lines,
+        segment_info=[{"category": c or None, "color": _COLUMN_COLORS[i % len(_COLUMN_COLORS)]}
+                      for i, c in enumerate(categories)],
+        row_template=proposal["row_template"],
+        image_width=proposal["width"],
+        image_height=proposal["height"],
+        metadata={
+            "source": source,
+            "pageParity": logbook_layout.SIDE_PARITY[side],
+            "setupId": setup_id,
+            "setupBy": saved_by,
+        },
+    )
+
+
+def checked_templates(setup_id, pages):
+    """Read a scan with the columns the person checked on it: returns
+    (scan path, source document name, {page index: template payload}),
+    for logbook_pipeline.build_review_rows(page_templates=...). Nothing is
+    saved as a setup; the scan's folder is removed once it has been read
+    (remove_scan)."""
+    found = _load(setup_id)
+    scan = _setup_dir(setup_id) / found["scan"]
+    if not scan.exists():
+        raise InvalidRequestError("This scan has expired. Please upload it again.")
+    templates = {
+        proposal["index"]: _template(setup_id, proposal, side, lines, categories,
+                                     f"Logbook {side} page (checked on this scan)", "checked_scan")
+        for proposal, side, lines, categories in _checked_pages(found, pages)
+    }
+    return str(scan), found.get("source_document"), templates
+
+
+def remove_scan(setup_id):
+    shutil.rmtree(_setup_dir(setup_id), ignore_errors=True)
+
+
 def save_setup(setup_id, pages, replace_old=True, saved_by=None):
     """Save one grid template per checked page. Returns {"saved": [file
     names], "archived": [file names]}."""
     folder = _setup_dir(setup_id)
-    try:
-        with open(folder / "setup.json", encoding="utf-8") as handle:
-            found = {p["index"]: p for p in json.load(handle)["pages"]}
-    except FileNotFoundError:
-        raise InvalidRequestError("This setup has expired. Please read the scan again.")
-    if not pages:
-        raise InvalidRequestError("There is nothing to save.")
-
-    cleaned = []
-    for page in pages:
-        index = page.get("index")
-        if index not in found:
-            raise InvalidRequestError("This setup is not valid. Please start again.")
-        cleaned.append((found[index],) + _clean_page(page))
+    cleaned = _checked_pages(_load(setup_id), pages)
     sides = [side for _, side, _, _ in cleaned]
-    if len(sides) != len(set(sides)):
-        raise InvalidRequestError("Both pages are marked as the same side. One must be the left page and one the right.")
 
     stamp = datetime.now().strftime("%Y-%m-%d %H:%M")
     keep = set()
     saved = []
     for proposal, side, lines, categories in cleaned:
-        payload = build_template_payload(
-            name=f"Logbook {side} page (set up {stamp})",
-            grid_lines=lines,
-            segment_info=[{"category": c or None, "color": _COLUMN_COLORS[i % len(_COLUMN_COLORS)]}
-                          for i, c in enumerate(categories)],
-            row_template=proposal["row_template"],
-            image_width=proposal["width"],
-            image_height=proposal["height"],
-            metadata={
-                "source": "guided_setup",
-                "pageParity": logbook_layout.SIDE_PARITY[side],
-                "setupId": setup_id,
-                "setupBy": saved_by,
-            },
-        )
+        payload = _template(setup_id, proposal, side, lines, categories,
+                            f"Logbook {side} page (set up {stamp})", "guided_setup", saved_by)
         filename, _ = save_template_payload(payload)
         keep.add(filename)
         saved.append(filename)

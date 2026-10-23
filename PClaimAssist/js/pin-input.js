@@ -139,5 +139,9 @@
     });
   };
 
-  document.querySelectorAll('input[data-autofill="patientPIN"], input[data-autofill="memberPIN"]').forEach(enhance);
+  document.querySelectorAll('input[data-autofill="patientPIN"], input[data-autofill="memberPIN"]').forEach(input => {
+    // The CSF's per-digit PIN rows already stand in for theirs (box-input.js).
+    if (input.id && document.querySelector(`.box-input[data-target="#${input.id}"]`)) return;
+    enhance(input);
+  });
 })();

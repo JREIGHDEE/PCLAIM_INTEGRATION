@@ -11,6 +11,379 @@ Related documents:
 
 ---
 
+## Not yet committed (2026-10-22)
+
+**PhilHealth PIN red while empty, and "No PhilHealth"** (`PClaimAssist/index.html`, `js/app.js`, `js/validation-rules.js`)
+- The PIN's three boxes (js/pin-input.js) now turn red while the PIN is
+  empty, like every other needed box: the red marks skipped the hidden
+  input behind them, so the boxes never showed it.
+- A "No PhilHealth" tick beside the patient's PIN and beside the member's
+  (account holder's) PIN on Patient details: that PIN is then not asked
+  for (not red, not counted as missing, "not needed" in the checker - for
+  the member on the CSF, CF4 and PMRF) and its boxes are greyed out. What
+  was typed is kept. The PIN-length rule IF-01 skips a member with no
+  PhilHealth. While the patient is the member, the member's tick follows
+  the patient's and is locked (the member's PIN boxes are now locked then
+  too). Kept with the patient on this page only - no database column.
+- Fixed: the member's PIN stayed red after ticking "No PhilHealth" in easy
+  mode - js/easy.js marks needed boxes on its own (by the label's red
+  asterisk) and now skips a PIN whose tick is on (`pinNotAsked`), and no
+  longer counts the ticks themselves as boxes "to type". The patient's PIN
+  label has the red asterisk too now, so easy mode asks for it the same way.
+  Checked in a browser: each tick clears its PIN's red and takes one off
+  the "to type" count; unticking brings both back.
+
+**Whole-row picture without the red box** (`Ocr_module/templates/review.html`)
+- Clicking the scan in the logbook review opens the whole row as scanned:
+  no red box around the cell and no dimming around it. It still opens
+  scrolled to the box being checked.
+
+**Final diagnosis: "Same as the admission diagnosis" tick** (`PClaimAssist/index.html`, `js/app.js`, `Ocr_module/templates/review.html`)
+- Forms (Patient details): a tick above Discharge / Final Diagnosis copies
+  the admission diagnosis and keeps following it, also when the delivery
+  message is put in; the CSF and CF4 copies follow as for typing. Off by
+  default; a loaded claim starts ticked when the two are already the same.
+- Logbook review: the same tick under the final diagnosis box ("Same as the
+  reason for admission"), following the reason for admission as it is
+  typed or put in with "Use the delivery message".
+
+**Went home at least a day after the delivery** (`philhealth/review_fields.py`, `templates/review.html`, `PClaimAssist/js/validation-rules.js`, `js/app.js`, `index.html`)
+- Logbook review: a "Went home" date on or before the delivery date is a
+  problem to fix before saving (it was only a warning when it was before
+  the delivery). The went-home box's quick button is now "Day after
+  delivery" instead of "Same day as admitted".
+- Forms: new rule IC-08 (block): the discharge date must be at least one
+  day after the delivery date. The "Same day as admitted" tick on Date
+  Discharged is now "The day after delivery" (on by default): the date
+  follows the delivery date; untick it to type a later date. A claim loaded
+  with its own discharge date keeps it - the tick stays on only when that
+  date is the day after delivery.
+
+**"Cabantian" a starter address word** (`database/migrations/008_address_cabantian.sql`)
+- The clinic's barangay joins "Davao" and "City" as a starter word for the
+  address column, so a close misreading in an unsure address cell
+  ("CABANTlAN", "Cabantain") is suggested as Cabantian. Only a suggestion:
+  the field stays "please check", sure readings are untouched, and other
+  barangays are left as read. Already learned from reviews here (its counts
+  are kept); the migration makes sure a fresh install has it too.
+- Two common words read as one are split (`Ocr_module/paddle_assist.py`):
+  "CASANTANDAUAO" -> "CABANTIAN DAVAO", when both halves (4+ letters each)
+  are close to common words - addresses and diagnoses only, never names.
+  A short word starting with C right after "Davao" ("CY", "CTY") is
+  suggested as "City". "CASANTANDAUAO CY" -> "CABANTIAN DAVAO CITY".
+- Words joined by a period, comma or semicolon are matched apart
+  ("CABANNAN.DAVAOC" -> "CABANTIAN, DAVAO CITY"); "Davao" with City run on
+  ("DAVAOC", "DAUAOCY") becomes "Davao City"; and the word right before
+  "Davao"/"DC" - the barangay - matches more loosely ("CARSANTAN",
+  "CANANNAN" -> "Cabantian"). Addresses and diagnoses only; dates and times
+  are never split on punctuation.
+- These fixes are put in the box, not only hinted: an unsure, not yet
+  checked field gets them when the patient is opened
+  (`paddle_assist.fix_saved_reading`, `routes/review_routes.py`), so scans
+  read before a fix was added get it too. Fields PaddleOCR was sure of, and
+  checked patients, are left as they are.
+
+**OCR output in capitals** (`Ocr_module/logbook_pipeline.py`, `routes/review_routes.py`, `philhealth/review_fields.py`, `templates/review.html`, `PClaimAssist/js/app.js`)
+- Names and text columns (address, reason for admission, final diagnosis,
+  and any other text column) come out of the logbook reading in capitals:
+  the value the pipeline passes on, the review boxes, "Computer read" and
+  the AI's reading, the patient list, what is saved, and the claim. Typing
+  in the review turns into capitals, as on the PClaimAssist forms. Scans
+  read before this get capitals when opened, and a claim opened with "Send
+  to Forms" is put in capitals as it loads.
+- Dates, times and case numbers are left as read: their parsing turns OCR
+  look-alike letters into digits by case ("l" is 1, "b" is 6, "B" is 8).
+- `raw_text` is still stored exactly as PaddleOCR read it, for the accuracy
+  statistics and the AI's learning. A value that differs from the reading
+  only in capitals no longer counts as an edit.
+- One rule decides which columns: `review_fields.in_capitals()`.
+- Names keep only letters, spaces, hyphens and apostrophes
+  (`review_fields.clean_name_part()`): "Jr." becomes "JR", "Ma. Liza"
+  becomes "MA LIZA", and "!" and other symbols are taken out, both in what
+  the scan suggests and in what is saved. Digits the OCR put in a name are
+  dropped from the suggestion; a typed digit is still flagged to fix.
+
+**Each PIN asked once on the CSF; form-header status badges update** (`PClaimAssist/js/pin-input.js`, `index.html`, `js/app.js`)
+- The CSF's member and patient PIN each showed two rows of boxes: its own
+  per-digit row and a second set added by the PIN script. The PIN script now
+  skips a PIN that already has its own boxes.
+- The "Not started / Ready to print" badge in each form's header shared its
+  id with the dashboard's, so only the dashboard one ever changed. Both
+  update now.
+
+**Each form says what is missing and which rules are broken** (`PClaimAssist/js/app.js`, `css/style.css`)
+- At the top of each form's "Type the details here" panel (CSF, CSF 4,
+  PMRF), a notice lists what "Check for missing information" finds for that
+  form alone, updating as boxes are filled: the boxes still empty, and the
+  rules broken for it (red: must be fixed, amber: to check, each with its
+  rule code), each with "Fix this". Rules about the whole claim are counted
+  on one line that leads to the checker. With nothing left it turns green,
+  "Nothing missing on this form". It can be folded away, and stays folded.
+
+**CF4 signs & symptoms in the form's own order** (`PClaimAssist/index.html`, `css/style.css`)
+- The 36 tick boxes were in three columns read across, so the first row was
+  "Altered mental sensorium, Abdominal cramp/pain, Anorexia" while the
+  printed CF4's first row is "Altered mental sensorium, Diarrhea,
+  Hematemesis, Palpitations". They are now the form's 4 columns of 9, read
+  down each column; in a narrower panel the same columns go two by two
+  (1-2, then 3-4). The Pain site and Other symptoms boxes sit under their
+  tick, as on paper.
+
+**"Fix this" always lands where you can type** (`PClaimAssist/js/app.js`)
+- "Fix this" (on each form's notice and on "Check for missing information")
+  did nothing for boxes kept on a Patient details tab that was not open -
+  the dates, civil status, address, member type: the section opened but
+  the box stayed out of sight. It now opens the tab (or turns the form's
+  page) first, and lands on choice buttons too. Date Discharged, while
+  "same day as admitted" is ticked, lands on that tick. Checked on all 28
+  "Fix this" buttons of an empty patient.
+
+**No "grey boxes" note on the forms** (`PClaimAssist/js/app.js`, `css/style.css`)
+- The note "The grey boxes were filled in from Patient details. To change
+  them, open Patient details." is gone from CSF, CSF 4 and PMRF. The grey
+  boxes are still locked, and each still says where it is changed when
+  pointed at.
+
+**Patient details: the "Next step" bar only says where to go**
+  (`PClaimAssist/js/easy.js`)
+- Its "Go there" button (and "Check for missing information" once done) is
+  gone; moving between parts is done with each part's Back / Next part
+  buttons.
+
+**Save the forms one by one or together** (`PClaimAssist/index.html`, `js/pdf/pdf-overlay.js`, `js/app.js`, `css/style.css`)
+- "Check for missing information" always has the save card now: tick the
+  forms (CSF, CSF 4, PMRF - all ticked to start) and press the one button,
+  whose words follow the ticks: "Save all 3 forms as one PDF", "Save CSF +
+  CSF 4 as one PDF", or "Save CSF 4 as PDF" for one form on its own (one
+  file prints in one go). With nothing ticked it reads "Tick a form to save".
+  The card is green with "Everything is filled in" when nothing is
+  missing, and amber with "Some boxes are still empty" otherwise - a form
+  saved then prints with those boxes blank. (Before, the one button only
+  appeared once everything was filled in.)
+
+**Red marks show at once, and only where something is missing** (`PClaimAssist/js/app.js`, `js/pdf/pdf-overlay.js`, `css/style.css`)
+- Some empty boxes only turned red after something else was clicked: the
+  CSF's per-digit rows (PIN, PEN, dates - 112 boxes), a form's second page
+  after "Next page", and a course-in-the-ward line shown with "+". The red
+  marks are now worked out again whenever such boxes appear.
+- In the form preview every printable spot had a red dashed box, filled or
+  not. Now only the spots still empty are boxed in red; a filled one shows
+  just its text, so the red left on the preview is what is missing.
+
+**Logbook Reader: case number year, and the usual admission wording** (`Ocr_module/templates/review.html`, `philhealth/review_fields.py`)
+- The case number box starts with the year ("2026-"), so only the logbook's
+  number is typed; a number read without its year gets it ("6140" ->
+  "2026-6140"). The year is the admission's, if read (a page from December
+  gets last year's), else this year. Left at just "2026-", it counts as
+  empty.
+- "Use the delivery message" under Reason for admission: the same sentence
+  with blanks as on Patient details, started from what the computer read
+  in the box ("PUFT 38 2/7 WKS ... G3P2 (2102)" fills those blanks), so
+  only the rest is typed. Patient details' template now also starts from
+  the text already in its box.
+
+**The delivery message: the doctors' usual admission diagnosis, as a template** (`PClaimAssist/index.html`, `js/app.js`)
+- A claim is only made for a delivery, so the admitting diagnosis is nearly
+  always the same sentence. "Use the delivery message" under Admission
+  Diagnosis (Patient details) opens it with only its blanks to fill:
+  PUFT [39] [3]/7 wks AOG delivered via NSVD to a live term baby [boy]
+  [AGA] w/ AS of [8] & [9]; G[2]P[2] ([2][0][0][2]).
+- The blanks are filled from what is already typed where possible: weeks
+  and days of AOG from the LMP to the delivery (or admission) date, the
+  baby's sex, G, P, the term/preterm/abortion/living count and the APGAR
+  score. Red blanks must be filled before "Put this in Admission
+  Diagnosis"; it asks before replacing text already there, and fills any of
+  those fields that were still empty. CF4's Admitting Diagnosis prints it.
+- Replacing text already in the box is asked in the page ("Replace it" /
+  "Keep what is there"), not with the browser's own pop-up, and a notice
+  in the page says when the message has been put in. The Logbook Reader's
+  template asks and confirms the same way.
+
+**Dates are typed as MM/DD/YYYY everywhere** (`PClaimAssist/js/date-text.js` (new), `js/box-input.js`, `js/app.js`, `js/easy.js`, `index.html`)
+- The browser's own date boxes follow the computer's region setting. On the
+  clinic's PCs that is day/month/year, while the forms are month-day-year,
+  so a date typed as on paper (03-15-2024) became 3 December 2024 without
+  a word. Every date box is now typed as MM/DD/YYYY, with that as its
+  example: slashes go in by themselves, "3/5/2024" is understood, and a
+  date that does not exist (02/30/2024) is not taken - the box turns red
+  and says how to type it. Dates are stored and printed exactly as before.
+- The CSF's per-digit date rows (Date Signed, and the dates copied from
+  Patient details) did not take typing at all: each digit vanished as soon
+  as it was typed. They work again, show M M - D D - Y Y Y Y in the empty
+  boxes, and the copies from Patient details are locked like the rest.
+- The CF4 MM / DD / YYYY rows show their MM and DD hints again (they were
+  being cleared as "example text"), keep a date typed only in part, and
+  take a one-digit month or day ("3" is 03).
+- Checked by typing into every date box on every form (163 checks).
+
+**A name over a signature can be left for pen** (`PClaimAssist/index.html`, `js/app.js`, `js/pdf/pdf-overlay.js`, `js/pdf/overlays/csf.js`, `js/pdf/overlays/pmrf.js`)
+- Under each printed name over a signature line (CSF Parts I-V, CF4's
+  attending professional, PMRF's member) a tick box, "Leave blank - the
+  name is written by hand after printing", leaves that line empty on the
+  form and stops the box being asked for. Untick it and what was typed
+  prints again. The ticks are remembered on the computer, so they stay for
+  the next patient. CSF and PMRF are ticked separately.
+- Fixed: the member's and representative's names over the CSF Part I and
+  PMRF signature lines never printed (the lines were looking for a field
+  that does not exist instead of working the name out). They print now,
+  unless left blank.
+
+**Checking the columns before a logbook is read** (`Ocr_module/templates/review.html`, `templates/logbook_setup.html`, `logbook_setup.py`, `logbook_pipeline.py`, `routes/review_routes.py`, `routes/setup_routes.py`, `PClaimAssist/js/sidebar.js`)
+- A scan is uploaded once. The columns on its pages are found, and the
+  person is taken straight to "Check the columns": the left page, then the
+  right page, with the same stripes, lines to drag and column names as the
+  old Set up a logbook page. "Yes, read the logbook" then reads that same
+  scan with the columns as checked, and the reader shows its progress.
+- On "Check the columns" the only thing to do is drag a line onto the
+  printed line: the left/right page choice and the column names, split
+  and join below the picture are not shown there (the names stay as the
+  computer found them). The administrator's setup page keeps them.
+- Checking the columns is part of uploading the scan, not a tab of its
+  own: "Read a logbook page" keeps its three steps (1. Upload the scan,
+  2. Check the patient, 3. All patients). Leaving part-way through the
+  check and coming back, the upload step offers "Carry on checking the
+  columns" or "Choose a different scan".
+- The checked columns are used for that scan only (no template is saved,
+  and nothing has to match a saved setup any more), so any signed-in staff
+  member can do it, not only the administrator. The scan is kept on the
+  server until it has been read, then removed (or after a day, if left).
+- "Set up a logbook" is gone from the sidebar. Its page still opens at
+  `logbook-setup.html` for an administrator, but the reader no longer uses
+  saved setups.
+- Checked on the clinic's own two-page scan: reading with the checked
+  columns finds the same 12 patients, with the same names, as reading with
+  the saved setup did.
+
+**Citizenship starts as FILIPINO but can be changed** (`PClaimAssist/index.html`, `js/app.js`)
+- The Citizenship box on Patient details (and the first dependent's on
+  PMRF) is filled with FILIPINO for every new patient and for a claim that
+  has none, and can be typed over; it suggests FILIPINO, DUAL CITIZEN and
+  FOREIGN NATIONAL, the three the PMRF has boxes for. A typed or loaded
+  citizenship is never replaced. (It had been locked to FILIPINO.)
+
+**CF4 and PMRF print inside their boxes** (`PClaimAssist/js/pdf/pdf-overlay.js`, `js/pdf/overlays/cf4.js`, `js/pdf/overlays/pmrf.js`, `forms/CF4.pdf`)
+- CF4's tick marks never showed on the saved PDF. CF4.pdf is a fillable
+  form whose tick boxes paint a white square over the page, so every mark
+  the exporter drew was hidden under it. The form's own boxes are now
+  flattened into the page before anything is written, so values and marks
+  sit on top, as on CSF and PMRF.
+- Every CF4 position is now taken from the form's own editable boxes:
+  text starts just inside its box and sits on the box's middle, digits and
+  ticks are centred in their cell. Before, many values printed above, below
+  or beside their box (the HCI address under its sub-labels, the time
+  digits, the OB/GYN boxes, the signed date). The HCI address parts each go
+  in the column of their printed label.
+- PMRF values are placed in the middle of the printed cell they belong to
+  (name table, dependents, contact numbers, amendment rows), digits in the
+  middle of each PIN / date of birth / PhilSys / TIN box, and the address
+  lines under their sub-labels instead of over them.
+- Six PMRF tick boxes marked the wrong option: Single ticked the Male box,
+  Married ticked Single, Self-Earning Individual ticked Land-Based, and
+  Senior Citizen, PAMANA and Person with Disability ticked a neighbour's
+  box. Each is now matched to the box printed beside its own label.
+- Values marked to be centred (digit boxes, tick boxes, the name over a
+  signature line) were centred on screen but printed against the left edge
+  of their box. The exporter now centres them too, on all three forms.
+- The blank CF4.pdf had "28" saved in its Age box, which printed on every
+  CF4 and showed in the preview. Cleared.
+- CSF was checked the same way and already printed inside its boxes; its
+  only change is the centring above.
+
+## 2026-10-21 20:09: Staff user-testing changes and export alignment (Yutaka, `58a4a3a`)
+
+**From the clinic staff's user testing**
+- Mobile number is optional everywhere.
+- Date discharged can be ticked as the same day as admitted, which copies
+  the admission date and locks the box.
+- Manner of delivery and fetal outcome are fixed to Normal Spontaneous
+  Delivery and Live Birth; citizenship is fixed to FILIPINO.
+- Senior Citizen is gone from Member Type.
+- Monthly income shows a peso sign, on screen and on the printed PMRF.
+- The name is printed above each signature line so staff only sign.
+- CF2 is removed (as CF3 already was); the dashboard cards re-centre.
+- Admitting and discharge diagnoses are stacked full width.
+- Course in the ward and the drugs list open one line at a time, with a
+  plus to add the next and a minus to hide it; a filled line never hides.
+
+**Fixed**
+- A space could not be typed in any text box (the value was trimmed as it
+  was typed). It is now trimmed only when stored.
+- The fixed values above were blanked on load; they are re-applied on
+  load, on "Start a new patient" and after a claim is loaded.
+- MF-08 and MF-09 always reported Course in the Ward and the drugs list
+  missing; they now read the rows.
+- Read-only boxes showed grey text on grey; the text is full strength now.
+
+**Export alignment**
+- CSF and PMRF values printed about 0.7em low; their maps and the
+  preview offset now follow the exporter's baseline.
+- The "Save as PDF to print" button is back on CSF, CF4 and PMRF.
+- `SKIP_VALIDATION_FOR_EXPORT` is temporarily `true` so the layout can be
+  checked; it must go back to `false` before the defense.
+
+## 2026-10-21 16:23: The clinic's own logbook setup (adawngo, `9d41150`)
+
+- Replaces the earlier logbook setup with one made on this clinic's scan:
+  six column rules, rows 80 pixels tall (about eighteen entries a page).
+
+## 2026-10-21 12:35: Save the whole claim at once (adawngo, `47458fe`)
+
+- The four "Save as PDF to print" buttons became one on the "Check for
+  missing information" page, shown only when nothing is missing.
+- All forms go into one PDF named after the patient and the date.
+- Filling one form moved into `buildFilledPdf()`, shared by single and
+  whole-claim saves.
+
+## 2026-10-21 12:27: One page turner per form (adawngo, `000be6e`)
+
+- "Next page" / "Previous page" at the foot of the boxes; PMRF has one too.
+- The arrows above the form preview are removed.
+
+## 2026-10-21 12:20: Next page offered where the boxes run out (adawngo, `10a2179`)
+
+- On forms that keep each page's boxes separately, the last box is
+  followed by a button to page 2, which also turns the preview.
+
+## 2026-10-21 12:15: Parts of a form can be marked "Not needed" (adawngo, `cc043bf`)
+
+- Each part heading has a "Not needed" tick box that greys the part and
+  leaves it out of the missing-information count (49 parts across CSF,
+  CSF 2, CSF 4 and PMRF).
+
+## 2026-10-21 12:04: Boxes the clinic still has to type are outlined red (adawngo, `9b5770e`)
+
+- In "Type the details here", empty boxes the clinic must fill are red
+  until filled; a row of per-character boxes gets one outline.
+
+## 2026-10-21 11:55: "Fix this" lands on a box you can type in (adawngo, `0e5f918`)
+
+- "Fix this" goes to the box a person fills (on Patient details where the
+  detail belongs), including for names and tables.
+- Every empty box the checker counts is outlined red with the reason.
+
+## 2026-10-21 11:45: Dropdowns keep their choice (adawngo, `c32be30`)
+
+- Only free text is upper-cased; dropdowns, dates, times, numbers and
+  emails keep their values, so picking an option works again.
+
+## 2026-10-21 10:42: Capitals on entry, one place to type each detail (adawngo, `a660bcf`)
+
+- Typed values are stored and shown in capital letters (emails excepted).
+- Ninety boxes repeated on the forms from Patient details are now
+  read-only copies, each form saying where to change them.
+- PIN and date box rows now refresh when a value is copied, loaded or read
+  from a scan (they used to stay blank).
+
+## 2026-10-21 10:04: CF3 removed (adawngo, `3b48e87`)
+
+- The CF3 form, PDF, overlay map, page section, sidebar entry, validation
+  rules and the 129 fields only it collected are gone. Fields CF3 shared
+  with other forms stay.
+- The prenatal-visit and postpartum-care tables stay in the database
+  schema, though nothing writes to them any more.
+
+## 2026-10-21: Merged reigh/logbook-setup-and-speed (PR #7, `96e0523`)
+
 ## 2026-10-21 02:40: UI update (reigh)
 
 - Changed: style.css, index.html, app.js, auth-client.js, claim-loader.js, ocr.js, sidebar.js, validation-rules.js, login.html, ocr.html

@@ -210,9 +210,9 @@ if (window.top !== window.self) document.documentElement.classList.add('embedded
         <!-- Steps 2-3: check one page -->
         <section class="card" id="stepCheck" hidden>
             <h2 id="checkTitle" tabindex="-1"></h2>
-            <p class="muted">Each coloured stripe should cover one column. A line in the wrong place:
+            <p class="muted" id="checkHelp">Each coloured stripe should cover one column. A line in the wrong place:
                 drag it onto the printed line. A wrong name: change it below the picture.</p>
-            <div class="side-choice" role="radiogroup" aria-label="Which page is this">
+            <div class="side-choice" id="sideChoice" role="radiogroup" aria-label="Which page is this">
                 <span class="label">This is the:</span>
                 <label><input type="radio" name="side" value="left"> Left page</label>
                 <label><input type="radio" name="side" value="right"> Right page</label>
@@ -257,12 +257,19 @@ if (window.top !== window.self) document.documentElement.classList.add('embedded
         </div>
     </div>
 
-    <p class="footer-link muted">For technical staff: <a href="/ocr-workspace" target="_top">the advanced calibration tool</a>.</p>
+    <p class="footer-link muted" id="advancedLink">For technical staff: <a href="/ocr-workspace" target="_top">the advanced calibration tool</a>.</p>
 </main>
 
 <script>
 const SIDES = {{ sides | tojson }};
 const REQUIRED = {{ required | tojson }};
+// Set when this page is step 2 of reading a logbook (/logbook-setup?check=<id>):
+// the scan was uploaded on the Logbook Reader (review.html), its columns are
+// checked here, and then that same scan is read - nothing is saved as a setup.
+const CHECK_ID = {{ check_id | tojson }};
+// The Logbook Reader's memory in this browser (review.html STORE_KEY): the
+// reading job is handed back to it there.
+const READER_STORE = "pclaimassist.logbookReader";
 // Column colours: strong enough to see on paper, each with white text.
 const COLORS = ["#1d4ed8", "#b45309", "#047857", "#7c3aed", "#be123c", "#0e7490", "#4d7c0f"];
 const SNAP = 0.02;      // a moved line jumps onto a printed line this close (share of page width)
@@ -294,6 +301,10 @@ async function getJson(url, options){
 async function checkAccess(){
     try{
         const me = await getJson("/api/auth/me");
+        if(CHECK_ID){
+            openCheck();
+            return;
+        }
         if(me.user.role !== "admin"){
             showGate("Only the clinic administrator can set up a logbook.",
                      "Ask your administrator to do this. To read a scan, go to <a href=\"/ocr.html\" target=\"_top\">Read a logbook page</a>.");
@@ -309,6 +320,69 @@ async function checkAccess(){
 function showGate(title, text){
     $("gate").innerHTML = `<strong>${escapeHtml(title)}</strong>${text}`;
     $("gate").hidden = false;
+}
+
+/* ── Step 2 of reading a logbook: check this scan's columns ── */
+function readerMemory(changes){
+    try{
+        const memory = JSON.parse(localStorage.getItem(READER_STORE)) || {};
+        localStorage.setItem(READER_STORE, JSON.stringify({...memory, ...changes}));
+    }catch(_){ /* storage off - the reader starts fresh */ }
+}
+function backToReader(){
+    window.location.href = "/review";
+}
+async function openCheck(){
+    $("advancedLink").hidden = true;
+    // Reading a scan, the person only moves the lines: the page's side and
+    // the column names stay as the computer found them.
+    $("sideChoice").hidden = true;
+    $("columnList").hidden = true;
+    $("checkHelp").textContent = "Each coloured stripe should cover one column. " +
+        "If a line is in the wrong place, drag it onto the printed line.";
+    try{
+        setup = await getJson(`/api/logbook-setup/${encodeURIComponent(CHECK_ID)}`);
+    }catch(error){
+        readerMemory({checkSetup: null});
+        showGate(error.message, '<a href="/review">Go back and upload the scan again</a>.');
+        return;
+    }
+    // With no side choice on screen, two pages found as the same side would
+    // leave no way forward: a two-page scan is the left page, then the right.
+    if(setup.pages.length === 2 && setup.pages[0].side === setup.pages[1].side){
+        ["left", "right"].forEach((side, i) => {
+            const page = setup.pages[i];
+            if(page.side === side) return;
+            page.side = side;
+            const names = SIDES[side].map(o => o.value);
+            page.categories = page.categories.map((_, k) => names[k] || "");
+        });
+    }
+    $("app").hidden = false;
+    step = 1;
+    render();
+}
+async function readCheckedScan(){
+    $("okBtn").disabled = true;
+    $("okBtn").textContent = "Starting to read…";
+    try{
+        const started = await getJson("/api/review/jobs/checked", {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({
+                setup_id:setup.setup_id,
+                pages:setup.pages.map(p => ({index:p.index, side:p.side, lines:p.lines, categories:p.categories})),
+            }),
+        });
+        // The reader follows the job from here, as for any scan it reads.
+        readerMemory({checkSetup: null, jobId: started.job_id, uploadId: null, current: null,
+                      field: 0, drafts: {}, tab: "upload"});
+        backToReader();
+    }catch(error){
+        showPage(step - 1);   // puts the button back
+        $("problems").innerHTML = `<strong>The logbook could not be read</strong>${escapeHtml(error.message)}`;
+        $("problems").hidden = false;
+    }
 }
 
 async function loadInUse(){
@@ -330,12 +404,21 @@ function pageTitle(index){
 }
 function render(){
     const n = pageCount();
-    const names = ["Choose the scan"];
-    for(let i = 0; i < n; i++) names.push(pageTitle(i));
-    names.push("Save");
-    $("steps").innerHTML = names.map((name, i) =>
-        `<li ${i === step ? 'aria-current="step"' : ""} class="${i < step ? "done" : ""}">
-            <span class="num">${i < step ? "✓" : i + 1}</span>${escapeHtml(name)}</li>`).join("");
+    if(CHECK_ID){
+        // The Logbook Reader's own steps: checking the columns is part of
+        // uploading the scan, not a step of its own.
+        const names = ["Upload the scan", "Check the patient", "All patients"];
+        $("steps").innerHTML = names.map((name, i) =>
+            `<li ${i === 0 ? 'aria-current="step"' : ""}>
+                <span class="num">${i + 1}</span>${escapeHtml(name)}</li>`).join("");
+    }else{
+        const names = ["Choose the scan"];
+        for(let i = 0; i < n; i++) names.push(pageTitle(i));
+        names.push("Save");
+        $("steps").innerHTML = names.map((name, i) =>
+            `<li ${i === step ? 'aria-current="step"' : ""} class="${i < step ? "done" : ""}">
+                <span class="num">${i < step ? "✓" : i + 1}</span>${escapeHtml(name)}</li>`).join("");
+    }
     $("stepChoose").hidden = step !== 0;
     $("stepCheck").hidden = !(step >= 1 && step <= n);
     $("stepSave").hidden = step !== n + 1;
@@ -384,12 +467,17 @@ let current = null;  // the page being checked
 
 function showPage(index){
     current = setup.pages[index];
-    $("checkTitle").textContent = `Step ${index + 2}: ${pageTitle(index)}`;
+    const last = index === pageCount() - 1;
+    $("checkTitle").textContent = CHECK_ID
+        ? `${pageTitle(index)}${pageCount() > 1 ? ` (${index + 1} of ${pageCount()})` : ""}`
+        : `Step ${index + 2}: ${pageTitle(index)}`;
     document.querySelectorAll('input[name="side"]').forEach(r => { r.checked = r.value === current.side; });
     const img = $("pageImg");
     const src = `/api/logbook-setup/${setup.setup_id}/${current.picture}`;
     if(img.getAttribute("src") !== src) img.src = src;
-    $("okBtn").textContent = index === pageCount() - 1 ? "Yes, this page is right" : "Yes, this page is right → next page";
+    $("okBtn").textContent = !last ? "Yes, this page is right → next page"
+        : CHECK_ID ? "Yes, read the logbook" : "Yes, this page is right";
+    $("backBtn").textContent = CHECK_ID && index === 0 ? "Choose a different scan" : "Back";
     drawPage();
 }
 
@@ -438,6 +526,12 @@ function drawList(){
 function checkProblems(){
     const page = current;
     const problems = [];
+    if(CHECK_ID){
+        // Names can't be changed here, so they are not asked about.
+        $("problems").hidden = true;
+        $("okBtn").disabled = false;
+        return;
+    }
     const named = page.categories.filter(Boolean);
     const twice = named.filter((c, i) => named.indexOf(c) !== i);
     document.querySelectorAll("#columnList li").forEach(li => {
@@ -554,12 +648,23 @@ document.querySelectorAll('input[name="side"]').forEach(radio => radio.addEventL
     render();
 }));
 
-$("backBtn").addEventListener("click", () => go(step - 1));
+$("backBtn").addEventListener("click", () => {
+    if(CHECK_ID && step === 1){
+        readerMemory({checkSetup: null});
+        backToReader();
+        return;
+    }
+    go(step - 1);
+});
 $("okBtn").addEventListener("click", () => {
     const sides = setup.pages.map(p => p.side);
     if(step === pageCount() && new Set(sides).size !== sides.length){
         $("problems").innerHTML = "<strong>Please fix this first</strong>Both pages are marked as the same side. One must be the left page and one the right.";
         $("problems").hidden = false;
+        return;
+    }
+    if(CHECK_ID && step === pageCount()){
+        readCheckedScan();
         return;
     }
     go(step + 1);

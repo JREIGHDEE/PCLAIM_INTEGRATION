@@ -377,7 +377,7 @@ def _read_batch(batch_ocr_fn, crops):
 
 
 def build_review_rows(path, ocr_fn, templates, upload_id=None, progress=None, corrector=None,
-                      batch_ocr_fn=None):
+                      batch_ocr_fn=None, page_templates=None):
     """Run steps 1-7 on one uploaded file. No database access.
 
     ocr_fn(image) -> [{"text", "confidence"}, ...]   (ocr_engine.extract_text_from_array)
@@ -386,7 +386,11 @@ def build_review_rows(path, ocr_fn, templates, upload_id=None, progress=None, co
                      read with ocr_fn one at a time without it, or if a
                      batch fails
     templates     -> saved grid template payloads    (template_store.load_template_payloads)
-    corrector     -> optional AI second look (paddle_assist.make_corrector),
+    page_templates-> optional {page index: template} the person checked on
+                     this very scan (logbook_setup.checked_templates): those
+                     pages use it as is, with no matching; any later page
+                     is matched against them instead of `templates`
+    corrector    -> optional AI second look (paddle_assist.make_corrector),
                      called once as corrector([(field, crop), ...], progress=
                      fn(message, fraction)) with the fields Paddle was unsure
                      about; updates them in place
@@ -437,15 +441,19 @@ def build_review_rows(path, ocr_fn, templates, upload_id=None, progress=None, co
         page_reports.append(report)
 
         rules = detect_ruling_lines(image)
-        template, score = match_templates(templates, analyze_document_layout(image), page_parity=parity,
-                                          vertical_rules=rules["vertical"])
+        if page_templates and page_index in page_templates:
+            template, score = page_templates[page_index], 1.0
+        else:
+            template, score = match_templates(list(page_templates.values()) if page_templates else templates,
+                                              analyze_document_layout(image), page_parity=parity,
+                                              vertical_rules=rules["vertical"])
         report["match_score"] = score
         if template is None or score is None or score < config.TEMPLATE_MATCH_THRESHOLD:
             report["error"] = (
                 "No logbook setup matches this page's printed columns "
                 f"(best score {score or 0:.2f}, needs {config.TEMPLATE_MATCH_THRESHOLD:.2f}). "
-                "If the scan is clear and straight, this logbook has a different "
-                "layout: set it up once on the Set up a logbook page."
+                "If the scan is clear and straight, upload it again and check "
+                "this page's columns before it is read."
             )
             carried_rows = carried_rules = None
             continue
@@ -548,6 +556,11 @@ def build_review_rows(path, ocr_fn, templates, upload_id=None, progress=None, co
                   progress=lambda message, fraction: report_progress(
                       read_share + (1 - read_share) * fraction, message))
     fill_best_guesses(rows)
+    # raw_text stays exactly as PaddleOCR read it (accuracy statistics, the
+    # AI's learning); the value passed on is in form capitals.
+    for row in rows:
+        for field in row["fields"]:
+            field["value"] = review_fields.in_capitals(field["category"], field["value"])
     _save_row_crops(rows, row_strips, upload_id)
     for report in page_reports:
         if report["error"]:
@@ -683,8 +696,9 @@ def apply_review(ocr_data, submitted_values, defer_manual=False, submitted_parts
             # here or on the forms.
             field["marked_empty"] = review_fields.is_marked_empty(field["parts"])
         if category in submitted_values:
-            new_value = str(submitted_values[category] or "").strip()
-            field["edited"] = new_value != (field.get("raw_text") or "")
+            new_value = review_fields.in_capitals(category, str(submitted_values[category] or "").strip())
+            # Capitals alone are not an edit - the reading is shown in them.
+            field["edited"] = new_value != review_fields.in_capitals(category, field.get("raw_text") or "")
             field["value"] = new_value
         blank = not str(field.get("value") or "").strip()
         field["deferred_to_forms"] = False

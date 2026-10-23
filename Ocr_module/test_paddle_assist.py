@@ -335,6 +335,45 @@ class CommonEntryTests(unittest.TestCase):
         model = _with_entries(("ADDRESS", WORD, "Calinan", 0, 1))
         self.assertEqual(model.correct("ADDRESS", "Calinon")[0], "Calinon")
 
+    def test_two_common_words_read_as_one_are_split(self):
+        model = _with_entries(("ADDRESS", WORD, "Cabantian", 0, 5), ("ADDRESS", WORD, "Davao", 0, 5),
+                              ("ADDRESS", WORD, "City", 0, 5))
+        text, notes, _ = model.correct("ADDRESS", "CASANTANDAUAO CY")
+        self.assertEqual(text, "CABANTIAN DAVAO CITY")
+        self.assertIn("run together", notes[0])
+
+    def test_unknown_word_is_not_split(self):
+        model = _with_entries(("ADDRESS", WORD, "Cabantian", 0, 5), ("ADDRESS", WORD, "Davao", 0, 5))
+        self.assertEqual(model.correct("ADDRESS", "EMILY HOMES TIGATTO")[0], "EMILY HOMES TIGATTO")
+
+    def test_names_are_never_split(self):
+        model = _with_entries(("NAME", WORD, "Maria", 0, 5), ("NAME", WORD, "Santos", 0, 5))
+        self.assertEqual(model.correct("NAME", "MARIASANTOS")[0], "MARIASANTOS")
+
+    def test_short_city_only_after_davao(self):
+        model = _with_entries(("ADDRESS", WORD, "Davao", 0, 5))
+        self.assertEqual(model.correct("ADDRESS", "Davao Cty")[0], "Davao City")
+        self.assertEqual(model.correct("ADDRESS", "Purok 3 CY")[0], "Purok 3 CY")
+        self.assertEqual(model.correct("ADDRESS", "DAVAO CITY")[1], [])
+
+    def test_words_joined_by_punctuation_are_matched_apart(self):
+        model = _with_entries(("ADDRESS", WORD, "Cabantian", 0, 5), ("ADDRESS", WORD, "Davao", 0, 5))
+        self.assertEqual(model.correct("ADDRESS", "SUKAMA HN CABANNAN.DAVAOC")[0],
+                         "SUKAMA HN CABANTIAN, DAVAO CITY")
+        self.assertEqual(model.correct("ADDRESS", "PUROK 7 INDANGAM,DAAO CIY")[0],
+                         "PUROK 7 INDANGAM, DAVAO CITY")
+
+    def test_barangay_before_davao_matches_more_loosely(self):
+        model = _with_entries(("ADDRESS", WORD, "Cabantian", 0, 5), ("ADDRESS", WORD, "Davao", 0, 5))
+        self.assertEqual(model.correct("ADDRESS", "EMILY HOMES CARSANTAN,DC")[0], "EMILY HOMES CABANTIAN, DC")
+        self.assertEqual(model.correct("ADDRESS", "NH CANANNAN DAVAO CIM")[0], "NH CABANTIAN DAVAO CITY")
+        # Not before Davao: the usual, stricter match - left as read.
+        self.assertEqual(model.correct("ADDRESS", "CARSANTAN PUROK 3")[0], "CARSANTAN PUROK 3")
+
+    def test_dates_and_times_are_not_split_on_punctuation(self):
+        model = _with_entries(("ADDRESS", WORD, "Davao", 0, 5))
+        self.assertEqual(model.correct("DATE & TIME OF ADMISSION", "06/23/26 11:15am")[0], "06/23/26 11:15am")
+
     def test_far_away_words_are_left_alone(self):
         model = _with_entries(("ADDRESS", WORD, "Calinan", 0, 9))
         self.assertEqual(model.correct("ADDRESS", "Catalunan")[0], "Catalunan")

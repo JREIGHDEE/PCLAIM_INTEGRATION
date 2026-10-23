@@ -1563,8 +1563,10 @@ body {
     max-height: none;
   }
 }
-/* Debug guide only — REMOVE BEFORE CAPSTONE DEFENSE */
-.pdf-field {
+/* Where the form still has a blank: a red box around each spot not yet
+   filled in. Once a value is in it, the box goes and only the text shows,
+   so the red left on the preview is what is still missing. */
+.pdf-field:not(.pdf-field--filled) {
   border: 1px dashed red !important;
   background-color: rgba(255, 0, 0, 0.1) !important;
 }
@@ -2317,24 +2319,6 @@ textarea[data-keep-case] {
    not editable: the one place to type them is Patient details
    (see markPatientOwnedFields in js/app.js).
 ══════════════════════════════════════════════════════════ */
-.from-patient-note {
-  display: flex;
-  gap: .55rem;
-  align-items: flex-start;
-  margin: 0 0 1.1rem;
-  padding: .7rem .85rem;
-  border: 1px solid #bcd9f2;
-  border-left: 3px solid #2f80c9;
-  border-radius: .5rem;
-  background: #f3f9ff;
-  color: #1f3c55;
-  font-size: .92rem;
-  line-height: 1.45;
-}
-.from-patient-note i { color: #2f80c9; margin-top: .12rem; }
-.from-patient-link { color: #1b6fb8; font-weight: 600; text-decoration: underline; }
-.from-patient-link:hover { color: #114d81; }
-
 input.from-patient-details,
 textarea.from-patient-details,
 select.from-patient-details {
@@ -2522,6 +2506,61 @@ textarea.from-patient-details:focus {
 }
 .export-all-sub { font-size: .92rem; color: #4a6353; margin-top: .15rem; }
 .btn-export--all { font-size: 1rem; padding: .7rem 1.3rem; }
+/* CF4 "3. Pertinent Signs & Symptoms": the printed form's 4 columns of 9,
+   read down each column - when the panel is wide enough for them. In a
+   narrower panel the same columns go two by two (1-2, then 3-4), so the
+   order stays the paper's and no label is squeezed. Sized by the panel's
+   own width, not the window's: the panel shares the screen with the preview. */
+:has(> .symptom-grid) { container-type: inline-size; }
+.symptom-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem 1.25rem; }
+@container (min-width: 720px) { .symptom-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.symptom-col { display: flex; flex-direction: column; gap: .15rem; padding-top: .25rem; border-top: 2px solid #e2e8f0; }
+.symptom-col .form-check { margin-bottom: 0; }
+.symptom-inline { display: block; margin: 0 0 .35rem 1.6rem; font-size: .78rem; font-weight: 600; color: #64748b; }
+.symptom-inline .form-control { margin-top: .15rem; padding: .3rem .5rem; font-size: .9rem; }
+
+/* On each form: what is missing and which rules are broken (renderFormIssues). */
+.form-issues { margin: 0; border-bottom: 1px solid #f1d48a; background: #fffbeb; font-size: .9rem; }
+.form-issues > summary { display: flex; align-items: center; gap: .5rem; padding: .6rem 1rem;
+  cursor: pointer; font-weight: 700; color: #854d0e; list-style: none; }
+.form-issues > summary::-webkit-details-marker { display: none; }
+.form-issues > summary::after { content: "\F282"; font-family: "bootstrap-icons"; margin-left: auto; transition: transform .2s; }
+.form-issues[open] > summary::after { transform: rotate(180deg); }
+.form-issues--critical { background: #fef2f2; border-bottom-color: #fecaca; }
+.form-issues--critical > summary { color: #991b1b; }
+.form-issues--clean { background: #f0fdf4; border-bottom-color: #bbf7d0; }
+.form-issues--clean > summary { color: #166534; cursor: default; }
+.form-issues--clean > summary::after { content: none; }
+.form-issue-list { list-style: none; margin: 0; padding: 0 .75rem .5rem; max-height: 220px; overflow-y: auto; }
+.form-issue { display: flex; align-items: flex-start; gap: .5rem; padding: .4rem .25rem; border-top: 1px solid rgba(0,0,0,.06); }
+.form-issue > span { flex: 1; }
+.form-issue code { font-size: .75rem; color: #64748b; margin-right: .25rem; }
+.form-issue--critical > .bi { color: #dc2626; margin-top: .15rem; }
+.form-issue--warning > .bi { color: #ca8a04; margin-top: .15rem; }
+.form-issue--missing > .bi { color: #b45309; margin-top: .15rem; }
+.form-issue-fix { flex: none; font-size: .8rem; font-weight: 700; padding: .2rem .6rem; border-radius: 6px;
+  border: 1px solid #2563eb; background: #fff; color: #1d4ed8; }
+.form-issue-fix:hover { background: #eff6ff; }
+.form-issues-general { margin: 0; padding: 0 1rem .6rem; color: #64748b; }
+
+/* Still missing something: the same card, in the "please check" colours. */
+.export-all-card.export-all-card--missing { border-color: #f1d48a; border-left-color: #ca8a04; background: #fffbeb; }
+.export-all-card--missing .export-all-title { color: #854d0e; }
+/* Heading on its own line; the form chips and the one save button below it. */
+.export-all-card .export-all-text { flex: 1 1 100%; }
+.export-form-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .5rem; flex: 1 1 auto; }
+/* A form to include: a pill that is ticked (filled) or not (outlined). */
+.export-chip { position: relative; display: inline-flex; align-items: center; gap: .35rem; margin: 0;
+  padding: .5rem 1rem; border: 2px solid #2e9e55; border-radius: 999px; background: #fff;
+  color: #1d6b38; font-weight: 700; cursor: pointer; user-select: none; }
+.export-chip input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.export-chip .bi-check-lg { display: none; }
+.export-chip:has(input:checked) { background: #2e9e55; color: #fff; }
+.export-chip:has(input:checked) .bi-check-lg { display: inline-block; }
+.export-chip:has(input:focus-visible) { outline: 3px solid #f59e0b; outline-offset: 2px; }
+.export-all-card--missing .export-chip { border-color: #ca8a04; color: #854d0e; }
+.export-all-card--missing .export-chip:has(input:checked) { background: #ca8a04; color: #fff; }
+.btn-export--all:disabled { opacity: .55; cursor: not-allowed; }
 
 /* A value this clinic never changes (citizenship, manner of delivery,
    fetal outcome) or one copied from another field (discharge date when

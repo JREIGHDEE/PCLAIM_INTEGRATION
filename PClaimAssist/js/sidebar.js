@@ -33,9 +33,8 @@ const PCA_SIDEBAR = [
   ]},
   { label: 'Clinic', items: [
     { key: 'settings',   icon: 'bi-hospital',        text: 'Clinic Details', role: 'admin' },
-    // Once per kind of logbook, so new scans are read by themselves.
-    { key: 'logbook-setup', icon: 'bi-layout-three-columns', text: 'Set up a logbook',
-      href: 'logbook-setup.html', role: 'admin' },
+    // No "Set up a logbook" item: every scan's columns are checked as
+    // step 2 of "Read a logbook page" (Ocr_module/templates/review.html).
   ]},
 ];
 

@@ -37,6 +37,7 @@ PaddleOCR result as it was. PaddleOCR's own reading stays on every field
 """
 import logging
 import re
+import time
 from collections import Counter, defaultdict
 from difflib import SequenceMatcher
 
@@ -73,6 +74,13 @@ _WORD_MATCH = 0.8
 _VALUE_MATCH = 0.85
 _MIN_ENTRY_WEIGHT = 2
 _WORD_RE = re.compile(r"^[^\W\d_]{3,}$", re.UNICODE)  # 3+ letters, no digits
+# Each half of two words read as one must be this long ("CASANTAN|DAUAO").
+_SPLIT_MIN = 4
+# Looser match for the word right before "Davao" / "DC" - the barangay
+# ("CARSANTAN" -> "Cabantian").
+_BEFORE_CITY_MATCH = 0.7
+# "City" shortened or misread right after "Davao": "CY", "CTY", "C1TY".
+_CITY_SHORT = re.compile(r"^C[A-Z0-9]{0,3}$")
 
 # Columns whose values are digits and separators - where single-character
 # confusions can be fixed safely.
@@ -198,6 +206,36 @@ def _split_edges(word):
         return "", word, ""
     start = word.index(core)
     return word[:start], core, word[start + len(core):]
+
+
+def _words_and_gaps(category, text):
+    """text -> (words, the gaps between them). Addresses and diagnoses are
+    also split where a period, comma or semicolon joins two words with no
+    space ("CABANNAN.DAVAOC"); that gap becomes ", ". Other columns split on
+    spaces only, so a date or time ("11:15") is never taken apart."""
+    if category not in _VALUE_ENTRY_CATEGORIES:
+        words = text.split(" ")
+        return words, [" "] * (len(words) - 1)
+    pieces = re.split(r"(\s+|(?<=[^\W\d_])[.,;]+(?=[^\W\d_]))", text, flags=re.UNICODE)
+    words, gaps = pieces[0::2], pieces[1::2]
+    return words, [gap if gap.isspace() else ", " for gap in gaps]
+
+
+def _is_davao(word):
+    """'DAVAO', a close misreading ('DAUAO', 'DAAO'), or 'DC'."""
+    word = word.upper()
+    return word == "DC" or word.startswith("DAVAO") or SequenceMatcher(None, word, "DAVAO").ratio() >= _WORD_MATCH
+
+
+def _davao_city(word):
+    """'DAVAOC', 'DAUAOCY', 'DAVAOCITY': Davao with City run onto it."""
+    word = word.upper()
+    for cut in range(4, min(len(word), 7)):
+        left, right = word[:cut], word[cut:]
+        if ((right == "CITY" or _CITY_SHORT.match(right))
+                and SequenceMatcher(None, left, "DAVAO").ratio() >= _WORD_MATCH):
+            return True
+    return False
 
 
 def extract_patterns(category, raw, final):
@@ -402,6 +440,30 @@ class CorrectionModel:
                 best = ((score, weight), shown)
         return (best[1], best[0][1]) if best else None
 
+    def _split_run_together(self, category, word):
+        """Two common words read as one ("CASANTANDAUAO" -> ("Cabantian",
+        "Davao")), or None. Both halves must be close to a common word and
+        at least _SPLIT_MIN letters long, so a real word that is simply not
+        in the vocabulary is left as read."""
+        known = self.entries.get((category, WORD)) or {}
+
+        def match(part):
+            if part.upper() in known:
+                return known[part.upper()][0], 1.0
+            found = self._closest_entry(category, WORD, part, _WORD_MATCH)
+            if not found:
+                return None
+            return found[0], SequenceMatcher(None, part.upper(), found[0].upper()).ratio()
+
+        best = None
+        for cut in range(_SPLIT_MIN, len(word) - _SPLIT_MIN + 1):
+            left, right = match(word[:cut]), match(word[cut:])
+            if left and right:
+                score = min(left[1], right[1])
+                if best is None or score > best[0]:
+                    best = (score, (left[0], right[0]))
+        return best[1] if best else None
+
     def add(self, category, pattern_type, wrong, correct, count=1):
         self.patterns[pattern_type][(category, wrong)][correct] += count
         self.examples += count
@@ -454,19 +516,40 @@ class CorrectionModel:
         if common:
             return common[0], [f"close to a common entry, '{common[0]}' (entered {common[1]} times)"], False
 
-        notes, words = [], []
-        for word in text.split(" "):
+        notes = []
+        words, gaps = _words_and_gaps(category, text)
+        cores = [_split_edges(word)[1].upper() for word in words]
+        previous = ""
+        for i, word in enumerate(words):
             before, core, after = _split_edges(word)
+            address = category == "ADDRESS"
             fixed = self._best(WORD, category, core.upper(), core) if core else None
             if fixed:
                 notes.append(f"'{core}' -> '{fixed}'")
+            elif (address and previous == "DAVAO" and core.upper() != "CITY"
+                  and _CITY_SHORT.match(core.upper())):
+                fixed = _match_case(core, "City")
+                notes.append(f"'{core}' -> '{fixed}' (after Davao)")
+            elif address and _davao_city(core):
+                fixed = _match_case(core, "Davao City")
+                notes.append(f"'{core}' -> '{fixed}' (Davao City run together)")
             elif _WORD_RE.match(core):
-                common = self._closest_entry(category, WORD, core, _WORD_MATCH)
+                # The word just before "Davao" / "DC" is nearly always the
+                # barangay, so a looser match is enough there.
+                before_city = address and i + 1 < len(cores) and _is_davao(cores[i + 1])
+                common = self._closest_entry(category, WORD, core,
+                                             _BEFORE_CITY_MATCH if before_city else _WORD_MATCH)
                 if common:
                     fixed = _match_case(core, common[0])
                     notes.append(f"'{core}' -> '{fixed}' (common entry)")
-            words.append(before + (fixed or core) + after)
-        text = " ".join(words)
+                elif category in _VALUE_ENTRY_CATEGORIES:
+                    split = self._split_run_together(category, core)
+                    if split:
+                        fixed = " ".join(_match_case(core, part) for part in split)
+                        notes.append(f"'{core}' -> '{fixed}' (two common entries run together)")
+            words[i] = before + (fixed or core) + after
+            previous = (fixed or core).split(" ")[-1].upper()
+        text = "".join(word + gap for word, gap in zip(words, gaps + [""]))
 
         return self._fix_chars(category, text, notes), notes, False
 
@@ -484,6 +567,27 @@ class CorrectionModel:
                 notes.append(f"'{char}' -> '{fixed}'")
             chars.append(fixed or char)
         return "".join(chars)
+
+
+_CACHED = {"model": None, "at": 0.0}
+_CACHE_SECONDS = 300
+
+
+def fix_saved_reading(category, text):
+    """A reading saved before the current rules, with the known fixes
+    applied - so scans read earlier get the fixes added since when they are
+    opened for checking. Address and diagnosis columns only (names are never
+    pre-filled from common entries); the model is rebuilt every few minutes
+    to pick up what reviews have taught. Any failure returns the text as is."""
+    if not text or category not in _VALUE_ENTRY_CATEGORIES or not config.AI_CORRECTION_ENABLED:
+        return text
+    try:
+        if _CACHED["model"] is None or time.monotonic() - _CACHED["at"] > _CACHE_SECONDS:
+            _CACHED["model"], _CACHED["at"] = load_model(), time.monotonic()
+        return _CACHED["model"].correct(category, text)[0]
+    except Exception:
+        logger.exception("Could not apply the known fixes to a saved %s reading", category)
+        return text
 
 
 def load_model():

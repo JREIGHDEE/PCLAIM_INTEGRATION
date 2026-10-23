@@ -146,6 +146,8 @@ function syncEntryPanelPageGroups(formKey, pageNum) {
     group.hidden = Number(group.dataset.pdfPage) !== pageNum;
   });
   renderEntryPageNav(panel, formKey, pageNum);
+  // The page's boxes were out of sight until now, so they were not marked.
+  if (typeof refreshRedMarksSoon === 'function') refreshRedMarksSoon();
 }
 
 /* ── A page turner at the foot of "Type the details here" ──
@@ -293,6 +295,9 @@ function scaleOverlayFonts(formKey) {
 function resolveOverlayFieldValue(f) {
   const data = window.state?.data || {};
 
+  // A name to be written by hand after printing ("Leave blank", js/app.js).
+  if (window.PCA_HANDWRITTEN && window.PCA_HANDWRITTEN.has(f.id)) return '';
+
   if (f.checkbox) {
     const raw = data[f.key];
     const match = f.checkValue !== undefined ? raw === f.checkValue : !!raw;
@@ -405,6 +410,32 @@ function needsRedraw(formKey) {
       || (window.devicePixelRatio || 1) !== st.drawnDpr;
 }
 
+/* ── Fillable PDFs: bake the empty boxes into the page ──────
+   CF4.pdf is a fillable form. Its boxes are form fields that sit ABOVE
+   the page, and its tick boxes paint a white square - so every value the
+   exporter draws on the page was hidden under (or printed beside) the
+   box it belonged in. The blank form also came with stale values saved
+   in it ("28" in Age). Clear those and flatten the fields into the page
+   first; the values are then drawn on top, like CSF and PMRF. */
+function flattenBlankForm(pdfDoc) {
+  const form = pdfDoc.getForm();
+  const fields = form.getFields();
+  if (!fields.length) return;
+  fields.forEach(field => {
+    if (field instanceof PDFLib.PDFTextField) field.setText('');
+  });
+  form.flatten();
+  // flatten() deletes every widget but leaves a few that share a field
+  // name listed in their page's /Annots, pointing at nothing; drop those.
+  pdfDoc.getPages().forEach(page => {
+    const annots = page.node.Annots();
+    if (!annots) return;
+    for (let i = annots.size() - 1; i >= 0; i--) {
+      if (!pdfDoc.context.lookup(annots.get(i))) annots.remove(i);
+    }
+  });
+}
+
 /* ── Export: filled PDF via pdf-lib ─────────────────────── */
 /* One form, filled: the blank PDF with every overlay value drawn on it.
    Used for saving a single form and for putting all of them into one
@@ -415,6 +446,7 @@ async function buildFilledPdf(formKey) {
     return r.arrayBuffer();
   });
   const pdfDoc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
+    flattenBlankForm(pdfDoc);
     const pages = pdfDoc.getPages();
     const { StandardFonts } = PDFLib;
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -435,7 +467,12 @@ async function buildFilledPdf(formKey) {
       const baselineOffset = 6; // Increase this to push text further down when printing
       const y = height - ((f.top / 100) * height) - baselineOffset;
       const fs = f.fs || 7;
-      const x = (f.left / 100) * width;
+      const boxW = (f.w / 100) * width;
+      // `center` fields (digit cells, tick boxes, a name over a signature
+      // line) are centred in the preview by CSS; centre them here too, or
+      // every one of them prints hugging the left edge of its box.
+      const textW = f.center ? font.widthOfTextAtSize(safeVal, fs) : 0;
+      const x = (f.left / 100) * width + (f.center ? Math.max(0, (boxW - textW) / 2) : 0);
 
       pg.drawText(safeVal, {
         x: x,
@@ -443,7 +480,7 @@ async function buildFilledPdf(formKey) {
         size: fs,
         font: font,
         color: PDFLib.rgb(0, 0, 0),
-        maxWidth: (f.w / 100) * width,
+        maxWidth: boxW,
         lineHeight: fs + 1,
       });
     });
@@ -451,7 +488,9 @@ async function buildFilledPdf(formKey) {
   return pdfDoc;
 }
 
-async function exportFilledPDF(formKey) {
+/* `button`: the one pressed - the form's own "Save as PDF to print", or its
+   line on the "Check for missing information" page. */
+async function exportFilledPDF(formKey, button) {
   if (!window.PDFLib) {
     showToast('Cannot make the PDF right now', 'Check that the computer is connected to the internet, then reload the page.', 'danger');
     return;
@@ -468,7 +507,8 @@ async function exportFilledPDF(formKey) {
     if (typeof navigateTo === 'function') navigateTo('validation');
     return;
   }
-  const btn = document.getElementById('export-' + formKey + '-btn');
+  const btn = button || document.getElementById('export-' + formKey + '-btn');
+  const label = btn ? btn.innerHTML : '';
   if (btn) { btn.disabled = true; btn.textContent = 'Making the PDF, please wait…'; }
 
   try {
@@ -489,7 +529,7 @@ async function exportFilledPDF(formKey) {
     showToast('The PDF could not be made', 'Please try again. If it keeps happening, tell the clinic administrator.', 'danger');
     console.error('[PCA] Export error:', err);
   } finally {
-    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-printer me-2"></i>Save as PDF to print'; }
+    if (btn) { btn.disabled = false; btn.innerHTML = label; }
   }
 }
 
@@ -500,7 +540,41 @@ async function exportFilledPDF(formKey) {
    the order they are filed rather than downloaded as four files: a
    browser blocks a burst of downloads, and one document prints in one
    go. */
-async function exportAllForms() {
+/* "Check for missing information": tick the forms, press one button. One
+   form ticked saves that form; more are saved together as one file. */
+function tickedExportForms() {
+  return PDF_FORM_KEYS.filter(key =>
+    document.querySelector(`[data-export-form="${key}"]`)?.checked);
+}
+
+function labelExportButton() {
+  const btn = document.getElementById('exportAllBtn');
+  const label = document.getElementById('exportAllLabel');
+  if (!btn || !label || btn.dataset.busy) return;
+  const keys = tickedExportForms();
+  const name = key => document.querySelector(`[data-export-form="${key}"]`).dataset.label;
+  btn.disabled = !keys.length;
+  label.textContent =
+    !keys.length ? 'Tick a form to save' :
+    keys.length === 1 ? `Save ${name(keys[0])} as PDF` :
+    keys.length === PDF_FORM_KEYS.length ? `Save all ${keys.length} forms as one PDF` :
+    `Save ${keys.map(name).join(' + ')} as one PDF`;
+}
+
+function exportTickedForms() {
+  const keys = tickedExportForms();
+  if (!keys.length) return;
+  const btn = document.getElementById('exportAllBtn');
+  return keys.length === 1 ? exportFilledPDF(keys[0], btn) : exportAllForms(keys);
+}
+
+document.addEventListener('change', e => {
+  if (e.target.matches && e.target.matches('[data-export-form]')) labelExportButton();
+});
+document.addEventListener('DOMContentLoaded', labelExportButton);
+
+async function exportAllForms(keys) {
+  const formKeys = keys && keys.length ? keys : PDF_FORM_KEYS;
   if (!window.PDFLib) {
     showToast('Cannot make the PDF right now',
       'Check that the computer is connected to the internet, then reload the page.', 'danger');
@@ -520,7 +594,7 @@ async function exportAllForms() {
 
   try {
     const merged = await PDFLib.PDFDocument.create();
-    for (const formKey of PDF_FORM_KEYS) {
+    for (const formKey of formKeys) {
       const filled = await buildFilledPdf(formKey);
       const pages = await merged.copyPages(filled, filled.getPageIndices());
       pages.forEach(page => merged.addPage(page));
@@ -533,9 +607,9 @@ async function exportAllForms() {
     a.download = `PClaimAssist_forms_${claimFileStamp()}.pdf`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 5000);
-    showToast('All forms saved',
-      `${PDF_FORM_KEYS.length} forms were saved to your Downloads folder as one file. ` +
-      'Open it there to print them all.', 'success');
+    const many = formKeys.length === 1 ? 'The form was' : `${formKeys.length} forms were`;
+    showToast(formKeys.length === PDF_FORM_KEYS.length ? 'All forms saved' : 'Forms saved',
+      `${many} saved to your Downloads folder as one file. Open it there to print.`, 'success');
     if (typeof PCALearning !== 'undefined') PCALearning.recordFormEntries();
   } catch (err) {
     showToast('The forms could not be made',

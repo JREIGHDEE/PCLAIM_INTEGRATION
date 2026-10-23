@@ -78,6 +78,10 @@
     pane.querySelectorAll('[data-autofill]').forEach(el => {
       const key = el.dataset.autofill;
       if (seen.has(key) || el.disabled) return;
+      // A PIN with "No PhilHealth" ticked is not asked for, and that tick is
+      // a choice beside the PIN, not a box to type (js/app.js).
+      if (typeof pinNotAsked === 'function' && pinNotAsked(key)) return;
+      if (typeof NO_PHILHEALTH === 'object' && Object.values(NO_PHILHEALTH).includes(key)) return;
       const box = el.closest('[class*="col"]') || el.parentElement;
       const required = el.dataset.ocrRequired || (box && box.querySelector('label .required-dot'));
       if (!required || !isEmpty(key)) return;
@@ -86,17 +90,6 @@
     });
     const toCheck = pane.querySelectorAll('.ocr-tag--needs_check').length;
     return { toType, toCheck };
-  }
-
-  function focusBox(key, tab) {
-    if (tab && window.bootstrap) bootstrap.Tab.getOrCreateInstance(tab).show();
-    setTimeout(() => {
-      const el = [...document.querySelectorAll(`#patientTabContent [data-autofill="${key}"]`)]
-        .find(e => e.offsetParent !== null && e.type !== 'hidden');
-      if (!el) return;
-      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      el.focus({ preventScroll: true });
-    }, 150);
   }
 
   function addPartProgress() {
@@ -131,23 +124,16 @@
       if (next) {
         const many = next.toType.length === 1 ? '1 red box' : `${next.toType.length} red boxes`;
         box.className = 'next-step';
+        // Says where to go; moving there is done with the part's own
+        // next / previous buttons (no second button here).
         box.innerHTML = `<i class="bi bi-arrow-right-circle-fill"></i>
-          <div><strong>Next step:</strong> Part ${next.i + 1}, ${names[next.i]} — ${many} to fill in</div>
-          <button type="button" class="btn btn-primary" data-go-part="${next.i}" data-first="${next.toType[0].key}">
-            Go there <i class="bi bi-arrow-right ms-1"></i></button>`;
+          <div><strong>Next step:</strong> Part ${next.i + 1}, ${names[next.i]} — ${many} to fill in</div>`;
       } else {
         box.className = 'next-step next-step--done';
         box.innerHTML = `<i class="bi bi-check-circle-fill"></i>
-          <div><strong>Everything that must be filled in is done.</strong></div>
-          <button type="button" class="btn btn-success" data-section-go="validation">
-            Check for missing information <i class="bi bi-arrow-right ms-1"></i></button>`;
+          <div><strong>Everything that must be filled in is done.</strong></div>`;
       }
     }
-
-    document.addEventListener('click', e => {
-      const go = e.target.closest('[data-go-part]');
-      if (go) focusBox(go.dataset.first, tabs[Number(go.dataset.goPart)]);
-    });
 
     // Refresh whenever the form data changes (app.js calls
     // updateFormPreviews after every change and after loading a patient).
@@ -166,9 +152,12 @@
      like real data to someone in a hurry - only format hints stay. */
   function clearDataLikePlaceholders() {
     document.querySelectorAll('.main-content input[placeholder], .main-content textarea[placeholder]').forEach(el => {
-      // Kept: format hints ("##-#########-#", "13 digits", "YYYY", "000").
+      // Kept: format hints ("##-#########-#", "13 digits", "000", and a
+      // date's "MM/DD/YYYY", "MM", "DD", "YYYY", or M / D / Y in one digit box).
       // Example values ("0917-123-4567", "120/80") look real and go.
-      if (!/#|digit|number|yyyy|^0+$/i.test(el.placeholder)) el.placeholder = '';
+      const hint = /#|digit|number|yyyy|^0+$/i.test(el.placeholder) ||
+                   /^(?:MM|DD|[MDY])$/.test(el.placeholder);
+      if (!hint) el.placeholder = '';
     });
   }
 

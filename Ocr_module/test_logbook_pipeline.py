@@ -346,7 +346,7 @@ class ApplyReviewTests(unittest.TestCase):
             self._ocr_data(), {"ADDRESS": "123 Rizal St.", "BDAY": "03/15/1995"}
         )
         self.assertEqual(missing, [])
-        self.assertEqual(values, {"NAME": "Dela Cruz, Maria", "ADDRESS": "123 Rizal St.", "BDAY": "03/15/1995"})
+        self.assertEqual(values, {"NAME": "Dela Cruz, Maria", "ADDRESS": "123 RIZAL ST.", "BDAY": "03/15/1995"})
         by_category = {f["category"]: f for f in ocr_data["fields"]}
         self.assertTrue(by_category["ADDRESS"]["edited"])
         self.assertFalse(by_category["BDAY"]["edited"])
@@ -612,21 +612,21 @@ class LogbookEndToEndTests(unittest.TestCase):
             self.assertEqual(fields["CASE #"]["raw_text"], expected["CASE #"])
             self.assertEqual(fields["NAME"]["raw_text"], expected["NAME"])
             self.assertEqual(fields["NAME"]["status"], ACCEPTED)
-            self.assertEqual(fields["NAME"]["value"], expected["NAME"])
+            self.assertEqual(fields["NAME"]["value"], expected["NAME"].upper())
             self.assertEqual(session["case_id"], expected["CASE #"])
 
         first = {f["category"]: f for f in sessions[0]["fields"]}
         second = {f["category"]: f for f in sessions[1]["fields"]}
         # 65-84%: pre-filled but flagged for checking.
         self.assertEqual(first["ADDRESS"]["status"], NEEDS_CHECK)
-        self.assertEqual(first["ADDRESS"]["value"], first["ADDRESS"]["raw_text"])
+        self.assertEqual(first["ADDRESS"]["value"], first["ADDRESS"]["raw_text"].upper())
         # <65%: routed to manual encoding, but filled with the best guess
         # and flagged to check carefully - never left empty, never accepted.
         self.assertEqual(second["ADDRESS"]["routed_status"], MANUAL)
         self.assertEqual(second["ADDRESS"]["status"], NEEDS_CHECK)
         self.assertTrue(second["ADDRESS"]["best_guess"])
         self.assertIn("Mabini", second["ADDRESS"]["raw_text"])
-        self.assertIn("Mabini", second["ADDRESS"]["value"])
+        self.assertIn("MABINI", second["ADDRESS"]["value"])
 
         # The upload can be reopened later with the same data.
         reopened = self.client.get(f"/api/review/uploads/{body['upload_id']}").get_json()
@@ -662,12 +662,12 @@ class LogbookEndToEndTests(unittest.TestCase):
             claim = self.client.get(f"/api/claims/{body['claim_id']}").get_json()
             self.assertEqual(claim["status"], "draft")
             fields = {f["key"]: f["value"] for f in claim["fields"]}
-            last, first_and_middle = expected["NAME"].split(", ")
+            last, first_and_middle = expected["NAME"].upper().split(", ")
             self.assertEqual(fields["patientLastName"], last)
             self.assertEqual(fields["patientFirstName"], first_and_middle.split()[0])
-            self.assertEqual(fields["patientAddress"], expected["ADDRESS"])
-            self.assertEqual(fields["admissionDx"], expected["ADMITTING DIAGNOSIS"])
-            self.assertEqual(fields["dischargeDx"], expected["FINAL DIAGNOSIS"])
+            self.assertEqual(fields["patientAddress"], expected["ADDRESS"].upper())
+            self.assertEqual(fields["admissionDx"], expected["ADMITTING DIAGNOSIS"].upper())
+            self.assertEqual(fields["dischargeDx"], expected["FINAL DIAGNOSIS"].upper())
 
     def test_send_to_forms_saves_the_claim_and_serves_tagged_form_data(self):
         response, body = self._upload(self.sample_pdf, "sample_spread.pdf")
@@ -699,12 +699,12 @@ class LogbookEndToEndTests(unittest.TestCase):
         self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), "http://127.0.0.1:5500")
         form = response.get_json()
         self.assertEqual(form["session_id"], session["session_id"])
-        self.assertEqual(form["data"]["patientLastName"], "Reyes")
+        self.assertEqual(form["data"]["patientLastName"], "REYES")
         self.assertEqual(form["data"]["patientDOB"], "1998-11-02")
         self.assertEqual(form["data"]["dateAdmitted"], "2026-06-11")
         self.assertEqual(form["data"]["timeAdmitted"], "14:15")
         self.assertEqual(form["data"]["amPmAdmitted"], "PM")
-        self.assertEqual(form["data"]["admissionDx"], SAMPLE_PATIENTS[1]["ADMITTING DIAGNOSIS"])
+        self.assertEqual(form["data"]["admissionDx"], SAMPLE_PATIENTS[1]["ADMITTING DIAGNOSIS"].upper())
 
         tags = form["fields"]
         self.assertEqual(tags["patientLastName"]["status"], "accepted")
@@ -797,7 +797,7 @@ class LogbookEndToEndTests(unittest.TestCase):
         self.assertEqual(response.get_json()["error_code"], "review_needs_confirmation")
         response = self.client.put(url, json={"parts": {**odd, "BDAY": {"date": "1995-03-15"}}})
         self.assertEqual(response.status_code, 200, response.get_json())
-        self.assertEqual(response.get_json()["values"]["NAME"], "Dela Cruz, Maria Liza Santos")
+        self.assertEqual(response.get_json()["values"]["NAME"], "DELA CRUZ, MARIA LIZA SANTOS")
 
         response = self.client.post("/api/claims/generate", json={"session_id": session["session_id"]})
         self.assertEqual(response.status_code, 200, response.get_json())
@@ -805,7 +805,7 @@ class LogbookEndToEndTests(unittest.TestCase):
         claim = {f["key"]: f["value"] for f in self.client.get(f"/api/claims/{self.claim_ids[-1]}").get_json()["fields"]}
         # Two-word first name kept exactly as the person split it.
         self.assertEqual((claim["patientLastName"], claim["patientFirstName"], claim["patientMiddleName"]),
-                         ("Dela Cruz", "Maria Liza", "Santos"))
+                         ("DELA CRUZ", "MARIA LIZA", "SANTOS"))
         self.assertEqual((claim["timeAdmitted"], claim["amPmAdmitted"]), ("08:30", "AM"))
 
     def test_review_page_shows_iq_banner_slot_at_the_top(self):

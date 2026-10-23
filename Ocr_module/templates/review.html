@@ -169,6 +169,11 @@ input.big{
 .heartline.finished .heartline-percent{ color:var(--ok); }
 .heartline-note{ margin-top:4px; }
 .heartline.finished .heartline-note{ display:none; }
+.busy{ display:flex; align-items:center; justify-content:center; gap:14px; margin-top:16px; font-size:1.1rem; font-weight:600; }
+.busy[hidden]{ display:none; }
+.spinner{ width:34px; height:34px; border-radius:50%; border:5px solid var(--blue-soft); border-top-color:var(--blue); animation:spin 1s linear infinite; flex:none; }
+@keyframes spin{ to{ transform:rotate(360deg); } }
+@media (prefers-reduced-motion: reduce){ .spinner{ animation:none; border-top-color:var(--blue-soft); border-left-color:var(--blue); } }
 .message{ font-weight:600; min-height:1.5em; }
 .message.ok{ color:var(--ok); }
 .message.bad{ color:var(--type); }
@@ -211,6 +216,20 @@ input.big.empty-required{ border-color:var(--type-line); background:#fff7f7; }
 .ampm{ min-width:72px; min-height:52px; padding:8px 12px; }
 .ampm[aria-pressed="true"]{ background:var(--blue); color:#fff; }
 .quick{ min-height:44px; padding:6px 14px; font-size:.95rem; margin-top:8px; }
+/* "Use the delivery message" for the reason for admission: the sentence with its blanks. */
+.dx-confirm{ margin-top:10px; padding:10px 12px; border:2px solid var(--check-line); border-radius:10px; background:var(--check-soft); }
+.dx-confirm[hidden]{ display:none; }
+.dx-confirm-title{ margin:0 0 6px; font-weight:700; color:var(--check); }
+.dx-confirm-old{ margin:0 0 8px; padding:6px 8px; background:#fff; border-radius:8px; }
+.dx-template{ margin-top:10px; padding:12px 14px; border:2px solid var(--blue-soft); border-radius:12px; background:#f8fbff; }
+.dx-template[hidden]{ display:none; }
+.dx-sentence{ line-height:2.8; margin:0; }
+.dx-blank{ font:inherit; font-weight:700; text-align:center; min-height:40px; padding:2px 4px; margin:0 2px;
+    border:2px solid #93c5fd; border-radius:8px; background:#fff; }
+.dx-blank.dx-empty{ border-color:var(--type-line); background:var(--type-soft); }
+.dx-preview{ margin:10px 0; padding:8px 10px; background:#fff; border:2px dashed var(--line); border-radius:8px; font-weight:700; }
+.dx-actions{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+.dx-note{ color:var(--type); font-weight:600; }
 .req{ color:var(--type); }
 .field-note{ font-size:.95rem; margin:8px 0 0; }
 .field-problem{ color:var(--type); font-weight:700; margin:8px 0 0; }
@@ -221,6 +240,11 @@ input.big.empty-required{ border-color:var(--type-line); background:#fff7f7; }
     border:2px dashed var(--line); color:var(--muted); background:#fff;
 }
 .empty-toggle .tick{ font-size:1.5rem; line-height:1; }
+/* "Same as the reason for admission" tick on the final diagnosis. */
+.same-as{ display:flex; align-items:center; gap:10px; margin-top:12px; min-height:52px; padding:10px 16px;
+    border:2px solid var(--line); border-radius:10px; font-weight:600; cursor:pointer; }
+.same-as input{ width:24px; height:24px; margin:0; }
+.same-as:has(input:checked){ border-color:var(--blue); background:#f8fbff; }
 .empty-toggle[aria-pressed="true"]{ border-style:solid; border-color:var(--muted); color:var(--text); background:#e5e7eb; }
 .field.is-empty{ border-style:dashed; }
 .field.is-empty .field-inputs{ opacity:.45; }
@@ -256,8 +280,9 @@ details.more dd{ margin:0; word-break:break-word; }
 .rv-frame img{ display:block; height:auto; }
 #rowViewer.fit .rv-frame{ display:block; }
 #rowViewer.fit .rv-frame img{ width:100%; }
-.rv-mark{ position:absolute; border:3px solid var(--type-line); border-radius:4px;
-    box-shadow:0 0 0 9999px rgba(17,24,39,.18); pointer-events:none; }
+/* Not drawn - the picture is shown as scanned. It only marks where the
+   box being checked is, so the viewer can scroll to it (scrollToMark). */
+.rv-mark{ position:absolute; pointer-events:none; }
 .embedded .page-intro{ display:none; }
 </style>
 <script>/* Shown inside PClaimAssist (Read Logbook Scan / Set Up a Logbook), whose page
@@ -294,6 +319,8 @@ if (window.top !== window.self) document.documentElement.classList.add('embedded
             aria-describedby="fileName">2. Read the logbook</button>
     </div>
     <span id="fileName" class="muted">No file chosen yet — choose one first</span>
+    <div class="busy" id="findingColumns" hidden><span class="spinner" aria-hidden="true"></span>
+        <span>Finding the columns on the pages. This takes up to a minute…</span></div>
     <div id="readingProgress" class="heartline" hidden>
         <svg viewBox="0 0 600 80" role="progressbar" aria-label="Reading the logbook"
              aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="heartlineBar" preserveAspectRatio="none">
@@ -308,6 +335,7 @@ if (window.top !== window.self) document.documentElement.classList.add('embedded
         <p class="muted heartline-note">Please wait and keep this page open. It takes about a minute.</p>
     </div>
     <div id="uploadStatus" class="message" role="status" aria-live="polite" style="margin-top:12px;"></div>
+    <div id="pendingCheck" class="empty-review" hidden></div>
 </section>
 
 </div>
@@ -344,7 +372,7 @@ if (window.top !== window.self) document.documentElement.classList.add('embedded
         <a id="rvCell" href="#" target="_blank" rel="noopener">Just this box</a>
         <button type="button" onclick="closeRowViewer()">Close ✕</button>
     </div>
-    <p class="rv-note" id="rvNote">The red box is the one you are checking. Scroll sideways to see the rest of the row.</p>
+    <p class="rv-note" id="rvNote">The picture opens at the box you are checking. Scroll sideways to see the rest of the row.</p>
     <div class="rv-scroll" id="rvScroll">
         <div class="rv-frame"><img id="rvImage" alt=""><div class="rv-mark" id="rvMark" hidden></div></div>
     </div>
@@ -465,8 +493,8 @@ function updateReviewCount(){
 function patientName(session){
     const field = session.fields.find(f => f.category === "NAME") || {};
     const p = field.parts || {};
-    if(p.last || p.first) return [p.last, [p.first, p.middle].filter(Boolean).join(" ")].filter(Boolean).join(", ");
-    return field.value || "(name not read yet)";
+    if(p.last || p.first) return caps([p.last, [p.first, p.middle].filter(Boolean).join(" ")].filter(Boolean).join(", "));
+    return caps(field.value) || "(name not read yet)";
 }
 
 // Tab 3: every patient on the page; pressing one opens it in tab 2.
@@ -504,13 +532,38 @@ function renderPatientList(){
         <ol class="patient-list" id="patientRows">${rows}</ol>`;
 }
 
+// The columns are checked on their own page (/logbook-setup?check=<id>,
+// templates/logbook_setup.html), opened as soon as a scan is uploaded - part
+// of step 1, not a tab of its own. A check left part-way is offered here.
+function renderPendingCheck(){
+    const pending = loadMemory().checkSetup;
+    const el = document.getElementById("pendingCheck");
+    el.hidden = !pending;
+    el.innerHTML = pending
+        ? `<p><strong>The columns of your last scan are not checked yet.</strong></p>
+            <p class="muted">The scan is not read until each page's columns are checked.</p>
+            <div class="upload-actions">
+                <button type="button" class="primary" onclick="openColumnCheck('${escapeHtml(pending)}')">Carry on checking the columns</button>
+                <button type="button" onclick="dropColumnCheck()">Choose a different scan</button>
+            </div>`
+        : "";
+}
+function openColumnCheck(setupId){
+    window.location.href = `/logbook-setup?check=${encodeURIComponent(setupId)}`;
+}
+function dropColumnCheck(){
+    remember({checkSetup: null});
+    renderPendingCheck();
+    showTab("upload");
+}
+
 function openPatient(index){
     goTo(index);
     showTab("patient");
     document.getElementById("patientTitle")?.focus({preventScroll: true});
 }
 
-// Kept for the step names used in the flow: 1 upload, 2-3 checking.
+// Kept for the step names used in the flow: 1 upload, 2+ checking patients.
 function setStep(n){
     showTab(n === 1 ? "upload" : "patient");
 }
@@ -561,8 +614,8 @@ function renderPageReport(pages){
               <li>Scan the whole page again, lying flat and straight, with the
                   printed column names at the top showing.</li>
               <li>Put both pages of the logbook in one PDF, left page first.</li>
-              <li>If it still cannot be read, this may be a new kind of logbook:
-                  ask your administrator to set it up once.</li>
+              <li>Upload it again, and when the columns are shown, make sure
+                  each coloured stripe covers one column of that page.</li>
             </ol>
             <details class="more"><summary>Details for the administrator</summary><ul>${
             errors.map(p => `<li>Page ${p.page}: ${escapeHtml(p.error)}</li>`).join("")}</ul></details></div>`
@@ -587,6 +640,125 @@ function summaryText(session){
 }
 
 const TODAY = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+
+// Case numbers are written "2026-6140": the year, then the logbook's number.
+// The box starts with the year, so only the number is typed; a number read
+// without its year gets it. The year is the admission's, when it was read
+// (an old page from December is last year's), else this year. Left at just
+// "2026-", it counts as empty (review_fields.normalize).
+function caseYear(){
+    const session = sessions[current] || {};
+    const admitted = (session.fields || []).find(f => f.category === "DATE & TIME OF ADMISSION");
+    const date = admitted && admitted.parts && admitted.parts.date;
+    return /^\d{4}-/.test(date || "") ? date.slice(0, 4) : TODAY.slice(0, 4);
+}
+function withCaseYear(number){
+    const year = caseYear();
+    const n = String(number || "").trim();
+    if(!n) return `${year}-`;
+    if(/^\d{1,6}$/.test(n) && !n.startsWith(year)) return `${year}-${n}`;
+    if(new RegExp(`^${year}\\d{3,}$`).test(n)) return `${year}-${n.slice(4)}`;
+    return n;
+}
+
+// The doctors' usual admitting diagnosis - a claim is only made for a
+// delivery, so it is nearly always this sentence (the same template as on
+// Patient details, js/app.js). Its blanks start from whatever the computer
+// read in the box, so only what it could not read is typed.
+const DX_PARTS = ["weeks", "days", "sex", "size", "apgar1", "apgar5", "g", "p", "t", "pre", "a", "l"];
+function readDx(text){
+    const t = String(text || "").toUpperCase();
+    const out = {};
+    let m;
+    if((m = t.match(/\b(\d{2})\s*(?:(\d)\s*\/\s*7)?\s*W/))) { out.weeks = m[1]; if(m[2]) out.days = m[2]; }
+    if((m = t.match(/\b(BOY|GIRL)\b/))) out.sex = m[1].toLowerCase();
+    if((m = t.match(/\b(AGA|SGA|LGA)\b/))) out.size = m[1];
+    if((m = t.match(/AS\s*(?:OF)?\s*(\d{1,2})\s*(?:&|AND|,|\/)\s*(\d{1,2})/))) { out.apgar1 = m[1]; out.apgar5 = m[2]; }
+    if((m = t.match(/G\s*(\d{1,2})\s*P\s*(\d{1,2})/))) { out.g = m[1]; out.p = m[2]; }
+    if((m = t.match(/\(\s*(\d)\s*-?\s*(\d)\s*-?\s*(\d)\s*-?\s*(\d)\s*\)/))) { out.t = m[1]; out.pre = m[2]; out.a = m[3]; out.l = m[4]; }
+    return out;
+}
+function dxSentence(v){
+    const age = v.weeks + (v.days && v.days !== "0" ? ` ${v.days}/7` : "");
+    return `PUFT ${age} WKS AOG DELIVERED VIA NSVD TO A LIVE TERM BABY ${(v.sex || "").toUpperCase()} ${v.size} ` +
+        `W/ AS OF ${v.apgar1} & ${v.apgar5}; G${v.g}P${v.p} (${v.t}${v.pre}${v.a}${v.l})`;
+}
+function renderDxTemplate(id){
+    const num = (part, label, width) => `<input class="dx-blank" data-dx="${part}" inputmode="numeric" maxlength="2"
+        aria-label="${label}" style="width:${width}" oninput="onlyNumbers(this); refreshDx(this)">`;
+    return `<button type="button" class="quick dx-open" onclick="openDx(this, '${id}')">Use the delivery message</button>
+        <div class="dx-template" hidden>
+            <p class="dx-sentence">PUFT ${num("weeks", "Weeks AOG", "3em")} ${num("days", "Days (out of 7)", "2.4em")}/7 wks AOG
+                delivered via NSVD to a live term baby
+                <select class="dx-blank" data-dx="sex" aria-label="Baby boy or girl" onchange="refreshDx(this)">
+                    <option value="">boy / girl</option><option value="boy">boy</option><option value="girl">girl</option></select>
+                <select class="dx-blank" data-dx="size" aria-label="Size for gestational age" onchange="refreshDx(this)">
+                    <option>AGA</option><option>SGA</option><option>LGA</option></select>
+                w/ AS of ${num("apgar1", "APGAR score at 1 minute", "2.4em")} &amp; ${num("apgar5", "APGAR score at 5 minutes", "2.4em")};
+                G${num("g", "Gravida", "2.4em")}P${num("p", "Para", "2.4em")}
+                (${num("t", "Term", "2em")}${num("pre", "Preterm", "2em")}${num("a", "Abortion", "2em")}${num("l", "Living", "2em")})</p>
+            <p class="dx-preview" aria-live="polite"></p>
+            <div class="dx-actions">
+                <button type="button" class="primary" data-dx-use onclick="useDx(this, '${id}')">Put this in the box</button>
+                <button type="button" onclick="this.closest('.dx-template').hidden = true">Close</button>
+                <span class="dx-note"></span>
+            </div>
+            <div class="dx-confirm" role="alertdialog" aria-label="The box already has something in it" hidden>
+                <p class="dx-confirm-title">The box already has something in it:</p>
+                <p class="dx-confirm-old"></p>
+                <div class="dx-actions">
+                    <button type="button" class="primary" onclick="putDx(this, '${id}')">Replace it</button>
+                    <button type="button" onclick="this.closest('.dx-confirm').hidden = true">Keep what is there</button>
+                </div>
+            </div>
+        </div>`;
+}
+function dxValues(box){
+    const v = {};
+    DX_PARTS.forEach(part => { v[part] = String(box.querySelector(`[data-dx="${part}"]`).value || "").trim(); });
+    return v;
+}
+function refreshDx(el){
+    const box = el.closest(".dx-template");
+    const v = dxValues(box);
+    const left = DX_PARTS.filter(part => part !== "days" && !v[part]);
+    box.querySelectorAll(".dx-blank").forEach(b => b.classList.toggle("dx-empty", b.dataset.dx !== "days" && !b.value));
+    box.querySelector(".dx-preview").textContent = dxSentence(v);
+    box.querySelector("[data-dx-use]").disabled = left.length > 0;
+    box.querySelector(".dx-note").textContent = left.length ? `Fill in the ${left.length} red blank${left.length === 1 ? "" : "s"} first.` : "";
+}
+function openDx(button, id){
+    const box = button.nextElementSibling;
+    const found = readDx(document.getElementById(id).value);
+    DX_PARTS.forEach(part => { box.querySelector(`[data-dx="${part}"]`).value = found[part] || (part === "size" ? "AGA" : ""); });
+    box.querySelector(".dx-confirm").hidden = true;
+    box.hidden = false;
+    refreshDx(button.nextElementSibling.querySelector(".dx-blank"));
+    (box.querySelector(".dx-empty") || box.querySelector(".dx-blank")).focus();
+}
+// Asked in the page, not with the browser's own pop-up.
+function useDx(button, id){
+    const box = button.closest(".dx-template");
+    const current = document.getElementById(id).value.trim();
+    if(current && current !== dxSentence(dxValues(box))){
+        box.querySelector(".dx-confirm-old").textContent = current;
+        box.querySelector(".dx-confirm").hidden = false;
+        box.querySelector(".dx-confirm .primary").focus();
+        return;
+    }
+    putDx(button, id);
+}
+function putDx(button, id){
+    const box = button.closest(".dx-template");
+    const input = document.getElementById(id);
+    input.value = dxSentence(dxValues(box));
+    input.dispatchEvent(new Event("input", {bubbles: true}));
+    box.querySelector(".dx-confirm").hidden = true;
+    box.hidden = true;
+    input.focus();
+    flashNote(input, "✓ The delivery message is in the box. Check it, then save this patient.");
+}
+
 const DATETIME_LABELS = {
     "DATE & TIME OF ADMISSION": "Date admitted",
     "DATE & TIME OF DELIVERY": "Date delivered",
@@ -603,19 +775,19 @@ function renderInputs(f, id){
     if(f.kind === "case_number"){
         return `<label class="input-label" for="${id}">Case number (numbers only):</label>
             <input class="big" id="${id}" data-part="number" inputmode="numeric" autocomplete="off" maxlength="20"
-                value="${attr(p.number)}" oninput="onlyNumbers(this, true)" placeholder="Numbers only, e.g. 2026-4140">`;
+                value="${attr(withCaseYear(p.number))}" oninput="onlyNumbers(this, true)" placeholder="Numbers only, e.g. 2026-4140">`;
     }
     if(f.kind === "name"){
         const box = (part, label, required, hint) => `<div>
             <label class="input-label" for="${id}-${part}">${label}${required ? ' <span class="req">(needed)</span>' : ""}</label>
             <input class="big" id="${id}-${part}" data-part="${part}" autocomplete="off" maxlength="${part === "suffix" ? 10 : 100}"
-                value="${attr(p[part])}" oninput="onlyLetters(this)" placeholder="${hint}">
+                value="${attr(cleanName(p[part]))}" oninput="onlyLetters(this); toCaps(this)" placeholder="${hint}">
         </div>`;
         return `<div class="inputs-grid">
-                ${box("last", "Last name", true, "e.g. Dela Cruz")}
-                ${box("first", "First name", true, "e.g. Maria")}
-                ${box("middle", "Middle name", false, "e.g. Santos")}
-                ${box("suffix", "Suffix (Jr./Sr./III)", false, "if any")}
+                ${box("last", "Last name", true, "e.g. DELA CRUZ")}
+                ${box("first", "First name", true, "e.g. MARIA")}
+                ${box("middle", "Middle name", false, "e.g. SANTOS")}
+                ${box("suffix", "Suffix (JR / SR / III)", false, "if any")}
             </div>
             ${p.guessed ? `<p class="field-note"><strong>Check the boxes:</strong> the logbook writes names without a comma,
                 so the computer guessed which word is the last name. Move any word that is in the wrong box.</p>` : ""}`;
@@ -625,7 +797,10 @@ function renderInputs(f, id){
             <input class="big" type="date" id="${id}" data-part="date" min="1900-01-01" max="${TODAY}" value="${attr(p.date)}">`;
     }
     if(f.kind === "datetime"){
-        const sameDay = f.category !== "DATE & TIME OF ADMISSION"
+        // Went home: at the earliest the day after the delivery (review_fields.check).
+        const sameDay = f.category === "DATE & TIME OF DISCHARGE"
+            ? `<button type="button" class="quick" onclick="dayAfterDelivery('${cat}')">Day after delivery</button>`
+            : f.category !== "DATE & TIME OF ADMISSION"
             ? `<button type="button" class="quick" onclick="sameDayAsAdmitted('${cat}')">Same day as admitted</button>` : "";
         return `<div class="when">
             <div class="date-box">
@@ -647,10 +822,50 @@ function renderInputs(f, id){
             </div>
         </div>`;
     }
+    const sameAs = f.category === "FINAL DIAGNOSIS" && sameAsAdmittingAtStart(p);
     return `<label class="input-label" for="${id}">What it says:</label>
-        <input class="big" id="${id}" data-part="text" autocomplete="off" maxlength="255" value="${attr(p.text)}"
-            ${f.status === "manual_encoding_required" ? 'placeholder="Type what you see in the picture"' : ""}>`;
+        <input class="big" id="${id}" data-part="text" autocomplete="off" maxlength="255" value="${attr(caps(p.text))}"
+            oninput="toCaps(this)" ${sameAs ? "readonly" : ""}
+            ${f.status === "manual_encoding_required" ? 'placeholder="Type what you see in the picture"' : ""}>
+        ${f.category === "ADMITTING DIAGNOSIS" ? renderDxTemplate(id) : ""}
+        ${f.category === "FINAL DIAGNOSIS" ? `<label class="same-as">
+            <input type="checkbox" data-same-as-admitting onchange="sameAsAdmitting(this)" ${sameAs ? "checked" : ""}>
+            Same as the reason for admission</label>` : ""}`;
 }
+
+// "Same as the reason for admission" on the final diagnosis: ticked, the
+// box holds the reason for admission and keeps following it (the forms'
+// Discharge / Final Diagnosis has the same tick). Not saved as such - it
+// starts ticked when the two are already the same.
+const ADMITTING = "ADMITTING DIAGNOSIS";
+function admittingText(){
+    const input = fieldEl(ADMITTING)?.querySelector('[data-part="text"]');
+    if(input) return input.value;
+    const f = (sessions[current]?.fields || []).find(x => x.category === ADMITTING);
+    return caps((f?.parts || {}).text);
+}
+function sameAsAdmittingAtStart(p){
+    const admitting = admittingText().trim();
+    return !!admitting && admitting === caps(p.text).trim();
+}
+function sameAsAdmitting(box){
+    const input = box.closest(".field").querySelector('[data-part="text"]');
+    input.readOnly = box.checked;
+    if(!box.checked) return;
+    const admitting = admittingText();
+    if(!admitting.trim()) flashNote(input, "Fill in the reason for admission first - this box will follow it.");
+    if(input.value !== admitting){
+        input.value = admitting;
+        input.dispatchEvent(new Event("input", {bubbles: true}));
+    }
+}
+// Keep a ticked final diagnosis in step with the reason for admission,
+// typed or put in with "Use the delivery message".
+document.addEventListener("input", e => {
+    if(e.target.dataset?.part !== "text" || e.target.closest(".field")?.dataset.category !== ADMITTING) return;
+    const box = fieldEl("FINAL DIAGNOSIS")?.querySelector("[data-same-as-admitting]");
+    if(box?.checked) sameAsAdmitting(box);
+});
 
 // "Nothing is written here": the logbook box is really blank, so there is
 // nothing to type - here or on the forms. Not offered for the name,
@@ -683,6 +898,8 @@ function setEmpty(field, empty){
         button.querySelector(".tick").textContent = empty ? "☑" : "☐";
     }
     field.querySelectorAll(".field-inputs input, .field-inputs button").forEach(el => {
+        // The wording template's blanks and button keep their own state (refreshDx).
+        if(el.closest(".dx-template")) return;
         el.disabled = empty;
         if(empty && el.tagName === "INPUT") el.value = "";
     });
@@ -695,12 +912,19 @@ function setEmpty(field, empty){
 // The offline AI's second look (paddle_assist.py). Shown as a hint; staff still confirm.
 function renderAiNote(f){
     if(!f.ai || !f.ai.text || f.ai.text === f.raw_text) return "";
+    const text = shownAs(f, f.ai.text);
     if(f.ai.sure)
-        return `<p class="field-ai">AI double-checked the picture and filled in <strong>${escapeHtml(f.ai.text)}</strong>. Please confirm it matches.</p>`;
+        return `<p class="field-ai">AI double-checked the picture and filled in <strong>${escapeHtml(text)}</strong>. Please confirm it matches.</p>`;
     // Not sure: the box holds the best guess; show the AI's other reading
     // only when it differs from what was filled in.
-    if(f.ai.text === f.value) return "";
-    return `<p class="field-ai">Another possible reading: <strong>${escapeHtml(f.ai.text)}</strong></p>`;
+    if(text === f.value) return "";
+    return `<p class="field-ai">Another possible reading: <strong>${escapeHtml(text)}</strong></p>`;
+}
+
+// A reading as it goes on the forms: names and text in capitals, dates and
+// numbers as read (review_fields.in_capitals).
+function shownAs(f, text){
+    return f.kind === "name" || f.kind === "text" ? caps(text) : text;
 }
 
 function renderField(session, f, index){
@@ -736,9 +960,9 @@ function renderField(session, f, index){
         <p class="field-problem" role="alert" hidden></p>
         <p class="field-warning" hidden></p>
         <details class="more"><summary>More details</summary><dl>
-            <dt>Computer read</dt><dd>${f.raw_text ? escapeHtml(f.raw_text) : "(nothing)"}</dd>
+            <dt>Computer read</dt><dd>${f.raw_text ? escapeHtml(shownAs(f, f.raw_text)) : "(nothing)"}</dd>
             <dt>How sure</dt><dd>${sure === null ? "—" : sure + "%"} (looks good from ${Math.round(ACCEPT * 100)}%, please check from ${Math.round(REVIEW * 100)}%)</dd>
-            ${f.ai ? `<dt>AI read</dt><dd>${f.ai.text ? escapeHtml(f.ai.text) : "(nothing)"} (${f.ai.sure ? "sure" : "not sure"})${f.ai.note ? ` — ${escapeHtml(f.ai.note)}` : ""}</dd>` : ""}
+            ${f.ai ? `<dt>AI read</dt><dd>${f.ai.text ? escapeHtml(shownAs(f, f.ai.text)) : "(nothing)"} (${f.ai.sure ? "sure" : "not sure"})${f.ai.note ? ` — ${escapeHtml(f.ai.note)}` : ""}</dd>` : ""}
             <dt>Goes to</dt><dd>${targets}</dd>
             ${f.ocr_error ? `<dt>Problem</dt><dd>${escapeHtml(f.ocr_error)}</dd>` : ""}
         </dl></details>
@@ -934,8 +1158,8 @@ function enlarge(img){
 
 function crop(path){ return `/api/review/crops/${path.split("/").map(encodeURIComponent).join("/")}`; }
 
-// The whole logbook row (both pages of a spread), with this field's box
-// marked. A cell crop cut at the ruled lines can lose handwriting that runs
+// The whole logbook row (both pages of a spread), opened at this field's
+// box. A cell crop cut at the ruled lines can lose handwriting that runs
 // over them - or come out blank - so staff can always see the full entry.
 function openRowViewer(event, link){
     const viewer = document.getElementById("rowViewer");
@@ -1056,12 +1280,30 @@ function onlyNumbers(input, allowDash){
     }
 }
 
+// Same as review_fields.clean_name_part: letters, spaces, hyphens and
+// apostrophes only - no periods ("JR", not "JR."), "!", digits, ...
 function onlyLetters(input){
-    const cleaned = input.value.replace(/[^\p{L} .'\-]/gu, "");
+    const cleaned = input.value.replace(/[^\p{L} '\-]/gu, "");
     if(cleaned !== input.value){
         input.value = cleaned;
         flashNote(input, "Only letters can go in a name.");
     }
+}
+
+// Names and free text go on the forms in capitals (the server stores them
+// that way too). The cursor is put back where it was, or every keystroke
+// would send it to the end of the line.
+function toCaps(input){
+    const upper = input.value.toUpperCase();
+    if(upper === input.value) return;
+    const at = input.selectionStart;
+    input.value = upper;
+    if(at !== null) input.setSelectionRange(at, at);
+}
+function caps(value){ return String(value ?? "").toUpperCase(); }
+// A name box as filled from the scan or a draft (review_fields.clean_name_part).
+function cleanName(value){
+    return caps(value).replace(/[^\p{L}\s'\-]/gu, " ").replace(/\s+/g, " ").trim();
 }
 
 function nextWhenFull(input){
@@ -1085,6 +1327,20 @@ function sameDayAsAdmitted(category){
         return;
     }
     target.value = admitted;
+    fieldChanged(target);
+}
+
+function dayAfterDelivery(category){
+    const delivered = fieldEl("DATE & TIME OF DELIVERY")?.querySelector('[data-part="date"]').value;
+    const target = fieldEl(category).querySelector('[data-part="date"]');
+    if(!delivered){
+        flashNote(target, "Fill in the delivery date first.");
+        return;
+    }
+    const next = new Date(delivered + "T00:00:00");
+    next.setDate(next.getDate() + 1);
+    target.value = [next.getFullYear(), String(next.getMonth() + 1).padStart(2, "0"),
+                    String(next.getDate()).padStart(2, "0")].join("-");
     fieldChanged(target);
 }
 
@@ -1303,15 +1559,6 @@ function progressMessage(job){
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-// Start reading in the background, then follow its progress until done.
-async function startReading(file){
-    const formData = new FormData();
-    formData.append("file", file);
-    const start = await (await fetch("/api/review/jobs", {method: "POST", body: formData})).json();
-    if(!start.success) throw new Error(start.error || "The scan could not be read.");
-    return start.job_id;
-}
-
 // Follow a reading job until it finishes; returns its result.
 async function followReading(jobId){
     let failures = 0;
@@ -1352,12 +1599,39 @@ async function readAndShow(jobId){
     }
 }
 
+// The scan is sent once: its columns are found first, the person checks
+// them (step 2, on the column-check page), and that page starts reading the
+// same scan with what was checked, handing the job back here (memory.jobId).
 async function uploadLogbook(){
     const file = document.getElementById("fileInput").files[0];
     if(!file){ setUploadStatus("Please choose the scan first.", "bad"); return; }
     reading = true;
     updateReadButton();
     setUploadStatus("");
+    setStep(1);
+    document.getElementById("pendingCheck").hidden = true;
+    document.getElementById("readingProgress").hidden = true;
+    document.getElementById("findingColumns").hidden = false;
+    try{
+        const formData = new FormData();
+        formData.append("file", file);
+        const resp = await fetch("/api/logbook-setup/read", {method: "POST", body: formData});
+        const found = await resp.json().catch(() => ({}));
+        if(!resp.ok || !found.success) throw new Error(found.error || "The scan could not be opened.");
+        if(!found.pages || !found.pages.length) throw new Error("No pages were found in this file.");
+        remember({checkSetup: found.setup_id, jobId: null});
+        openColumnCheck(found.setup_id);
+    }catch(err){
+        reading = false;
+        updateReadButton();
+        document.getElementById("findingColumns").hidden = true;
+        setUploadStatus(escapeHtml(err.message || "Something went wrong. Please try again."), "bad");
+    }
+}
+
+// A reading job started on the column-check page: clear what an earlier
+// scan left on the screen, then follow it here.
+async function followCheckedScan(jobId){
     sessions = [];
     updateReviewCount();
     document.getElementById("reviewNote").textContent = "";
@@ -1367,18 +1641,8 @@ async function uploadLogbook(){
     document.getElementById("iqBanner").innerHTML = "";
     document.getElementById("pageReport").innerHTML = "";
     setStep(1);
-    showProgress(0, "Sending the scan…");
-    let jobId;
-    try{
-        jobId = await startReading(file);
-    }catch(err){
-        reading = false;
-        updateReadButton();
-        document.getElementById("readingProgress").hidden = true;
-        setUploadStatus(escapeHtml(err.message || "Something went wrong. Please try again."), "bad");
-        return;
-    }
-    remember({jobId, uploadId: null, current: null, drafts: {}});
+    showProgress(0, "Starting to read the logbook…");
+    setUploadStatus('<span class="resume-note">✓ The columns are checked. Now reading the patients.</span>');
     await readAndShow(jobId);
 }
 
@@ -1403,9 +1667,13 @@ async function loadUpload(uploadId, startAt){
         return;
     }
     if(memory.jobId){
-        showProgress(0, "Still reading the logbook…");
-        setUploadStatus('<span class="resume-note">Still reading the scan you chose earlier.</span>');
-        await readAndShow(memory.jobId);
+        await followCheckedScan(memory.jobId);
+        return;
+    }
+    if(memory.checkSetup){
+        // Left part-way through checking the columns: offer to carry on.
+        renderPendingCheck();
+        showTab("upload");
         return;
     }
     if(memory.uploadId && await loadUpload(memory.uploadId, memory.current)){
