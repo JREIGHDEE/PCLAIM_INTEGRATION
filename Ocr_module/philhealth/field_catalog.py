@@ -1,4 +1,4 @@
-"""Canonical CSF field vocabulary.
+"""Canonical CF2/CSF field vocabulary.
 
 Everything in this module is ported from PClaimAssist's own
 js/app.js (state.data, VAL_FIELDS, getComputedValue, formatDate,
@@ -129,7 +129,7 @@ FORM_FIELDS = {
 # Keys that are not PClaimAssist form inputs (see patientAddress above).
 NON_FORM_KEYS = {"patientAddress"}
 
-# The CSF subset the server-side claim review/export works on
+# The CF2/CSF subset the server-side claim review/export works on
 # (mapping_service.map_claim, GET /api/claims/<id>), in display order.
 _CLAIM_REVIEW_KEYS = (
     "patientLastName", "patientFirstName", "patientMiddleName", "patientNameExt",
@@ -211,9 +211,20 @@ FIELD_LABELS = {
     "deliveryTime": "Time of Delivery",
 }
 
-# Ported verbatim from PClaimAssist/js/app.js VAL_FIELDS (csf only - the
+# Ported verbatim from PClaimAssist/js/app.js VAL_FIELDS (cf2/csf only - the
 # project's own per-form required-field list, not invented here).
 VAL_FIELDS = {
+    "cf2": [
+        {"key": "hciPAN", "label": "HCI Accreditation No. (PAN)"},
+        {"key": "hciName", "label": "Health Care Institution Name"},
+        {"key": "patientName", "label": "Patient Name"},
+        {"key": "dateAdmitted", "label": "Date Admitted"},
+        {"key": "dateDischarge", "label": "Date Discharged"},
+        {"key": "disposition", "label": "Patient Disposition"},
+        {"key": "accommodation", "label": "Type of Accommodation"},
+        {"key": "admissionDx", "label": "Admission Diagnosis"},
+        {"key": "dischargeDx", "label": "Discharge Diagnosis"},
+    ],
     "csf": [
         {"key": "memberPIN", "label": "Member PhilHealth PIN"},
         {"key": "memberName", "label": "Member Name"},
@@ -306,7 +317,7 @@ def is_valid_date_string(value):
         return False
 
 def resolve_computed_value(key, data):
-    """Port of app.js getComputedValue, restricted to CSF's computed keys.
+    """Port of app.js getComputedValue, restricted to CF2/CSF's computed keys.
 
     `data` is a flat dict of camelCase field values (never mutated). Falls
     back to a plain `data.get(key, '')` lookup for any key that isn't one of

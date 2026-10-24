@@ -11,6 +11,174 @@ Related documents:
 
 ---
 
+## 2026-10-25 00:37: UI update (reigh)
+
+- Changed: style.css, index.html, app.js, sidebar.js, validation-rules.js, login.html, ocr.html
+
+**Login page**
+
+![Login page](docs/screenshots/2026-10-25_003725_login.jpg)
+
+**Main app (dashboard)**
+
+![Main app (dashboard)](docs/screenshots/2026-10-25_003725_app.jpg)
+
+**Read Logbook Scan page**
+
+![Read Logbook Scan page](docs/screenshots/2026-10-25_003725_ocr.jpg)
+
+## Not yet committed (2026-10-24)
+
+**Steadier, clearer forms** (client feedback: boxes moved while typing, the
+parts ran together, the preview was hard to read) (`css/style.css`, `js/app.js`, `js/pdf/pdf-overlay.js`)
+- Nothing moves while typing. The cause was the warning line inserted
+  under a box when a rule was broken and removed when fixed (about 40px
+  each time). A broken rule now puts a small icon on the box's label
+  instead; its message shows when the icon is pointed at or focused, and
+  the box keeps its red/amber outline. Checked by typing into the first
+  dozen boxes of every form: no box moved.
+- The summary line above the boxes is always two lines tall, so finishing
+  the form no longer pulls everything up; the panel keeps room for its
+  scroll bar.
+- Each stage of a form has its own colour (band, heading and a light
+  wash: blue, teal, violet, orange, green, rose in turn); a part marked
+  "Not needed" turns grey. The "Not needed" tick stays on its heading's
+  line.
+- Patient details: each section of a tab (Patient, Member, Address,
+  Contact, ...) has the same colour band and heading as the forms' parts.
+  Typing there moves nothing either.
+- Check for missing information: a form's missing boxes come first, each
+  with its own "Fix this"; the filled ones shrink to small green chips
+  under "Filled in" instead of a long stack of rows. Each form's header
+  reads the same way - code, full name (Claim Signature Form, Claim Form
+  2/4, Member registration), a progress bar in the form's colour (green
+  when done) and the count on the right.
+- Preview size: "−  Fit  +" on every preview (Fit, 125%-200%). One
+  setting for all four forms, kept for the next visit; the page is
+  re-drawn sharp and scrolls sideways when wider than the panel.
+
+**CF2 is back** (`index.html`, `js/app.js`, `js/validation-rules.js`, `js/pdf/*`, `js/sidebar.js`, `css/style.css`, `forms/CF2.pdf`, `Ocr_module/philhealth/*`, `Ocr_module/claims_store.py`, `Ocr_module/routes/claims_routes.py`)
+- Restored from before `58a4a3a`: the page, dashboard card, sidebar entry,
+  export chip, checker fields, links to the CSF (professionals, the
+  clinic's representative, who signs for the patient), and the server-side
+  CF2 export and readiness check.
+- Its PDF map is moved onto the exporter's baseline, the same correction
+  CSF and PMRF got in `58a4a3a` (6pt - 0.13em higher per field).
+- The CF2 vs CF4 diagnosis check is now IC-09 (IC-08 was reused since).
+
+**Printed alignment** (`js/pdf/overlays/*.js`, `js/pdf/pdf-overlay.js`, `js/app.js`)
+- Measured from the blank PDFs: on the CSF and CF2 every typed value now
+  sits 1.5pt above the rule under it (drawn lines and underscore rows),
+  so the heights match across the form.
+- Names are centred: name parts, signature names and designations on
+  their line (CSF, CF2), or in their table cell (CF4 columns, PMRF).
+- CF2's dates, times and accreditation digits go between the ticks of
+  their bracket cells; its tick marks are centred in their squares.
+- CSF: every digit (PINs, PEN, dates, accreditation numbers) and tick box
+  is set to the exact square printed for it, centred both ways. On the
+  preview the red "missing" boxes now cover those squares instead of
+  overlapping their neighbours or sitting in a corner.
+- A value too long for a one-line box is printed smaller instead of
+  wrapping into the labels below (CF4 street, PMRF subdivision).
+- CSF Item 9 prints a name only over the line of whoever signs: the
+  representative's line was always printing the patient's name.
+
+**CF4 is the February 2020 edition** (`forms/CF4.pdf`, `js/pdf/overlays/cf4.js`, `js/pdf/pdf-overlay.js`, `js/app.js`, `index.html`)
+- The blank comes from the clinic's own copy with every filled-in value
+  removed: the clinic's details and the (hidden) patient data. The 2018
+  file is in git history.
+- Every CF4 position was rebuilt for the new layout: tick boxes found by
+  their printed labels, digits by their boxes, text by the ruled lines
+  and the baselines the clinic's copy used. Names and address parts are
+  centred in their columns.
+- New: Height (cm) and Weight (kg) beside the vital signs.
+- Course in the ward (15 lines) and drugs (7, two lines each) are
+  written as small lines inside the form's one course box and three
+  drug rows.
+- Fixed: 9.b / 10.b times never printed (their boxes read a value that
+  nothing set).
+- On the preview, course-in-the-ward and drug lines show red only once
+  they are open in "Type the details here" ("+" opens the next one); a
+  drug's "(cont.)" line and the "additional sheet(s)" ticks never do.
+
+**Health care professionals, one at a time** (CSF Part IV, CF2 Item 10)
+- Each professional (1, 2, 3) has its own "Not needed" tick in place of
+  one for the whole part, so the unused rows can be left out while the
+  attending midwife's row is still asked for.
+
+**"The patient is the member" untick clears** - the member's boxes it
+filled (name, birthday, sex, PIN, relationship) are emptied when it is
+unticked on Patient details or the CSF. A loaded claim is never cleared.
+
+**CF2 procedure lines**
+- Each repetitive procedure (8.a) has its own dates box, shown once it is
+  ticked, printed on the line beside it (they were all one "Procedure
+  details" box printing over "b. For Z-Benefit Package"). Unticking hides
+  the box and leaves its line blank. Text in an older claim's single box
+  still prints on the first ticked procedure's line.
+- A long diagnosis in 7 (a or b) is laid onto its three ruled lines at
+  full size instead of squeezed onto the first.
+
+**CF2 preview and III-B**
+- The clinic PAN and the professionals' accreditation digits sit in the
+  middle of their squares (they hugged the left edge).
+- A long diagnosis is shrunk on the preview, as on the print, to fit its
+  three lines instead of running over row "b.".
+- New: 8.f "For Essential Newborn Care" - the nine items (immediate
+  drying, timely cord clamping, weighing, BCG, hepatitis B, early
+  skin-to-skin contact, eye prophylaxis, vitamin K, non-separation for
+  early breastfeeding) are ticked in their printed boxes. They show in
+  "Type the details here" once Essential Newborn Care is ticked, and are
+  cleared if it is unticked.
+- 6. Admission Diagnosis sat on the border with section 7; it is now in
+  the middle of its space, and a long one wraps to a second line that
+  still clears the border.
+- III-B: "Patient is Incapacitated" / "Other Reasons" were mapped onto
+  the Patient/Representative squares, so a reason printed in the wrong
+  place. They are on their own squares now, and Patient/Representative
+  is printed from the CSF Part III answer (the same consent).
+- Not shown as missing when they are not wanted: "Others, Specify" and
+  "Other reasons" until that option is chosen (CSF too), the co-pay
+  amount until "With co-pay" is ticked, and the representative's
+  relationship and reason while the patient signs.
+
+**Red boxes on the form preview** (`js/pdf/pdf-overlay.js`, `js/app.js`, `css/style.css`)
+- A part marked "Not needed" (or a signer row not in use, or a PIN with
+  "No PhilHealth") no longer shows red on the preview, and neither do the
+  other options of a tick-one row once one is chosen.
+- Pointing at a red box says what it is (part and box); clicking it goes
+  to the box where it is typed, like "Fix this" did.
+- The "On this form" list above the boxes is now one line: the counts,
+  the hint, and a link to the checker for rules that are not one box.
+
+**Page turner shows only that page's boxes**
+- CF2's special procedures, TB-DOTS and newborn care boxes sat outside
+  both page groups, so they showed on page 2 as well; they are page 1's.
+- PMRF had no page groups at all, so both pages showed everything. Page 2
+  now shows only Updating/Amendment and the member's signature.
+- The forms are named CF2 and CF4 everywhere (were "CSF 2" / "CSF 4").
+
+**Series numbers removed** from the CSF and CF4 (entry boxes, printed
+digit boxes and state). CF2 comes back without one.
+
+**Clinic Details** (`database/migrations/009_clinic_provider_rep.sql` - apply it)
+- New: the authorized HCI representative and designation (CSF Part V),
+  and the attending health care professional's name and PAN (CF4 Part VII,
+  also CSF Part III / CF2 professional 1).
+- The clinic PAN is 12 digits (was 9), checked on the page and the server.
+
+**Fewer things typed twice**
+- Certification of Member (CSF Item 9): only the rows for whoever signs
+  (member or representative) are shown and asked for; switching clears
+  the other signer's rows so they are not printed.
+- Age (CF4) is worked out from the birthday as of admission; EDD from the
+  LMP (+280 days). A value typed over either is kept.
+- PMRF "Same as Permanent Address" now copies the address, zip included,
+  and locks the mailing boxes.
+- The attending midwife (name, PAN, date signed) is linked across CSF
+  Part III row 1, CF2 and CF4; the member's signature date across CSF and
+  PMRF. CF2's HCI address preview includes the building number and zip.
+
 ## Not yet committed (2026-10-22)
 
 **PhilHealth PIN red while empty, and "No PhilHealth"** (`PClaimAssist/index.html`, `js/app.js`, `js/validation-rules.js`)

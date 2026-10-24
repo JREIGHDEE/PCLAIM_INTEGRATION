@@ -504,6 +504,7 @@ body {
 .fs-action { font-size: .78rem; color: var(--fs-color); font-weight: 700; }
 
 .fs--csf  { --fs-color: var(--primary); }
+.fs--cf2  { --fs-color: var(--teal); }
 .fs--cf3  { --fs-color: var(--purple); }
 .fs--cf4  { --fs-color: var(--orange); }
 .fs--pmrf { --fs-color: #DB2777; }
@@ -1563,13 +1564,36 @@ body {
     max-height: none;
   }
 }
-/* Where the form still has a blank: a red box around each spot not yet
-   filled in. Once a value is in it, the box goes and only the text shows,
-   so the red left on the preview is what is still missing. */
-.pdf-field:not(.pdf-field--filled) {
+/* Where the form still has a blank: a red box around each spot still
+   wanted (js/pdf/pdf-overlay.js decides which). Once a value is in it, or
+   its part is marked "Not needed", the box goes, so the red left on the
+   preview is what is still missing. Pointing at one says what it is;
+   clicking it goes to the box where it is typed. */
+.pdf-field--missing {
   border: 1px dashed red !important;
   background-color: rgba(255, 0, 0, 0.1) !important;
+  pointer-events: auto;
+  cursor: pointer;
 }
+.pdf-field--missing:hover {
+  border-style: solid !important;
+  background-color: rgba(255, 0, 0, 0.22) !important;
+}
+.pdf-missing-tip {
+  position: fixed;
+  z-index: 3000;
+  max-width: 280px;
+  padding: .5rem .7rem;
+  border-radius: 8px;
+  background: #1e293b;
+  color: #fff;
+  font-size: .85rem;
+  line-height: 1.35;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, .25);
+  pointer-events: none;
+}
+.pdf-missing-tip strong { display: block; color: #fecaca; }
+.pdf-missing-tip small { display: block; color: #cbd5e1; font-size: .75rem; }
 /* An empty field has no text to give it height, so its debug box would
    collapse to nothing and look like a missing field. Keep the box visible
    while it is still blank. */
@@ -2423,7 +2447,10 @@ textarea.from-patient-details:focus {
 .part-skip input { cursor: pointer; margin: 0; }
 .part-skip:hover { color: #35485a; }
 
-.entry-part.part-not-needed > *:not(.entry-section-title) { opacity: .45; }
+.entry-part.part-not-needed > *:not(.entry-section-title):not(.dx-group-label) { opacity: .45; }
+/* A professional's own tick sits on the card's label line. */
+.dx-group-label .part-skip { float: right; }
+.dx-group-card.part-not-needed .dx-group-label { color: #8a97a3; }
 .entry-part.part-not-needed .entry-section-title { color: #8a97a3; }
 .entry-part.part-not-needed input:not(.part-skip-box),
 .entry-part.part-not-needed select,
@@ -2520,28 +2547,12 @@ textarea.from-patient-details:focus {
 .symptom-inline .form-control { margin-top: .15rem; padding: .3rem .5rem; font-size: .9rem; }
 
 /* On each form: what is missing and which rules are broken (renderFormIssues). */
-.form-issues { margin: 0; border-bottom: 1px solid #f1d48a; background: #fffbeb; font-size: .9rem; }
-.form-issues > summary { display: flex; align-items: center; gap: .5rem; padding: .6rem 1rem;
-  cursor: pointer; font-weight: 700; color: #854d0e; list-style: none; }
-.form-issues > summary::-webkit-details-marker { display: none; }
-.form-issues > summary::after { content: "\F282"; font-family: "bootstrap-icons"; margin-left: auto; transition: transform .2s; }
-.form-issues[open] > summary::after { transform: rotate(180deg); }
-.form-issues--critical { background: #fef2f2; border-bottom-color: #fecaca; }
-.form-issues--critical > summary { color: #991b1b; }
-.form-issues--clean { background: #f0fdf4; border-bottom-color: #bbf7d0; }
-.form-issues--clean > summary { color: #166534; cursor: default; }
-.form-issues--clean > summary::after { content: none; }
-.form-issue-list { list-style: none; margin: 0; padding: 0 .75rem .5rem; max-height: 220px; overflow-y: auto; }
-.form-issue { display: flex; align-items: flex-start; gap: .5rem; padding: .4rem .25rem; border-top: 1px solid rgba(0,0,0,.06); }
-.form-issue > span { flex: 1; }
-.form-issue code { font-size: .75rem; color: #64748b; margin-right: .25rem; }
-.form-issue--critical > .bi { color: #dc2626; margin-top: .15rem; }
-.form-issue--warning > .bi { color: #ca8a04; margin-top: .15rem; }
-.form-issue--missing > .bi { color: #b45309; margin-top: .15rem; }
-.form-issue-fix { flex: none; font-size: .8rem; font-weight: 700; padding: .2rem .6rem; border-radius: 6px;
-  border: 1px solid #2563eb; background: #fff; color: #1d4ed8; }
-.form-issue-fix:hover { background: #eff6ff; }
-.form-issues-general { margin: 0; padding: 0 1rem .6rem; color: #64748b; }
+.form-issues { display: flex; align-items: flex-start; gap: .5rem; margin: 0; padding: .55rem 1rem;
+  border-bottom: 1px solid #f1d48a; background: #fffbeb; color: #92400e; font-size: .88rem; line-height: 1.45; }
+.form-issues > .bi { margin-top: .15rem; }
+.form-issues a { font-weight: 700; white-space: nowrap; }
+.form-issues--critical { background: #fef2f2; border-bottom-color: #fecaca; color: #991b1b; }
+.form-issues--clean { background: #f0fdf4; border-bottom-color: #bbf7d0; color: #166534; }
 
 /* Still missing something: the same card, in the "please check" colours. */
 .export-all-card.export-all-card--missing { border-color: #f1d48a; border-left-color: #ca8a04; background: #fffbeb; }
@@ -2604,3 +2615,205 @@ textarea.from-patient-details:focus {
   font-size: .72rem;
   margin-left: auto;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   STEADIER, CLEARER FORMS (client feedback: boxes moved while
+   typing, parts ran together, the preview was hard to read)
+═══════════════════════════════════════════════════════════ */
+
+/* The panel keeps room for its scroll bar, so nothing shifts sideways
+   when the bar comes and goes. */
+.entry-panel-body { scrollbar-gutter: stable; }
+
+/* The line above the boxes is always two lines tall, whatever it says,
+   so filling the last box does not pull every box up. */
+.form-issues {
+  height: calc(2 * 1.45em + 1.1rem);
+  flex-shrink: 0;            /* the panel is a column: do not squeeze it */
+  overflow: hidden;
+  align-items: center;
+}
+.form-issues > span {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* A rule a box breaks: an icon on its label, the message shown when it
+   is pointed at or focused - floating, so it never pushes boxes down. */
+.pca-label { position: relative; }
+.field-rule-flag {
+  display: inline-flex;
+  margin-left: .35rem;
+  font-size: .95em;
+  cursor: help;
+  vertical-align: baseline;
+}
+.field-rule-flag--danger { color: #c0392b; }
+.field-rule-flag--warn   { color: #b07d00; }
+.field-rule-flag:hover::after,
+.field-rule-flag:focus::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 0;
+  top: calc(100% + 4px);
+  z-index: 20;
+  width: max-content;
+  max-width: min(320px, 90vw);
+  padding: .45rem .6rem;
+  border-radius: 8px;
+  background: #1e293b;
+  color: #fff;
+  font-size: .82rem;
+  font-weight: 500;
+  line-height: 1.35;
+  white-space: normal;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, .25);
+  pointer-events: none;
+}
+
+/* Each stage of a form in its own colour: a band down the left, a
+   tinted heading and a faint wash behind its boxes. */
+.entry-part[class*="part-tone-"] {
+  border-left: 4px solid var(--tone);
+  background: var(--tone-bg);
+  border-radius: 0 10px 10px 0;
+  padding: .55rem .75rem .75rem .85rem;
+  margin: 0 0 .9rem;
+}
+.part-tone-0 { --tone: #2563eb; --tone-bg: #f5f8ff; }   /* blue   */
+.part-tone-1 { --tone: #0d9488; --tone-bg: #f2fbf9; }   /* teal   */
+.part-tone-2 { --tone: #7c3aed; --tone-bg: #f8f5ff; }   /* violet */
+.part-tone-3 { --tone: #c2410c; --tone-bg: #fff7f2; }   /* orange */
+.part-tone-4 { --tone: #15803d; --tone-bg: #f3fbf5; }   /* green  */
+.part-tone-5 { --tone: #be185d; --tone-bg: #fdf4f8; }   /* rose   */
+.entry-part[class*="part-tone-"] > .entry-section-title {
+  color: var(--tone);
+  border-bottom-color: color-mix(in srgb, var(--tone) 35%, transparent);
+  margin-top: 0;
+}
+.entry-part.part-not-needed[class*="part-tone-"] {
+  --tone: #94a3b8; --tone-bg: #f8fafc;
+}
+
+/* Preview size: one setting for every form (js/pdf/pdf-overlay.js).
+   The page is centred when it fits and the panel scrolls sideways when
+   it is wider. */
+.pdf-canvas-scroller { overflow-x: auto; justify-content: flex-start; }
+.pdf-canvas-wrap {
+  width: calc(100% * var(--pdf-zoom, 1));
+  flex-shrink: 0;
+  margin: 0 auto;
+}
+.pdf-zoom {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+  flex-shrink: 0;
+}
+.pdf-zoom button {
+  border: 0;
+  background: transparent;
+  min-width: 2.25rem;
+  height: 2rem;
+  padding: 0 .5rem;
+  font-size: .85rem;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+}
+.pdf-zoom button + button { border-left: 1px solid var(--border); }
+.pdf-zoom button:hover:not(:disabled) { background: #eff6ff; }
+.pdf-zoom button:disabled { color: #cbd5e1; cursor: default; }
+.pdf-zoom .pdf-zoom-value { min-width: 3.5rem; }
+/* The heading is one row - title left, "Not needed" right - so the tick
+   never drops onto the boxes below when the title is long. */
+.entry-part > .entry-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+}
+.entry-part > .entry-section-title .part-skip { float: none; flex-shrink: 0; }
+
+/* Patient details: the same colour per section as the forms' parts. */
+.patient-part[class*="part-tone-"] {
+  border-left: 4px solid var(--tone);
+  background: var(--tone-bg);
+  border-radius: 0 10px 10px 0;
+  padding: .7rem .9rem .9rem 1rem;
+  margin: 0 0 1rem;
+}
+.patient-part[class*="part-tone-"] > .pca-tab-section-label {
+  color: var(--tone);
+  border-bottom: 1.5px solid color-mix(in srgb, var(--tone) 35%, transparent);
+  padding-bottom: .35rem;
+  margin-top: 0 !important;
+  font-weight: 700;
+}
+
+/* Check for missing information: what is still missing first, each with
+   "Fix this"; what is filled in shrinks to small green chips after it. */
+.val-list { flex-direction: row; flex-wrap: wrap; gap: .4rem; }
+.val-item { flex: 1 1 100%; }
+.val-fix {
+  flex-shrink: 0;
+  border: 1px solid #fecaca;
+  background: #fff;
+  color: #b91c1c;
+  font-size: .8rem;
+  font-weight: 700;
+  border-radius: 6px;
+  padding: .25rem .6rem;
+  cursor: pointer;
+}
+.val-fix:hover { background: #fef2f2; }
+.val-item.complete,
+.val-item.skipped {
+  flex: 0 0 auto;
+  padding: .25rem .65rem;
+  border-radius: 999px;
+  font-size: .8rem;
+  gap: .4rem;
+}
+.val-item.complete .val-status,
+.val-item.complete .val-fix,
+.val-item.skipped .val-status,
+.val-item.skipped .val-fix { display: none; }
+.val-item.skipped { order: 3; }
+.val-done-label {
+  order: 1;
+  flex: 1 1 100%;
+  margin: .5rem 0 0;
+  font-size: .78rem;
+  font-weight: 700;
+  color: #166534;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.val-list:not(:has(.val-item.complete)) .val-done-label { display: none; }
+
+/* Each form's header: name, a progress bar, the count - always in line. */
+.pca-accordion-btn .val-title { flex: 1; min-width: 0; text-align: left; }
+.val-bar {
+  width: 110px;
+  height: 6px;
+  border-radius: 99px;
+  background: #e2e8f0;
+  overflow: hidden;
+  margin: 0 .9rem;
+  flex-shrink: 0;
+}
+.val-bar-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--fs-color, var(--primary));
+  transition: width .3s;
+}
+.val-bar-fill.done { background: var(--success, #16a34a); }
+.pca-accordion-btn .val-score { min-width: 9.5rem; text-align: right; }

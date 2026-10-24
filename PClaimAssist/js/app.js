@@ -74,10 +74,13 @@ const state = {
     dateAdmitted:'', timeAdmitted:'', amPmAdmitted:'AM',
     dateDischarge:'', timeDischarge:'', amPmDischarge:'AM',
     disposition:'', accommodation:'', chiefComplaint:'', admissionDx:'', dischargeDx:'',
-    /* Series numbers (printed top-right of each claim form) */
-    csfSeries:'',
+    /* CF2 – special procedures, TB-DOTS and newborn care packages */
+    cf2SpecialProcedures:[], cf2SpecialProcedureDetail:'',
+    cf2ProcDates1:'', cf2ProcDates2:'', cf2ProcDates3:'', cf2ProcDates4:'',
+    cf2ProcDates5:'', cf2ProcDates6:'', cf2ProcDates7:'', cf2ProcDates8:'',
+    cf2TbPhase:'', cf2NewbornCare:[], cf2EssentialNewbornCare:[],
     /* CF4 – Clinical Record (encoded manually; the logbook does not record these) */
-    patientAge:'', cf4Series:'',
+    patientAge:'',
     hciBldg:'', hciZip:'',
     cf4ChiefComplaint:'', cf4HistoryPresentIllness:'', cf4PastMedicalHistory:'',
     cf4FinalDiagnosis:'', cf4IcdCode:'', cf4RvsCode:'',
@@ -91,6 +94,7 @@ const state = {
     /* CF4 – physical examination on admission */
     cf4GeneralSurvey:'', cf4AlteredSensorium:'',
     cf4VitalBP:'', cf4VitalHR:'', cf4VitalRR:'', cf4VitalTemp:'',
+    cf4Height:'', cf4Weight:'',
     cf4Heent:[], cf4HeentOthers:'',
     /* CF4 – physical examination continued (page 2) */
     cf4Chest:[],   cf4ChestOthers:'',
@@ -110,10 +114,10 @@ const state = {
     cf4CourseDate1:'', cf4CourseOrder1:'', cf4CourseDate2:'', cf4CourseOrder2:'', cf4CourseDate3:'', cf4CourseOrder3:'', cf4CourseDate4:'', cf4CourseOrder4:'', cf4CourseDate5:'', cf4CourseOrder5:'', cf4CourseDate6:'', cf4CourseOrder6:'', cf4CourseDate7:'', cf4CourseOrder7:'', cf4CourseDate8:'', cf4CourseOrder8:'', cf4CourseDate9:'', cf4CourseOrder9:'', cf4CourseDate10:'', cf4CourseOrder10:'', cf4CourseDate11:'', cf4CourseOrder11:'', cf4CourseDate12:'', cf4CourseOrder12:'', cf4CourseDate13:'', cf4CourseOrder13:'', cf4CourseDate14:'', cf4CourseOrder14:'', cf4CourseDate15:'', cf4CourseOrder15:'',
     /* CF4 drug rows */
     cf4DrugName1:'', cf4DrugDose1:'', cf4DrugCost1:'', cf4DrugName1b:'', cf4DrugDose1b:'', cf4DrugCost1b:'', cf4DrugName2:'', cf4DrugDose2:'', cf4DrugCost2:'', cf4DrugName2b:'', cf4DrugDose2b:'', cf4DrugCost2b:'', cf4DrugName3:'', cf4DrugDose3:'', cf4DrugCost3:'', cf4DrugName3b:'', cf4DrugDose3b:'', cf4DrugCost3b:'', cf4DrugName4:'', cf4DrugDose4:'', cf4DrugCost4:'', cf4DrugName4b:'', cf4DrugDose4b:'', cf4DrugCost4b:'', cf4DrugName5:'', cf4DrugDose5:'', cf4DrugCost5:'', cf4DrugName5b:'', cf4DrugDose5b:'', cf4DrugCost5b:'', cf4DrugName6:'', cf4DrugDose6:'', cf4DrugCost6:'', cf4DrugName6b:'', cf4DrugDose6b:'', cf4DrugCost6b:'', cf4DrugName7:'', cf4DrugDose7:'', cf4DrugCost7:'', cf4DrugName7b:'', cf4DrugDose7b:'', cf4DrugCost7b:'',
-    /* Referral */
+    /* CF2 – Referral */
     referredByHCI:'', referralHciName:'', referralStreet:'', referralCity:'',
     referralProvince:'', referralZip:'',
-    /* Discharge Diagnosis table (2 diagnoses x up to 3 procedures each) */
+    /* CF2 – Discharge Diagnosis table (2 diagnoses x up to 3 procedures each) */
     dxADiagnosis:'', dxAIcd10:'',
     dxAProcI:'', dxARvsI:'', dxADateI:'', dxALatI:'',
     dxAProcII:'', dxARvsII:'', dxADateII:'', dxALatII:'',
@@ -144,6 +148,16 @@ const state = {
     /* CSF Part V – Provider Information and Certification */
     csfFirstCaseRate:'', csfSecondCaseRate:'',
     providerRepName:'', providerCapacity:'', providerSignedDate:'',
+    /* CF2 Item 10 – Accreditation/Signature/Date Signed + Co-pay (up to 3 rows) */
+    cf2Prof1AccredNo:'', cf2Prof1Name:'', cf2Prof1DateSigned:'', cf2Prof1Copay:'', cf2Prof1CopayAmount:'',
+    cf2Prof2AccredNo:'', cf2Prof2Name:'', cf2Prof2DateSigned:'', cf2Prof2Copay:'', cf2Prof2CopayAmount:'',
+    cf2Prof3AccredNo:'', cf2Prof3Name:'', cf2Prof3DateSigned:'', cf2Prof3Copay:'', cf2Prof3CopayAmount:'',
+    /* CF2 Part III-B – Consent to Access Patient Record/s */
+    cf2PatientRepName:'', cf2PatientRepSignedDate:'',
+    cf2PatientRepRelationship:'', cf2PatientRepRelationshipOther:'',
+    cf2PatientReason:'', cf2PatientReasonOther:'',
+    /* CF2 Part IV – Certification of Consumption of Health Care Institution */
+    cf2ProviderRepName:'', cf2ProviderCapacity:'', cf2ProviderSignedDate:'',
 
     /* Member Profile – PMRF */
     civilStatus:'', placeOfBirth:'', citizenship:'',
@@ -165,7 +179,7 @@ const state = {
     memberNoMiddleName:false, memberMononym:false,
     motherNoMiddleName:false, motherMononym:false,
     spouseNoMiddleName:false, spouseMononym:false,
-    /* PMRF – Dependent 1 extras (shares patientLastName/FirstName/etc with CSF) */
+    /* PMRF – Dependent 1 extras (shares patientLastName/FirstName/etc with CSF/CF2) */
     patientCitizenship:'', dep1NoMiddleName:false, dep1Mononym:false, dep1Disability:false,
     /* PMRF – Dependents 2–4 */
     dep2LastName:'', dep2FirstName:'', dep2Ext:'', dep2MiddleName:'',
@@ -232,11 +246,14 @@ const SAMPLE_DATA = {
   cf4LaboratoryFindings:'CBC: Hgb 118 g/L, WBC 9.2; Urinalysis: normal; HBsAg non-reactive',
   cf4IcdCode:'O80', cf4RvsCode:'59400',
   cf4AttendingProvider:'ROSARIO M. ALCANTARA, RM',
-  cf4ProviderPAN:'000005678', cf4ProviderSignedDate:'2026-06-13',
+  cf4ProviderPAN:'110000005678', cf4ProviderSignedDate:'2026-06-13',
   dxADiagnosis:'Normal Spontaneous Delivery, Full Term, Live Birth',
   dxAIcd10:'O80',
-  hciPAN:'000001234', hciName:'Mapagpala Maternity Clinic',
-  csfSeries:'2026000123456',
+  hciPAN:'120000012345', hciName:'Mapagpala Maternity Clinic',
+  cf2SpecialProcedures:[], cf2SpecialProcedureDetail:'',
+  cf2TbPhase:'', cf2NewbornCare:['Essential Newborn Care','Newborn Screening Test'],
+  cf2EssentialNewbornCare:['Immediate drying of newborn','Early skin-to-skin contact','Timely cord clamping',
+    'Eye Prophylaxis','Vitamin K administration','Weighing of the newborn'],
   hciStreet:'456 Bonifacio Avenue', hciCity:'Quezon City', hciProvince:'Metro Manila',
   employerPEN:'', employerPhone:'', employerName:'',
   civilStatus:'Married', placeOfBirth:'Quezon City, Metro Manila', citizenship:'FILIPINO',
@@ -296,6 +313,8 @@ const DATE_FIELDS = new Set([
   'dxADateI','dxADateII','dxADateIII','dxBDateI','dxBDateII','dxBDateIII',
   'memberSignedDate','repSignedDate','employerSignedDate','patientRepSignedDate',
   'hciProf1DateSigned','hciProf2DateSigned','hciProf3DateSigned','providerSignedDate',
+  'cf2Prof1DateSigned','cf2Prof2DateSigned','cf2Prof3DateSigned',
+  'cf2PatientRepSignedDate','cf2ProviderSignedDate',
   'dep2DOB','dep3DOB','dep4DOB','memberSignatureDate',
 ]);
 
@@ -310,9 +329,24 @@ function signatureName(first, middle, last) {
   return [f, initial, l].filter(Boolean).join(' ');
 }
 
+/* CF2 8.a: each repetitive procedure has its own dates line beside it,
+   typed in its own box (cf2ProcDates1-8) once it is ticked. Dates typed
+   before that, in the one "Procedure details" box older claims have, go
+   on the line of the first procedure ticked. */
+const CF2_REPEAT_PROCEDURES = ['Hemodialysis', 'Blood Transfusion', 'Peritoneal Dialysis',
+  'Brachytherapy', 'Radiotherapy (LINAC)', 'Chemotherapy', 'Radiotherapy (COBALT)', 'Simple Debridement'];
+
 function getComputedValue(key) {
   const d = state.data;
   if (DATE_FIELDS.has(key)) return d[key] ? formatDate(d[key]) : '';
+  const procLine = /^cf2ProcDetail([1-8])$/.exec(key);
+  if (procLine) {
+    const ticked = Array.isArray(d.cf2SpecialProcedures) ? d.cf2SpecialProcedures : [];
+    const proc = CF2_REPEAT_PROCEDURES[procLine[1] - 1];
+    if (!ticked.includes(proc)) return '';
+    const first = CF2_REPEAT_PROCEDURES.find(p => ticked.includes(p));
+    return d['cf2ProcDates' + procLine[1]] || (proc === first ? (d.cf2SpecialProcedureDetail || '') : '');
+  }
   switch (key) {
     case 'patientName':
       return [d.patientLastName, d.patientFirstName, d.patientNameExt, d.patientMiddleName]
@@ -328,6 +362,13 @@ function getComputedValue(key) {
       return signatureName(d.memberFirstName, d.memberMiddleName, d.memberLastName);
     case 'patientSignName':
       return signatureName(d.patientFirstName, d.patientMiddleName, d.patientLastName);
+    /* CSF Part I, Item 9: a name only over the line of whoever signs - the
+       member's until a representative is chosen, the representative's
+       (the patient, who usually signs for the member) only then. */
+    case 'memberLineName':
+      return d.memberSignerType === 'Representative' ? '' : getComputedValue('memberSignName');
+    case 'repLineName':
+      return d.memberSignerType === 'Representative' ? getComputedValue('patientSignName') : '';
 
     // Shown with a peso sign on the form, as it is on the printed PMRF.
     case 'monthlyIncomeDisplay': {
@@ -361,7 +402,8 @@ function getComputedValue(key) {
       return [d.spouseLastName, d.spouseFirstName, d.spouseMiddleName]
         .filter(x => x && x.trim()).join(' ');
     case 'hciAddress':
-      return [d.hciStreet, d.hciCity, d.hciProvince].filter(Boolean).join(', ');
+      return [[d.hciBldg, d.hciStreet].filter(Boolean).join(' '),
+              d.hciCity, d.hciProvince, d.hciZip].filter(Boolean).join(', ');
     case 'fullAddress':
       return [
         [d.addrLot, d.addrStreet].filter(Boolean).join(' '),
@@ -374,15 +416,24 @@ function getComputedValue(key) {
       return formatTime12h(d.timeAdmitted);
     case 'timeDischargeStr':
       return formatTime12h(d.timeDischarge);
+    // CF4 9.b / 10.b: hh and mm in four boxes, AM/PM ticked beside them.
+    case 'cf4TimeAdmittedDigits':
+      return time12hDigits(d.timeAdmitted);
+    case 'cf4TimeDischargeDigits':
+      return time12hDigits(d.timeDischarge);
     case 'timeAdmittedDigits':
       return time12hDigits(d.timeAdmitted);
     case 'timeDischargeDigits':
       return time12hDigits(d.timeDischarge);
+    /* CF2 Time Admitted/Discharged: the PDF has two ruled hh:mm boxes per
+       row, one before the printed "AM" label and one before "PM" — the
+       box position itself indicates the period, so the value goes in
+       whichever box matches (the other stays blank). */
     case 'timeAdmittedAM':   return isPMTime(d.timeAdmitted) === false ? bareTime(d.timeAdmitted) : '';
     case 'timeAdmittedPM':   return isPMTime(d.timeAdmitted) === true  ? bareTime(d.timeAdmitted) : '';
     case 'timeDischargeAM':  return isPMTime(d.timeDischarge) === false ? bareTime(d.timeDischarge) : '';
     case 'timeDischargePM':  return isPMTime(d.timeDischarge) === true  ? bareTime(d.timeDischarge) : '';
-    /* HCI Accreditation No. (PAN): one character per ruled digit box */
+    /* CF2 HCI Accreditation No. (PAN): one character per ruled digit box */
     case 'hciPANc1': return (d.hciPAN || '').charAt(0);
     case 'hciPANc2': return (d.hciPAN || '').charAt(1);
     case 'hciPANc3': return (d.hciPAN || '').charAt(2);
@@ -447,8 +498,15 @@ const PREVIEW_MAP = [
   /* CSF – Part II: Employer */
   ['csf-employerPEN','employerPEN'],   ['csf-employerPhone','employerPhone'],
   ['csf-employerName','employerName'],
-  /* Part I: HCI */
-  /* Part II: Patient Confinement */
+  /* CF2 – Part I: HCI */
+  ['cf2-hciPAN','hciPAN'],             ['cf2-hciName','hciName'],
+  ['cf2-hciAddress','hciAddress'],
+  /* CF2 – Part II: Patient Confinement */
+  ['cf2-patientName','patientName'],
+  ['cf2-dateAdmitted','dateAdmitted'], ['cf2-timeAdmitted','timeAdmittedStr'],
+  ['cf2-dateDischarge','dateDischarge'],['cf2-timeDischarge','timeDischargeStr'],
+  ['cf2-disposition','disposition'],   ['cf2-accommodation','accommodation'],
+  ['cf2-admissionDx','admissionDx'],   ['cf2-dischargeDx','dischargeDx'],
   /* PMRF – Section I: Personal Details */
   ['pmrf-memberPIN','memberPIN'],      ['pmrf-memberName','memberName'],
   ['pmrf-memberDOB','memberDOB'],      ['pmrf-memberSex','memberSex'],
@@ -472,7 +530,7 @@ const PREVIEW_MAP = [
 /* ══════════════════════════════════════════════════════════
    NAVIGATION
 ══════════════════════════════════════════════════════════ */
-const VALID_SECTIONS = ['dashboard','patient','csf','cf4','pmrf','validation','profile','settings'];
+const VALID_SECTIONS = ['dashboard','patient','csf','cf2','cf4','pmrf','validation','profile','settings'];
 
 function navigateTo(section, opts) {
   opts = opts || {};
@@ -566,7 +624,7 @@ document.querySelectorAll('.sidebar-item').forEach(item =>
    patient's (name, birthday, sex, PIN) and the relationship is "Self", so
    nothing is typed twice. While ticked they follow the patient's boxes and
    are locked, so the two can't drift apart; unticking unlocks them and
-   keeps what is there. */
+   empties them (see the change listener below). */
 const MEMBER_FROM_PATIENT = {
   memberLastName: 'patientLastName', memberFirstName: 'patientFirstName',
   memberMiddleName: 'patientMiddleName', memberNameExt: 'patientNameExt',
@@ -603,6 +661,43 @@ function applyMemberIsPatient() {
   });
 }
 
+/* Unticking "The patient is the PhilHealth member" (Patient details or
+   the CSF) empties what the tick copied in, so the member's boxes are
+   blank for the real member rather than still showing the patient. Only
+   a click does this: loading a saved claim never clears its member. */
+document.addEventListener('change', e => {
+  const box = e.target;
+  if (!box.matches || !box.matches('input[type="checkbox"][data-autofill="memberIsPatient"]')) return;
+  if (box.checked) return;
+  state.data.memberIsPatient = false;
+  MEMBER_LOCKED_KEYS.forEach(key => {
+    state.data[key] = typeof state.data[key] === 'boolean' ? false : '';
+  });
+  updateFormPreviews();
+});
+
+/* PMRF "Same as Permanent Address": the mailing address copies the
+   permanent one (zip code included) and is locked while ticked, the same
+   way the member follows the patient above. Unticking keeps what is there. */
+const MAILING_FROM_PERMANENT = {
+  mailingAddrUnit: 'addrUnit', mailingAddrBuilding: 'addrBuilding',
+  mailingAddrLot: 'addrLot', mailingAddrStreet: 'addrStreet',
+  mailingAddrSubdivision: 'addrSubdivision', mailingAddrBarangay: 'addrBarangay',
+  mailingAddrCity: 'addrCity', mailingAddrProvince: 'addrProvince',
+  mailingAddrZip: 'addrZip',
+};
+
+function applyMailingSameAsAbove() {
+  const same = !!state.data.mailingSameAsAbove;
+  Object.entries(MAILING_FROM_PERMANENT).forEach(([mailing, permanent]) => {
+    if (same) state.data[mailing] = state.data[permanent] || '';
+    document.querySelectorAll(`[data-autofill="${mailing}"]`).forEach(el => {
+      el.disabled = same;
+      el.title = same ? 'Same as the permanent address' : '';
+    });
+  });
+}
+
 /* "No PhilHealth" beside the patient's and the member's PIN on Patient
    details: that PIN is then not asked for (keyIsSkipped) and its boxes are
    greyed out. What was typed stays, and is back in use when the tick is
@@ -633,9 +728,92 @@ function applyNoPhilhealth() {
   });
 }
 
+/* Values worked out from others: the patient's age (CF4) from the birthday,
+   as of admission (today until there is an admission date), and the
+   expected date of delivery from the LMP by Naegele's rule (LMP + 280
+   days). Each is filled while its box is empty or still holds what was
+   last worked out, so a value typed over it by hand is kept. */
+const derivedLast = {};
+
+function ageOn(dobIso, onIso) {
+  const b = String(dobIso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const o = String(onIso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!b || !o) return '';
+  let age = Number(o[1]) - Number(b[1]);
+  if (Number(o[2]) < Number(b[2]) || (o[2] === b[2] && Number(o[3]) < Number(b[3]))) age--;
+  return age >= 0 && age <= 130 ? String(age) : '';
+}
+
+function addDaysIso(iso, days) {
+  const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return '';
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + days);
+  return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'),
+          String(d.getDate()).padStart(2, '0')].join('-');
+}
+
+function todayIso() {
+  // The clinic's own date, not UTC's (which is still yesterday before 8 AM).
+  const d = new Date();
+  return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'),
+          String(d.getDate()).padStart(2, '0')].join('-');
+}
+
+const DERIVED_FIELDS = {
+  patientAge: d => ageOn(d.patientDOB, d.dateAdmitted || todayIso()),
+  expectedDD: d => addDaysIso(d.lmp, 280),
+};
+
+function applyDerivedFields() {
+  Object.entries(DERIVED_FIELDS).forEach(([key, work]) => {
+    const next = work(state.data);
+    const cur = state.data[key] || '';
+    if (!cur || cur === derivedLast[key]) state.data[key] = next;
+    derivedLast[key] = next;
+  });
+}
+
+/* CF2 8.f: what was given for Essential Newborn Care shows once that is
+   ticked; unticking it clears them, so they are not printed. */
+function applyEssentialNewbornCare() {
+  const on = (state.data.cf2NewbornCare || []).includes('Essential Newborn Care');
+  document.querySelectorAll('[data-enc-items]').forEach(box => { box.hidden = !on; });
+  if (!on && (state.data.cf2EssentialNewbornCare || []).length) state.data.cf2EssentialNewbornCare = [];
+}
+
+/* CF2 8.a: a procedure's dates box shows once the procedure is ticked. */
+function applyProcedureDateRows() {
+  const ticked = state.data.cf2SpecialProcedures || [];
+  document.querySelectorAll('[data-proc-row]').forEach(row => {
+    row.hidden = !ticked.includes(row.dataset.procRow);
+  });
+}
+
+/* "Signed By" on a certification: a row marked data-signer="key:Who" is
+   only for that signer, so it is hidden (and not asked for, keyIsSkipped)
+   until that signer is picked. Once someone is picked, what was typed in
+   the other signer's rows is cleared so it is not printed. */
+function applySignerFields() {
+  document.querySelectorAll('[data-signer]').forEach(row => {
+    const [key, who] = row.dataset.signer.split(':');
+    const picked = state.data[key] || '';
+    const off = picked !== who;
+    row.hidden = off;
+    row.classList.toggle('signer-na', off);
+    if (off && picked) {
+      row.querySelectorAll('[data-autofill]').forEach(el => { state.data[el.dataset.autofill] = ''; });
+    }
+  });
+}
+
 function updateFormPreviews() {
   applyMemberIsPatient();
   applyNoPhilhealth();
+  applyMailingSameAsAbove();
+  applyProcedureDateRows();
+  applyEssentialNewbornCare();
+  applySignerFields();
+  applyDerivedFields();
   PREVIEW_MAP.forEach(([id, key]) => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -707,6 +885,9 @@ function syncBtnCheckGroups() {
       btn.classList.toggle('active', btn.dataset.value === val);
     });
   });
+
+  const referralDetails = document.getElementById('cf2-referral-details');
+  if (referralDetails) referralDetails.style.display = state.data.referredByHCI === 'Yes' ? '' : 'none';
 }
 
 const AMPM_TIME_KEY = { amPmAdmitted: 'timeAdmitted', amPmDischarge: 'timeDischarge', amPmDelivery: 'deliveryTime' };
@@ -772,13 +953,29 @@ function time12hDigits(hhmm) {
    consistent across the forms that share them.
    A target the user has deliberately edited is left alone. */
 /* Most boxes that mean the same thing on several forms are one key (e.g.
-   patientLastName on Patient details, CSF, CF4, PMRF), so typing it
+   patientLastName on Patient details, CSF, CF2, CF4, PMRF), so typing it
    anywhere fills it everywhere. These are separate keys on different
    forms for the same fact: typing in any of them fills the others (both
    ways), on the rule above. */
 const LINKED_FIELD_GROUPS = [
   ['dischargeDx', 'dxADiagnosis', 'cf4FinalDiagnosis'],
   ['chiefComplaint', 'cf4ChiefComplaint'],
+  // Health care professionals: CSF Part III and CF2 Part II
+  // The first of them is the attending midwife, who also signs CF4.
+  ...[1, 2, 3].flatMap(n => [
+    [`hciProf${n}Name`, `cf2Prof${n}Name`, ...(n === 1 ? ['cf4AttendingProvider'] : [])],
+    [`hciProf${n}AccredNo`, `cf2Prof${n}AccredNo`, ...(n === 1 ? ['cf4ProviderPAN'] : [])],
+    [`hciProf${n}DateSigned`, `cf2Prof${n}DateSigned`, ...(n === 1 ? ['cf4ProviderSignedDate'] : [])],
+  ]),
+  // The member's own signature: CSF Part I and PMRF
+  ['memberSignedDate', 'memberSignatureDate'],
+  // The clinic's authorized representative: CSF and CF2
+  ['providerRepName', 'cf2ProviderRepName'], ['providerCapacity', 'cf2ProviderCapacity'],
+  ['providerSignedDate', 'cf2ProviderSignedDate'],
+  // Who signs for the patient, and why: CSF and CF2
+  ['patientRepName', 'cf2PatientRepName'], ['patientRepRelationship', 'cf2PatientRepRelationship'],
+  ['patientRepRelationshipOther', 'cf2PatientRepRelationshipOther'], ['patientReason', 'cf2PatientReason'],
+  ['patientReasonOther', 'cf2PatientReasonOther'], ['patientRepSignedDate', 'cf2PatientRepSignedDate'],
 ];
 const MIRRORED_FIELDS = {};
 LINKED_FIELD_GROUPS.forEach(group => group.forEach(key => {
@@ -833,7 +1030,7 @@ function toFormCase(el) {
    FIELDS THAT BELONG TO "PATIENT DETAILS"
    Ninety boxes are the same fact asked twice: the patient's
    name, PIN, address and confinement dates appear both on the
-   Patient details page and again inside CSF, CSF 2, CSF 4 and
+   Patient details page and again inside CSF, CF2, CF4 and
    PMRF. They were already kept in step by
    syncAllAutofillElements(), but a box you can type in invites
    typing, so the same detail got entered several times and a
@@ -843,7 +1040,7 @@ function toFormCase(el) {
    one line at the top of each form saying where to change
    them. Fields a form owns on its own stay editable.
 ══════════════════════════════════════════════════════════ */
-const FORM_SECTIONS = ['csf', 'cf4', 'pmrf'];
+const FORM_SECTIONS = ['csf', 'cf2', 'cf4', 'pmrf'];
 // Switches, not details: these choose how other boxes are filled, so
 // they stay usable on the form itself.
 const PATIENT_PANEL_CONTROLS = new Set(['memberIsPatient']);
@@ -914,6 +1111,8 @@ function partId(form, heading) {
 /* Headings sit beside their fields rather than wrapping them, so each
    heading and the rows that follow it are gathered into one box first -
    there is otherwise nothing to grey out or skip. */
+const PART_TONES = 6;   // css/style.css .part-tone-0 ... -5
+
 function groupEntryParts() {
   FORM_SECTIONS.forEach(form => {
     const section = document.getElementById('section-' + form);
@@ -922,9 +1121,10 @@ function groupEntryParts() {
                   section.querySelector('.form-entry-panel');
     if (!panel || panel.querySelector('.entry-part')) return;
 
-    // A heading is not always a direct child of the panel - CSF 4 and the
-    // later pages of CSF 2 keep theirs inside a .pdf-page-group - so each
+    // A heading is not always a direct child of the panel - CF4 and the
+    // later pages of CF2 keep theirs inside a .pdf-page-group - so each
     // one is gathered among its own siblings rather than the panel's.
+    let tone = 0;
     Array.from(panel.querySelectorAll('.entry-section-title')).forEach(title => {
       if (title.closest('.entry-part')) return;
       const container = title.parentElement;
@@ -932,11 +1132,14 @@ function groupEntryParts() {
       const heading = title.textContent.trim();
       const wrap = document.createElement('div');
       wrap.className = 'entry-part';
-      wrap.dataset.partId = partId(form, heading);
+      // A heading whose cards each have their own tick (the health care
+      // professionals) is not ticked off as a whole.
+      const perCard = title.hasAttribute('data-skip-per-card');
+      if (!perCard) wrap.dataset.partId = partId(form, heading);
       container.insertBefore(wrap, title);
       let node = title;
       // Stop at the next heading, and at any block that carries headings of
-      // its own - CSF 2 keeps its later pages in such a block, and swallowing
+      // its own - CF2 keeps its later pages in such a block, and swallowing
       // it would hide those parts inside this one.
       const boundary = n => n !== title && n.nodeType === 1 &&
         (n.classList.contains('entry-section-title') ||
@@ -947,13 +1150,50 @@ function groupEntryParts() {
         wrap.appendChild(node);
         node = next;
       }
-      addNotNeededTick(wrap, heading);
+      if (!perCard) addNotNeededTick(wrap, heading);
+      // Each stage of the form in its own colour, so the parts read apart.
+      wrap.classList.add('part-tone-' + (tone++ % PART_TONES));
+    });
+
+    // Each health care professional is its own part with its own tick:
+    // a patient seen by one midwife leaves the second and third rows empty
+    // without the first being marked "not needed" too.
+    panel.querySelectorAll('.dx-group-card[data-own-part]').forEach(card => {
+      const label = card.querySelector('.dx-group-label');
+      const outer = card.closest('.entry-part');
+      const heading = outer && outer.querySelector('.entry-section-title');
+      const name = (heading ? heading.textContent.trim() + ' / ' : '') + label.textContent.trim();
+      card.classList.add('entry-part');
+      card.dataset.partId = partId(form, name);
+      addNotNeededTick(card, label.textContent.trim(), label);
     });
   });
 }
 
-function addNotNeededTick(wrap, heading) {
-  const title = wrap.querySelector('.entry-section-title');
+/* Patient details: each section of a tab (Patient, Member, Address...)
+   in its own colour, like the forms' parts, so they read apart. A heading
+   and the boxes after it, up to the next heading or the tab's Back/Next
+   buttons (js/easy.js), are gathered into one block. */
+function groupPatientParts() {
+  document.querySelectorAll('#patientTabContent .tab-pane').forEach(pane => {
+    let tone = 0;
+    Array.from(pane.querySelectorAll(':scope > .pca-tab-section-label')).forEach(label => {
+      const wrap = document.createElement('div');
+      wrap.className = 'patient-part part-tone-' + (tone++ % PART_TONES);
+      pane.insertBefore(wrap, label);
+      let node = label;
+      while (node && !(node !== label && node.nodeType === 1 &&
+             (node.classList.contains('pca-tab-section-label') || node.classList.contains('tab-step-nav')))) {
+        const next = node.nextSibling;
+        wrap.appendChild(node);
+        node = next;
+      }
+    });
+  });
+}
+
+function addNotNeededTick(wrap, heading, title) {
+  title = title || wrap.querySelector('.entry-section-title');
   if (!title || title.querySelector('.part-skip')) return;
   const id = wrap.dataset.partId;
   const label = document.createElement('label');
@@ -974,7 +1214,7 @@ function addNotNeededTick(wrap, heading) {
 }
 
 function applyNotNeededParts() {
-  document.querySelectorAll('.entry-part').forEach(wrap => {
+  document.querySelectorAll('.entry-part[data-part-id]').forEach(wrap => {
     const off = !!state.notNeeded[wrap.dataset.partId];
     wrap.classList.toggle('part-not-needed', off);
     const box = wrap.querySelector('.part-skip-box');
@@ -982,16 +1222,95 @@ function applyNotNeededParts() {
   });
 }
 
-/* True when a key's box on this form sits in a part marked not needed -
-   or it is a PIN whose "No PhilHealth" is ticked (NO_PHILHEALTH). */
+/* Lines written only for one choice: "Others, Specify", "Other reasons"
+   and CF2's co-pay amount. key -> [the choice's key, the value that wants it]. */
+const SPECIFY_LINES = {
+  repRelationshipOther:           ['repRelationship', 'Others'],
+  repReasonOther:                 ['repReason', 'Other'],
+  patientRepRelationshipOther:    ['patientRepRelationship', 'Others'],
+  patientReasonOther:             ['patientReason', 'Other'],
+  cf2PatientRepRelationshipOther: ['cf2PatientRepRelationship', 'Others'],
+  cf2PatientReasonOther:          ['cf2PatientReason', 'Other'],
+  cf2Prof1CopayAmount:            ['cf2Prof1Copay', 'Yes'],
+  cf2Prof2CopayAmount:            ['cf2Prof2Copay', 'Yes'],
+  cf2Prof3CopayAmount:            ['cf2Prof3Copay', 'Yes'],
+};
+
+const PATIENT_REP_KEYS = new Set([
+  'patientRepRelationship', 'patientRepRelationshipOther', 'patientReason', 'patientReasonOther',
+  'cf2PatientRepRelationship', 'cf2PatientRepRelationshipOther', 'cf2PatientReason', 'cf2PatientReasonOther',
+]);
+
+/* True when a key's box on this form sits in a part marked not needed or
+   a row for the signer who is not signing (applySignerFields) - or it is
+   a PIN whose "No PhilHealth" is ticked (NO_PHILHEALTH). */
 function keyIsSkipped(form, key) {
   if (pinNotAsked(key)) return true;
+  // The printed name over the signature line of whoever is not signing.
+  const signer = state.data.memberSignerType;
+  if (key === 'repLineName' && signer !== 'Representative') return true;
+  if (key === 'memberLineName' && signer === 'Representative') return true;
+  // Why and for whom a representative signs the consent (CSF Part III,
+  // CF2 III-B) is not asked when the patient signs it.
+  if (state.data.patientSignerType === 'Patient' && PATIENT_REP_KEYS.has(key)) return true;
+  // CF4 course in the ward and drugs: a line is only asked for once it is
+  // open in "Type the details here" (they open one at a time with "+"),
+  // and a drug's second "(cont.)" line never is.
+  // The "additional sheet(s)" ticks are only for when there are more.
+  if (/^cf4Drug(Name|Dose|Cost)\d+b$/.test(key)) return true;
+  if (key === 'cf4CourseExtraSheet' || key === 'cf4DrugsExtraSheet') return true;
+  if (/^cf4(Course(Date|Order)|Drug(Name|Dose|Cost))\d+$/.test(key)) {
+    // Closed lines only - not the whole page group, hidden while the
+    // form's other page is showing.
+    const box = document.querySelector(`#section-cf4 [data-autofill="${key}"]`);
+    if (box && box.closest('[hidden]:not(.pdf-page-group)')) return true;
+  }
+  // CF2 8.f: the Essential Newborn Care items, once that care is ticked.
+  if (key === 'cf2EssentialNewbornCare' &&
+      !(state.data.cf2NewbornCare || []).includes('Essential Newborn Care')) return true;
+  // A "specify" line is only wanted once the option it belongs to is chosen.
+  const specifies = SPECIFY_LINES[key];
+  if (specifies && state.data[specifies[0]] !== specifies[1]) return true;
+  // CF2 8.a: a procedure's dates are only wanted once it is ticked.
+  const procDates = /^cf2ProcDates([1-8])$/.exec(key);
+  if (procDates && !(state.data.cf2SpecialProcedures || [])
+        .includes(CF2_REPEAT_PROCEDURES[procDates[1] - 1])) return true;
   const name = FIX_FIELD_ALIASES[key] || key;
   const section = document.getElementById('section-' + form);
   if (!section) return false;
   const el = section.querySelector(
     `[data-autofill="${name}"], [data-box-key="${name}"]`);
-  return !!(el && el.closest('.part-not-needed'));
+  return !!(el && el.closest('.part-not-needed, .signer-na'));
+}
+
+/* What a key's box is called, in the words of the form it is typed on:
+   { label, part } - its label (or, for a tick box, the option) and the
+   heading of the part it sits in, since "Last Name" alone could be the
+   member's or the patient's. Used by the form preview's red boxes
+   (js/pdf/pdf-overlay.js) when pointed at. */
+function previewSpotLabel(form, key) {
+  const name = FIX_FIELD_ALIASES[key] || key;
+  const pick = scope => scope && scope.querySelector(`[data-autofill="${name}"], [data-box-key="${name}"]`);
+  const el = pick(document.getElementById('section-' + form)) || pick(document);
+  const clean = t => (t || '').replace(/\s+/g, ' ').replace(/\*/g, '').replace('Not needed', '').trim();
+  let label = '', part = '';
+  if (el) {
+    const wrap = el.closest('.entry-part');
+    const heading = wrap && wrap.querySelector('.entry-section-title');
+    part = heading ? clean(heading.textContent) : '';
+    const col = el.closest('[class*="col-"]');
+    const fieldLabel = col && col.querySelector('.pca-label');
+    const option = el.id && document.querySelector(`label[for="${el.id}"]`);
+    label = clean((fieldLabel || option || {}).textContent);
+  }
+  if (!label) {
+    for (const f of Object.values(VAL_FIELDS)) {
+      const hit = f.find(x => x.key === key);
+      if (hit) { label = hit.label; break; }
+    }
+  }
+  if (!label) label = key.replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase());
+  return { label, part };
 }
 
 function bindInputListeners() {
@@ -1021,7 +1340,7 @@ function bindInputListeners() {
 
 /* ══════════════════════════════════════════════════════════
    SEGMENTED "BOX" INPUTS
-   Some fields (dates, HCI Accreditation No./PAN) print as
+   Some CF2 fields (dates, HCI Accreditation No./PAN) print as
    individual ruled boxes on the PDF. These groups render as
    separate per-character/segment boxes in the data-entry panel
    to match, while still feeding the same state.data[key] the
@@ -1150,9 +1469,10 @@ let lastValidationResult = null;
    sync with the keys the engine actually evaluates.
 ══════════════════════════════════════════════════════════ */
 const VAL_FORM_META = {
-  csf:  { title:'CSF',      abbr:'CSF'  },
-  cf4:  { title:'Clinical Record',           abbr:'CF4'  },
-  pmrf: { title:'PMRF',  abbr:'PMRF' },
+  csf:  { title:'Claim Signature Form',        abbr:'CSF'  },
+  cf2:  { title:'Claim Form 2 - stay at the clinic', abbr:'CF2'  },
+  cf4:  { title:'Claim Form 4 - clinical record',   abbr:'CF4'  },
+  pmrf: { title:'Member registration',         abbr:'PMRF' },
 };
 
 /* One form open at a time (data-bs-parent), so staff work through the
@@ -1161,6 +1481,13 @@ const VAL_FORM_META = {
 function buildValidationAccordion() {
   const host = document.getElementById('valAccordion');
   if (!host) return;
+  if (!host.dataset.fixWired) {
+    host.dataset.fixWired = '';
+    host.addEventListener('click', e => {
+      const fix = e.target.closest('.val-fix[data-fix-field]');
+      if (fix) focusField(fix.dataset.fixField);
+    });
+  }
 
   host.innerHTML = VAL_FORM_KEYS.map((form, i) => {
     const meta   = VAL_FORM_META[form];
@@ -1170,6 +1497,7 @@ function buildValidationAccordion() {
         <span class="val-dot"></span>
         <span class="val-label">${label}</span>
         <span class="val-status ms-auto">Missing</span>
+        <button type="button" class="val-fix" data-fix-field="${key}">Fix this <i class="bi bi-arrow-right"></i></button>
       </div>`).join('');
 
     return `
@@ -1179,13 +1507,15 @@ function buildValidationAccordion() {
                   type="button" data-bs-toggle="collapse" data-bs-target="#val-${form}-panel">
             <span class="val-chip">${meta.abbr}</span>
             <span class="val-title">${meta.title}</span>
-            <span class="ms-auto me-3 val-score" id="val-${form}-score-2">0/${fields.length} Fields</span>
+            <span class="val-bar" aria-hidden="true"><span class="val-bar-fill" id="val-${form}-bar"></span></span>
+            <span class="me-3 val-score" id="val-${form}-score-2">0/${fields.length} Fields</span>
           </button>
         </h2>
         <div id="val-${form}-panel"
              class="accordion-collapse collapse${i === 0 ? ' show' : ''}"
              data-bs-parent="#valAccordion">
-          <div class="accordion-body p-3"><div class="val-list">${items}</div></div>
+          <div class="accordion-body p-3"><div class="val-list">${items}
+            <p class="val-done-label">Filled in</p></div></div>
         </div>
       </div>`;
   }).join('');
@@ -1223,7 +1553,7 @@ function updateValidation() {
         formComplete++; totalComplete++;
         item.classList.add('complete');
         // Done items sink below the ones still needing attention.
-        item.style.order = '1';
+        item.style.order = '2';
         if (status) status.textContent = 'Filled in';
       } else {
         item.classList.remove('complete');
@@ -1253,6 +1583,11 @@ function updateValidation() {
 
     // Every part switched off leaves nothing to ask for - that counts as done.
     const pct = fields.length ? Math.round((formComplete / fields.length) * 100) : 100;
+    const valBar = document.getElementById(`val-${form}-bar`);
+    if (valBar) {
+      valBar.style.width = pct + '%';
+      valBar.classList.toggle('done', pct === 100);
+    }
     const bar = document.getElementById(`prog-${form}-bar`);
     if (bar) bar.style.width = pct + '%';
   });
@@ -1343,19 +1678,14 @@ function renderRuleFeedback(result) {
 }
 
 /* ══════════════════════════════════════════════════════════
-   ON EACH FORM — what is missing, and which rules are broken
-   The same findings as "Check for missing information", shown at the top
-   of each form's "Type the details here" panel for that form alone, so
-   staff see them while typing instead of only on that page:
-     - the boxes of this form still empty (parts marked "Not needed" are
-       left out), each with "Fix this";
-     - the rules broken for this form (critical in red, warnings in amber):
-       a rule's own form, or the form whose boxes hold its field.
-   Rules about the claim as a whole (no form, no field) are counted on one
-   line that leads to the checker, rather than repeated on every form.
+   ON EACH FORM — one line saying how much is left
+   The list of every missing box used to open here, and grew long
+   enough to push the boxes themselves out of sight. Now the red
+   boxes on the form preview say what they are when pointed at and
+   go to the box when clicked (js/pdf/pdf-overlay.js), so this line
+   only counts what is left on this form and, for rules that are not
+   one box, leads to "Check for missing information".
 ══════════════════════════════════════════════════════════ */
-const FORM_ISSUES_OPEN = {};   // folded or not, per form, while the page is open
-
 function formHasField(form, key) {
   if ((VAL_FIELDS[form] || []).some(f => f.key === key)) return true;
   const name = FIX_FIELD_ALIASES[key] || key;
@@ -1370,14 +1700,11 @@ function renderFormIssues(result) {
     if (!header) return;
     let box = section.querySelector('.form-issues');
     if (!box) {
-      box = document.createElement('details');
+      box = document.createElement('div');
       box.className = 'form-issues';
+      box.setAttribute('role', 'status');
       header.insertAdjacentElement('afterend', box);
       box.addEventListener('click', e => {
-        // Folded or opened by the person (not when the code sets it).
-        if (e.target.closest('summary')) FORM_ISSUES_OPEN[form] = !box.open;
-        const fix = e.target.closest('[data-fix-field]');
-        if (fix) { e.preventDefault(); focusField(fix.dataset.fixField); }
         const all = e.target.closest('[data-go-validation]');
         if (all) { e.preventDefault(); navigateTo('validation'); }
       });
@@ -1386,22 +1713,11 @@ function renderFormIssues(result) {
     const missing = (VAL_FIELDS[form] || []).filter(({ key }) =>
       !keyIsSkipped(form, key) && !getComputedValue(key));
     const mine = v => (v.form && v.form === form) || (!v.form && v.field && formHasField(form, v.field));
-    // A missing box already listed above is not listed again as a rule.
     const missingKeys = new Set(missing.map(m => m.key));
     const rules = result.violations.filter(v => mine(v) && !(v.field && missingKeys.has(v.field) &&
       v.category === 'Missing Field'));
-    const general = result.violations.filter(v => !v.form && !v.field);
     const critical = rules.filter(v => v.severity.critical);
     const warnings = rules.filter(v => !v.severity.critical);
-
-    const fixBtn = key => key
-      ? `<button type="button" class="form-issue-fix" data-fix-field="${escHtml(key)}">Fix this</button>` : '';
-    const ruleRow = v => `<li class="form-issue form-issue--${v.severity.critical ? 'critical' : 'warning'}">
-        <i class="bi ${v.severity.critical ? 'bi-x-octagon-fill' : 'bi-exclamation-triangle-fill'}" aria-hidden="true"></i>
-        <span><code>${escHtml(v.id)}</code> ${v.message}</span>${fixBtn(v.field)}</li>`;
-    const missRow = m => `<li class="form-issue form-issue--missing">
-        <i class="bi bi-dash-circle" aria-hidden="true"></i>
-        <span><strong>${escHtml(m.label)}</strong> is not filled in yet</span>${fixBtn(m.key)}</li>`;
 
     const counts = [];
     if (missing.length) counts.push(`${missing.length} missing`);
@@ -1411,20 +1727,15 @@ function renderFormIssues(result) {
     box.classList.toggle('form-issues--clean', clean);
     box.classList.toggle('form-issues--critical', critical.length > 0);
 
-    const html = `<summary>
-        <i class="bi ${clean ? 'bi-check-circle-fill' : critical.length ? 'bi-exclamation-octagon-fill' : 'bi-exclamation-circle-fill'}" aria-hidden="true"></i>
-        <span>${clean ? 'Nothing missing on this form' : 'On this form: ' + counts.join(' · ')}</span>
-      </summary>
-      ${clean ? '' : `<ul class="form-issue-list">
-        ${critical.map(ruleRow).join('')}${missing.map(missRow).join('')}${warnings.map(ruleRow).join('')}
-      </ul>`}
-      ${general.length ? `<p class="form-issues-general">${general.length} more about the whole claim -
-        <a href="#validation" data-go-validation>see Check for missing information</a></p>` : ''}`;
+    const html = clean
+      ? `<i class="bi bi-check-circle-fill" aria-hidden="true"></i><span>Nothing missing on this form</span>`
+      : `<i class="bi ${critical.length ? 'bi-exclamation-octagon-fill' : 'bi-exclamation-circle-fill'}" aria-hidden="true"></i>
+         <span><strong>${counts.join(' · ')}</strong> - point at a red box on the form preview to see what it
+         needs; click it to go there.${rules.length ? ` <a href="#validation" data-go-validation>See every problem</a>` : ''}</span>`;
     if (box.dataset.html !== html) {
       box.innerHTML = html;
       box.dataset.html = html;
     }
-    box.open = clean ? false : (FORM_ISSUES_OPEN[form] !== undefined ? FORM_ISSUES_OPEN[form] : true);
   });
 }
 
@@ -1549,7 +1860,7 @@ function applyInlineFieldFlags(result) {
     el.classList.remove('field-invalid', 'field-warn');
     el.removeAttribute('title');
   });
-  document.querySelectorAll('.field-rule-note').forEach(n => n.remove());
+  document.querySelectorAll('.field-rule-note, .field-rule-flag').forEach(n => n.remove());
   markMissingRequiredFields();
 
   result.violations.forEach(v => {
@@ -1559,15 +1870,22 @@ function applyInlineFieldFlags(result) {
     targets.forEach(el => {
       el.classList.add(v.severity.critical ? 'field-invalid' : 'field-warn');
       el.setAttribute('title', `${v.id}: ${v.message}`);
+      // The message goes in a small icon on the box's label (its text shows
+      // when pointed at), not in a line added under the box: a line that
+      // comes and goes as a rule is broken and fixed pushed every box below
+      // it up and down while staff were typing.
       const anchor = el.closest('.col-12, .col-4, .col-6, .col-md-6, .col-md-4') || el.parentElement;
-      if (anchor && !anchor.querySelector('.field-rule-note')) {
-        const note = document.createElement('div');
-        note.className = 'field-rule-note ' +
-          (v.severity.critical ? 'field-rule-note--danger' : 'field-rule-note--warn');
-        note.innerHTML =
-          `<i class="bi ${v.severity.critical ? 'bi-exclamation-circle-fill' : 'bi-exclamation-triangle-fill'} me-1"></i>` +
-          `${v.message}`;
-        anchor.appendChild(note);
+      const label = anchor && anchor.querySelector('.pca-label');
+      if (label && !label.querySelector('.field-rule-flag')) {
+        const flag = document.createElement('span');
+        flag.className = 'field-rule-flag ' +
+          (v.severity.critical ? 'field-rule-flag--danger' : 'field-rule-flag--warn');
+        flag.tabIndex = 0;
+        flag.setAttribute('role', 'img');
+        flag.setAttribute('aria-label', v.message);
+        flag.dataset.tip = v.message;
+        flag.innerHTML = `<i class="bi ${v.severity.critical ? 'bi-exclamation-circle-fill' : 'bi-exclamation-triangle-fill'}"></i>`;
+        label.appendChild(flag);
       }
     });
   });
@@ -1935,6 +2253,7 @@ bindInputListeners();
 bindBoxGroupListeners();
 markPatientOwnedFields();
 groupEntryParts();
+groupPatientParts();
 applyNotNeededParts();
 updateFormPreviews();
 
@@ -2104,7 +2423,7 @@ async function loadStaffAccounts() {
    CLINIC SETTINGS
    Table 3.1 lists clinic name, accreditation number and address as
    "System settings (entered once)". Loading them here fills the same
-   fields on CF4, so they are never retyped per claim.
+   fields on CF2/CF4, so they are never retyped per claim.
 ══════════════════════════════════════════════════════════ */
 const CLINIC_FIELDS = {
   clinicName:     'hciName',
@@ -2114,6 +2433,12 @@ const CLINIC_FIELDS = {
   clinicCity:     'hciCity',
   clinicProvince: 'hciProvince',
   clinicZip:      'hciZip',
+  // CSF Part V's signer for the clinic.
+  clinicProviderRepName:  'providerRepName',
+  clinicProviderCapacity: 'providerCapacity',
+  // CF4 Part VII's attending professional (linked to CSF Part III row 1).
+  clinicAttendingName:    'cf4AttendingProvider',
+  clinicAttendingPAN:     'cf4ProviderPAN',
 };
 
 async function loadClinicSettings() {
@@ -2134,7 +2459,11 @@ async function loadClinicSettings() {
   // ...and seed the claim forms, without overwriting anything already typed.
   let changed = false;
   Object.values(CLINIC_FIELDS).forEach(key => {
-    if (settings[key] && !state.data[key]) { state.data[key] = settings[key]; changed = true; }
+    if (settings[key] && !state.data[key]) {
+      state.data[key] = settings[key];
+      propagateMirroredField(key, '');   // e.g. the attending midwife onto CSF/CF2
+      changed = true;
+    }
   });
   if (changed) updateFormPreviews();
 }
@@ -2149,6 +2478,19 @@ async function loadClinicSettings() {
       const el = document.getElementById(inputId);
       if (el) payload[key] = el.value.trim();
     });
+    // Said here rather than only by the server, so it shows before saving.
+    const panDigits = (payload.hciPAN || '').replace(/\D/g, '');
+    const attendingDigits = (payload.cf4ProviderPAN || '').replace(/\D/g, '');
+    if (payload.hciPAN && panDigits.length !== 12) {
+      showToast('Check the accreditation number',
+                'The PAN must be 12 digits (it has ' + panDigits.length + ').', 'warning');
+      return;
+    }
+    if (payload.cf4ProviderPAN && attendingDigits.length !== 12) {
+      showToast('Check the attending professional\'s PAN',
+                'It must be 12 digits (it has ' + attendingDigits.length + ').', 'warning');
+      return;
+    }
 
     btn.disabled = true;
     const result = await PCAAuth.saveClinicSettings(payload);
@@ -2160,13 +2502,16 @@ async function loadClinicSettings() {
     }
     // Apply immediately so the open forms pick the new details up.
     Object.entries(CLINIC_FIELDS).forEach(([, key]) => {
-      if (result.settings[key]) state.data[key] = result.settings[key];
+      if (!result.settings[key]) return;
+      const prev = state.data[key];
+      state.data[key] = result.settings[key];
+      propagateMirroredField(key, prev);
     });
     updateFormPreviews();
     const savedAt = document.getElementById('clinicSavedAt');
     if (savedAt) savedAt.textContent = 'Last saved just now';
     showToast('Clinic details saved',
-              'These now fill in automatically on CF4.', 'success');
+              'These now fill in automatically on CF2, CF4 and the CSF.', 'success');
     logActivity('Clinic details updated', 'success');
   });
 })();
@@ -2515,7 +2860,7 @@ const PCA_HANDWRITTEN = new Set();
     applyFormData(values);
     box.hidden = true;
     showToast('Delivery message put in',
-      'Admission Diagnosis now has the delivery message. CSF 4 prints it as the admitting diagnosis.', 'success');
+      'Admission Diagnosis now has the delivery message. CF4 prints it as the admitting diagnosis.', 'success');
   }
 })();
 
@@ -2571,6 +2916,8 @@ function setupExpandingRows(opts) {
     // Only offer to hide a line that is still empty.
     delBtn.hidden = shown === 0 || shown <= lastFilled();
     refreshRedMarksSoon();   // a line just shown is marked if empty
+    // ...on the form preview too, which only asks for open lines (keyIsSkipped)
+    if (typeof updateAllOverlays === 'function') updateAllOverlays();
     if (count) {
       count.textContent = shown + 1 === TOTAL
         ? 'All ' + TOTAL + ' ' + opts.noun + ' shown'

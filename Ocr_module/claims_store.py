@@ -289,9 +289,9 @@ def _advance_status(claim_id, new_status):
 
 
 def advance_status_if_forms_complete(claim_id):
-    """Moves a 'draft' claim to 'ready' once its CSF form (the only form
-    this backend currently maps/exports - see
-    philhealth/overlays/__init__.py) is complete per
+    """Moves a 'draft' claim to 'ready' once its CF2 and CSF forms (the only
+    two forms this backend currently maps/exports - see
+    philhealth/overlays/__init__.py) are both complete per
     mapping_service.map_claim(). Called after every write that could change
     completeness (claim generation/sync, manual field correction). No-op if
     the forms aren't complete yet, or the claim is already 'ready'/'exported'.
@@ -302,7 +302,7 @@ def advance_status_if_forms_complete(claim_id):
     if rows is None:
         return
     mapped = mapping_service.map_claim(rows["patient"], rows["encounter"], rows["claim"])
-    if mapped["forms"]["csf"]["complete"]:
+    if mapped["forms"]["cf2"]["complete"] and mapped["forms"]["csf"]["complete"]:
         _advance_status(claim_id, "ready")
 
 
