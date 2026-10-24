@@ -1,4 +1,4 @@
-"""Claim rows -> PClaimAssist form data (all three forms: PMRF, CSF, CF4).
+"""Claim rows -> PClaimAssist form data (all four forms: PMRF, CSF, CF2, CF4).
 
 Pure (no DB, no Flask). build_form_data() turns a claim's stored rows into
 values keyed by PClaimAssist form key, using field_catalog.FORM_FIELDS as

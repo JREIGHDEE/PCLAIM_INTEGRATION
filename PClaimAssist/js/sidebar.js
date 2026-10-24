@@ -28,7 +28,8 @@ const PCA_SIDEBAR = [
   ]},
   { label: 'The forms (open, check, print)', items: [
     { key: 'csf',  icon: 'bi-file-earmark-text', text: 'CSF',   badge: 'CSF' },
-    { key: 'cf4',  icon: 'bi-file-earmark-text', text: 'CSF 4', badge: 'CF4' },
+    { key: 'cf2',  icon: 'bi-file-earmark-text', text: 'CF2', badge: 'CF2' },
+    { key: 'cf4',  icon: 'bi-file-earmark-text', text: 'CF4', badge: 'CF4' },
     { key: 'pmrf', icon: 'bi-file-earmark-text', text: 'PMRF',  badge: 'PMRF' },
   ]},
   { label: 'Clinic', items: [

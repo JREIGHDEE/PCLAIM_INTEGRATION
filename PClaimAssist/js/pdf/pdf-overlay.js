@@ -13,6 +13,7 @@ if (typeof pdfjsLib !== 'undefined') {
 /* ── Per-form state ──────────────────────────────────────── */
 const pdfState = {
   csf:  { doc: null, page: 1, totalPages: 1, rendered: false },
+  cf2:  { doc: null, page: 1, totalPages: 2, rendered: false },
   cf4:  { doc: null, page: 1, totalPages: 2, rendered: false },
   pmrf: { doc: null, page: 1, totalPages: 2, rendered: false },
 };
@@ -20,11 +21,11 @@ const pdfState = {
 /* Every form the PDF layer manages. CF4 is included ahead of the file
    being supplied; until forms/CF4.pdf exists its panel shows the
    standard "PDF not found" state. */
-const PDF_FORM_KEYS = ['csf', 'cf4', 'pmrf'];
+const PDF_FORM_KEYS = ['csf', 'cf2', 'cf4', 'pmrf'];
 
 /* ── Overlay field coordinate maps ──────────────────────────
    OVERLAY_MAP itself is defined in js/pdf/overlays/index.js,
-   built from the per-form maps in js/pdf/overlays/{csf,cf4,pmrf}.js.
+   built from the per-form maps in js/pdf/overlays/{csf,cf2,cf4,pmrf}.js.
    Those files must be loaded before this one (see index.html).
 ─────────────────────────────────────────────────────────── */
 
@@ -44,7 +45,8 @@ const SKIP_VALIDATION_FOR_EXPORT = true;
 
 const PDF_PATHS = {
   csf:  'forms/CSF.pdf',
-  cf4:  'forms/CF4.pdf',
+  cf2:  'forms/CF2.pdf',
+  cf4:  'forms/CF4.pdf?v=2020-02',   // the February 2020 edition
   pmrf: 'forms/PMRF.pdf',
 };
 
@@ -235,7 +237,7 @@ function injectOverlaySpans(formKey) {
   if (!overlay) return;
   overlay.innerHTML = '';
 
-  const PAGE_H = { csf: 936, cf4: 1008, pmrf: 841.5 };
+  const PAGE_H = { csf: 936, cf2: 936, cf4: 1008, pmrf: 841.5 };
   const refH = PAGE_H[formKey] || 936;
 
   (OVERLAY_MAP[formKey] || []).forEach(f => {
@@ -259,6 +261,12 @@ function injectOverlaySpans(formKey) {
     const dy = (6 / fs) - 0.83;
     span.style.cssText =
       `top:${f.top}%;left:${f.left}%;width:${f.w}%;transform:translateY(${dy.toFixed(3)}em);`;
+    // Spread over the form's own ruled lines, as the export does
+    // (fitOverlayLines sizes it).
+    if (f.lines && f.lh) {
+      span.dataset.lines = f.lines;
+      span.dataset.lhPct = f.lh / refH;
+    }
     overlay.appendChild(span);
   });
   scaleOverlayFonts(formKey);
@@ -273,6 +281,30 @@ function scaleOverlayFonts(formKey) {
   overlay.querySelectorAll('.pdf-field').forEach(span => {
     const fsPct = parseFloat(span.dataset.fsPct) || (8 / 936);
     span.style.fontSize = Math.max(5, Math.round(fsPct * h)) + 'px';
+  });
+  fitOverlayLines(formKey);
+}
+
+/* A value laid onto the form's own ruled lines (CF2's diagnoses): the
+   lines are a fixed distance apart on the page, and the words have to fit
+   on as many lines as the form has. The preview's typewriter font is wider
+   than the printed one, so it is made smaller here until it fits - as the
+   export does - instead of running on over the next row. */
+function fitOverlayLines(formKey) {
+  const overlay = document.getElementById('overlay-' + formKey);
+  if (!overlay) return;
+  const h = overlay.getBoundingClientRect().height || 800;
+  overlay.querySelectorAll('.pdf-field[data-lines]').forEach(span => {
+    const lineH = parseFloat(span.dataset.lhPct) * h;
+    const lines = Number(span.dataset.lines);
+    span.style.lineHeight = lineH + 'px';
+    let size = Math.max(5, Math.round((parseFloat(span.dataset.fsPct) || (8 / 936)) * h));
+    span.style.fontSize = size + 'px';
+    span.style.maxHeight = 'none';
+    while (span.textContent && span.scrollHeight > lineH * lines + 1 && size > 4) {
+      size -= 0.5;
+      span.style.fontSize = size + 'px';
+    }
   });
 }
 
@@ -321,7 +353,9 @@ function resolveOverlayFieldValue(f) {
   }
 
   if (f.digit !== undefined) {
-    const raw = data[f.digitKey || f.key] || '';
+    // A stored value, or one worked out from others (e.g. CF4's hhmm).
+    const k = f.digitKey || f.key;
+    const raw = data[k] || (typeof window.getComputedValue === 'function' ? window.getComputedValue(k) : '') || '';
     let digits;
     if (f.digitOrder === 'mmddyyyy') {
       const parts = raw.split('-'); // ISO: [YYYY, MM, DD]
@@ -361,6 +395,7 @@ function updateOverlayForForm(formKey) {
   const st      = pdfState[formKey];
   const curPage = st ? st.page : 1;
   const fields  = OVERLAY_MAP[formKey] || [];
+  let refit = false;
 
   fields.forEach(f => {
     const span = document.getElementById('pof-' + formKey + '-' + f.id);
@@ -369,10 +404,70 @@ function updateOverlayForForm(formKey) {
     span.classList.toggle('pdf-field--hidden', f.page !== curPage);
 
     const val = resolveOverlayFieldValue(f);
+    const changed = span.textContent !== val;
     span.textContent = val;
     span.classList.toggle('pdf-field--filled', !!val);
+    if (changed && span.dataset.lines) refit = true;
+
+    // Red only where something is still wanted: not a part marked "Not
+    // needed" (or otherwise not asked for, app.js keyIsSkipped), and not an
+    // empty spot whose answer is already elsewhere - the other options of a
+    // tick-one row, the AM box when the time is PM, a digit past the end.
+    const key = f.digitKey || f.key;
+    const raw = state.data[key];
+    const answered = Array.isArray(raw) ? raw.length > 0 : !!raw;
+    const skipped = typeof keyIsSkipped === 'function' && keyIsSkipped(formKey, key);
+    const missing = !val && !answered && !skipped;
+    span.classList.toggle('pdf-field--missing', missing);
+    span.dataset.key = key;
   });
+  if (refit) fitOverlayLines(formKey);
 }
+
+/* Pointing at a red box on the preview says what it still needs; clicking
+   it goes to the box where that is typed (app.js focusField), the same
+   jump "Fix this" made from the list that used to sit above the boxes. */
+(function missingSpotTips() {
+  let tip = null;
+  const spotAt = e => {
+    const span = e.target.closest && e.target.closest('.pdf-field--missing');
+    if (!span || span.closest('.pdf-overlay.calibrating')) return null;
+    return span;
+  };
+  const formOf = span => span.closest('.pdf-overlay').id.replace('overlay-', '');
+  const place = e => {
+    const pad = 14, w = tip.offsetWidth, h = tip.offsetHeight;
+    tip.style.left = Math.min(e.clientX + pad, innerWidth - w - 8) + 'px';
+    tip.style.top = (e.clientY + pad + h > innerHeight ? e.clientY - h - pad : e.clientY + pad) + 'px';
+  };
+
+  document.addEventListener('mouseover', e => {
+    const span = spotAt(e);
+    if (!span) return;
+    if (!tip) {
+      tip = document.createElement('div');
+      tip.className = 'pdf-missing-tip';
+      tip.setAttribute('role', 'tooltip');
+      document.body.appendChild(tip);
+    }
+    const spot = typeof previewSpotLabel === 'function'
+      ? previewSpotLabel(formOf(span), span.dataset.key) : { label: span.dataset.key, part: '' };
+    tip.innerHTML = '<small></small><strong></strong><span>Still missing. Click to go to this box.</span>';
+    tip.querySelector('small').textContent = spot.part;
+    tip.querySelector('small').hidden = !spot.part;
+    tip.querySelector('strong').textContent = spot.label;
+    tip.hidden = false;
+    place(e);
+  });
+  document.addEventListener('mousemove', e => { if (tip && !tip.hidden && spotAt(e)) place(e); });
+  document.addEventListener('mouseout', e => { if (tip && spotAt(e)) tip.hidden = true; });
+  document.addEventListener('click', e => {
+    const span = spotAt(e);
+    if (!span) return;
+    if (tip) tip.hidden = true;
+    if (typeof focusField === 'function') focusField(span.dataset.key);
+  });
+})();
 
 /* ── Update all form overlays ────────────────────────────── */
 function updateAllOverlays() {
@@ -411,7 +506,9 @@ function needsRedraw(formKey) {
 }
 
 /* ── Fillable PDFs: bake the empty boxes into the page ──────
-   CF4.pdf is a fillable form. Its boxes are form fields that sit ABOVE
+   (The February 2020 CF4 now in use has no form fields, so this does
+   nothing for it; it stays for any fillable form put in forms/.)
+   The 2018 CF4.pdf was a fillable form. Its boxes are form fields that sit ABOVE
    the page, and its tick boxes paint a white square - so every value the
    exporter draws on the page was hidden under (or printed beside) the
    box it belonged in. The blank form also came with stale values saved
@@ -466,13 +563,42 @@ async function buildFilledPdf(formKey) {
 
       const baselineOffset = 6; // Increase this to push text further down when printing
       const y = height - ((f.top / 100) * height) - baselineOffset;
-      const fs = f.fs || 7;
       const boxW = (f.w / 100) * width;
+      // A one-line box keeps its value on one line: a long street or
+      // subdivision is printed smaller rather than wrapped down into the
+      // labels under it. Only boxes made for several lines (`wrap`) wrap.
+      let fs = f.fs || 7;
+      if (!f.wrap) {
+        const wide = font.widthOfTextAtSize(safeVal, fs);
+        // A hair under the width: at exactly the width pdf-lib still wraps.
+        if (wide > boxW) fs = Math.max(4.5, fs * boxW / wide * 0.96);
+      }
       // `center` fields (digit cells, tick boxes, a name over a signature
       // line) are centred in the preview by CSS; centre them here too, or
       // every one of them prints hugging the left edge of its box.
       const textW = f.center ? font.widthOfTextAtSize(safeVal, fs) : 0;
       const x = (f.left / 100) * width + (f.center ? Math.max(0, (boxW - textW) / 2) : 0);
+
+      // Ruled lines of their own (`lines` of them, `lh` pt apart, e.g. CF2's
+      // diagnoses): the words are laid onto those lines, smaller only if
+      // they would need more lines than the form has.
+      if (f.lines && f.lh) {
+        const layout = size => {
+          const rows = [''];
+          safeVal.split(/\s+/).forEach(word => {
+            const tryRow = rows[rows.length - 1] ? rows[rows.length - 1] + ' ' + word : word;
+            if (font.widthOfTextAtSize(tryRow, size) <= boxW || !rows[rows.length - 1]) rows[rows.length - 1] = tryRow;
+            else rows.push(word);
+          });
+          return rows;
+        };
+        let rows = layout(fs);
+        while (rows.length > f.lines && fs > 4.5) rows = layout(fs -= 0.5);
+        rows.forEach((row, i) => pg.drawText(row, {
+          x: x, y: y - i * f.lh, size: fs, font: font, color: PDFLib.rgb(0, 0, 0),
+        }));
+        return;
+      }
 
       pg.drawText(safeVal, {
         x: x,
@@ -649,3 +775,56 @@ window.addEventListener('resize', () => {
     });
   }, 150);
 });
+/* ── Preview zoom, one setting for every form ──────────────
+   Each preview fills its panel's width, so the four forms already show
+   at the same scale - but at that size the print is small, and making
+   it bigger meant zooming the whole browser, which moved everything
+   else too. These buttons enlarge only the page (the panel scrolls
+   sideways when it is wider), and the size chosen is kept for every
+   form and for the next visit. renderPDFPage re-draws it sharp. */
+const PDF_ZOOM_STEPS = [1, 1.25, 1.5, 1.75, 2];
+const PDF_ZOOM_STORE = 'pclaimassist.previewZoom';
+let pdfZoom = 1;
+try {
+  const saved = parseFloat(localStorage.getItem(PDF_ZOOM_STORE));
+  if (PDF_ZOOM_STEPS.includes(saved)) pdfZoom = saved;
+} catch (e) { /* storage blocked: start at fit-to-width */ }
+
+function applyPdfZoom() {
+  document.documentElement.style.setProperty('--pdf-zoom', pdfZoom);
+  const i = PDF_ZOOM_STEPS.indexOf(pdfZoom);
+  document.querySelectorAll('.pdf-zoom').forEach(box => {
+    box.querySelector('.pdf-zoom-value').textContent = pdfZoom === 1 ? 'Fit' : Math.round(pdfZoom * 100) + '%';
+    box.querySelector('[data-zoom="out"]').disabled = i <= 0;
+    box.querySelector('[data-zoom="in"]').disabled = i >= PDF_ZOOM_STEPS.length - 1;
+  });
+  PDF_FORM_KEYS.forEach(key => {
+    if (needsRedraw(key)) renderPDFPage(key, pdfState[key].page);
+  });
+}
+
+(function setupPdfZoom() {
+  document.querySelectorAll('.pdf-panel-toolbar').forEach(bar => {
+    if (bar.querySelector('.pdf-zoom')) return;
+    const box = document.createElement('div');
+    box.className = 'pdf-zoom';
+    box.setAttribute('role', 'group');
+    box.setAttribute('aria-label', 'Preview size');
+    box.innerHTML =
+      '<button type="button" data-zoom="out" aria-label="Smaller"><i class="bi bi-dash-lg"></i></button>' +
+      '<button type="button" data-zoom="fit" class="pdf-zoom-value" title="Fit the page to the panel">Fit</button>' +
+      '<button type="button" data-zoom="in" aria-label="Bigger"><i class="bi bi-plus-lg"></i></button>';
+    bar.appendChild(box);
+  });
+  document.addEventListener('click', e => {
+    const btn = e.target.closest && e.target.closest('.pdf-zoom button');
+    if (!btn) return;
+    const i = PDF_ZOOM_STEPS.indexOf(pdfZoom);
+    const step = btn.dataset.zoom;
+    pdfZoom = step === 'fit' ? 1
+            : PDF_ZOOM_STEPS[Math.max(0, Math.min(PDF_ZOOM_STEPS.length - 1, i + (step === 'in' ? 1 : -1)))];
+    try { localStorage.setItem(PDF_ZOOM_STORE, String(pdfZoom)); } catch (err) { /* not kept */ }
+    applyPdfZoom();
+  });
+  applyPdfZoom();
+})();

@@ -7,7 +7,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" rel="stylesheet">
-  <link href="css/style.css?v=20261022o" rel="stylesheet">
+  <link href="css/style.css?v=20261025j" rel="stylesheet">
   <link href="css/easy.css?v=20261022d" rel="stylesheet">
 </head>
 <body class="easy">
@@ -114,8 +114,16 @@
           <div class="fs-action">Open this form &rarr;</div>
         </div>
 
+        <div class="form-status-card fs--cf2" onclick="navigateTo('cf2')">
+          <div class="fs-abbr">CF2</div>
+          <div class="fs-name">Stay at the clinic</div>
+          <div class="fs-status" id="status-cf2"><span class="badge badge-pending">Not started</span></div>
+          <div class="fs-bar"><div class="fs-bar-fill" id="prog-cf2-bar" style="width:0%"></div></div>
+          <div class="fs-action">Open this form &rarr;</div>
+        </div>
+
         <div class="form-status-card fs--cf4" onclick="navigateTo('cf4')">
-          <div class="fs-abbr">CSF 4</div>
+          <div class="fs-abbr">CF4</div>
           <div class="fs-name">Medical record</div>
           <div class="fs-status" id="status-cf4"><span class="badge badge-pending">Not started</span></div>
           <div class="fs-bar"><div class="fs-bar-fill" id="prog-cf4-bar" style="width:0%"></div></div>
@@ -431,7 +439,7 @@
         <div class="row g-3">
           <div class="col-md-4">
             <label class="pca-label">HCI Accreditation No. (PAN) <span class="required-dot">*</span></label>
-            <input type="text" class="form-control pca-input" data-autofill="hciPAN" placeholder="000001234">
+            <input type="text" class="form-control pca-input" data-autofill="hciPAN" maxlength="14" placeholder="12 digits">
           </div>
           <div class="col-md-8">
             <label class="pca-label">HCI Name / Clinic Name <span class="required-dot">*</span></label>
@@ -883,13 +891,6 @@
         <span class="live-badge"><i class="bi bi-lightning-fill me-1"></i>Live Sync</span>
       </div>
       <div class="entry-panel-body">
-        <div class="entry-section-title">Series Number</div>
-        <div class="row g-2">
-          <div class="col-12">
-            <label class="pca-label">Series #</label>
-            <input type="text" class="form-control pca-input" data-autofill="csfSeries" maxlength="13" placeholder="13 digits">
-          </div>
-        </div>
 
 
         <div class="entry-section-title">Member (PhilHealth Account Holder)</div>
@@ -1011,17 +1012,17 @@
             <div class="handwritten-check" data-handwritten="csfMemberSignName,csfRepSignName"
                  data-handwritten-label="Leave the names on both signature lines blank - they are written by hand after printing"></div>
           </div>
-          <div class="col-12">
+          <div class="col-12" data-signer="memberSignerType:Member">
             <label class="pca-label">Date Signed (Member)</label>
             <input type="date" class="d-none" id="csf-memberSignedDate-real" data-autofill="memberSignedDate">
             <div class="box-input-date" data-target="#csf-memberSignedDate-real"></div>
           </div>
-          <div class="col-12">
+          <div class="col-12" data-signer="memberSignerType:Representative">
             <label class="pca-label">Date Signed (Representative)</label>
             <input type="date" class="d-none" id="csf-repSignedDate-real" data-autofill="repSignedDate">
             <div class="box-input-date" data-target="#csf-repSignedDate-real"></div>
           </div>
-          <div class="col-12">
+          <div class="col-12" data-signer="memberSignerType:Representative">
             <label class="pca-label">Relationship of Representative to Member</label>
             <div class="btn-check-group" data-autofill="repRelationship">
               <button type="button" class="btn-check-option btn-check-option--sm" data-value="Spouse"><i class="bi bi-check-lg"></i>Spouse</button>
@@ -1031,18 +1032,18 @@
               <button type="button" class="btn-check-option btn-check-option--sm" data-value="Others"><i class="bi bi-check-lg"></i>Others</button>
             </div>
           </div>
-          <div class="col-12">
+          <div class="col-12" data-signer="memberSignerType:Representative">
             <label class="pca-label">Others, Specify</label>
             <input type="text" class="form-control pca-input" data-autofill="repRelationshipOther" placeholder="">
           </div>
-          <div class="col-12">
+          <div class="col-12" data-signer="memberSignerType:Representative">
             <label class="pca-label">Reason for Signing on Behalf of the Member</label>
             <div class="btn-check-group" data-autofill="repReason">
               <button type="button" class="btn-check-option btn-check-option--sm" data-value="Incapacitated"><i class="bi bi-check-lg"></i>Member is Incapacitated</button>
               <button type="button" class="btn-check-option btn-check-option--sm" data-value="Other"><i class="bi bi-check-lg"></i>Other Reasons</button>
             </div>
           </div>
-          <div class="col-12">
+          <div class="col-12" data-signer="memberSignerType:Representative">
             <label class="pca-label">Other Reasons, Specify</label>
             <input type="text" class="form-control pca-input" data-autofill="repReasonOther" placeholder="">
           </div>
@@ -1112,8 +1113,8 @@
           </div>
         </div>
 
-        <div class="entry-section-title mt-1">Part IV — Health Care Professional Information</div>
-        <div class="dx-group-card">
+        <div class="entry-section-title mt-1" data-skip-per-card>Part IV — Health Care Professional Information</div>
+        <div class="dx-group-card" data-own-part>
           <div class="dx-group-label">Professional 1</div>
           <div class="row g-2">
             <div class="col-12">
@@ -1133,7 +1134,7 @@
             </div>
           </div>
         </div>
-        <div class="dx-group-card mt-2">
+        <div class="dx-group-card mt-2" data-own-part>
           <div class="dx-group-label">Professional 2</div>
           <div class="row g-2">
             <div class="col-12">
@@ -1153,7 +1154,7 @@
             </div>
           </div>
         </div>
-        <div class="dx-group-card mt-2">
+        <div class="dx-group-card mt-2" data-own-part>
           <div class="dx-group-label">Professional 3</div>
           <div class="row g-2">
             <div class="col-12">
@@ -1213,6 +1214,566 @@
 
 
 <!-- ════════════════════════════════════════════════════════════
+     SECTION: CF2
+═════════════════════════════════════════════════════════════ -->
+<section id="section-cf2" class="content-section">
+  <div class="section-header">
+    <div>
+      <h1 class="section-title">CF2</h1>
+    </div>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <span id="val-cf2-score" class="val-score">0/9 Fields</span>
+      <button class="btn-export" id="export-cf2-btn" onclick="exportFilledPDF('cf2')">
+        <i class="bi bi-printer me-2"></i>Save as PDF to print
+      </button>
+      <div id="status-cf2-2"><span class="badge badge-pending">Not started</span></div>
+    </div>
+  </div>
+
+  <div class="form-split-layout" data-aos="fade-up">
+
+    <!-- LEFT: Live PDF Preview -->
+    <div class="pdf-preview-panel">
+      <div class="pdf-panel-toolbar">
+        <div class="pdf-panel-label">
+          <i class="bi bi-file-earmark-pdf-fill me-1 text-danger"></i>
+          Form preview
+        </div>
+      </div>
+      <div class="pdf-canvas-scroller">
+        <div class="pdf-loading" id="pdf-loading-cf2">
+          <div class="spinner-border spinner-border-sm text-light me-2"></div>Loading PDF…
+        </div>
+        <div class="pdf-canvas-wrap" id="pdf-wrap-cf2" style="display:none;">
+          <canvas id="canvas-cf2"></canvas>
+          <div class="pdf-overlay" id="overlay-cf2"></div>
+        </div>
+        <div class="pdf-no-file" id="pdf-nofile-cf2" style="display:none;">
+          <i class="bi bi-file-earmark-pdf fs-1"></i>
+          <p class="mb-0">PDF not found</p>
+          <small>Place <code>CF2.pdf</code> inside the <code>forms/</code> folder</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Data Entry Panel -->
+    <div class="form-entry-panel">
+      <div class="entry-panel-header">
+        <i class="bi bi-pencil-square me-2 text-success"></i>Type the details here
+        <span class="live-badge"><i class="bi bi-lightning-fill me-1"></i>Live Sync</span>
+      </div>
+      <div class="entry-panel-body">
+
+
+        <div class="pdf-page-group" data-pdf-page="1">
+        <div class="entry-section-title">Health Care Institution (HCI)</div>
+        <div class="row g-2">
+          <div class="col-12">
+            <label class="pca-label">HCI Accreditation No. (PAN)</label>
+            <input type="hidden" id="cf2-hciPAN-real" class="pca-input" data-autofill="hciPAN">
+            <div class="box-input" data-groups="9" data-target="#cf2-hciPAN-real"></div>
+          </div>
+          <div class="col-12">
+            <label class="pca-label">HCI Name / Clinic Name</label>
+            <input type="text" class="form-control pca-input" data-autofill="hciName" placeholder="Mapagpala Maternity Clinic">
+          </div>
+          <div class="col-6">
+            <label class="pca-label">Street / Address</label>
+            <input type="text" class="form-control pca-input" data-autofill="hciStreet" placeholder="456 Bonifacio Ave.">
+          </div>
+          <div class="col-3">
+            <label class="pca-label">City</label>
+            <input type="text" class="form-control pca-input" data-autofill="hciCity" placeholder="Quezon City">
+          </div>
+          <div class="col-3">
+            <label class="pca-label">Province</label>
+            <input type="text" class="form-control pca-input" data-autofill="hciProvince" placeholder="Metro Manila">
+          </div>
+        </div>
+
+        <div class="entry-section-title mt-1">Patient Information</div>
+        <div class="row g-2">
+          <div class="col-6">
+            <label class="pca-label">Last Name</label>
+            <input type="text" class="form-control pca-input" data-autofill="patientLastName" placeholder="DELA CRUZ">
+          </div>
+          <div class="col-6">
+            <label class="pca-label">First Name</label>
+            <input type="text" class="form-control pca-input" data-autofill="patientFirstName" placeholder="MARIA">
+          </div>
+          <div class="col-4">
+            <label class="pca-label">Middle Name</label>
+            <input type="text" class="form-control pca-input" data-autofill="patientMiddleName" placeholder="SANTOS">
+          </div>
+          <div class="col-4">
+            <label class="pca-label">Suffix</label>
+            <input type="text" class="form-control pca-input" data-autofill="patientNameExt" placeholder="">
+          </div>
+        </div>
+
+        <div class="entry-section-title mt-1">Referral</div>
+        <div class="row g-2">
+          <div class="col-12">
+            <label class="pca-label">Was patient referred by another Health Care Institution?</label>
+            <div class="btn-check-group" data-autofill="referredByHCI">
+              <button type="button" class="btn-check-option" data-value="No"><i class="bi bi-check-lg"></i>No</button>
+              <button type="button" class="btn-check-option" data-value="Yes"><i class="bi bi-check-lg"></i>Yes</button>
+            </div>
+          </div>
+          <div class="col-12" id="cf2-referral-details" style="display:none;">
+            <div class="row g-2">
+              <div class="col-12">
+                <label class="pca-label">Name of Referring HCI</label>
+                <input type="text" class="form-control pca-input" data-autofill="referralHciName" placeholder="Referring hospital/clinic">
+              </div>
+              <div class="col-6">
+                <label class="pca-label">Building / Street</label>
+                <input type="text" class="form-control pca-input" data-autofill="referralStreet" placeholder="">
+              </div>
+              <div class="col-3">
+                <label class="pca-label">City / Municipality</label>
+                <input type="text" class="form-control pca-input" data-autofill="referralCity" placeholder="">
+              </div>
+              <div class="col-3">
+                <label class="pca-label">Province</label>
+                <input type="text" class="form-control pca-input" data-autofill="referralProvince" placeholder="">
+              </div>
+              <div class="col-4">
+                <label class="pca-label">Zip Code</label>
+                <input type="text" class="form-control pca-input" data-autofill="referralZip" placeholder="">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="entry-section-title mt-1">Confinement Details</div>
+        <div class="row g-2">
+          <div class="col-12">
+            <label class="pca-label">Date Admitted</label>
+            <input type="date" class="d-none" id="cf2-dateAdmitted-real" data-autofill="dateAdmitted">
+            <div class="box-input-date" data-target="#cf2-dateAdmitted-real"></div>
+          </div>
+          <div class="col-12">
+            <label class="pca-label">Time Admitted</label>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <input type="time" class="d-none" id="cf2-timeAdmitted-real" data-autofill="timeAdmitted">
+              <div class="box-input-time" data-target="#cf2-timeAdmitted-real"></div>
+              <div class="btn-check-group" data-autofill="amPmAdmitted">
+                <button type="button" class="btn-check-option btn-check-option--sm" data-value="AM"><i class="bi bi-check-lg"></i>AM</button>
+                <button type="button" class="btn-check-option btn-check-option--sm" data-value="PM"><i class="bi bi-check-lg"></i>PM</button>
+              </div>
+            </div>
+          </div>
+          <div class="col-12">
+            <label class="pca-label">Date Discharged</label>
+            <input type="date" class="d-none" id="cf2-dateDischarge-real" data-autofill="dateDischarge">
+            <div class="box-input-date" data-target="#cf2-dateDischarge-real"></div>
+          </div>
+          <div class="col-12">
+            <label class="pca-label">Time Discharged</label>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <input type="time" class="d-none" id="cf2-timeDischarge-real" data-autofill="timeDischarge">
+              <div class="box-input-time" data-target="#cf2-timeDischarge-real"></div>
+              <div class="btn-check-group" data-autofill="amPmDischarge">
+                <button type="button" class="btn-check-option btn-check-option--sm" data-value="AM"><i class="bi bi-check-lg"></i>AM</button>
+                <button type="button" class="btn-check-option btn-check-option--sm" data-value="PM"><i class="bi bi-check-lg"></i>PM</button>
+              </div>
+            </div>
+          </div>
+          <div class="col-12">
+            <label class="pca-label">Patient Disposition <span class="text-muted fw-normal">(select only 1)</span></label>
+            <div class="btn-check-group" data-autofill="disposition">
+              <button type="button" class="btn-check-option" data-value="Improved"><i class="bi bi-check-lg"></i>Improved</button>
+              <button type="button" class="btn-check-option" data-value="Recovered"><i class="bi bi-check-lg"></i>Recovered</button>
+              <button type="button" class="btn-check-option" data-value="HAMA"><i class="bi bi-check-lg"></i>Home/DAMA</button>
+              <button type="button" class="btn-check-option" data-value="Absconded"><i class="bi bi-check-lg"></i>Absconded</button>
+              <button type="button" class="btn-check-option" data-value="Expired"><i class="bi bi-check-lg"></i>Expired</button>
+              <button type="button" class="btn-check-option" data-value="Transferred"><i class="bi bi-check-lg"></i>Transferred</button>
+            </div>
+          </div>
+          <div class="col-12">
+            <label class="pca-label">Type of Accommodation</label>
+            <div class="btn-check-group" data-autofill="accommodation">
+              <button type="button" class="btn-check-option" data-value="Private"><i class="bi bi-check-lg"></i>Private</button>
+              <button type="button" class="btn-check-option" data-value="Non-Private"><i class="bi bi-check-lg"></i>Non-Private (Charity/Service)</button>
+            </div>
+          </div>
+          <div class="col-12">
+            <label class="pca-label">Admission Diagnosis</label>
+            <textarea class="form-control pca-input" data-autofill="admissionDx" rows="2" placeholder="e.g., Term Pregnancy in Active Labor"></textarea>
+          </div>
+        </div>
+
+        <div class="entry-section-title mt-1">Discharge Diagnosis/es <span class="text-muted fw-normal">(up to 3 procedures per diagnosis)</span></div>
+
+        <div class="dx-group-card">
+          <div class="dx-group-label">Diagnosis A</div>
+          <div class="row g-2">
+            <div class="col-7">
+              <label class="pca-label">Diagnosis</label>
+              <input type="text" class="form-control pca-input" data-autofill="dxADiagnosis" placeholder="e.g., Acute Appendicitis">
+            </div>
+            <div class="col-5">
+              <label class="pca-label">ICD-10 Code</label>
+              <input type="text" class="form-control pca-input" data-autofill="dxAIcd10" placeholder="K35.8">
+            </div>
+          </div>
+          <div class="dx-proc-row" data-roman="i.">
+            <input type="text" class="form-control pca-input" data-autofill="dxAProcI" placeholder="Related procedure">
+            <input type="text" class="form-control pca-input" data-autofill="dxARvsI" placeholder="RVS code">
+            <input type="date" class="form-control pca-input" data-autofill="dxADateI">
+            <div class="btn-check-group dx-lat-group" data-autofill="dxALatI">
+              <button type="button" class="btn-check-option btn-check-option--sm" data-value="left"><i class="bi bi-check-lg"></i>L</button>
+              <button type="button" class="btn-check-option btn-check-option--sm" data-value="right"><i class="bi bi-check-lg"></i>R</button>
+              <button type="button" class="btn-check-option btn-check-option--sm" data-value="both"><i class="bi bi-check-lg"></i>Both</button>
+            </div>
+          </div>
+          <div class="dx-proc-row" data-roman="ii.">
+            <input type="text" class="form-control pca-input" data-autofill="dxAProcII" placeholder="Related procedure">
+            <input type="text" class="form-control pca-input" data-autofill="dxARvsII" placeholder="RVS code">
+            <input type="date" class="form-control pca-input" data-autofill="dxADateII">
+            <div class="btn-check-group dx-lat-group" data-autofill="dxALatII">
+              <button type="button" class="btn-check-option btn-check-option--sm" data-value="left"><i class="bi bi-check-lg"></i>L</button>
+              <button type="button" class="btn-check-option btn-check-option--sm" data-value="right"><i class="bi bi-check-lg"></i>R</button>
+              <button type="button" class="btn-check-option btn-check-option--sm" data-value="both"><i class="bi bi-check-lg"></i>Both</button>
+            </div>
+          </div>
+          <div class="dx-proc-row" data-roman="iii.">
+            <input type="text" class="form-control pca-input" data-autofill="dxAProcIII" placeholder="Related procedure">
+            <input type="text" class="form-control pca-input" data-autofill="dxARvsIII" placeholder="RVS code">
+            <input type="date" class="form-control pca-input" data-autofill="dxADateIII">
+            <div class="btn-check-group dx-lat-group" data-autofill="dxALatIII">
+              <button type="button" class="btn-check-option btn-check-option--sm" data-value="left"><i class="bi bi-check-lg"></i>L</button>
+              <button type="button" class="btn-check-option btn-check-option--sm" data-value="right"><i class="bi bi-check-lg"></i>R</button>
+              <button type="button" class="btn-check-option btn-check-option--sm" data-value="both"><i class="bi bi-check-lg"></i>Both</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="dx-group-card mt-2">
+          <div class="dx-group-label">Diagnosis B</div>
+          <div class="row g-2">
+            <div class="col-7">
+              <label class="pca-label">Diagnosis</label>
+              <input type="text" class="form-control pca-input" data-autofill="dxBDiagnosis" placeholder="e.g., Acute Appendicitis">
+            </div>
+            <div class="col-5">
+              <label class="pca-label">ICD-10 Code</label>
+              <input type="text" class="form-control pca-input" data-autofill="dxBIcd10" placeholder="K35.8">
+            </div>
+          </div>
+          <div class="dx-proc-row" data-roman="i.">
+            <input type="text" class="form-control pca-input" data-autofill="dxBProcI" placeholder="Related procedure">
+            <input type="text" class="form-control pca-input" data-autofill="dxBRvsI" placeholder="RVS code">
+            <input type="date" class="form-control pca-input" data-autofill="dxBDateI">
+            <div class="btn-check-group dx-lat-group" data-autofill="dxBLatI">
+              <button type="button" class="btn-check-option btn-check-option--sm" data-value="left"><i class="bi bi-check-lg"></i>L</button>
+              <button type="button" class="btn-check-option btn-check-option--sm" data-value="right"><i class="bi bi-check-lg"></i>R</button>
+              <button type="button" class="btn-check-option btn-check-option--sm" data-value="both"><i class="bi bi-check-lg"></i>Both</button>
+            </div>
+          </div>
+          <div class="dx-proc-row" data-roman="ii.">
+            <input type="text" class="form-control pca-input" data-autofill="dxBProcII" placeholder="Related procedure">
+            <input type="text" class="form-control pca-input" data-autofill="dxBRvsII" placeholder="RVS code">
+            <input type="date" class="form-control pca-input" data-autofill="dxBDateII">
+            <div class="btn-check-group dx-lat-group" data-autofill="dxBLatII">
+              <button type="button" class="btn-check-option btn-check-option--sm" data-value="left"><i class="bi bi-check-lg"></i>L</button>
+              <button type="button" class="btn-check-option btn-check-option--sm" data-value="right"><i class="bi bi-check-lg"></i>R</button>
+              <button type="button" class="btn-check-option btn-check-option--sm" data-value="both"><i class="bi bi-check-lg"></i>Both</button>
+            </div>
+          </div>
+          <div class="dx-proc-row" data-roman="iii.">
+            <input type="text" class="form-control pca-input" data-autofill="dxBProcIII" placeholder="Related procedure">
+            <input type="text" class="form-control pca-input" data-autofill="dxBRvsIII" placeholder="RVS code">
+            <input type="date" class="form-control pca-input" data-autofill="dxBDateIII">
+            <div class="btn-check-group dx-lat-group" data-autofill="dxBLatIII">
+              <button type="button" class="btn-check-option btn-check-option--sm" data-value="left"><i class="bi bi-check-lg"></i>L</button>
+              <button type="button" class="btn-check-option btn-check-option--sm" data-value="right"><i class="bi bi-check-lg"></i>R</button>
+              <button type="button" class="btn-check-option btn-check-option--sm" data-value="both"><i class="bi bi-check-lg"></i>Both</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="entry-section-title mt-1">Special Procedures / Packages</div>
+        <div class="row g-1">
+          <div class="col-md-6"><div class="form-check pca-check">
+            <input class="form-check-input" type="checkbox" id="cf2SpecialProcedures_57314" data-autofill="cf2SpecialProcedures" data-multi value="Hemodialysis">
+            <label class="form-check-label" for="cf2SpecialProcedures_57314">Hemodialysis</label>
+          </div></div>
+          <div class="col-md-6"><div class="form-check pca-check">
+            <input class="form-check-input" type="checkbox" id="cf2SpecialProcedures_17806" data-autofill="cf2SpecialProcedures" data-multi value="Blood Transfusion">
+            <label class="form-check-label" for="cf2SpecialProcedures_17806">Blood Transfusion</label>
+          </div></div>
+          <div class="col-md-6"><div class="form-check pca-check">
+            <input class="form-check-input" type="checkbox" id="cf2SpecialProcedures_34663" data-autofill="cf2SpecialProcedures" data-multi value="Peritoneal Dialysis">
+            <label class="form-check-label" for="cf2SpecialProcedures_34663">Peritoneal Dialysis</label>
+          </div></div>
+          <div class="col-md-6"><div class="form-check pca-check">
+            <input class="form-check-input" type="checkbox" id="cf2SpecialProcedures_68788" data-autofill="cf2SpecialProcedures" data-multi value="Brachytherapy">
+            <label class="form-check-label" for="cf2SpecialProcedures_68788">Brachytherapy</label>
+          </div></div>
+          <div class="col-md-6"><div class="form-check pca-check">
+            <input class="form-check-input" type="checkbox" id="cf2SpecialProcedures_74375" data-autofill="cf2SpecialProcedures" data-multi value="Radiotherapy (LINAC)">
+            <label class="form-check-label" for="cf2SpecialProcedures_74375">Radiotherapy (LINAC)</label>
+          </div></div>
+          <div class="col-md-6"><div class="form-check pca-check">
+            <input class="form-check-input" type="checkbox" id="cf2SpecialProcedures_39036" data-autofill="cf2SpecialProcedures" data-multi value="Chemotherapy">
+            <label class="form-check-label" for="cf2SpecialProcedures_39036">Chemotherapy</label>
+          </div></div>
+          <div class="col-md-6"><div class="form-check pca-check">
+            <input class="form-check-input" type="checkbox" id="cf2SpecialProcedures_46438" data-autofill="cf2SpecialProcedures" data-multi value="Radiotherapy (COBALT)">
+            <label class="form-check-label" for="cf2SpecialProcedures_46438">Radiotherapy (COBALT)</label>
+          </div></div>
+          <div class="col-md-6"><div class="form-check pca-check">
+            <input class="form-check-input" type="checkbox" id="cf2SpecialProcedures_87952" data-autofill="cf2SpecialProcedures" data-multi value="Simple Debridement">
+            <label class="form-check-label" for="cf2SpecialProcedures_87952">Simple Debridement</label>
+          </div></div>
+        </div>
+        <!-- Each ticked procedure's own dates, printed on the line beside it. -->
+        <div class="row g-2 mt-1">
+          <div class="col-12" data-proc-row="Hemodialysis" hidden><label class="pca-label">Hemodialysis &ndash; session dates</label>
+            <input type="text" class="form-control pca-input" data-autofill="cf2ProcDates1" placeholder="mm-dd-yyyy, mm-dd-yyyy"></div>
+          <div class="col-12" data-proc-row="Blood Transfusion" hidden><label class="pca-label">Blood Transfusion &ndash; session dates</label>
+            <input type="text" class="form-control pca-input" data-autofill="cf2ProcDates2" placeholder="mm-dd-yyyy, mm-dd-yyyy"></div>
+          <div class="col-12" data-proc-row="Peritoneal Dialysis" hidden><label class="pca-label">Peritoneal Dialysis &ndash; session dates</label>
+            <input type="text" class="form-control pca-input" data-autofill="cf2ProcDates3" placeholder="mm-dd-yyyy, mm-dd-yyyy"></div>
+          <div class="col-12" data-proc-row="Brachytherapy" hidden><label class="pca-label">Brachytherapy &ndash; session dates</label>
+            <input type="text" class="form-control pca-input" data-autofill="cf2ProcDates4" placeholder="mm-dd-yyyy, mm-dd-yyyy"></div>
+          <div class="col-12" data-proc-row="Radiotherapy (LINAC)" hidden><label class="pca-label">Radiotherapy (LINAC) &ndash; session dates</label>
+            <input type="text" class="form-control pca-input" data-autofill="cf2ProcDates5" placeholder="mm-dd-yyyy, mm-dd-yyyy"></div>
+          <div class="col-12" data-proc-row="Chemotherapy" hidden><label class="pca-label">Chemotherapy &ndash; session dates</label>
+            <input type="text" class="form-control pca-input" data-autofill="cf2ProcDates6" placeholder="mm-dd-yyyy, mm-dd-yyyy"></div>
+          <div class="col-12" data-proc-row="Radiotherapy (COBALT)" hidden><label class="pca-label">Radiotherapy (COBALT) &ndash; session dates</label>
+            <input type="text" class="form-control pca-input" data-autofill="cf2ProcDates7" placeholder="mm-dd-yyyy, mm-dd-yyyy"></div>
+          <div class="col-12" data-proc-row="Simple Debridement" hidden><label class="pca-label">Simple Debridement &ndash; session dates</label>
+            <input type="text" class="form-control pca-input" data-autofill="cf2ProcDates8" placeholder="mm-dd-yyyy, mm-dd-yyyy"></div>
+        </div>
+
+        <div class="entry-section-title mt-1">TB-DOTS Package</div>
+        <div class="row g-2">
+          <div class="col-md-6"><label class="pca-label">Phase</label>
+            <select class="form-select pca-input" data-autofill="cf2TbPhase">
+              <option value="">Select&hellip;</option>
+              <option>Intensive Phase</option><option>Maintenance Phase</option>
+            </select></div>
+        </div>
+
+        <div class="entry-section-title mt-1">Newborn Care Package</div>
+        <div class="row g-1">
+          <div class="col-md-6"><div class="form-check pca-check">
+            <input class="form-check-input" type="checkbox" id="cf2NewbornCare_59890" data-autofill="cf2NewbornCare" data-multi value="Essential Newborn Care">
+            <label class="form-check-label" for="cf2NewbornCare_59890">Essential Newborn Care</label>
+          </div></div>
+          <div class="col-md-6"><div class="form-check pca-check">
+            <input class="form-check-input" type="checkbox" id="cf2NewbornCare_90128" data-autofill="cf2NewbornCare" data-multi value="Newborn Hearing Screening Test">
+            <label class="form-check-label" for="cf2NewbornCare_90128">Newborn Hearing Screening Test</label>
+          </div></div>
+          <div class="col-md-6"><div class="form-check pca-check">
+            <input class="form-check-input" type="checkbox" id="cf2NewbornCare_70869" data-autofill="cf2NewbornCare" data-multi value="Newborn Screening Test">
+            <label class="form-check-label" for="cf2NewbornCare_70869">Newborn Screening Test</label>
+          </div></div>
+        </div>
+        <!-- 8.f: what was given, shown once Essential Newborn Care is ticked. -->
+        <div class="dx-group-card mt-2" data-enc-items hidden>
+          <div class="dx-group-label">For Essential Newborn Care (check applicable boxes)</div>
+          <div class="row g-1">
+          <div class="col-md-6"><div class="form-check pca-check">
+            <input class="form-check-input" type="checkbox" id="cf2Enc_1" data-autofill="cf2EssentialNewbornCare" data-multi value="Immediate drying of newborn">
+            <label class="form-check-label" for="cf2Enc_1">Immediate drying of newborn</label>
+          </div></div>
+          <div class="col-md-6"><div class="form-check pca-check">
+            <input class="form-check-input" type="checkbox" id="cf2Enc_2" data-autofill="cf2EssentialNewbornCare" data-multi value="Timely cord clamping">
+            <label class="form-check-label" for="cf2Enc_2">Timely cord clamping</label>
+          </div></div>
+          <div class="col-md-6"><div class="form-check pca-check">
+            <input class="form-check-input" type="checkbox" id="cf2Enc_3" data-autofill="cf2EssentialNewbornCare" data-multi value="Weighing of the newborn">
+            <label class="form-check-label" for="cf2Enc_3">Weighing of the newborn</label>
+          </div></div>
+          <div class="col-md-6"><div class="form-check pca-check">
+            <input class="form-check-input" type="checkbox" id="cf2Enc_4" data-autofill="cf2EssentialNewbornCare" data-multi value="BCG vaccination">
+            <label class="form-check-label" for="cf2Enc_4">BCG vaccination</label>
+          </div></div>
+          <div class="col-md-6"><div class="form-check pca-check">
+            <input class="form-check-input" type="checkbox" id="cf2Enc_5" data-autofill="cf2EssentialNewbornCare" data-multi value="Hepatitis B vaccination">
+            <label class="form-check-label" for="cf2Enc_5">Hepatitis B vaccination</label>
+          </div></div>
+          <div class="col-md-6"><div class="form-check pca-check">
+            <input class="form-check-input" type="checkbox" id="cf2Enc_6" data-autofill="cf2EssentialNewbornCare" data-multi value="Early skin-to-skin contact">
+            <label class="form-check-label" for="cf2Enc_6">Early skin-to-skin contact</label>
+          </div></div>
+          <div class="col-md-6"><div class="form-check pca-check">
+            <input class="form-check-input" type="checkbox" id="cf2Enc_7" data-autofill="cf2EssentialNewbornCare" data-multi value="Eye Prophylaxis">
+            <label class="form-check-label" for="cf2Enc_7">Eye Prophylaxis</label>
+          </div></div>
+          <div class="col-md-6"><div class="form-check pca-check">
+            <input class="form-check-input" type="checkbox" id="cf2Enc_8" data-autofill="cf2EssentialNewbornCare" data-multi value="Vitamin K administration">
+            <label class="form-check-label" for="cf2Enc_8">Vitamin K administration</label>
+          </div></div>
+          <div class="col-md-6"><div class="form-check pca-check">
+            <input class="form-check-input" type="checkbox" id="cf2Enc_9" data-autofill="cf2EssentialNewbornCare" data-multi value="Non-separation of mother/baby for early breastfeeding initiation">
+            <label class="form-check-label" for="cf2Enc_9">Non-separation of mother/baby for early breastfeeding initiation</label>
+          </div></div>
+          </div>
+        </div>
+        </div><!-- /pdf-page-group [1] -->
+
+        <div class="pdf-page-group" data-pdf-page="2" hidden>
+        <div class="entry-section-title mt-1" data-skip-per-card>Item 10 — Health Care Professional Accreditation (Page 2)</div>
+        <div class="dx-group-card" data-own-part>
+          <div class="dx-group-label">Professional 1</div>
+          <div class="row g-2">
+            <div class="col-12">
+              <label class="pca-label">Accreditation No.</label>
+              <input type="hidden" id="cf2-cf2Prof1AccredNo-real" class="pca-input" data-autofill="cf2Prof1AccredNo">
+              <div class="box-input" data-groups="2,9,1" data-target="#cf2-cf2Prof1AccredNo-real"></div>
+            </div>
+            <div class="col-12">
+              <label class="pca-label">Signature Over Printed Name</label>
+              <input type="text" class="form-control pca-input" data-autofill="cf2Prof1Name" placeholder="Dr. Juan Dela Cruz">
+            </div>
+            <div class="col-12">
+              <label class="pca-label">Date Signed</label>
+              <input type="date" class="d-none" id="cf2-cf2Prof1DateSigned-real" data-autofill="cf2Prof1DateSigned">
+              <div class="box-input-date" data-target="#cf2-cf2Prof1DateSigned-real"></div>
+            </div>
+            <div class="col-12">
+              <label class="pca-label">Co-pay on top of PhilHealth Benefit</label>
+              <div class="btn-check-group" data-autofill="cf2Prof1Copay">
+                <button type="button" class="btn-check-option btn-check-option--sm" data-value="No"><i class="bi bi-check-lg"></i>No co-pay</button>
+                <button type="button" class="btn-check-option btn-check-option--sm" data-value="Yes"><i class="bi bi-check-lg"></i>With co-pay</button>
+              </div>
+            </div>
+            <div class="col-12">
+              <label class="pca-label">Co-pay Amount (₱)</label>
+              <input type="text" class="form-control pca-input" data-autofill="cf2Prof1CopayAmount" placeholder="0.00">
+            </div>
+          </div>
+        </div>
+        <div class="dx-group-card mt-2" data-own-part>
+          <div class="dx-group-label">Professional 2</div>
+          <div class="row g-2">
+            <div class="col-12">
+              <label class="pca-label">Accreditation No.</label>
+              <input type="hidden" id="cf2-cf2Prof2AccredNo-real" class="pca-input" data-autofill="cf2Prof2AccredNo">
+              <div class="box-input" data-groups="2,9,1" data-target="#cf2-cf2Prof2AccredNo-real"></div>
+            </div>
+            <div class="col-12">
+              <label class="pca-label">Signature Over Printed Name</label>
+              <input type="text" class="form-control pca-input" data-autofill="cf2Prof2Name" placeholder="">
+            </div>
+            <div class="col-12">
+              <label class="pca-label">Date Signed</label>
+              <input type="date" class="d-none" id="cf2-cf2Prof2DateSigned-real" data-autofill="cf2Prof2DateSigned">
+              <div class="box-input-date" data-target="#cf2-cf2Prof2DateSigned-real"></div>
+            </div>
+            <div class="col-12">
+              <label class="pca-label">Co-pay on top of PhilHealth Benefit</label>
+              <div class="btn-check-group" data-autofill="cf2Prof2Copay">
+                <button type="button" class="btn-check-option btn-check-option--sm" data-value="No"><i class="bi bi-check-lg"></i>No co-pay</button>
+                <button type="button" class="btn-check-option btn-check-option--sm" data-value="Yes"><i class="bi bi-check-lg"></i>With co-pay</button>
+              </div>
+            </div>
+            <div class="col-12">
+              <label class="pca-label">Co-pay Amount (₱)</label>
+              <input type="text" class="form-control pca-input" data-autofill="cf2Prof2CopayAmount" placeholder="0.00">
+            </div>
+          </div>
+        </div>
+        <div class="dx-group-card mt-2" data-own-part>
+          <div class="dx-group-label">Professional 3</div>
+          <div class="row g-2">
+            <div class="col-12">
+              <label class="pca-label">Accreditation No.</label>
+              <input type="hidden" id="cf2-cf2Prof3AccredNo-real" class="pca-input" data-autofill="cf2Prof3AccredNo">
+              <div class="box-input" data-groups="2,9,1" data-target="#cf2-cf2Prof3AccredNo-real"></div>
+            </div>
+            <div class="col-12">
+              <label class="pca-label">Signature Over Printed Name</label>
+              <input type="text" class="form-control pca-input" data-autofill="cf2Prof3Name" placeholder="">
+            </div>
+            <div class="col-12">
+              <label class="pca-label">Date Signed</label>
+              <input type="date" class="d-none" id="cf2-cf2Prof3DateSigned-real" data-autofill="cf2Prof3DateSigned">
+              <div class="box-input-date" data-target="#cf2-cf2Prof3DateSigned-real"></div>
+            </div>
+            <div class="col-12">
+              <label class="pca-label">Co-pay on top of PhilHealth Benefit</label>
+              <div class="btn-check-group" data-autofill="cf2Prof3Copay">
+                <button type="button" class="btn-check-option btn-check-option--sm" data-value="No"><i class="bi bi-check-lg"></i>No co-pay</button>
+                <button type="button" class="btn-check-option btn-check-option--sm" data-value="Yes"><i class="bi bi-check-lg"></i>With co-pay</button>
+              </div>
+            </div>
+            <div class="col-12">
+              <label class="pca-label">Co-pay Amount (₱)</label>
+              <input type="text" class="form-control pca-input" data-autofill="cf2Prof3CopayAmount" placeholder="0.00">
+            </div>
+          </div>
+        </div>
+
+        <div class="entry-section-title mt-1">Part III-B — Consent to Access Patient Record/s</div>
+        <div class="row g-2">
+          <div class="col-12">
+            <label class="pca-label">Signature Over Printed Name of Member/Patient/Authorized Representative</label>
+            <input type="text" class="form-control pca-input" data-autofill="cf2PatientRepName" placeholder="Maria Dela Cruz">
+          </div>
+          <div class="col-12">
+            <label class="pca-label">Date Signed</label>
+            <input type="date" class="d-none" id="cf2-cf2PatientRepSignedDate-real" data-autofill="cf2PatientRepSignedDate">
+            <div class="box-input-date" data-target="#cf2-cf2PatientRepSignedDate-real"></div>
+          </div>
+          <div class="col-12">
+            <label class="pca-label">Relationship of Representative to the Member/Patient</label>
+            <div class="btn-check-group" data-autofill="cf2PatientRepRelationship">
+              <button type="button" class="btn-check-option btn-check-option--sm" data-value="Spouse"><i class="bi bi-check-lg"></i>Spouse</button>
+              <button type="button" class="btn-check-option btn-check-option--sm" data-value="Child"><i class="bi bi-check-lg"></i>Child</button>
+              <button type="button" class="btn-check-option btn-check-option--sm" data-value="Parent"><i class="bi bi-check-lg"></i>Parent</button>
+              <button type="button" class="btn-check-option btn-check-option--sm" data-value="Sibling"><i class="bi bi-check-lg"></i>Sibling</button>
+              <button type="button" class="btn-check-option btn-check-option--sm" data-value="Others"><i class="bi bi-check-lg"></i>Others</button>
+            </div>
+          </div>
+          <div class="col-12">
+            <label class="pca-label">Others, Specify</label>
+            <input type="text" class="form-control pca-input" data-autofill="cf2PatientRepRelationshipOther" placeholder="">
+          </div>
+          <div class="col-12">
+            <label class="pca-label">Reason for Signing on Behalf of the Member/Patient</label>
+            <div class="btn-check-group" data-autofill="cf2PatientReason">
+              <button type="button" class="btn-check-option btn-check-option--sm" data-value="Incapacitated"><i class="bi bi-check-lg"></i>Patient is Incapacitated</button>
+              <button type="button" class="btn-check-option btn-check-option--sm" data-value="Other"><i class="bi bi-check-lg"></i>Other Reasons</button>
+            </div>
+          </div>
+          <div class="col-12">
+            <label class="pca-label">Other Reasons, Specify</label>
+            <input type="text" class="form-control pca-input" data-autofill="cf2PatientReasonOther" placeholder="">
+          </div>
+        </div>
+
+        <div class="entry-section-title mt-1">Part IV — Certification of Consumption of HCI</div>
+        <div class="row g-2">
+          <div class="col-12">
+            <label class="pca-label">Signature Over Printed Name of Authorized HCI Representative</label>
+            <input type="text" class="form-control pca-input" data-autofill="cf2ProviderRepName" placeholder="">
+          </div>
+          <div class="col-12">
+            <label class="pca-label">Official Capacity/Designation</label>
+            <input type="text" class="form-control pca-input" data-autofill="cf2ProviderCapacity" placeholder="">
+          </div>
+          <div class="col-12">
+            <label class="pca-label">Date Signed</label>
+            <input type="date" class="d-none" id="cf2-cf2ProviderSignedDate-real" data-autofill="cf2ProviderSignedDate">
+            <div class="box-input-date" data-target="#cf2-cf2ProviderSignedDate-real"></div>
+          </div>
+        </div>
+        </div><!-- /pdf-page-group [2] -->
+
+      </div><!-- /entry-panel-body -->
+    </div><!-- /form-entry-panel -->
+
+  </div><!-- /form-split-layout -->
+</section>
+
+
+<!-- ════════════════════════════════════════════════════════════
      SECTION: CF4 – CLINICAL RECORD
      Most CF4 fields are not recorded in the admission logbook and
      are encoded manually by clinic staff (research design §3.4.4 B).
@@ -1226,7 +1787,7 @@
 <section id="section-cf4" class="content-section">
   <div class="section-header">
     <div>
-      <h1 class="section-title">CSF 4</h1>
+      <h1 class="section-title">CF4</h1>
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
       <span id="val-cf4-score" class="val-score">0/12 Fields</span>
@@ -1280,13 +1841,6 @@
       <!-- ───────── PAGE 1 ───────── -->
       <div class="pdf-page-group" data-pdf-page="1">
 
-        <div class="entry-section-title">Series Number</div>
-        <div class="row g-2">
-          <div class="col-12">
-            <label class="pca-label">Series #</label>
-            <input type="text" class="form-control pca-input" data-autofill="cf4Series" maxlength="13" placeholder="13 digits">
-          </div>
-        </div>
 
         <div class="entry-section-title">I. Health Care Institution</div>
         <div class="row g-2">
@@ -1296,7 +1850,7 @@
           </div>
           <div class="col-4">
             <label class="pca-label">Accreditation Number</label>
-            <input type="text" class="form-control pca-input" data-autofill="hciPAN" placeholder="000001234">
+            <input type="text" class="form-control pca-input" data-autofill="hciPAN" maxlength="14" placeholder="12 digits">
           </div>
           <div class="col-md-4"><label class="pca-label">Bldg No. / Lot / Block</label>
             <input type="text" class="form-control pca-input" data-autofill="hciBldg" placeholder="123"></div>
@@ -1588,6 +2142,10 @@
             <input type="text" class="form-control pca-input" data-autofill="cf4VitalRR" placeholder="18"></div>
           <div class="col-6 col-md-3"><label class="pca-label">Temp</label>
             <input type="text" class="form-control pca-input" data-autofill="cf4VitalTemp" placeholder="36.8"></div>
+          <div class="col-6 col-md-3"><label class="pca-label">Height (cm)</label>
+            <input type="text" inputmode="decimal" class="form-control pca-input" data-autofill="cf4Height" placeholder="158"></div>
+          <div class="col-6 col-md-3"><label class="pca-label">Weight (kg)</label>
+            <input type="text" inputmode="decimal" class="form-control pca-input" data-autofill="cf4Weight" placeholder="52"></div>
         </div>
 
         <div class="pca-label mt-2 mb-1">HEENT findings</div>
@@ -2038,7 +2596,7 @@
             <input type="text" class="form-control pca-input" data-autofill="cf4AttendingProvider" placeholder="ROSARIO M. ALCANTARA, RM">
             <div class="handwritten-check" data-handwritten="cf4AttendingProvider" data-handwritten-input="cf4AttendingProvider"></div></div>
           <div class="col-md-6"><label class="pca-label">Provider Accreditation No. (PAN)</label>
-            <input type="text" class="form-control pca-input" data-autofill="cf4ProviderPAN" placeholder="000005678"></div>
+            <input type="text" class="form-control pca-input" data-autofill="cf4ProviderPAN" maxlength="14" placeholder="12 digits"></div>
           <div class="col-md-6"><label class="pca-label">Date Signed</label>
             <div class="pca-box-group pca-box-group--date" data-box-key="cf4ProviderSignedDate" data-box-type="date">
               <input type="text" inputmode="numeric" maxlength="2" class="pca-box" data-part="MM" placeholder="MM">
@@ -2109,6 +2667,7 @@
         <span class="live-badge"><i class="bi bi-lightning-fill me-1"></i>Live Sync</span>
       </div>
       <div class="entry-panel-body">
+        <div class="pdf-page-group" data-pdf-page="1">
 
         <div class="entry-section-title">Purpose</div>
         <div class="row g-2">
@@ -2653,7 +3212,9 @@
             </select>
           </div>
         </div>
+        </div><!-- /pdf-page-group [1] -->
 
+        <div class="pdf-page-group" data-pdf-page="2" hidden>
         <div class="entry-section-title mt-1">Page 2 — V. Updating/Amendment</div>
         <div class="row g-2">
           <div class="col-12">
@@ -2725,7 +3286,7 @@
             <input type="date" class="form-control pca-input" data-autofill="memberSignatureDate">
           </div>
         </div>
-
+        </div><!-- /pdf-page-group [2] -->
       </div><!-- /entry-panel-body -->
     </div><!-- /form-entry-panel -->
 
@@ -2752,14 +3313,16 @@
         <i class="bi bi-check-circle-fill me-2" aria-hidden="true"></i>Everything is filled in
       </div>
       <div class="export-all-sub" id="exportAllSub">
-        All <span id="exportAllCount">3</span> forms are ready. Save them, then print.
+        All <span id="exportAllCount">4</span> forms are ready. Save them, then print.
       </div>
     </div>
     <ul class="export-form-list" aria-label="Forms to save">
       <li><label class="export-chip"><input type="checkbox" data-export-form="csf" data-label="CSF" checked>
         <i class="bi bi-check-lg" aria-hidden="true"></i>CSF</label></li>
-      <li><label class="export-chip"><input type="checkbox" data-export-form="cf4" data-label="CSF 4" checked>
-        <i class="bi bi-check-lg" aria-hidden="true"></i>CSF 4</label></li>
+      <li><label class="export-chip"><input type="checkbox" data-export-form="cf2" data-label="CF2" checked>
+        <i class="bi bi-check-lg" aria-hidden="true"></i>CF2</label></li>
+      <li><label class="export-chip"><input type="checkbox" data-export-form="cf4" data-label="CF4" checked>
+        <i class="bi bi-check-lg" aria-hidden="true"></i>CF4</label></li>
       <li><label class="export-chip"><input type="checkbox" data-export-form="pmrf" data-label="PMRF" checked>
         <i class="bi bi-check-lg" aria-hidden="true"></i>PMRF</label></li>
     </ul>
@@ -3031,8 +3594,8 @@
         </div>
         <div class="p-3">
           <p class="text-muted mb-3" style="font-size:.82rem;">
-            Entered once here and filled in automatically on CF4,
-            so the clinic's details never have to be retyped per claim.
+            Entered once here and filled in automatically on CF2, CF4 and
+            the CSF, so the clinic's details never have to be retyped per claim.
           </p>
           <div class="row g-2">
             <div class="col-md-8">
@@ -3041,8 +3604,9 @@
             </div>
             <div class="col-md-4">
               <label class="pca-label">Accreditation No. (PAN)</label>
-              <input type="text" class="form-control pca-input" id="clinicPAN" maxlength="11" placeholder="000001234">
-              <div class="form-text" style="font-size:.72rem;">9 digits.</div>
+              <input type="text" class="form-control pca-input" id="clinicPAN" maxlength="14" inputmode="numeric"
+                     placeholder="123456789012">
+              <div class="form-text" style="font-size:.72rem;">12 digits.</div>
             </div>
             <div class="col-md-4">
               <label class="pca-label">Bldg No. / Lot / Block</label>
@@ -3063,6 +3627,25 @@
             <div class="col-md-4">
               <label class="pca-label">Zip Code</label>
               <input type="text" class="form-control pca-input" id="clinicZip" maxlength="10" placeholder="1100">
+            </div>
+            <!-- CSF Part V: the same representative signs for the clinic on every claim. -->
+            <div class="col-md-8">
+              <label class="pca-label">Authorized HCI Representative (CSF Part V)</label>
+              <input type="text" class="form-control pca-input" id="clinicProviderRepName" maxlength="255" placeholder="Juan Dela Cruz">
+            </div>
+            <div class="col-md-4">
+              <label class="pca-label">Official Capacity/Designation</label>
+              <input type="text" class="form-control pca-input" id="clinicProviderCapacity" maxlength="255" placeholder="Clinic Administrator">
+            </div>
+            <!-- CF4 Part VII, and the first professional on CSF Part III and CF2. -->
+            <div class="col-md-8">
+              <label class="pca-label">Attending Health Care Professional (CF4 Part VII)</label>
+              <input type="text" class="form-control pca-input" id="clinicAttendingName" maxlength="255" placeholder="Rosario M. Alcantara, RM">
+            </div>
+            <div class="col-md-4">
+              <label class="pca-label">Provider Accreditation No. (PAN)</label>
+              <input type="text" class="form-control pca-input" id="clinicAttendingPAN" maxlength="14" inputmode="numeric" placeholder="123456789012">
+              <div class="form-text" style="font-size:.72rem;">12 digits.</div>
             </div>
             <div class="col-12 d-flex align-items-center gap-2 mt-2">
               <button class="btn btn-primary" id="saveClinicBtn">Save Clinic Details</button>
@@ -3097,26 +3680,27 @@
 <!-- pdf-lib: write filled text onto PDF for export -->
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <!-- Shared sidebar (must load before app.js, which binds to .sidebar-item) -->
-<script src="js/sidebar.js?v=20261022e"></script>
+<script src="js/sidebar.js?v=20261024a"></script>
 <script>PCASidebar.render({ page: 'app', active: 'dashboard' });</script>
 <!-- Authentication client (must load before app.js) -->
 <script src="js/auth-client.js?v=20261022d"></script>
 <!-- PDF overlay coordinate maps (must load before pdf-overlay.js) -->
-<script src="js/pdf/overlays/csf.js?v=20261022h"></script>
-<script src="js/pdf/overlays/cf4.js?v=20261022h"></script>
-<script src="js/pdf/overlays/pmrf.js?v=20261022h"></script>
-<script src="js/pdf/overlays/index.js?v=20261022d"></script>
+<script src="js/pdf/overlays/csf.js?v=20261024g"></script>
+<script src="js/pdf/overlays/cf2.js?v=20261025e"></script>
+<script src="js/pdf/overlays/cf4.js?v=20261024s"></script>
+<script src="js/pdf/overlays/pmrf.js?v=20261024e"></script>
+<script src="js/pdf/overlays/index.js?v=20261024a"></script>
 <script src="js/entry-learning.js?v=20261022d"></script>
-<script src="js/pdf/pdf-overlay.js?v=20261022k"></script>
-<script src="js/pdf/pdf-calibrate.js?v=20261022d"></script>
+<script src="js/pdf/pdf-overlay.js?v=20261025f"></script>
+<script src="js/pdf/pdf-calibrate.js?v=20261024a"></script>
 <!-- Rule-based validation engine (must load before app.js) -->
-<script src="js/validation-rules.js?v=20261023c"></script>
+<script src="js/validation-rules.js?v=20261024a"></script>
 <script src="js/ocr-review.js?v=20261022d"></script>
 <!-- Segmented inputs: date/PAN boxes and the PhilHealth PIN (2-9-1) -->
 <script src="js/box-input.js?v=20261022g"></script>
 <script src="js/date-text.js?v=20261022g"></script>
 <script src="js/pin-input.js?v=20261023a"></script>
-<script src="js/app.js?v=20261023g"></script>
+<script src="js/app.js?v=20261025i"></script>
 <script src="js/easy.js?v=20261023b"></script>
 <!-- Loads a claim sent from the OCR review: index.html?claim=<id> -->
 <script src="js/claim-loader.js?v=20261022d"></script>

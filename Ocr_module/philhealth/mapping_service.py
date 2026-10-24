@@ -84,7 +84,7 @@ def map_claim(patient=None, encounter=None, claims_row=None):
     or None. Returns a dict:
       - "fields": [{key, label, value, resolved, source, table, column}, ...]
         one entry per known field, in a stable, catalog-defined order.
-      - "forms": {"csf": {...}} - see _form_status.
+      - "forms": {"cf2": {...}, "csf": {...}} - see _form_status.
     Does not mutate any of its inputs.
     """
     data = build_flat_data(patient, encounter, claims_row)
