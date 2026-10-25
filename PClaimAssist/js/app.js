@@ -2120,8 +2120,10 @@ function resetFormData() {
   // Discharge back to following the delivery date.
   refreshDischargeTick();
   refreshFinalDxTick();
-  // A new patient still has this clinic's fixed values.
+  // A new patient still has this clinic's fixed values, and its details
+  // (name, address, the representative signing Part V).
   applyFixedFields();
+  seedClinicDetails();
   updateFormPreviews();
 }
 
@@ -2441,10 +2443,30 @@ const CLINIC_FIELDS = {
   clinicAttendingPAN:     'cf4ProviderPAN',
 };
 
+// The clinic's saved details, kept so every new patient gets them again
+// (resetFormData blanks the claim, clinic details included).
+let clinicSettingsCache = null;
+
+/* Fill the claim with the clinic's details, without overwriting anything
+   already typed. Returns whether anything changed. */
+function seedClinicDetails() {
+  if (!clinicSettingsCache) return false;
+  let changed = false;
+  Object.values(CLINIC_FIELDS).forEach(key => {
+    if (clinicSettingsCache[key] && !state.data[key]) {
+      state.data[key] = clinicSettingsCache[key];
+      propagateMirroredField(key, '');   // e.g. the attending midwife onto CSF/CF2
+      changed = true;
+    }
+  });
+  return changed;
+}
+
 async function loadClinicSettings() {
   if (typeof PCAAuth === 'undefined') return;
   const settings = await PCAAuth.getClinicSettings();
   if (!settings) return;
+  clinicSettingsCache = settings;
 
   // Fill the Settings inputs...
   Object.entries(CLINIC_FIELDS).forEach(([inputId, key]) => {
@@ -2457,15 +2479,7 @@ async function loadClinicSettings() {
   }
 
   // ...and seed the claim forms, without overwriting anything already typed.
-  let changed = false;
-  Object.values(CLINIC_FIELDS).forEach(key => {
-    if (settings[key] && !state.data[key]) {
-      state.data[key] = settings[key];
-      propagateMirroredField(key, '');   // e.g. the attending midwife onto CSF/CF2
-      changed = true;
-    }
-  });
-  if (changed) updateFormPreviews();
+  if (seedClinicDetails()) updateFormPreviews();
 }
 
 (function setupClinicSettings() {
@@ -2501,6 +2515,7 @@ async function loadClinicSettings() {
       return;
     }
     // Apply immediately so the open forms pick the new details up.
+    clinicSettingsCache = result.settings;
     Object.entries(CLINIC_FIELDS).forEach(([, key]) => {
       if (!result.settings[key]) return;
       const prev = state.data[key];

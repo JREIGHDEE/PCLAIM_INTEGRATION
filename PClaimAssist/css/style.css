@@ -593,8 +593,12 @@ body {
   border-radius: var(--radius-sm);
   border: 1.5px solid var(--border);
   background: #FAFAFA;
-  font-family: 'Courier New', Courier, monospace;
-  font-weight: 700;
+  /* Same face and weight as every other input (.pca-input, the PIN
+     boxes); tabular figures keep digits evenly sized box to box. */
+  font-family: inherit;
+  font-weight: 400;
+  font-size: .875rem;
+  font-variant-numeric: tabular-nums;
   text-align: center;
   padding: .55rem 0;
   transition: var(--transition);
@@ -614,11 +618,9 @@ body {
 .pca-box-group--date .pca-box[data-part="MM"],
 .pca-box-group--date .pca-box[data-part="DD"] {
   flex: 1 1 0;
-  font-size: .875rem;
 }
 .pca-box-group--date .pca-box[data-part="YYYY"] {
   flex: 1.6 1 0;
-  font-size: .875rem;
 }
 .pca-box-group--pan,
 .pca-box-group--digits {
@@ -627,9 +629,6 @@ body {
 .pca-box-group--pan .pca-box,
 .pca-box-group--digits .pca-box {
   flex: 1 1 0;
-  aspect-ratio: 1 / 1;
-  font-size: .9rem;
-  padding: .5rem 0;
 }
 .pca-box-gap {
   width: .5rem;
@@ -2543,18 +2542,39 @@ textarea.from-patient-details:focus {
 }
 .export-all-sub { font-size: .92rem; color: #4a6353; margin-top: .15rem; }
 .btn-export--all { font-size: 1rem; padding: .7rem 1.3rem; }
-/* CF4 "3. Pertinent Signs & Symptoms": the printed form's 4 columns of 9,
-   read down each column - when the panel is wide enough for them. In a
-   narrower panel the same columns go two by two (1-2, then 3-4), so the
-   order stays the paper's and no label is squeezed. Sized by the panel's
-   own width, not the window's: the panel shares the screen with the preview. */
-:has(> .symptom-grid) { container-type: inline-size; }
-.symptom-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem 1.25rem; }
-@container (min-width: 720px) { .symptom-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-.symptom-col { display: flex; flex-direction: column; gap: .15rem; padding-top: .25rem; border-top: 2px solid #e2e8f0; }
-.symptom-col .form-check { margin-bottom: 0; }
-.symptom-inline { display: block; margin: 0 0 .35rem 1.6rem; font-size: .78rem; font-weight: 600; color: #64748b; }
-.symptom-inline .form-control { margin-top: .15rem; padding: .3rem .5rem; font-size: .9rem; }
+/* Tick-box groups (CF2 procedures and newborn care, CF4 signs & symptoms
+   and physical exam): the ticks are in the printed form's own order,
+   row by row, so with --cols columns the panel looks like the preview.
+   Every label stays on one line: a column is never narrower than the
+   group's longest label (--choice-chars, plus the tick box), so when the
+   panel is too narrow for --cols of them it shows fewer columns - the
+   order still reads the same, left to right. */
+.choice-grid {
+  --choice-w: calc(var(--choice-chars, 22) * .52em + 2rem);
+  --choice-gap: .75rem;
+  font-size: .9rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, max(var(--choice-w), calc((100% - (var(--cols, 4) - 1) * var(--choice-gap)) / var(--cols, 4)))), 1fr));
+  gap: .15rem var(--choice-gap);
+}
+.choice-grid .form-check { margin-bottom: 0; min-width: 0; }
+/* A label far longer than the rest (CF2's "Non-separation of mother/baby
+   ..."), always the last tick of its group: it takes a row of its own. */
+.choice-grid .choice-wide { grid-column: 1 / -1; }
+
+/* One line per choice, on every form: no label breaks onto a second line.
+   The few long ones that still meet a very narrow panel are cut with "…"
+   (the full text is in the label's title, shown on hover). */
+.pca-check, .pca-checkbox, .pca-radio .form-check { min-width: 0; }
+.pca-check .form-check-label,
+.pca-checkbox .form-check-label,
+.pca-radio .form-check-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.pca-check .form-check-label { display: block; }
 
 /* On each form: what is missing and which rules are broken (renderFormIssues). */
 .form-issues { display: flex; align-items: flex-start; gap: .5rem; margin: 0; padding: .55rem 1rem;
@@ -2764,6 +2784,33 @@ textarea.from-patient-details:focus {
   padding-bottom: .35rem;
   margin-top: 0 !important;
   font-weight: 700;
+}
+
+/* Clinic details: the same coloured parts as Patient details, each saying
+   which forms it fills, and the save button on a bar of its own. */
+.clinic-parts .patient-part > .pca-tab-section-label {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .25rem .5rem;
+}
+.clinic-part-where {
+  margin-left: auto;
+  padding: .1rem .55rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tone) 12%, #fff);
+  color: var(--tone);
+  font-size: .72rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.clinic-save {
+  margin-top: .25rem;
+  padding: .75rem 1rem;
+  border-radius: 10px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
 }
 
 /* Check for missing information: what is still missing first, each with

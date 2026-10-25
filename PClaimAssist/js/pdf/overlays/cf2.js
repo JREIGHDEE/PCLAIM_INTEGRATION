@@ -25,9 +25,9 @@ window.PDF_OVERLAY_CF2 = [
   { id:'hciName', key:'hciName', page:1, top:22.647, left:28.44, w:67.83, fs:8 },
 
   // 3. Address
-  { id:'hciStreet',   key:'hciStreet',   page:1, top:24.38, left:13.27, w:33.64, fs:8 },
-  { id:'hciCity',     key:'hciCity',     page:1, top:24.38, left:48.42, w:23.55, fs:8 },
-  { id:'hciProvince', key:'hciProvince', page:1, top:24.38, left:73.83, w:22.43, fs:8 },
+  { id:'hciStreet',   key:'hciStreet',   page:1, top:24.38, left:13.27, w:33.64, fs:8, center:true },
+  { id:'hciCity',     key:'hciCity',     page:1, top:24.38, left:48.42, w:23.55, fs:8, center:true },
+  { id:'hciProvince', key:'hciProvince', page:1, top:24.38, left:73.83, w:22.43, fs:8, center:true },
 
   // PART II — 1. Name of Patient
   { id:'patientLastName',   key:'patientLastName',   page:1, top:29.37, left:20.399,  w:17.946, fs:8, center:true },

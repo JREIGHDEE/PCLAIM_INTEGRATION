@@ -98,6 +98,7 @@ body.easy .pca-label,
 body.easy .form-label,
 body.easy label { font-size: 1rem; font-weight: 600; }
 body.easy .pca-input,
+body.easy .pca-box,
 body.easy .form-control,
 body.easy .form-select {
   min-height: 52px;
@@ -296,3 +297,6 @@ body.login-body.easy #signInBtn { min-height: 60px; font-size: 1.2rem; }
 /* Pop-up messages: bigger, and they stay longer (see showToast). */
 .pca-toast { font-size: 1.05rem; min-width: 360px; }
 .pca-toast .toast-header { font-size: 1.1rem; }
+/* Tick-box grids: labels a little smaller than other text, so a form's columns
+   fit side by side in the panel (css/style.css .choice-grid). */
+body.easy .choice-grid .form-check-label { font-size: .9rem; }
