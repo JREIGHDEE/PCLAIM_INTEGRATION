@@ -11,6 +11,22 @@ Related documents:
 
 ---
 
+## 2026-10-25 22:53: UI update (reigh)
+
+- Changed: style.css, index.html, login.html, ocr.html
+
+**Login page**
+
+![Login page](docs/screenshots/2026-10-25_225340_login.jpg)
+
+**Main app (dashboard)**
+
+![Main app (dashboard)](docs/screenshots/2026-10-25_225340_app.jpg)
+
+**Read Logbook Scan page**
+
+![Read Logbook Scan page](docs/screenshots/2026-10-25_225340_ocr.jpg)
+
 ## 2026-10-25 00:37: UI update (reigh)
 
 - Changed: style.css, index.html, app.js, sidebar.js, validation-rules.js, login.html, ocr.html
