@@ -42,6 +42,21 @@ const PDF_FORM_KEYS = ['csf', 'cf4', 'pmrf'];
 ═══════════════════════════════════════════════════════════ */
 const SKIP_VALIDATION_FOR_EXPORT = true;
 
+/* ── One source of truth for preview/export placement ──────
+   Both renderers must agree exactly, or the printed form will not match
+   what the staff checked on screen.
+
+   BASELINE_OFFSET_PT  how far below a field's `top` the text baseline sits.
+   HELVETICA_BASELINE_EM  where the baseline falls inside a line-height:1
+     span, from standard Helvetica's own metrics: 1.075 / (1.075 + 0.299).
+     The preview is styled in Helvetica (css .pdf-field) so that the glyph
+     widths it shows are the widths pdf-lib will print.
+═══════════════════════════════════════════════════════════ */
+const BASELINE_OFFSET_PT = 6;
+const HELVETICA_BASELINE_EM = 1.075 / (1.075 + 0.299);
+/* pdf-lib draws wrapped text with this leading, so the preview uses it too. */
+const WRAP_LINE_HEIGHT_PT = fs => fs + 1;
+
 const PDF_PATHS = {
   csf:  'forms/CSF.pdf',
   cf4:  'forms/CF4.pdf',
@@ -246,19 +261,24 @@ function injectOverlaySpans(formKey) {
     const fs = f.fs || 8;
     span.dataset.fsPct = fs / refH;
     /* Line the preview up with what exportFilledPDF actually prints.
-       The exporter puts the text BASELINE at (top% of the page) + 6pt.
-       A span's baseline sits about 0.83em below its own top edge, so the
-       span has to shift by (6pt - 0.83em). Expressed in em — 6pt is
-       (6 / fs) em — the offset survives the font scaling that
-       scaleOverlayFonts() applies, and stays put as text wraps, which a
-       percentage offset would not (it is relative to the span's own
-       growing height).
+       The exporter puts the text BASELINE at (top% of the page) + 6pt,
+       so the span has to shift by (6pt - <its own baseline offset>).
+       Expressed in em — 6pt is (6 / fs) em — the offset survives the font
+       scaling scaleOverlayFonts() applies and stays put as text wraps,
+       which a percentage offset would not (it is relative to the span's
+       own growing height).
 
-       This previously used a flat -0.7em, which drew the preview about
-       0.65em higher than the printed PDF for every form. */
-    const dy = (6 / fs) - 0.83;
+       HELVETICA_BASELINE_EM is the real metric, not a guess: with
+       line-height:1 the baseline sits ascent/(ascent+descent) down the
+       box, and standard Helvetica's are 1.075 and -0.299. */
+    const dy = (BASELINE_OFFSET_PT / fs) - HELVETICA_BASELINE_EM;
+    /* A wrapped field gets the same line budget and line height the
+       exporter uses, so the preview breaks where the print breaks. */
+    const wrapVars = f.wrap
+      ? `--pdf-max-lines:${f.maxLines || 8};--pdf-line-height:${(WRAP_LINE_HEIGHT_PT(fs) / fs).toFixed(4)};`
+      : '';
     span.style.cssText =
-      `top:${f.top}%;left:${f.left}%;width:${f.w}%;transform:translateY(${dy.toFixed(3)}em);`;
+      `top:${f.top}%;left:${f.left}%;width:${f.w}%;transform:translateY(${dy.toFixed(3)}em);${wrapVars}`;
     overlay.appendChild(span);
   });
   scaleOverlayFonts(formKey);
@@ -440,6 +460,42 @@ function flattenBlankForm(pdfDoc) {
 /* One form, filled: the blank PDF with every overlay value drawn on it.
    Used for saving a single form and for putting all of them into one
    document (exportAllForms). */
+/* ── Make the print clip and wrap the way the screen does ──
+   The preview is a CSS box: a plain field is one line with the overflow
+   hidden, and a `wrap` field breaks on spaces and stops after maxLines.
+   pdf-lib does neither on its own, so these two do it with the very font
+   the PDF embeds - the same measurements the browser is now using, since
+   .pdf-field is styled in Helvetica too. */
+function clipToWidth(text, font, size, maxW) {
+  if (font.widthOfTextAtSize(text, size) <= maxW) return text;
+  let out = '';
+  for (const ch of text) {
+    if (font.widthOfTextAtSize(out + ch, size) > maxW) break;
+    out += ch;
+  }
+  return out;
+}
+
+function wrapToLines(text, font, size, maxW, maxLines) {
+  const lines = [];
+  let line = '';
+  for (const word of String(text).split(/\s+/).filter(Boolean)) {
+    const next = line ? line + ' ' + word : word;
+    if (font.widthOfTextAtSize(next, size) <= maxW) {
+      line = next;
+      continue;
+    }
+    if (line) lines.push(line);
+    if (lines.length >= maxLines) return lines.slice(0, maxLines);
+    // A single word too long for the box: clip it rather than overflow.
+    line = font.widthOfTextAtSize(word, size) > maxW
+      ? clipToWidth(word, font, size, maxW)
+      : word;
+  }
+  if (line && lines.length < maxLines) lines.push(line);
+  return lines.slice(0, maxLines);
+}
+
 async function buildFilledPdf(formKey) {
   const bytes = await fetch(PDF_PATHS[formKey]).then(r => {
     if (!r.ok) throw new Error('PDF not found: ' + formKey);
@@ -464,24 +520,36 @@ async function buildFilledPdf(formKey) {
       // (the on-screen overlay still renders the real checkmark glyph).
       const safeVal = String(val).replace(/✓/g, 'X');
 
-      const baselineOffset = 6; // Increase this to push text further down when printing
-      const y = height - ((f.top / 100) * height) - baselineOffset;
+      const y = height - ((f.top / 100) * height) - BASELINE_OFFSET_PT;
       const fs = f.fs || 7;
       const boxW = (f.w / 100) * width;
+
+      /* Only a `wrap` field may run onto more lines. Everything else is a
+         single line in the preview (white-space:nowrap, overflow:hidden),
+         so passing maxWidth here would let pdf-lib wrap text the staff saw
+         on one line - the printed form would not match the screen. */
+      let text = safeVal;
+      if (f.wrap) {
+        const lines = wrapToLines(safeVal, font, fs, boxW, f.maxLines || 8);
+        text = lines.join('\n');
+      } else {
+        text = clipToWidth(safeVal, font, fs, boxW);
+      }
+
       // `center` fields (digit cells, tick boxes, a name over a signature
       // line) are centred in the preview by CSS; centre them here too, or
       // every one of them prints hugging the left edge of its box.
-      const textW = f.center ? font.widthOfTextAtSize(safeVal, fs) : 0;
+      const firstLine = text.split('\n')[0];
+      const textW = f.center ? font.widthOfTextAtSize(firstLine, fs) : 0;
       const x = (f.left / 100) * width + (f.center ? Math.max(0, (boxW - textW) / 2) : 0);
 
-      pg.drawText(safeVal, {
+      pg.drawText(text, {
         x: x,
         y: y,
         size: fs,
         font: font,
         color: PDFLib.rgb(0, 0, 0),
-        maxWidth: boxW,
-        lineHeight: fs + 1,
+        lineHeight: WRAP_LINE_HEIGHT_PT(fs),
       });
     });
 

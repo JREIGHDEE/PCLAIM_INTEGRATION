@@ -1375,9 +1375,15 @@ body {
 /* ── Individual field text span ──────────────────────────── */
 .pdf-field {
   position: absolute;
-  font-family: 'Courier New', Courier, monospace;
+  /* Helvetica, to match the font the exporter embeds (pdf-lib's standard
+     Helvetica). The preview used bold Courier, a monospace face: the same
+     string measured up to 20% wider than it prints, which moved every
+     centred value and made the preview disagree with the PDF. Arial is
+     metrically identical to Helvetica and is what Windows substitutes.
+     Not bold: the exporter draws regular weight. */
+  font-family: Helvetica, Arial, 'Liberation Sans', sans-serif;
   font-size: 7px;
-  font-weight: 700;
+  font-weight: 400;
   color: #1a3a6e;
   line-height: 1;
   min-height: 1em;
@@ -1399,7 +1405,11 @@ body {
   white-space: normal;
   overflow-wrap: break-word;
   overflow: hidden;
-  max-height: 8em;
+  /* The per-field line budget is set inline from the map's maxLines, so a
+     3-line box on the form shows 3 lines here. A flat cap let the preview
+     show more lines than the printed box has room for. */
+  line-height: var(--pdf-line-height, 1.14);
+  max-height: calc(var(--pdf-max-lines, 8) * var(--pdf-line-height, 1.14) * 1em);
 }
 /* Centred within the printed cell instead of hugging its left edge:
    per-character digit boxes (PAN, some date groups), and the printed name
