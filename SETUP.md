@@ -221,6 +221,16 @@ order, from phpMyAdmin's **SQL** tab as root: paste the file's contents and
 click **Go**. Each file's header says what it adds. `003_case_session_ocr_review.sql`
 is required for the Logbook Review page (`/review`).
 
+**After you `git pull` new changes:**
+1. Run any new file in `database/migrations/` as above. The latest is
+   `010_claim_mother_baby.sql` (Save patient, typed values kept with each
+   claim, mother and baby). It is safe to run more than once. Without it,
+   Patient details shows "The database needs an update…", and Save patient
+   stops with the same message.
+2. Restart the backend (close it, then `run_ocr.bat` again) so it runs the
+   new Python code.
+3. Reload the forms page with **Ctrl+F5**.
+
 ### 4.5 Create the application database user
 
 The Flask backend connects as a dedicated (non-root) MariaDB user rather

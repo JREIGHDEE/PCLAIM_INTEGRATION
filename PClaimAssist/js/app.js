@@ -169,6 +169,10 @@ const state = {
     expectedDD:'', deliveryDate:'', deliveryTime:'', amPmDelivery:'AM',
     mannerOfDelivery:'', fetalOutcome:'', babySex:'', birthWeight:'', apgarScore:'',
     briefHistory:'',
+    /* The clinic's diagnosis wording (js/dx-templates.js): the package
+       picked by staff ('' = picked automatically), and whether the usual
+       delivery medicines were put in the CF4 drugs list */
+    dxPackage:'', dxDrugsAdded:false,
     /* Physical Examination */
     /* Maternity Care Package */
     obTerm:'', obPreterm:'', obAbortion:'', obLiving:'',
@@ -1009,8 +1013,9 @@ function toFormCase(el) {
   // that back clears the dropdown - which is what emptied these boxes.
   // Dates, times, email and anything marked data-keep-case are left alone
   // for the same reason: their value has a format of its own.
+  // So is a button group's (a <div>, "Patient" / "Representative").
   const kind = el.tagName === 'TEXTAREA' ? 'textarea' : (el.type || '');
-  if (el.tagName === 'SELECT' || !FREE_TEXT_TYPES.has(kind) ||
+  if ((el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA') || !FREE_TEXT_TYPES.has(kind) ||
       el.dataset.keepCase !== undefined) return raw;
   // Upper-case what is in the box WITHOUT trimming it: writing the trimmed
   // text back deleted the space the moment it was typed, so no one could
@@ -2138,6 +2143,9 @@ document.getElementById('clearFormBtn').addEventListener('click', () => {
   if (!confirm('Start a new patient?\n\nThis clears everything typed for the current patient. ' +
                'Press OK to clear, or Cancel to keep it.')) return;
   resetFormData();
+  // js/claim-loader.js lets go of the claim that was open, so the blank
+  // forms are not saved over it.
+  document.dispatchEvent(new CustomEvent('pca:new-patient'));
   showToast('Form cleared', 'All patient information has been cleared.', 'info');
   logActivity('Patient information cleared', 'warning');
 });
@@ -2694,190 +2702,8 @@ const PCA_HANDWRITTEN = new Set();
   });
 })();
 
-/* ══════════════════════════════════════════════════════════
-   ADMISSION DIAGNOSIS — the doctors' usual wording
-   A claim is only made for a delivery, so the admitting diagnosis is
-   nearly always the same sentence (as the clinic's doctors write it):
-     PUFT 39 3/7 wks AOG delivered via NSVD to a live term baby boy AGA
-     w/ AS of 8 & 9; G2P2 (2002)
-   "Use the delivery message" opens it with only its blanks to fill, each
-   already filled from what is typed elsewhere where it can be: the weeks
-   from the LMP to the delivery (or admission) date, the baby's sex, G, P,
-   the term/preterm/abortion/living count and the APGAR score. A blank
-   typed here fills that field too, if it was still empty.
-══════════════════════════════════════════════════════════ */
-(function setupAdmissionDxTemplate() {
-  const host = document.getElementById('admissionDxTemplate');
-  if (!host) return;
-
-  const style = document.createElement('style');
-  style.textContent =
-    '.dx-template{margin-top:8px;padding:12px 14px;border:2px solid #bfdbfe;border-radius:10px;background:#f8fbff}' +
-    '.dx-template .dx-sentence{line-height:2.6;font-size:.95rem}' +
-    '.dx-template input,.dx-template select{display:inline-block;width:3.4em;padding:2px 4px;margin:0 2px;' +
-    'border:1px solid #93c5fd;border-radius:6px;text-align:center;font-weight:600;background:#fff}' +
-    '.dx-template select{width:auto}' +
-    '.dx-template .dx-empty{border-color:#dc2626;background:#fef2f2}' +
-    '.dx-template .dx-preview{margin:10px 0;padding:8px 10px;background:#fff;border:1px dashed #94a3b8;border-radius:8px;font-weight:600}' +
-    '.dx-template .dx-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}' +
-    '.dx-template .dx-confirm{margin-top:10px;padding:10px 12px;border:2px solid #f59e0b;border-radius:10px;background:#fffbeb}' +
-    '.dx-template .dx-confirm-title{font-weight:700;color:#92400e;margin-bottom:6px}' +
-    '.dx-template .dx-confirm-old{margin-bottom:8px;padding:6px 8px;background:#fff;border-radius:6px;font-size:.88rem;color:#475569}';
-  document.head.appendChild(style);
-
-  const open = document.createElement('button');
-  open.type = 'button';
-  open.className = 'btn btn-outline-primary btn-sm mt-2';
-  open.innerHTML = '<i class="bi bi-magic me-1"></i>Use the delivery message';
-  host.appendChild(open);
-
-  const box = document.createElement('div');
-  box.className = 'dx-template';
-  box.hidden = true;
-  const num = (name, label, w) =>
-    `<input type="text" inputmode="numeric" maxlength="2" data-dx="${name}" aria-label="${label}"${w ? ` style="width:${w}"` : ''}>`;
-  box.innerHTML =
-    '<div class="dx-sentence">PUFT ' + num('weeks', 'Weeks AOG') + ' ' + num('days', 'Days (out of 7)', '2.6em') +
-    '/7 wks AOG delivered via NSVD to a live term baby ' +
-    '<select data-dx="sex" aria-label="Baby boy or girl"><option value="">boy / girl</option>' +
-    '<option value="boy">boy</option><option value="girl">girl</option></select> ' +
-    '<select data-dx="size" aria-label="Size for gestational age"><option>AGA</option><option>SGA</option><option>LGA</option></select>' +
-    ' w/ AS of ' + num('apgar1', 'APGAR score at 1 minute', '2.6em') + ' &amp; ' + num('apgar5', 'APGAR score at 5 minutes', '2.6em') +
-    '; G' + num('g', 'Gravida', '2.6em') + 'P' + num('p', 'Para', '2.6em') + ' (' +
-    num('t', 'Term', '2.2em') + num('pre', 'Preterm', '2.2em') + num('a', 'Abortion', '2.2em') + num('l', 'Living', '2.2em') + ')</div>' +
-    '<div class="dx-preview" aria-live="polite"></div>' +
-    '<div class="dx-actions"><button type="button" class="btn btn-primary btn-sm" data-dx-use>' +
-    'Put this in Admission Diagnosis</button><button type="button" class="btn btn-link btn-sm" data-dx-close>Close</button>' +
-    '<span class="text-danger small" data-dx-note></span></div>' +
-    // Asked here, in the page - not with the browser's own pop-up.
-    '<div class="dx-confirm" role="alertdialog" aria-labelledby="dxConfirmTitle" hidden>' +
-    '<div class="dx-confirm-title" id="dxConfirmTitle"><i class="bi bi-exclamation-triangle-fill me-2"></i>' +
-    'Admission Diagnosis already has something in it</div>' +
-    '<div class="dx-confirm-old" data-dx-old></div>' +
-    '<div class="dx-actions"><button type="button" class="btn btn-warning btn-sm" data-dx-replace>Replace it</button>' +
-    '<button type="button" class="btn btn-outline-secondary btn-sm" data-dx-keep>Keep what is there</button></div></div>';
-  host.appendChild(box);
-
-  const f = name => box.querySelector(`[data-dx="${name}"]`);
-  const val = name => String(f(name).value || '').trim();
-  const PARTS = ['weeks', 'days', 'sex', 'apgar1', 'apgar5', 'g', 'p', 't', 'pre', 'a', 'l'];
-
-  // Weeks + days from the LMP to the delivery (or admission) date.
-  function aogFromDates() {
-    const d = state.data;
-    const end = d.deliveryDate || d.dateAdmitted;
-    if (!d.lmp || !end) return null;
-    const days = Math.round((new Date(end) - new Date(d.lmp)) / 86400000);
-    if (!(days >= 20 * 7 && days <= 45 * 7)) return null;
-    return { weeks: Math.floor(days / 7), days: days % 7 };
-  }
-
-  function prefill() {
-    const d = state.data;
-    const aog = aogFromDates();
-    const set = (name, value) => { if (value !== undefined && value !== null && value !== '') f(name).value = String(value); };
-    PARTS.forEach(name => { f(name).value = ''; });
-    f('size').value = 'AGA';
-    if (aog) { set('weeks', aog.weeks); set('days', aog.days); }
-    set('sex', d.babySex === 'Male' ? 'boy' : d.babySex === 'Female' ? 'girl' : '');
-    set('apgar5', d.apgarScore);
-    set('g', d.gravida); set('p', d.para);
-    set('t', d.obTerm); set('pre', d.obPreterm); set('a', d.obAbortion); set('l', d.obLiving);
-    // Anything still blank, from what is already in the box (usually read
-    // from the logbook): "PUFT 38 2/7 WKS ... G3P2 (2002)".
-    const found = readDxWording(d.admissionDx);
-    Object.entries(found).forEach(([name, value]) => {
-      if (!f(name).value || (name === 'size' && /AGA|SGA|LGA/.test(String(d.admissionDx).toUpperCase()))) set(name, value);
-    });
-  }
-
-  // The same reading as the Logbook Reader's (templates/review.html readDx).
-  function readDxWording(text) {
-    const t = String(text || '').toUpperCase();
-    const out = {};
-    let m;
-    if ((m = t.match(/\b(\d{2})\s*(?:(\d)\s*\/\s*7)?\s*W/))) { out.weeks = m[1]; if (m[2]) out.days = m[2]; }
-    if ((m = t.match(/\b(BOY|GIRL)\b/))) out.sex = m[1].toLowerCase();
-    if ((m = t.match(/\b(AGA|SGA|LGA)\b/))) out.size = m[1];
-    if ((m = t.match(/AS\s*(?:OF)?\s*(\d{1,2})\s*(?:&|AND|,|\/)\s*(\d{1,2})/))) { out.apgar1 = m[1]; out.apgar5 = m[2]; }
-    if ((m = t.match(/G\s*(\d{1,2})\s*P\s*(\d{1,2})/))) { out.g = m[1]; out.p = m[2]; }
-    if ((m = t.match(/\(\s*(\d)\s*-?\s*(\d)\s*-?\s*(\d)\s*-?\s*(\d)\s*\)/))) {
-      out.t = m[1]; out.pre = m[2]; out.a = m[3]; out.l = m[4];
-    }
-    return out;
-  }
-
-  function sentence() {
-    const days = val('days');
-    const age = val('weeks') + (days && days !== '0' ? ` ${days}/7` : '');
-    // In capitals, like everything typed into the forms.
-    return (`PUFT ${age} wks AOG delivered via NSVD to a live term baby ${val('sex')} ${val('size')} ` +
-      `w/ AS of ${val('apgar1')} & ${val('apgar5')}; G${val('g')}P${val('p')} ` +
-      `(${val('t')}${val('pre')}${val('a')}${val('l')})`).toUpperCase();
-  }
-
-  function missing() {
-    return PARTS.filter(name => name !== 'days' && !val(name));
-  }
-
-  function refresh() {
-    box.querySelectorAll('input[data-dx]').forEach(input => {
-      input.value = input.value.replace(/\D/g, '');
-      input.classList.toggle('dx-empty', input.dataset.dx !== 'days' && !input.value);
-    });
-    f('sex').classList.toggle('dx-empty', !f('sex').value);
-    box.querySelector('.dx-preview').textContent = sentence();
-    const left = missing().length;
-    box.querySelector('[data-dx-use]').disabled = left > 0;
-    box.querySelector('[data-dx-note]').textContent =
-      left ? `Fill in the ${left} red blank${left === 1 ? '' : 's'} first.` : '';
-  }
-
-  open.addEventListener('click', () => {
-    prefill();
-    box.querySelector('.dx-confirm').hidden = true;
-    box.hidden = false;
-    refresh();
-    const first = box.querySelector('input.dx-empty');
-    (first || f('weeks')).focus();
-  });
-  box.addEventListener('input', refresh);
-  box.addEventListener('change', refresh);
-  box.querySelector('[data-dx-close]').addEventListener('click', () => { box.hidden = true; });
-
-  const ask = box.querySelector('.dx-confirm');
-  box.querySelector('[data-dx-use]').addEventListener('click', () => {
-    const current = String(state.data.admissionDx || '').trim();
-    if (current && current !== sentence()) {
-      box.querySelector('[data-dx-old]').textContent = current;
-      ask.hidden = false;
-      box.querySelector('[data-dx-replace]').focus();
-      return;
-    }
-    putIn();
-  });
-  box.querySelector('[data-dx-replace]').addEventListener('click', putIn);
-  box.querySelector('[data-dx-keep]').addEventListener('click', () => {
-    ask.hidden = true;
-    box.querySelector('[data-dx-use]').focus();
-  });
-
-  function putIn() {
-    ask.hidden = true;
-    const values = { admissionDx: sentence() };
-    // Blanks filled here also fill their own fields, if those are empty.
-    const fillIfEmpty = (key, value) => { if (value && !String(state.data[key] || '').trim()) values[key] = value; };
-    fillIfEmpty('gravida', val('g')); fillIfEmpty('para', val('p'));
-    fillIfEmpty('obTerm', val('t')); fillIfEmpty('obPreterm', val('pre'));
-    fillIfEmpty('obAbortion', val('a')); fillIfEmpty('obLiving', val('l'));
-    fillIfEmpty('apgarScore', val('apgar5'));
-    fillIfEmpty('babySex', { boy: 'Male', girl: 'Female' }[val('sex')]);
-    applyFormData(values);
-    box.hidden = true;
-    showToast('Delivery message put in',
-      'Admission Diagnosis now has the delivery message. CF4 prints it as the admitting diagnosis.', 'success');
-  }
-})();
+/* The diagnosis wording of each package (the clinic's template) is in
+   js/dx-templates.js. */
 
 /* ═══════════════════════════════════════════════════════════
    Long entry tables — show one line at a time
@@ -2980,3 +2806,17 @@ function setupExpandingRows(opts) {
     },
   };
 })();
+
+/* A health care professional's PhilHealth accreditation number is written
+   0000-0000000-0 (4, 7 and 1 digits). Boxes marked data-pan-format put the
+   dashes in as it is typed - before the box's own listener stores it. */
+function formatAccreditationNo(value) {
+  const d = String(value || '').replace(/\D/g, '').slice(0, 12);
+  return [d.slice(0, 4), d.slice(4, 11), d.slice(11)].filter(Boolean).join('-');
+}
+document.addEventListener('input', e => {
+  const el = e.target;
+  if (!el.matches || !el.matches('[data-pan-format]')) return;
+  const shown = formatAccreditationNo(el.value);
+  if (el.value !== shown) el.value = shown;
+}, true);

@@ -11,6 +11,70 @@ Related documents:
 
 ---
 
+## 2026-10-26 09:02: UI update (reigh)
+
+- Changed: style.css, index.html, app.js, claim-loader.js
+
+**Main app (dashboard)**
+
+![Main app (dashboard)](docs/screenshots/2026-10-26_090244_app.jpg)
+
+## 2026-10-26: Mother and baby, Save patient, the clinic's diagnosis wording (reigh)
+
+**After pulling:** run `database/migrations/010_claim_mother_baby.sql` in
+phpMyAdmin (SQL tab, as root), restart the backend, and press Ctrl+F5 on
+the forms. See SETUP.md, "After you `git pull` new changes".
+
+**Mother or baby (Patient details)**
+- Each claim from the logbook says whether the entry is the mother's or the
+  baby's (from the diagnosis, even misread by the OCR, then the age, then a
+  "BABY BOY/GIRL" name). Staff can change it: Mother / Baby / Neither.
+- A baby's claim picks its mother's claim (she gave birth on the baby's
+  birthday, same surname, above it in the same scan), and "Copy the mother's
+  details" fills the baby's empty boxes. It copies the member, home address
+  and contact, member profile, employer and birth details, and makes the
+  mother the one who signs for the baby. Nothing already filled is replaced.
+  Unticking takes back what was copied.
+- The panel shows what was applied to whom (the member, the baby, the home).
+  A mother's panel shows who is who on her claim and links to her babies.
+- New: `Ocr_module/philhealth/mother_baby.py` (with `test_mother_baby.py`),
+  `PClaimAssist/js/mother-baby.js`.
+
+**Save patient (Check for Missing Information)**
+- Saves every detail typed on the four forms with the patient's claim, so it
+  comes back when the claim is opened again. After that it saves as it is
+  typed. A patient typed in by hand, not from the logbook, gets a claim of
+  its own (it needs the name, birthday and date admitted).
+- "Start a new patient" lets go of the open claim, so blank forms are never
+  saved over it.
+
+**The clinic's diagnosis wording (Patient details → Stay at the clinic, CF4)**
+- One template per package from the clinic's document: NSDBF (O80.0),
+  99460/NCP (Z38.0), FP001 (Z30.1), 58300 (Z30.1), ANV/01/02/03 (Z34.0 first
+  pregnancy / Z34.8 later ones) and PPC01 (Z39.2). The package is picked
+  automatically (a baby is NCP, a delivery NSDBF) and can be changed.
+- The template's blanks are filled from the forms (weeks AOG from the LMP,
+  G, P, TPAL, baby's sex and weight; for a baby, the mother's) and can be
+  changed. The wording and its codes go into the diagnosis boxes on all
+  forms and follow the blanks until someone types over them.
+- CF4: the course in the ward paragraph and the three usual medicines
+  (oxytocin, mefenamic acid, lidocaine, 500 each) go in by themselves for
+  NSDBF. Both have buttons to put them in or take them out for any package.
+- ICD-10 and RVS boxes offer these codes to choose from.
+- Replaces the old "Use the delivery message" (PUFT …) button.
+- New: `PClaimAssist/js/dx-templates.js`.
+
+**Accreditation numbers**
+- Health care professionals' accreditation numbers are entered in the
+  form's 4-7-1 boxes (0000-0000000-0). CF4's provider PAN and the attending
+  PAN in Clinic Details put the dashes in as typed.
+
+**Fixed**
+- Loading a claim upper-cased button choices ("REPRESENTATIVE"), which left
+  those buttons unselected.
+- A red "Please type" box filled by the wording or the mother's details no
+  longer stays red.
+
 ## 2026-10-25 22:54: UI update (reigh)
 
 - Changed: style.css, index.html, app.js, login.html, ocr.html

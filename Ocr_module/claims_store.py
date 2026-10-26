@@ -6,10 +6,13 @@ database are always drawn from a fixed whitelist (never built from arbitrary
 caller-supplied keys), and case_bridge.py output only ever uses those same
 fixed column names.
 """
+import json
+import re
+
 import config
 from db import get_db_cursor
 from errors import ClaimNotFoundError, InvalidRequestError, ReviewIncompleteError, SessionNotFoundError
-from philhealth import address_parser, case_bridge
+from philhealth import address_parser, case_bridge, field_catalog, form_prefill, mother_baby
 
 # claims.status's three values, in forward order - used to make status
 # transitions monotonic (see _advance_status).
@@ -191,11 +194,16 @@ def _create_or_update_claim_from_session(session):
             _update_row(cursor, "patients", patient_id, patient_fields)
             _update_row(cursor, "encounters", encounter_id, encounter_fields)
 
-            cursor.execute("SELECT id FROM claims WHERE encounter_id = %s", (encounter_id,))
+            # SELECT *: works on a database without update 010 too.
+            cursor.execute("SELECT * FROM claims WHERE encounter_id = %s", (encounter_id,))
             claim_row = cursor.fetchone()
             if claim_row:
                 claim_id = claim_row["id"]
                 _update_row(cursor, "claims", claim_id, claims_fields)
+                # The corrected logbook review wins over what the forms
+                # saved for the same boxes.
+                if claim_row.get("form_values"):
+                    _drop_saved_logbook_values(cursor, claim_id, claim_row["form_values"])
             else:
                 claim_id = _insert_claim_with_hci_defaults(cursor, encounter_id, claims_fields)
 
@@ -311,3 +319,346 @@ def mark_exported(claim_id):
     succeeded (see routes/claims_routes.py export_claim()). Idempotent;
     never regresses an already-'exported' claim."""
     _advance_status(claim_id, "exported")
+
+
+# ---------------------------------------------------------------------------
+# What staff type on the forms, kept with the claim (claims.form_values)
+# ---------------------------------------------------------------------------
+_FORM_VALUES_MAX_BYTES = 256 * 1024
+# What a baby's claim copied from its mother's (js/mother-baby.js), kept
+# so unticking can undo it on a reopened claim: {"motherClaimId": int,
+# "values": {form key: value}}.
+_MOTHER_COPY_KEY = "_copiedFromMother"
+# Boxes the logbook fills: a re-sync from a corrected review replaces them.
+_LOGBOOK_KEYS = field_catalog.AUTO_OCR_KEYS | {
+    key for keys in field_catalog.DERIVED_OCR_KEYS.values() for key in keys}
+
+
+_MIGRATION_010 = "database/migrations/010_claim_mother_baby.sql"
+_has_migration_010 = False
+
+
+def _require_migration_010():
+    """Saving the forms and mother/baby need update 010's columns. A
+    database without them gets a message saying what to run, not a bare
+    "Unknown column" error (once found, not checked again)."""
+    global _has_migration_010
+    if _has_migration_010:
+        return
+    with get_db_cursor() as cursor:
+        cursor.execute(
+            "SELECT COUNT(*) AS n FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() "
+            "AND TABLE_NAME = 'claims' AND COLUMN_NAME IN ('patient_role', 'mother_claim_id', 'form_values')")
+        found = cursor.fetchone()["n"]
+    if found < 3:
+        raise InvalidRequestError(
+            f"The database needs an update before patients can be saved: run {_MIGRATION_010} "
+            "in phpMyAdmin (SQL tab, as root), then try again. See SETUP.md.")
+    _has_migration_010 = True
+
+
+def _parse_form_values(raw):
+    try:
+        value = json.loads(raw) if raw else {}
+    except ValueError:
+        value = {}
+    return value if isinstance(value, dict) else {}
+
+
+def _drop_saved_logbook_values(cursor, claim_id, raw):
+    saved = _parse_form_values(raw)
+    kept = {k: v for k, v in saved.items() if k not in _LOGBOOK_KEYS}
+    if kept != saved:
+        cursor.execute("UPDATE claims SET form_values = %s WHERE id = %s",
+                       (json.dumps(kept), claim_id))
+
+
+def _clean_form_values(values):
+    clean = {}
+    for key, value in values.items():
+        if key == _MOTHER_COPY_KEY:
+            continue
+        if not isinstance(key, str) or not key.isidentifier():
+            raise InvalidRequestError(f"Not a form key: {key!r}")
+        if isinstance(value, list):
+            value = [str(v) for v in value]
+        elif value is not None and not isinstance(value, (str, bool, int, float)):
+            raise InvalidRequestError(f"Unsupported value for {key}")
+        clean[key] = value
+    return clean
+
+
+def save_form_values(claim_id, values):
+    """Replaces what is kept as typed on the forms for this claim.
+    values: {form key: str | bool | number | list of str}."""
+    _require_migration_010()
+    if not isinstance(values, dict):
+        raise InvalidRequestError("'values' must be an object of form key -> value")
+    clean = _clean_form_values(values)
+    copied = values.get(_MOTHER_COPY_KEY)
+    if copied is not None:
+        if not (isinstance(copied, dict) and isinstance(copied.get("motherClaimId"), int)
+                and isinstance(copied.get("values"), dict)):
+            raise InvalidRequestError(f"Unsupported value for {_MOTHER_COPY_KEY}")
+        clean[_MOTHER_COPY_KEY] = {"motherClaimId": copied["motherClaimId"],
+                                   "values": _clean_form_values(copied["values"])}
+    raw = json.dumps(clean)
+    if len(raw.encode("utf-8")) > _FORM_VALUES_MAX_BYTES:
+        raise InvalidRequestError("Too much form data to save")
+    if get_claim(claim_id) is None:
+        raise ClaimNotFoundError(f"No claim found with id {claim_id}.")
+    with get_db_cursor(commit=True) as cursor:
+        cursor.execute("UPDATE claims SET form_values = %s WHERE id = %s", (raw, claim_id))
+
+
+# ---------------------------------------------------------------------------
+# "Save patient" (Check for Missing Information)
+# ---------------------------------------------------------------------------
+# Form keys copied into the claim's own columns on save, so the claim is
+# found and recognised (mother / baby) without opening its forms: the
+# whitelisted columns above, as field_catalog.FORM_FIELDS maps them.
+_SAVE_TABLE_COLUMNS = {
+    "patients": PATIENT_EDITABLE_COLUMNS - {"address"},
+    "encounters": ENCOUNTER_EDITABLE_COLUMNS,
+    "claims": CLAIMS_EDITABLE_COLUMNS,
+}
+_SAVE_KEYS = {
+    key: field for key, field in field_catalog.FORM_FIELDS.items()
+    if field.column in _SAVE_TABLE_COLUMNS.get(field.table, ())
+}
+_REQUIRED_TO_CREATE = {
+    "patientLastName": "the patient's last name",
+    "patientFirstName": "the patient's first name",
+    "patientDOB": "the patient's date of birth",
+    "dateAdmitted": "the date admitted",
+}
+_column_info = None
+
+
+def _columns():
+    """{(table, column): {"max": int | None, "choices": tuple | None,
+    "required": bool}} for the columns a save writes, read once from the
+    database itself so a value never breaks a column's size or ENUM."""
+    global _column_info
+    if _column_info is None:
+        with get_db_cursor() as cursor:
+            cursor.execute(
+                "SELECT TABLE_NAME, COLUMN_NAME, CHARACTER_MAXIMUM_LENGTH, COLUMN_TYPE, IS_NULLABLE "
+                "FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() "
+                "AND TABLE_NAME IN ('patients', 'encounters', 'claims')")
+            info = {}
+            for row in cursor.fetchall():
+                kind = row["COLUMN_TYPE"]
+                choices = tuple(re.findall(r"'((?:[^']|'')*)'", kind)) if kind.startswith("enum(") else None
+                info[(row["TABLE_NAME"], row["COLUMN_NAME"])] = {
+                    "max": row["CHARACTER_MAXIMUM_LENGTH"], "choices": choices,
+                    "required": row["IS_NULLABLE"] == "NO",
+                }
+        _column_info = info
+    return _column_info
+
+
+def _column_value(field, value):
+    """A form value as its column takes it, or None (empty, or not a value
+    the column can hold - the form value itself is kept in form_values)."""
+    if value in (None, "", [], False):
+        return None
+    text = str(value).strip()
+    if field.kind == "date":
+        return text if field_catalog.is_valid_date_string(text) and len(text) == 10 else None
+    if field.kind == "time":
+        return text if re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", text) else None
+    info = _columns().get((field.table, field.column), {})
+    if info.get("choices"):
+        match = next((c for c in info["choices"] if c.lower() == text.lower()), None)
+        return match
+    if info.get("max") and len(text) > info["max"]:
+        return None
+    return text
+
+
+def _columns_from_form(values):
+    tables = {"patients": {}, "encounters": {}, "claims": {}}
+    for key, field in _SAVE_KEYS.items():
+        if key not in values:
+            continue
+        value = _column_value(field, values[key])
+        required = _columns().get((field.table, field.column), {}).get("required")
+        if value is None and required:
+            continue  # a NOT NULL column keeps what it has
+        tables[field.table][field.column] = value
+    return tables
+
+
+def save_patient(claim_id, values):
+    """The "Save patient" button: keeps everything typed on the forms, and
+    copies the core of it into the claim's columns. With no claim_id (a
+    patient typed in by hand, not from the logbook), creates the patient,
+    encounter and claim first. Returns the claim id."""
+    _require_migration_010()
+    if not isinstance(values, dict):
+        raise InvalidRequestError("'values' must be an object of form key -> value")
+    tables = _columns_from_form(values)
+    if claim_id is None:
+        missing = [label for key, label in _REQUIRED_TO_CREATE.items()
+                   if tables[_SAVE_KEYS[key].table].get(_SAVE_KEYS[key].column) is None]
+        if missing:
+            raise InvalidRequestError("To save this patient, first fill in " + ", ".join(missing) + ".")
+        with get_db_cursor(commit=True) as cursor:
+            patient_id = _insert_row(cursor, "patients", tables["patients"])
+            encounter_id = _insert_row(cursor, "encounters", {"patient_id": patient_id, **tables["encounters"]})
+            claim_id = _insert_claim_with_hci_defaults(cursor, encounter_id, tables["claims"])
+    else:
+        update_claim_fields(claim_id, tables["patients"], tables["encounters"], tables["claims"])
+    save_form_values(claim_id, values)
+    advance_status_if_forms_complete(claim_id)
+    return claim_id
+
+
+def saved_form_values(claims_row):
+    """What was typed on the forms, from a claims row ({} if nothing yet)."""
+    return _parse_form_values((claims_row or {}).get("form_values"))
+
+
+def claim_form_values(claim_id):
+    """The claim as the forms show it: what the logbook gave
+    (form_prefill), overlaid with what staff typed and saved."""
+    source = get_claim_form_source(claim_id)
+    if source is None:
+        raise ClaimNotFoundError(f"No claim found with id {claim_id}.")
+    values = form_prefill.build_form_data(source["rows"], source["session"])["data"]
+    values.update(saved_form_values(source["rows"]["claim"]))
+    values.pop(_MOTHER_COPY_KEY, None)
+    return values
+
+
+# ---------------------------------------------------------------------------
+# Mother and baby (philhealth/mother_baby.py)
+# ---------------------------------------------------------------------------
+# How many recent claims are looked through for a baby's mother.
+_FAMILY_LOOKBACK = 300
+
+
+def _family_rows(cursor, claim_id=None):
+    where, params = ("WHERE c.id = %s", (claim_id,)) if claim_id else ("", ())
+    cursor.execute(
+        "SELECT c.id AS claim_id, c.patient_role, c.mother_claim_id, c.delivery_date, "
+        "p.last_name, p.first_name, p.middle_name, p.date_of_birth AS dob, "
+        "e.date_admitted, e.admission_dx, e.discharge_dx, "
+        "s.id AS session_id, s.upload_id "
+        "FROM claims c JOIN encounters e ON e.id = c.encounter_id "
+        "JOIN patients p ON p.id = e.patient_id "
+        f"LEFT JOIN case_sessions s ON s.id = e.case_session_id {where} "
+        "ORDER BY c.id DESC LIMIT %s",
+        (*params, _FAMILY_LOOKBACK),
+    )
+    return cursor.fetchall()
+
+
+def _iso(value):
+    return value.isoformat() if hasattr(value, "isoformat") else value
+
+
+def _family_entry(row):
+    """A _family_rows row with its role worked out: staff's choice, else
+    what the logbook entry says."""
+    given = " ".join(p for p in (row["first_name"], row["middle_name"]) if p)
+    detected = mother_baby.classify_entry({
+        "name": " ".join(p for p in (given, row["last_name"]) if p),
+        "dob": row["dob"], "date_admitted": row["date_admitted"],
+        "delivery_date": row["delivery_date"],
+        "admission_dx": row["admission_dx"], "discharge_dx": row["discharge_dx"],
+    })
+    return {
+        "claim_id": row["claim_id"],
+        "name": ", ".join(p for p in (row["last_name"], given) if p),
+        "last_name": row["last_name"],
+        "dob": _iso(row["dob"]),
+        "date_admitted": _iso(row["date_admitted"]),
+        "delivery_date": _iso(row["delivery_date"]),
+        "upload_id": row["upload_id"],
+        "session_id": row["session_id"],
+        "mother_claim_id": row["mother_claim_id"],
+        "role": row["patient_role"] or detected["role"],
+        "role_chosen": row["patient_role"],
+        "detected_role": detected["role"],
+        "detected_reason": detected["reason"],
+    }
+
+
+def _public(entry, **extra):
+    return {k: entry[k] for k in ("claim_id", "name", "dob", "date_admitted", "delivery_date")} | extra
+
+
+def get_family(claim_id):
+    """Who this claim's patient is (mother / baby), and the claims it is
+    linked with: for a baby, its mother's (chosen or best match) and the
+    others to choose from; for a mother, the babies copying from her."""
+    _require_migration_010()
+    with get_db_cursor() as cursor:
+        own = _family_rows(cursor, claim_id)
+        if not own:
+            raise ClaimNotFoundError(f"No claim found with id {claim_id}.")
+        others = [_family_entry(r) for r in _family_rows(cursor)]
+    me = _family_entry(own[0])
+    by_id = {e["claim_id"]: e for e in others}
+
+    mothers = [e for e in others if e["role"] == mother_baby.MOTHER and e["claim_id"] != claim_id]
+    ranked = mother_baby.rank_mothers(me, mothers) if me["role"] == mother_baby.BABY else []
+    reasons = {m["claim_id"]: m["reasons"] for m in ranked}
+    # Then every other mother, those who have delivered first (newest first,
+    # as _family_rows lists them).
+    rest = sorted((m for m in mothers if m["claim_id"] not in reasons), key=lambda m: not m["delivery_date"])
+    order = [m["claim_id"] for m in ranked] + [m["claim_id"] for m in rest]
+    linked = me["mother_claim_id"]
+    if linked and linked not in order and linked in by_id:
+        order.insert(0, linked)
+
+    return {
+        "claim_id": claim_id,
+        "role": me["role"],
+        "role_chosen": me["role_chosen"],
+        "detected_role": me["detected_role"],
+        "detected_reason": me["detected_reason"],
+        "mother_claim_id": linked,
+        "suggested_mother_id": ranked[0]["claim_id"] if ranked else None,
+        "mothers": [_public(by_id[i], reasons=reasons.get(i, [])) for i in order if i in by_id],
+        "babies": [_public(e) for e in others if e["mother_claim_id"] == claim_id],
+    }
+
+
+def set_family(claim_id, role=None, mother_claim_id=None, *, set_role=False, set_mother=False):
+    """Staff's choice of who the patient is, and of the mother's claim a
+    baby's claim copies from (None to unlink)."""
+    _require_migration_010()
+    fields = {}
+    if set_role:
+        if role not in (None, *mother_baby.ROLES):
+            raise InvalidRequestError(f"'role' must be one of: {', '.join(mother_baby.ROLES)}")
+        fields["patient_role"] = role
+    if set_mother:
+        if mother_claim_id is not None:
+            if not isinstance(mother_claim_id, int) or mother_claim_id == claim_id:
+                raise InvalidRequestError("'mother_claim_id' must be another claim's id")
+            if get_claim(mother_claim_id) is None:
+                raise ClaimNotFoundError(f"No claim found with id {mother_claim_id}.")
+        fields["mother_claim_id"] = mother_claim_id
+    if get_claim(claim_id) is None:
+        raise ClaimNotFoundError(f"No claim found with id {claim_id}.")
+    with get_db_cursor(commit=True) as cursor:
+        _update_row(cursor, "claims", claim_id, fields)
+    return get_family(claim_id)
+
+
+def values_from_mother(claim_id):
+    """What this (baby's) claim copies from its linked mother's claim:
+    philhealth/mother_baby.values_for_baby() of her claim as the forms
+    show it."""
+    _require_migration_010()
+    rows = get_claim(claim_id)
+    if rows is None:
+        raise ClaimNotFoundError(f"No claim found with id {claim_id}.")
+    mother_id = rows["claim"].get("mother_claim_id")
+    if not mother_id:
+        raise InvalidRequestError("This claim is not linked to a mother's claim yet.")
+    return {"mother_claim_id": mother_id, **mother_baby.values_for_baby(claim_form_values(mother_id))}

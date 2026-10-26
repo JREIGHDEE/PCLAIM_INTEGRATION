@@ -142,6 +142,18 @@ async function loadClaimFromUrl() {
   const values = { ...body.data };
   // Required fields start empty, even ones with a default (e.g. AM/PM).
   Object.entries(body.fields).forEach(([key, f]) => { if (f.status === 'required') values[key] = ''; });
+  // What was typed on the forms last time is put back over the logbook's
+  // values. A box changed from what the scan read is no longer "from scan".
+  const saved = { ...(body.saved_values || {}) };
+  const copiedFromMother = saved[MOTHER_COPY_KEY] || null;
+  delete saved[MOTHER_COPY_KEY];
+  Object.entries(saved).forEach(([key, value]) => {
+    if (!(key in state.data)) return;
+    if (body.fields[key] && String(value ?? '') !== String(values[key] ?? '')) {
+      body.fields[key] = { ...body.fields[key], status: 'typed', reason: null };
+    }
+    values[key] = value;
+  });
   // Boxes on other forms that repeat a logbook value (the final diagnosis
   // on CF4's diagnosis line) are filled from it too, with the same
   // tag, instead of being typed again (app.js MIRRORED_FIELDS - normally
@@ -162,7 +174,152 @@ async function loadClaimFromUrl() {
   // check" too (js/easy.js refreshes them on every update).
   updateFormPreviews();
   logActivity(`Patient loaded from the logbook scan (claim #${claimId})`, 'success');
+
+  openClaimId = Number(claimId);
+  lastSavedJson = claimSaveJson();
+  renderSavePatient('This patient is kept with the logbook claim and saves as you type. ' +
+    'Press Save patient when the forms are done.', false);
+  // Mother or baby, and copying a baby's details from its mother's claim
+  // (js/mother-baby.js).
+  if (typeof initMotherBaby === 'function') initMotherBaby(claimId, copiedFromMother);
 }
+
+/* ── Saving what is typed with the claim ──────────────────────
+   Everything typed on the forms is saved with the open claim
+   (PUT /api/claims/<id>/form-values) a moment after the last change, so
+   it is back when the claim is opened again - and a baby's claim can
+   copy it from its mother's. */
+const MOTHER_COPY_KEY = '_copiedFromMother';
+const CLAIM_SAVE_DELAY_MS = 1200;
+let openClaimId = null;
+let lastSavedJson = null;
+let claimSaveTimer = null;
+
+function claimSaveJson() {
+  const values = { ...state.data };
+  const copied = typeof motherCopyState === 'function' ? motherCopyState() : null;
+  if (copied) values[MOTHER_COPY_KEY] = copied;
+  return JSON.stringify(values);
+}
+
+async function saveOpenClaim(opts = {}) {
+  clearTimeout(claimSaveTimer);
+  if (!openClaimId) return;
+  const json = claimSaveJson();
+  if (json === lastSavedJson) return;
+  const claimId = openClaimId;
+  try {
+    const resp = await fetch(`${PCA_API_BASE}/api/claims/${claimId}/form-values`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: `{"values":${json}}`,
+      keepalive: !!opts.leaving,
+    });
+    if (resp.ok && claimId === openClaimId) lastSavedJson = json;
+    if (!resp.ok && !claimSaveWarned) {
+      // Said once (e.g. the database still needs an update), not on every key.
+      claimSaveWarned = true;
+      const body = await resp.json().catch(() => ({}));
+      showToast('Not saved', body.error || `The patient could not be saved (${resp.status}).`, 'warning');
+    }
+  } catch (err) { /* tried again on the next change */ }
+}
+let claimSaveWarned = false;
+
+function scheduleClaimSave() {
+  if (!openClaimId) return;
+  clearTimeout(claimSaveTimer);
+  claimSaveTimer = setTimeout(saveOpenClaim, CLAIM_SAVE_DELAY_MS);
+}
+
+/* ── "Save patient" (Check for Missing Information) ─────────
+   Saves everything typed with the patient's claim and copies the core of
+   it (name, birthday, stay, delivery) into the claim itself, so a baby's
+   claim finds its mother there. A patient typed in by hand, not from the
+   logbook, gets its own claim here; from then on it saves as it is typed,
+   like a claim from the logbook. */
+const ROLE_NOTES = {
+  mother: 'Saved as a mother: her baby\'s claim can copy her details (Patient details → Mother or baby?).',
+  baby: 'Saved as a baby.',
+  other: 'Saved.',
+};
+
+function renderSavePatient(text, saved) {
+  const card = document.getElementById('savePatientCard');
+  if (!card) return;
+  card.classList.toggle('is-saved', !!saved);
+  document.getElementById('savePatientNote').textContent = text ||
+    'Keeps every detail of this patient, so it can be opened again and her baby\'s claim can copy it.';
+  document.getElementById('savePatientLabel').textContent = openClaimId ? 'Save again' : 'Save patient';
+}
+
+async function savePatient() {
+  const btn = document.getElementById('savePatientBtn');
+  clearTimeout(claimSaveTimer);
+  const json = claimSaveJson();
+  btn.disabled = true;
+  try {
+    const resp = await fetch(`${PCA_API_BASE}/api/claims/save`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: `{"claim_id":${openClaimId || 'null'},"values":${json}}`,
+    });
+    const body = await resp.json().catch(() => ({}));
+    if (!resp.ok || !body.success) throw new Error(body.error || `Could not save (${resp.status})`);
+    const isNew = body.claim_id !== openClaimId;
+    openClaimId = body.claim_id;
+    lastSavedJson = json;
+    if (isNew) {
+      const url = new URL(location.href);
+      url.searchParams.set('claim', String(body.claim_id));
+      history.replaceState(null, '', url);
+      // Now a claim: Patient details can say mother or baby, and link a baby.
+      if (typeof initMotherBaby === 'function') await initMotherBaby(body.claim_id, null);
+    }
+    const role = typeof mb !== 'undefined' && mb.family ? mb.family.role : null;
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const name = [state.data.patientFirstName, state.data.patientLastName].filter(Boolean).join(' ');
+    renderSavePatient(`${name || 'Patient'} saved at ${time}. ${ROLE_NOTES[role] ||
+      'Mark mother or baby on Patient details so a baby\'s claim can find her.'} Changes from now on save by themselves.`, true);
+    showToast('Patient saved', `${name || 'The patient'} is saved and can be opened again.`, 'success');
+    logActivity(`Patient saved (claim #${body.claim_id})`, 'success');
+  } catch (err) {
+    showToast('Patient not saved', err.message, 'danger');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+document.getElementById('savePatientBtn').addEventListener('click', savePatient);
+
+// Every change on the forms ends in updateFormPreviews() (js/app.js).
+const updateFormPreviewsUnsaved = updateFormPreviews;
+updateFormPreviews = function () {
+  updateFormPreviewsUnsaved.apply(this, arguments);
+  // A "Please type" box filled by something other than typing (the
+  // clinic's wording, the mother's details) is no longer red.
+  refreshRequiredHighlights();
+  scheduleClaimSave();
+};
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') saveOpenClaim({ leaving: true });
+});
+
+document.addEventListener('pca:new-patient', () => {
+  // Let go of the claim: the blank forms belong to a new patient.
+  openClaimId = null;
+  lastSavedJson = null;
+  clearTimeout(claimSaveTimer);
+  renderSavePatient(null, false);
+  clearOcrTags();
+  if (typeof closeMotherBaby === 'function') closeMotherBaby();
+  const url = new URL(location.href);
+  if (url.searchParams.has('claim')) {
+    url.searchParams.delete('claim');
+    history.replaceState(null, '', url);
+  }
+});
 
 document.addEventListener('input', e => {
   if (e.target.matches && e.target.matches('[data-ocr-required]')) refreshRequiredHighlights();
@@ -170,6 +327,5 @@ document.addEventListener('input', e => {
 document.addEventListener('change', e => {
   if (e.target.matches && e.target.matches('[data-ocr-required]')) refreshRequiredHighlights();
 });
-document.getElementById('clearFormBtn').addEventListener('click', clearOcrTags);
 
 loadClaimFromUrl();

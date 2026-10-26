@@ -85,8 +85,69 @@ def get_claim_form_data(claim_id):
         "status": source["rows"]["claim"]["status"],
         "session_id": session["id"] if session else None,
         "image_quality": ((session or {}).get("ocr_data") or {}).get("image_quality"),
+        # What staff typed on the forms last time, put back over the above.
+        "saved_values": claims_store.saved_form_values(source["rows"]["claim"]),
         **prefill,
     })
+
+
+@claims_bp.route("/<int:claim_id>/form-values", methods=["PUT"])
+def save_claim_form_values(claim_id):
+    """Everything typed on the forms for this claim, saved as staff type
+    (claims.form_values), so it is there when the claim is opened again -
+    and for a baby's claim copying from its mother's."""
+    payload = request.get_json(silent=True) or {}
+    claims_store.save_form_values(claim_id, payload.get("values"))
+    return jsonify({"success": True})
+
+
+@claims_bp.route("/save", methods=["POST"])
+def save_patient():
+    """"Save patient" (Check for Missing Information): {"claim_id": int |
+    null, "values": {form key: value}}. With no claim_id, a patient typed in
+    by hand gets a new claim. Returns its claim id."""
+    payload = request.get_json(silent=True) or {}
+    claim_id = payload.get("claim_id")
+    if claim_id is not None:
+        try:
+            claim_id = int(claim_id)
+        except (TypeError, ValueError):
+            raise InvalidRequestError("'claim_id' must be an integer or null")
+    claim_id = claims_store.save_patient(claim_id, payload.get("values"))
+    logger.info("Saved patient on claim %s", claim_id)
+    return jsonify({"success": True, "claim_id": claim_id,
+                    "status": claims_store.get_claim(claim_id)["claim"]["status"]})
+
+
+@claims_bp.route("/<int:claim_id>/family", methods=["GET"])
+def get_claim_family(claim_id):
+    """Mother or baby, and the claims this one is linked with
+    (claims_store.get_family)."""
+    return jsonify({"success": True, **claims_store.get_family(claim_id)})
+
+
+@claims_bp.route("/<int:claim_id>/family", methods=["PUT"])
+def update_claim_family(claim_id):
+    """{"role": "mother" | "baby" | "other" | null} and/or
+    {"mother_claim_id": int | null}: only the keys sent are changed."""
+    payload = request.get_json(silent=True) or {}
+    mother_claim_id = payload.get("mother_claim_id")
+    if mother_claim_id is not None:
+        try:
+            mother_claim_id = int(mother_claim_id)
+        except (TypeError, ValueError):
+            raise InvalidRequestError("'mother_claim_id' must be an integer or null")
+    family = claims_store.set_family(
+        claim_id, role=payload.get("role"), mother_claim_id=mother_claim_id,
+        set_role="role" in payload, set_mother="mother_claim_id" in payload)
+    return jsonify({"success": True, **family})
+
+
+@claims_bp.route("/<int:claim_id>/from-mother", methods=["GET"])
+def get_values_from_mother(claim_id):
+    """What a baby's claim copies from its linked mother's claim, grouped
+    by who each value is about (philhealth/mother_baby.values_for_baby)."""
+    return jsonify({"success": True, **claims_store.values_from_mother(claim_id)})
 
 
 @claims_bp.route("/<int:claim_id>", methods=["PUT"])
