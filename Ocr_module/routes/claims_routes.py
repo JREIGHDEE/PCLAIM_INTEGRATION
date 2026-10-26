@@ -15,6 +15,7 @@ import logging
 from flask import Blueprint, jsonify, request, send_file
 
 import claims_store
+import crop_cleanup
 from errors import ClaimIncompleteError, InvalidRequestError
 from philhealth import form_prefill, mapping_service, pdf_export
 
@@ -23,6 +24,29 @@ logger = logging.getLogger(__name__)
 claims_bp = Blueprint("claims", __name__, url_prefix="/api/claims")
 
 _SUPPORTED_FORMS = ("cf2", "csf")
+
+
+def _finish_export(claim_id):
+    """A claim's PDF was made: mark it exported, and delete the review crops
+    of the logbook row it came from - they are not needed any more. A crop
+    that cannot be deleted never undoes the export (startup cleanup gets it)."""
+    claims_store.mark_exported(claim_id)
+    try:
+        source = claims_store.get_claim_form_source(claim_id)
+        if source and source["session"]:
+            crop_cleanup.delete_session_crops(source["session"])
+    except OSError:
+        logger.exception("Could not delete the review crops of claim %s", claim_id)
+
+
+def _rule_values(rows):
+    """The claim as the forms hold it: the stored columns, with what staff
+    typed on the forms (claims.form_values) over them - the same order
+    PClaimAssist loads them in (js/claim-loader.js)."""
+    values = dict(form_prefill.build_form_data(rows)["data"])
+    values.update({k: v for k, v in claims_store.saved_form_values(rows["claim"]).items()
+                   if not k.startswith("_")})
+    return values
 
 
 def _mapped_view(claim_id, rows):
@@ -163,6 +187,17 @@ def update_claim(claim_id):
     return jsonify(_mapped_view(claim_id, rows))
 
 
+@claims_bp.route("/<int:claim_id>/exported", methods=["POST"])
+def claim_exported(claim_id):
+    """PClaimAssist saved this claim's forms as a PDF in the browser
+    (js/pdf/pdf-overlay.js, which checks the critical rules first): the claim
+    is exported, and its review crops are deleted."""
+    if claims_store.get_claim(claim_id) is None:
+        return jsonify({"success": False, "error": f"No claim found with id {claim_id}."}), 404
+    _finish_export(claim_id)
+    return jsonify({"success": True, "status": claims_store.get_claim(claim_id)["claim"]["status"]})
+
+
 @claims_bp.route("/<int:claim_id>/export/<form_key>", methods=["GET"])
 def export_claim(claim_id, form_key):
     form_key = form_key.lower()
@@ -177,9 +212,13 @@ def export_claim(claim_id, form_key):
     form_status = mapped["forms"][form_key]
     if not form_status["complete"]:
         raise ClaimIncompleteError(mapping_service.missing_fields_message(form_status))
+    # The critical rules the forms check before saving a PDF (validation-rules.js).
+    problems = mapping_service.critical_rule_problems(_rule_values(rows))
+    if problems:
+        raise ClaimIncompleteError(mapping_service.critical_rules_message(problems))
 
     pdf_bytes = pdf_export.export_claim_pdf(form_key, rows["patient"], rows["encounter"], rows["claim"])
-    claims_store.mark_exported(claim_id)
+    _finish_export(claim_id)
     logger.info("Exported claim %s as %s PDF", claim_id, form_key.upper())
 
     filename = f"PHILHEALTH_CLAIM_{claim_id}_{form_key.upper()}.pdf"

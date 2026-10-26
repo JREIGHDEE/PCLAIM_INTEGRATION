@@ -31,17 +31,33 @@ const PDF_FORM_KEYS = ['csf', 'cf2', 'cf4', 'pmrf'];
 
 /* ── PDF file paths ──────────────────────────────────────── */
 /* ═══════════════════════════════════════════════════════════
-   TEMPORARY - FOR LAYOUT CHECKING ONLY.
-   SET BACK TO false BEFORE THE CAPSTONE DEFENSE.
-
-   Research design §3.4.2.5 step 10 requires that a PDF is generated only
-   once every critical (block_submission) error has been resolved, so this
-   must be false in the system that is demonstrated and submitted. It is
-   true now only so the printed layout can be checked without filling in
-   every box first. It affects both "Save as PDF to print" and "export all
-   forms".
+   Research design §3.4.2.5 step 10: a PDF is generated only once every
+   critical (block_submission) error has been resolved. Set to true only
+   to check the printed layout without filling in every box; it must stay
+   false in the system that is used and demonstrated. It affects both
+   "Save as PDF to print" and saving several forms as one PDF.
 ═══════════════════════════════════════════════════════════ */
-const SKIP_VALIDATION_FOR_EXPORT = true;
+const SKIP_VALIDATION_FOR_EXPORT = false;
+
+/* True (and says why) when a PDF must not be made yet. The rules are run
+   again here rather than trusting the last on-screen check, which may not
+   have run yet; if they cannot be run at all, nothing is saved. */
+function exportBlocked() {
+  if (SKIP_VALIDATION_FOR_EXPORT) return false;
+  const v = (typeof runValidationRules === 'function' && typeof getComputedValue === 'function' &&
+             typeof state !== 'undefined')
+    ? runValidationRules(getComputedValue, state.data) : null;
+  if (v && v.canGeneratePDF) return false;
+  const critical = v ? v.critical : [];
+  const n = critical.length;
+  const reasons = critical.slice(0, 3).map(c => `${c.id}: ${c.message}`).join(' ');
+  showToast('Not ready to print yet', n
+    ? `${n} important thing${n === 1 ? ' is' : 's are'} still missing or wrong. ${reasons}` +
+      `${n > 3 ? ` …and ${n - 3} more.` : ''} The full list is shown now - fix those, then try again.`
+    : 'The missing-information check could not run. Reload the page, then try again.', 'danger');
+  if (typeof navigateTo === 'function') navigateTo('validation');
+  return true;
+}
 
 /* ── One source of truth for preview/export placement ──────
    Both renderers must agree exactly, or the printed form will not match
@@ -663,8 +679,11 @@ async function buildFilledPdf(formKey) {
         };
         let rows = layout(fs);
         while (rows.length > f.lines && fs > 4.5) rows = layout(fs -= 0.5);
+        // A centred field centres each of its lines, as the preview does.
+        const left = (f.left / 100) * width;
         rows.forEach((row, i) => pg.drawText(row, {
-          x: x, y: y - i * f.lh, size: fs, font: font, color: PDFLib.rgb(0, 0, 0),
+          x: f.center ? left + Math.max(0, (boxW - font.widthOfTextAtSize(row, fs)) / 2) : x,
+          y: y - i * f.lh, size: fs, font: font, color: PDFLib.rgb(0, 0, 0),
         }));
         return;
       }
@@ -690,17 +709,7 @@ async function exportFilledPDF(formKey, button) {
     return;
   }
 
-  const v = window.lastValidationResult;
-  if (!SKIP_VALIDATION_FOR_EXPORT && v && !v.canGeneratePDF) {
-    const n = v.critical.length;
-    showToast(
-      'Not ready to print yet',
-      `${n} important thing${n === 1 ? ' is' : 's are'} still missing or wrong. ` +
-      'The list is shown now - fix those boxes, then try again.',
-      'danger');
-    if (typeof navigateTo === 'function') navigateTo('validation');
-    return;
-  }
+  if (exportBlocked()) return;
   const btn = button || document.getElementById('export-' + formKey + '-btn');
   const label = btn ? btn.innerHTML : '';
   if (btn) { btn.disabled = true; btn.textContent = 'Making the PDF, please wait…'; }
@@ -719,6 +728,7 @@ async function exportFilledPDF(formKey, button) {
     showToast('PDF saved', `The filled ${formKey.toUpperCase()} was saved to your Downloads folder. Open it there to print.`, 'success');
     // Teach the offline OCR AI which entries are common (js/entry-learning.js).
     if (typeof PCALearning !== 'undefined') PCALearning.recordFormEntries();
+    if (typeof reportClaimExported === 'function') reportClaimExported();
   } catch (err) {
     showToast('The PDF could not be made', 'Please try again. If it keeps happening, tell the clinic administrator.', 'danger');
     console.error('[PCA] Export error:', err);
@@ -774,13 +784,7 @@ async function exportAllForms(keys) {
       'Check that the computer is connected to the internet, then reload the page.', 'danger');
     return;
   }
-  const v = window.lastValidationResult;
-  if (!SKIP_VALIDATION_FOR_EXPORT && v && !v.canGeneratePDF) {
-    const n = v.critical.length;
-    showToast('Not ready to print yet',
-      `${n} important thing${n === 1 ? ' is' : 's are'} still missing or wrong.`, 'danger');
-    return;
-  }
+  if (exportBlocked()) return;
 
   const btn = document.getElementById('exportAllBtn');
   const label = btn ? btn.innerHTML : '';
@@ -805,6 +809,7 @@ async function exportAllForms(keys) {
     showToast(formKeys.length === PDF_FORM_KEYS.length ? 'All forms saved' : 'Forms saved',
       `${many} saved to your Downloads folder as one file. Open it there to print.`, 'success');
     if (typeof PCALearning !== 'undefined') PCALearning.recordFormEntries();
+    if (typeof reportClaimExported === 'function') reportClaimExported();
   } catch (err) {
     showToast('The forms could not be made',
       'Please try again. If it keeps happening, tell the clinic administrator.', 'danger');

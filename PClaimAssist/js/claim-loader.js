@@ -202,6 +202,19 @@ function claimSaveJson() {
   return JSON.stringify(values);
 }
 
+/* The open claim's forms were saved as a PDF (js/pdf/pdf-overlay.js, after
+   the critical rules passed): the server marks the claim exported and
+   deletes the logbook pictures it no longer needs. The PDF is saved either
+   way, so a failure here is only logged. */
+async function reportClaimExported() {
+  if (!openClaimId) return;
+  try {
+    await fetch(`${PCA_API_BASE}/api/claims/${openClaimId}/exported`, { method: 'POST' });
+  } catch (err) {
+    console.warn('[PCA] Could not mark the claim exported', err);
+  }
+}
+
 async function saveOpenClaim(opts = {}) {
   clearTimeout(claimSaveTimer);
   if (!openClaimId) return;

@@ -211,6 +211,10 @@ AI_CORRECTION_MAX_FIELDS = _env_int("AI_CORRECTION_MAX_FIELDS", 300)  # per uplo
 # ── Logbook upload -> per-row review sessions (see logbook_pipeline.py) ──
 # Cell crops shown next to each field in the review UI.
 REVIEW_CROPS_FOLDER = UPLOAD_FOLDER / "review_crops"
+# Crops are deleted once their claim is exported; on startup any crops older
+# than this many days are deleted as well, exported or not (crop_cleanup.py).
+# 0 turns the startup cleanup off.
+REVIEW_CROPS_MAX_AGE_DAYS = _env_int("OCR_REVIEW_CROPS_MAX_AGE_DAYS", 30)
 # A logbook row needs at least this many non-empty OCR'd fields (across both
 # pages of a spread) to count as a patient entry - filters out blank rows and
 # stray marks such as page numbers or footer notes.

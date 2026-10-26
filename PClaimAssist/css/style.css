@@ -2981,3 +2981,22 @@ textarea.from-patient-details:focus {
 .dx-drugs { width: 100%; font-size: .78rem; border-collapse: collapse; margin-bottom: 6px; }
 .dx-drugs th { color: var(--text-muted); font-weight: 600; text-align: left; border-bottom: 1px solid var(--border); padding: 2px 6px 2px 0; }
 .dx-drugs td { padding: 2px 6px 2px 0; border-bottom: 1px solid var(--border); }
+
+/* T-P-A-L (Patient details, Obstetrical History): four one-digit boxes in a
+   row, each named underneath, as the form writes them: (T P A L). */
+.tpal-boxes { display: flex; gap: 10px; }
+.tpal-boxes label { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 0; }
+.tpal-boxes .pca-input { width: 3.2rem; padding-left: 0; padding-right: 0; }
+.tpal-boxes span { font-size: .72rem; color: var(--text-muted); }
+
+/* Patient details: a row of choices (Sex, Baby Sex, Accommodation) starts
+   at the same height as the typed boxes beside it. */
+#section-patient .pca-radio.mt-1 { margin-top: 0 !important; }
+
+/* Code dropdown under the ICD-10 / RVS boxes (js/dx-templates.js). */
+.dx-code-menu { position: fixed; z-index: 2000; max-height: 18rem; overflow-y: auto; padding: 4px 0; }
+.dx-code-menu .dropdown-item { display: grid; grid-template-columns: 4.5rem 1fr auto; gap: .75rem;
+  align-items: center; white-space: normal; font-size: .88rem; }
+.dx-code-menu .dx-code { font-weight: 700; font-variant-numeric: tabular-nums; }
+.dx-code-menu .dx-code-pkg { font-size: .75rem; color: var(--text-muted); }
+.dx-code-menu .dropdown-item.active .dx-code-pkg { color: inherit; }

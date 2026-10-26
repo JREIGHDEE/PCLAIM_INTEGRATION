@@ -12,7 +12,9 @@ from datetime import timedelta
 from flask import Flask, jsonify, render_template, send_from_directory
 from flask_cors import CORS
 
+import auth
 import config
+import crop_cleanup
 from db import test_connection
 from errors import register_error_handlers
 from logging_setup import configure_logging
@@ -52,9 +54,19 @@ def create_app():
          supports_credentials=True)
 
     config.ensure_directories()
+    # Review crops past their keep-by date go at startup (crop_cleanup.py).
+    try:
+        removed = crop_cleanup.purge_old_crops(config.REVIEW_CROPS_MAX_AGE_DAYS)
+        if removed:
+            logger.info("Deleted %d review crop(s) older than %d days",
+                        removed, config.REVIEW_CROPS_MAX_AGE_DAYS)
+    except OSError:
+        logger.exception("Could not clean up old review crops")
 
     register_error_handlers(app)
     register_routes(app)
+    # Every page and API needs a signed-in account, except the sign-in page.
+    auth.require_sign_in(app)
 
     # ── PClaimAssist frontend ─────────────────────────────────────────
     # Served from this same server so the clinic runs one process on one

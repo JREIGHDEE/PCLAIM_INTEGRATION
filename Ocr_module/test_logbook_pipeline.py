@@ -500,6 +500,18 @@ class LogbookEndToEndTests(unittest.TestCase):
     def setUpClass(cls):
         from app import create_app
         cls.client = create_app().test_client()
+        # Every API needs a signed-in account (auth.require_sign_in): a
+        # signed-in session for a test account that is never in the database.
+        cls.signed_in = mock.patch("user_store.get_user_by_id", return_value={
+            "id": 1, "email": "e2e@test.local", "full_name": "E2E Test", "role": "admin",
+            "is_active": 1, "last_login_at": None, "created_at": None})
+        cls.signed_in.start()
+        with cls.client.session_transaction() as session:
+            session["user_id"] = 1
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.signed_in.stop()
 
     def setUp(self):
         self.tmp = tempfile.mkdtemp(prefix="logbook_e2e_")

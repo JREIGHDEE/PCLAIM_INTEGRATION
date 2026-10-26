@@ -12,7 +12,7 @@ from datetime import date
 from decimal import Decimal
 
 from philhealth import field_catalog, form_prefill
-from philhealth.field_catalog import FORM_FIELDS, NON_FORM_KEYS, OCR_CATEGORY_KEYS
+from philhealth.field_catalog import FORM_FIELDS, FORM_VALUES_KEYS, NON_FORM_KEYS, OCR_CATEGORY_KEYS
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -45,7 +45,23 @@ class MappingSyncTests(unittest.TestCase):
         self.assertEqual(FORM_KEYS - _state_data_keys(), set())
 
     def test_every_pclaimassist_field_has_a_database_home(self):
-        self.assertEqual(_state_data_keys() - FORM_KEYS, set())
+        # A column (FORM_FIELDS) or, declared one by one, claims.form_values.
+        self.assertEqual(_state_data_keys() - FORM_KEYS - FORM_VALUES_KEYS, set())
+
+    def test_form_values_keys_are_current_and_not_also_columns(self):
+        self.assertEqual(FORM_VALUES_KEYS - _state_data_keys(), set())
+        self.assertEqual(FORM_VALUES_KEYS & set(FORM_FIELDS), set())
+
+    def test_form_values_column_is_created_by_a_migration(self):
+        migration = _read("database", "migrations", "010_claim_mother_baby.sql")
+        self.assertRegex(migration, r"ADD COLUMN IF NOT EXISTS `form_values` LONGTEXT")
+
+    def test_form_values_keys_survive_a_save(self):
+        import claims_store
+        typed = {key: "X" for key in FORM_VALUES_KEYS}
+        self.assertEqual(set(claims_store._clean_form_values(typed)), set(FORM_VALUES_KEYS))
+        # A logbook re-sync drops only the boxes the logbook fills.
+        self.assertEqual(FORM_VALUES_KEYS & claims_store._LOGBOOK_KEYS, set())
 
     def test_every_form_key_has_an_input(self):
         inputs = set(re.findall(r'data-autofill="([A-Za-z0-9]+)"', _read("PClaimAssist", "index.html")))

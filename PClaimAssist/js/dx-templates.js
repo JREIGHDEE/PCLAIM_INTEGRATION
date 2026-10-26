@@ -38,29 +38,29 @@
 
 const DX_PACKAGES = {
   NSDBF: {
-    code: 'NSDBF', name: 'Normal delivery (mother)', icd: 'O80.0',
+    code: 'NSDBF', title: 'NORMAL SPONTANEOUS DELIVERY', name: 'Normal delivery (mother)', icd: 'O80.0',
     text: 'PREGNANCY UTERINE FULL TERM {aog} WEEKS AOG, CEPHALIC IN LABOR GRAVIDA {g} PARA {p} ({tpal}).',
   },
   NCP: {
-    code: '99460/NCP', name: 'Newborn care (baby)', icd: 'Z38.0', rvs: '99460', proc: 'NEWBORN CARE',
+    code: '99460/NCP', title: 'NEWBORN CARE', name: 'Newborn care (baby)', icd: 'Z38.0', rvs: '99460', proc: 'NEWBORN CARE',
     text: 'LIVE TERM BABY {sex} DELIVERED VIA NORMAL SPONTANEOUS VAGINAL DELIVERY TO A GRAVIDA {g} ' +
           'PARA {p} MOTHER WEIGHING {weight} GRAMS WITH AN APGAR SCORE OF {apgar}.',
   },
   FP001: {
-    code: 'FP001', name: 'Implant insertion', icd: 'Z30.1',
+    code: 'FP001', title: 'FOR INSERTION OF IMPLANTABLE SUBDERMAL CONTRACEPTIVE', name: 'Implant insertion', icd: 'Z30.1',
     text: 'FOR INSERTION OF IMPLANTABLE SUBDERMAL CONTRACEPTIVE',
   },
   IUD: {
-    code: '58300', name: 'IUD insertion', icd: 'Z30.1', rvs: '58300', proc: 'INTRAUTERINE DEVICE INSERTION',
+    code: '58300', title: 'INTRAUTERINE DEVICE INSERTION', name: 'IUD insertion', icd: 'Z30.1', rvs: '58300', proc: 'INTRAUTERINE DEVICE INSERTION',
     text: 'MULTIPARITY G{g} P{p} ({tpal}) FOR INTRAUTERINE DEVICE INSERTION',
   },
   ANV: {
-    code: 'ANV/01/02/03', name: 'Prenatal care', icdNote: 'Z34.0 first pregnancy, Z34.8 later ones',
+    code: 'ANV/01/02/03', title: 'PRENATAL CARE', name: 'Prenatal care', icdNote: 'Z34.0 first pregnancy, Z34.8 later ones',
     icd: v => (v.g === '1' ? 'Z34.0' : 'Z34.8'),
     text: 'PREGNANCY UTERINE PRENATAL CARE {aog} WEEKS AOG, GRAVIDA {g} PARA {p} ({tpal})',
   },
   PPC01: {
-    code: 'PPC01', name: 'Postpartum visit', icd: 'Z39.2',
+    code: 'PPC01', title: 'POSTPARTUM VISITS AFTER DISCHARGE.', name: 'Postpartum visit', icd: 'Z39.2',
     text: 'POSTPARTUM VISITS AFTER DISCHARGE.',
   },
 };
@@ -73,11 +73,13 @@ const DX_COURSE_TEXT =
   'SCORE OF {apgar}. THE BABY IS APPROPRIATE TO {hisher} GESTATIONAL AGE WITH MATERNAL OUTCOME OF G{g} P{p} ' +
   '({tpal}). NO UNTOWARD EVENT NOTED DURING ADMISSION, LABOR, DELIVERY AND IMMEDIATE POSTPARTUM.';
 
-/* CF4 V, for a delivery (NSDBF): [generic name, quantity/dosage/route, total cost]. */
+/* CF4 V, for a delivery (NSDBF): [generic name, quantity, dosage / route,
+   total cost]. The form's middle column has the quantity over the dosage / route. */
+const DX_DRUG_FIELDS = ['Name', 'Qty', 'Dose', 'Cost'];
 const DX_DELIVERY_DRUGS = [
-  ['OXYTOCIN / NONE / NONE', '1.00 PC/S FREQUENCY: 1 ROUTE: IM', '500'],
-  ['MEFENAMIC ACID / NONE / NONE', '10.00 PC/S FREQUENCY: EVERY 6 HOURS ROUTE: ORAL', '500'],
-  ['LIDOCAINE HYDROCHLORIDE / NONE / NONE', '1.00 PC/S FREQUENCY: 1 ROUTE: IM', '500'],
+  ['OXYTOCIN / NONE / NONE', '1.00 PC/S', 'FREQUENCY: 1 / ROUTE: IM', '500'],
+  ['MEFENAMIC ACID / NONE / NONE', '10.00 PC/S', 'FREQUENCY: EVERY 6 HOURS / ROUTE: ORAL', '500'],
+  ['LIDOCAINE HYDROCHLORIDE / NONE / NONE', '1.00 PC/S', 'FREQUENCY: 1 / ROUTE: IM', '500'],
 ];
 
 /* The blanks. `def` is the clinic's usual value, used when the forms
@@ -105,11 +107,10 @@ const DX_TARGET_LABELS = {
   dxADiagnosis: 'CF2 diagnosis', cf4FinalDiagnosis: 'CF4 discharge diagnosis',
   dxAIcd10: 'CF2 ICD-10', cf4IcdCode: 'CF4 1st case rate code',
   cf4RvsCode: 'CF4 2nd case rate code (RVS)', dxARvsI: 'CF2 RVS', dxAProcI: 'CF2 procedure',
+  csfFirstCaseRate: 'CSF 1st case rate', csfSecondCaseRate: 'CSF 2nd case rate',
 };
-const DX_COURSE_LINE = 95;   // characters on one printed CF4 course line
-const DX_COURSE_ROWS = 15;
-// The left column of the CF4 drugs table first (lines 1-7), then the right.
-const DX_DRUG_KEYS = [1, 2, 3, 4, 5, 6, 7].map(String).concat([1, 2, 3, 4, 5, 6, 7].map(n => `${n}b`));
+// The form's three printed drug rows (CF4 V).
+const DX_DRUG_KEYS = ['1', '2', '3'];
 
 /* ── What the forms already know ─────────────────────────── */
 
@@ -316,6 +317,11 @@ class DxSentence {
 
   isFollowing(key) {
     const now = String(state.data[key] ?? '').trim();
+    // An admission diagnosis that is only the reason for admission copied
+    // over (app.js DERIVED_FIELDS) gives way to the wording.
+    if (key === 'admissionDx' && now !== '' && now === String(state.data.chiefComplaint ?? '').trim()) return true;
+    // A package's short title put in by picking its code (setupCodeOptions).
+    if (now !== '' && Object.values(DX_PACKAGES).some(p => p.title === now)) return true;
     return now === '' || (key in this.following && now === String(this.following[key]));
   }
 
@@ -446,8 +452,8 @@ const dxDiagnosis = (function setupDiagnosisWording() {
       const icd = typeof p.icd === 'function' ? p.icd(values) : p.icd;
       return {
         admissionDx: text, dischargeDx: text, dxADiagnosis: text, cf4FinalDiagnosis: text,
-        dxAIcd10: icd, cf4IcdCode: icd,
-        cf4RvsCode: p.rvs || '', dxARvsI: p.rvs || '', dxAProcI: p.proc || '',
+        dxAIcd10: icd, cf4IcdCode: icd, csfFirstCaseRate: icd,
+        cf4RvsCode: p.rvs || '', csfSecondCaseRate: p.rvs || '', dxARvsI: p.rvs || '', dxAProcI: p.proc || '',
       };
     },
   });
@@ -475,17 +481,6 @@ const dxDiagnosis = (function setupDiagnosisWording() {
 
 /* ── CF4 IV. Course in the ward (a delivery) ─────────────── */
 
-function dxWrapLines(text, width) {
-  const lines = [];
-  let line = '';
-  text.split(/\s+/).forEach(word => {
-    if (line && (line + ' ' + word).length > width) { lines.push(line); line = word; }
-    else line = line ? `${line} ${word}` : word;
-  });
-  if (line) lines.push(line);
-  return lines;
-}
-
 const dxCourse = (function setupCourseWording() {
   const host = document.getElementById('courseWardTemplate');
   if (!host) return null;
@@ -496,18 +491,12 @@ const dxCourse = (function setupCourseWording() {
     auto: () => dxCurrentPackage() === 'NSDBF',
     outLabel: true,
     notAutoNote: 'Put in by itself only for a normal delivery (NSDBF). Press "Put it in the course in the ward" to use it anyway.',
-    putNote: 'The paragraph is now in the course in the ward lines below.',
+    putNote: 'The paragraph is now in the first box of the course in the ward below.',
     pkg: dxCurrentPackage,
-    label: key => (key === 'cf4CourseDate1' ? 'the first date' : 'the course lines'),
-    targets: text => {
-      const lines = dxWrapLines(text, DX_COURSE_LINE).slice(0, DX_COURSE_ROWS);
-      const out = { cf4CourseDate1: state.data.dateAdmitted || '' };
-      for (let n = 1; n <= DX_COURSE_ROWS; n++) {
-        // Lines past the paragraph are only cleared if it wrote them.
-        if (n <= lines.length || `cf4CourseOrder${n}` in sentence.following) out[`cf4CourseOrder${n}`] = lines[n - 1] || '';
-      }
-      return out;
-    },
+    label: key => (key === 'cf4CourseDate1' ? 'the first date' : 'the first box'),
+    // The whole paragraph goes in the form's first (big) box, dated the day
+    // of admission; the print wraps it onto that box's lines.
+    targets: text => ({ cf4CourseDate1: state.data.dateAdmitted || '', cf4CourseOrder1: text }),
   });
   sentence.box.insertAdjacentHTML('afterbegin', dxShell('The clinic\'s course in the ward (normal delivery)', '',
     { use: 'Put it in the course in the ward', out: 'Take it out' }));
@@ -523,7 +512,7 @@ const dxDrugs = (function setupDeliveryDrugs() {
   box.className = 'dx-template';
   box.innerHTML = `
     <div class="dx-head"><div class="dx-title"><i class="bi bi-capsule me-2"></i>The usual delivery medicines</div></div>
-    <table class="dx-drugs"><thead><tr><th>Generic name</th><th>Quantity / dosage / route</th><th>Total cost</th></tr></thead>
+    <table class="dx-drugs"><thead><tr><th>Generic name</th><th>Quantity</th><th>Dosage / route</th><th>Total cost</th></tr></thead>
       <tbody>${DX_DELIVERY_DRUGS.map(r => `<tr>${r.map(c => `<td>${dxEscape(c) || '—'}</td>`).join('')}</tr>`).join('')}</tbody></table>
     <div class="dx-status small"></div>
     <div class="dx-actions">
@@ -538,13 +527,13 @@ const dxDrugs = (function setupDeliveryDrugs() {
   let autoPut = false;
   function add(auto) {
     // Into the first free lines, so nothing typed is replaced.
-    const free = DX_DRUG_KEYS.filter(k => ['Name', 'Dose', 'Cost'].every(f => dxBlank(state.data[`cf4Drug${f}${k}`])));
+    const free = DX_DRUG_KEYS.filter(k => DX_DRUG_FIELDS.every(f => dxBlank(state.data[`cf4Drug${f}${k}`])));
     const put = { dxDrugsAdded: true };
     let next = 0;
     DX_DELIVERY_DRUGS.forEach(row => {
       if (names().includes(row[0]) || next >= free.length) return;
       const k = free[next++];
-      [put[`cf4DrugName${k}`], put[`cf4DrugDose${k}`], put[`cf4DrugCost${k}`]] = row;
+      DX_DRUG_FIELDS.forEach((f, i) => { put[`cf4Drug${f}${k}`] = row[i]; });
     });
     autoPut = !!auto;
     dxApplying = true;
@@ -564,8 +553,8 @@ const dxDrugs = (function setupDeliveryDrugs() {
     autoPut = false;
     DX_DRUG_KEYS.forEach(k => {
       const row = DX_DELIVERY_DRUGS.find(r => r[0] === state.data[`cf4DrugName${k}`]);
-      if (row && row[1] === state.data[`cf4DrugDose${k}`] && row[2] === String(state.data[`cf4DrugCost${k}`] ?? '')) {
-        put[`cf4DrugName${k}`] = ''; put[`cf4DrugDose${k}`] = ''; put[`cf4DrugCost${k}`] = '';
+      if (row && DX_DRUG_FIELDS.every((f, i) => row[i] === String(state.data[`cf4Drug${f}${k}`] ?? ''))) {
+        DX_DRUG_FIELDS.forEach(f => { put[`cf4Drug${f}${k}`] = ''; });
       }
     });
     dxApplying = true;
@@ -608,36 +597,190 @@ const dxDrugs = (function setupDeliveryDrugs() {
 
 /* ── Codes to choose from on the ICD-10 and RVS boxes ────── */
 
-(function setupCodeOptions() {
-  const icd = new Map();
-  const rvs = new Map();
-  Object.values(DX_PACKAGES).forEach(p => {
-    const codes = typeof p.icd === 'function' ? ['Z34.0', 'Z34.8'] : [p.icd];
-    codes.forEach(c => icd.set(c, [...(icd.get(c) || []), `${p.code} ${p.name}`]));
-    if (p.rvs) rvs.set(p.rvs, [`${p.code} ${p.name}`]);
+/* A package's wording with its blanks filled from the forms, or its short
+   title while a blank is still unknown. */
+function dxPackageWording(pkg) {
+  const p = DX_PACKAGES[pkg];
+  const values = {};
+  let complete = true;
+  [...p.text.matchAll(/\{(\w+)\}/g)].forEach(([, name]) => {
+    values[name] = dxAutoValue(name, pkg, values);
+    if (dxBlank(values[name])) complete = false;
   });
-  icd.set('Z34.0', ['ANV/01/02/03 Prenatal care, first pregnancy (primi)']);
-  icd.set('Z34.8', ['ANV/01/02/03 Prenatal care, later pregnancy (multi)']);
-  const list = (id, codes) => {
-    const dl = document.createElement('datalist');
-    dl.id = id;
-    dl.innerHTML = [...codes].map(([code, names]) =>
-      `<option value="${code}">${dxEscape(names.join(' / '))}</option>`).join('');
-    document.body.appendChild(dl);
+  return complete ? p.text.replace(/\{(\w+)\}/g, (_, name) => values[name]).toUpperCase() : p.title;
+}
+
+/* One row per package (two packages can share a code). */
+const DX_ICD_OPTIONS = Object.entries(DX_PACKAGES).flatMap(([pkg, p]) => (typeof p.icd === 'function'
+  ? [{ code: 'Z34.0', pkg, label: `${p.name}, first pregnancy` }, { code: 'Z34.8', pkg, label: `${p.name}, later pregnancy` }]
+  : [{ code: p.icd, pkg, label: p.name }]));
+const DX_RVS_OPTIONS = Object.entries(DX_PACKAGES).filter(([, p]) => p.rvs)
+  .map(([pkg, p]) => ({ code: p.rvs, pkg, label: p.name, proc: p.proc }));
+
+/* What a picked code fills beside it, while that box is empty or still
+   holds what an earlier pick put there: the diagnosis for an ICD-10 code,
+   the related procedure for an RVS code (CF2 Diagnosis A/B). */
+const DX_NAME_BOX = {
+  dxAIcd10: 'dxADiagnosis', dxBIcd10: 'dxBDiagnosis',
+  dxARvsI: 'dxAProcI', dxARvsII: 'dxAProcII', dxARvsIII: 'dxAProcIII',
+  dxBRvsI: 'dxBProcI', dxBRvsII: 'dxBProcII', dxBRvsIII: 'dxBProcIII',
+};
+const dxPickedNames = {};   // name box -> what a pick put there
+
+function dxPickCode(key, option) {
+  const put = { [key]: option.code };
+  const nameKey = DX_NAME_BOX[key];
+  if (nameKey) {
+    const name = option.proc || dxPackageWording(option.pkg);
+    const now = String(state.data[nameKey] ?? '').trim();
+    if (!now || now === dxPickedNames[nameKey]) {
+      put[nameKey] = name;
+      dxPickedNames[nameKey] = name;
+      // The final diagnosis boxes that copy Diagnosis A (CSF, CF4) get it
+      // too while they are empty.
+      (MIRRORED_FIELDS[nameKey] || []).forEach(k => { if (dxBlank(state.data[k])) put[k] = name; });
+    }
+  }
+  // Diagnosis A's code is the claim's package: the clinic's wording follows it.
+  if (key === 'dxAIcd10') state.data.dxPackage = option.pkg;
+  applyFormData(put);
+}
+
+/* A dropdown under a code box: opens on click or typing, filters as you
+   type, arrow keys and Enter to choose, Esc to close. */
+const dxCodeMenu = document.createElement('div');
+dxCodeMenu.className = 'dropdown-menu dx-code-menu';
+dxCodeMenu.setAttribute('role', 'listbox');
+document.body.appendChild(dxCodeMenu);
+
+function dxPlaceCodeMenu() {
+  if (!dxCodeMenu.owner) return;
+  const r = dxCodeMenu.owner.getBoundingClientRect();
+  dxCodeMenu.style.left = `${r.left}px`;
+  dxCodeMenu.style.top = `${r.bottom + 2}px`;
+  dxCodeMenu.style.minWidth = `${Math.max(r.width, 320)}px`;
+}
+
+function dxAttachCodeMenu(input, options) {
+  const key = input.dataset.autofill;
+  input.setAttribute('autocomplete', 'off');
+  input.removeAttribute('list');
+  let shown = [];
+  let active = -1;
+  // Clicked: every code, to pick from or change to. Typed: those that match.
+  function render(typed) {
+    const q = typed ? input.value.trim().toUpperCase() : '';
+    shown = options.filter(o => !q || o.code.toUpperCase().includes(q) || o.label.toUpperCase().includes(q) ||
+                                (o.proc || '').includes(q));
+    if (!shown.length) shown = options;
+    active = Math.min(active, shown.length - 1);
+    dxCodeMenu.innerHTML = shown.map((o, i) => `
+      <button type="button" class="dropdown-item${i === active ? ' active' : ''}" role="option" data-i="${i}">
+        <span class="dx-code">${dxEscape(o.code)}</span>
+        <span class="dx-code-name">${dxEscape(o.proc || o.label)}</span>
+        <span class="dx-code-pkg">${dxEscape(DX_PACKAGES[o.pkg].code)}</span>
+      </button>`).join('');
+    dxCodeMenu.owner = input;
+    dxCodeMenu.choose = i => { const o = shown[i]; if (o) { dxPickCode(key, o); close(); } };
+    dxPlaceCodeMenu();
+    dxCodeMenu.classList.add('show');
+  }
+  const close = () => { if (dxCodeMenu.owner === input) dxCodeMenu.classList.remove('show'); };
+  if (input.readOnly || input.disabled) return;
+  let filtering = false;
+  input.addEventListener('focus', () => { active = -1; filtering = false; render(false); });
+  input.addEventListener('click', () => { filtering = false; render(false); });
+  input.addEventListener('input', () => { active = -1; filtering = true; render(true); });
+  input.addEventListener('blur', () => setTimeout(close, 150));
+  input.addEventListener('keydown', e => {
+    if (!dxCodeMenu.classList.contains('show') || dxCodeMenu.owner !== input) return;
+    if (e.key === 'ArrowDown') { active = (active + 1) % shown.length; render(filtering); e.preventDefault(); }
+    else if (e.key === 'ArrowUp') { active = (active - 1 + shown.length) % shown.length; render(filtering); e.preventDefault(); }
+    else if (e.key === 'Enter' && active >= 0) { dxCodeMenu.choose(active); e.preventDefault(); }
+    else if (e.key === 'Escape') close();
+  });
+}
+// One listener for the shared menu: mousedown, so the pick lands before
+// the box loses focus and the menu closes.
+dxCodeMenu.addEventListener('mousedown', e => {
+  const item = e.target.closest('[data-i]');
+  if (!item || !dxCodeMenu.choose) return;
+  e.preventDefault();
+  dxCodeMenu.choose(Number(item.dataset.i));
+});
+window.addEventListener('scroll', () => {
+  if (dxCodeMenu.classList.contains('show')) dxPlaceCodeMenu();
+}, true);
+window.addEventListener('resize', () => {
+  if (dxCodeMenu.classList.contains('show')) dxPlaceCodeMenu();
+});
+
+document.querySelectorAll('[data-autofill="dxAIcd10"], [data-autofill="dxBIcd10"], [data-autofill="cf4IcdCode"], [data-autofill="csfFirstCaseRate"]')
+  .forEach(el => dxAttachCodeMenu(el, DX_ICD_OPTIONS));
+document.querySelectorAll('[data-autofill^="dxARvs"], [data-autofill^="dxBRvs"], [data-autofill="cf4RvsCode"], [data-autofill="csfSecondCaseRate"]')
+  .forEach(el => dxAttachCodeMenu(el, DX_RVS_OPTIONS));
+
+/* ── CF4 2.a: "No known medical illness" ──────────────────── */
+
+/* A fixed phrase put into a box, or taken out, in the same card as the
+   other wordings. Never replaces what someone typed: without `append` it is
+   offered only while the box is empty; with it, it is added to the end of
+   what is there. "Take it out" removes only the phrase. */
+const DX_PHRASE_SEP = ', ';
+function dxPhraseCard(section, key, phrase, title, append) {
+  const field = document.querySelector(`#section-${section} [data-autofill="${key}"]`);
+  if (!field) return null;
+  const card = document.createElement('div');
+  card.className = 'dx-template';
+  card.innerHTML = `
+    <div class="dx-head"><div class="dx-title"><i class="bi bi-card-text me-2"></i>${dxEscape(title)}</div></div>
+    <div class="dx-preview">${dxEscape(phrase)}</div>
+    <div class="dx-status small"></div>
+    <div class="dx-actions">
+      <button type="button" class="btn btn-primary btn-sm" data-phrase-put><i class="bi bi-plus-lg me-1"></i><span></span></button>
+      <button type="button" class="btn btn-outline-secondary btn-sm" data-phrase-out hidden><i class="bi bi-dash-lg me-1"></i>Take it out</button>
+    </div>`;
+  field.insertAdjacentElement('afterend', card);
+  const putBtn = card.querySelector('[data-phrase-put]');
+  const outBtn = card.querySelector('[data-phrase-out]');
+  const now = () => String(state.data[key] ?? '').trim();
+  const has = () => now() === phrase || (append && now().endsWith(DX_PHRASE_SEP + phrase));
+  const part = {
+    refresh() {
+      const text = now();
+      const inBox = has();
+      putBtn.hidden = inBox || (!append && text !== '');
+      putBtn.querySelector('span').textContent = text ? 'Add it to the end' : 'Put it in';
+      outBtn.hidden = !inBox;
+      card.querySelector('.dx-status').textContent = inBox ? 'It is in the box below.'
+        : (!append && text ? 'Something else is written in the box, so this is not offered.' : '');
+    },
   };
-  list('pcaIcdCodes', icd);
-  list('pcaRvsCodes', rvs);
-  document.querySelectorAll('[data-autofill="dxAIcd10"], [data-autofill="dxBIcd10"], [data-autofill="cf4IcdCode"]')
-    .forEach(el => el.setAttribute('list', 'pcaIcdCodes'));
-  document.querySelectorAll('[data-autofill^="dxARvs"], [data-autofill^="dxBRvs"], [data-autofill="cf4RvsCode"]')
-    .forEach(el => el.setAttribute('list', 'pcaRvsCodes'));
-})();
+  const put = value => {
+    dxApplying = true;
+    try { applyFormData({ [key]: value }); } finally { dxApplying = false; }
+    part.refresh();
+  };
+  putBtn.addEventListener('click', () => put(now() ? now() + DX_PHRASE_SEP + phrase : phrase));
+  outBtn.addEventListener('click', () => {
+    const text = now();
+    put(text === phrase ? '' : text.slice(0, text.length - (DX_PHRASE_SEP + phrase).length));
+  });
+  return part;
+}
+
+// CF4 2.a: on its own only - it would contradict any other history.
+const dxPastHistory = dxPhraseCard('cf4', 'cf4PastMedicalHistory', 'NO KNOWN MEDICAL ILLNESS',
+  'The usual wording: no known medical illness', false);
+// Patient details: the brief history, added to whatever is written there.
+const dxLaborPains = dxPhraseCard('patient', 'briefHistory', 'LABOR PAINS',
+  'The usual wording: labor pains', true);
 
 /* ── Kept in step with the forms ─────────────────────────── */
 
 function dxRefreshAll() {
   if (dxApplying) return;
-  [dxDiagnosis, dxCourse, dxDrugs].forEach(part => { if (part) part.refresh(); });
+  [dxDiagnosis, dxCourse, dxDrugs, dxPastHistory, dxLaborPains].forEach(part => { if (part) part.refresh(); });
 }
 
 const updateFormPreviewsBeforeDx = updateFormPreviews;

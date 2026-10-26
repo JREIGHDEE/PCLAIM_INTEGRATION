@@ -35,3 +35,7 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+# Thesis figures (local only)
+thesis_figures/
+# Database backups (backup_db.bat)
+backups/

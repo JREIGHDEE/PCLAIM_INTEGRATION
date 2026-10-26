@@ -129,6 +129,82 @@ FORM_FIELDS = {
 # Keys that are not PClaimAssist form inputs (see patientAddress above).
 NON_FORM_KEYS = {"patientAddress"}
 
+# Every other form key is kept as typed in claims.form_values (migration 010):
+# PClaimAssist saves the whole form with the claim (PUT /api/claims/<id>/
+# form-values, claims_store.save_form_values) and puts it back when the claim
+# is opened again (GET /api/claims/<id>/form-data "saved_values"). These are
+# printed-only details and per-claim choices that nothing on the server reads
+# by column, so they get no column of their own. Each one is listed here on
+# purpose: a new form key must be added either to FORM_FIELDS (a column) or
+# here, or test_form_prefill fails.
+FORM_VALUES_KEYS = frozenset({
+    # Per-claim choices and values worked out on the page (whether the member is
+    # the patient, the diagnosis package, the age at admission) and the clinic's
+    # building/ZIP as copied onto this claim from Clinic Details.
+    "dxDrugsAdded", "dxPackage", "hciBldg", "hciZip", "memberIsPatient", "patientAge",
+    # CSF: who signs Parts I and III and for whom, the employer's certification,
+    # the health care professionals, the clinic's representative, case rates.
+    "csfFirstCaseRate", "csfSecondCaseRate", "employerCapacity", "employerRepName",
+    "employerSignedDate", "hciProf1AccredNo", "hciProf1DateSigned", "hciProf1Name",
+    "hciProf2AccredNo", "hciProf2DateSigned", "hciProf2Name", "hciProf3AccredNo",
+    "hciProf3DateSigned", "hciProf3Name", "memberSignedDate", "memberSignerType",
+    "patientReason", "patientReasonOther", "patientRepName", "patientRepRelationship",
+    "patientRepRelationshipOther", "patientRepSignedDate", "patientSignerType",
+    "providerCapacity", "providerRepName", "providerSignedDate", "repReason", "repReasonOther",
+    "repRelationship", "repRelationshipOther", "repSignedDate",
+    # CF2: referral, the discharge diagnoses and their procedures, special
+    # procedures and newborn care, the professionals and III-B consent.
+    "cf2EssentialNewbornCare", "cf2NewbornCare", "cf2PatientReason", "cf2PatientReasonOther",
+    "cf2PatientRepName", "cf2PatientRepRelationship", "cf2PatientRepRelationshipOther",
+    "cf2PatientRepSignedDate", "cf2ProcDates1", "cf2ProcDates2", "cf2ProcDates3",
+    "cf2ProcDates4", "cf2ProcDates5", "cf2ProcDates6", "cf2ProcDates7", "cf2ProcDates8",
+    "cf2Prof1AccredNo", "cf2Prof1Copay", "cf2Prof1CopayAmount", "cf2Prof1DateSigned",
+    "cf2Prof1Name", "cf2Prof2AccredNo", "cf2Prof2Copay", "cf2Prof2CopayAmount",
+    "cf2Prof2DateSigned", "cf2Prof2Name", "cf2Prof3AccredNo", "cf2Prof3Copay",
+    "cf2Prof3CopayAmount", "cf2Prof3DateSigned", "cf2Prof3Name", "cf2ProviderCapacity",
+    "cf2ProviderRepName", "cf2ProviderSignedDate", "cf2SpecialProcedureDetail",
+    "cf2SpecialProcedures", "cf2TbPhase", "dxADateI", "dxADateII", "dxADateIII", "dxADiagnosis",
+    "dxAIcd10", "dxALatI", "dxALatII", "dxALatIII", "dxAProcI", "dxAProcII", "dxAProcIII",
+    "dxARvsI", "dxARvsII", "dxARvsIII", "dxBDateI", "dxBDateII", "dxBDateIII", "dxBDiagnosis",
+    "dxBIcd10", "dxBLatI", "dxBLatII", "dxBLatIII", "dxBProcI", "dxBProcII", "dxBProcIII",
+    "dxBRvsI", "dxBRvsII", "dxBRvsIII", "referralCity", "referralHciName", "referralProvince",
+    "referralStreet", "referralZip", "referredByHCI",
+    # CF4: complaint, history, examination, vitals, course in the ward, drugs,
+    # outcome and the attending provider.
+    "cf4Abdomen", "cf4AbdomenOthers", "cf4AlteredSensorium", "cf4AttendingProvider", "cf4Chest",
+    "cf4ChestOthers", "cf4ChiefComplaint", "cf4CourseDate1", "cf4CourseDate2",
+    "cf4CourseExtraSheet", "cf4CourseOrder1", "cf4CourseOrder2", "cf4Cvs", "cf4CvsOthers",
+    "cf4DrugCost1", "cf4DrugCost2", "cf4DrugCost3", "cf4DrugDose1", "cf4DrugDose2",
+    "cf4DrugDose3", "cf4DrugName1", "cf4DrugName2", "cf4DrugName3", "cf4DrugQty1",
+    "cf4DrugQty2", "cf4DrugQty3", "cf4DrugsExtraSheet", "cf4FinalDiagnosis", "cf4GeneralSurvey",
+    "cf4Gu", "cf4GuOthers", "cf4Heent", "cf4HeentOthers", "cf4Height",
+    "cf4HistoryPresentIllness", "cf4IcdCode", "cf4LmpNA", "cf4Neuro", "cf4NeuroOthers",
+    "cf4PainSite", "cf4PastMedicalHistory", "cf4ProviderPAN", "cf4ProviderSignedDate",
+    "cf4ReferralHci", "cf4ReferralReason", "cf4Referred", "cf4RvsCode", "cf4Skin",
+    "cf4SkinOthers", "cf4SurgicalProcedure", "cf4SymptomOther", "cf4Symptoms",
+    "cf4TimeAdmittedDigits", "cf4TimeDischargeDigits", "cf4TransferReason", "cf4VitalBP",
+    "cf4VitalHR", "cf4VitalRR", "cf4VitalTemp", "cf4Weight",
+    # PMRF: dependents, mailing address, name details (mononym, no middle
+    # name), IDs, amendments, registration purpose and the member's signature.
+    "acrICardNo", "amendCivilStatus", "amendCivilStatusFrom", "amendCivilStatusTo", "amendDOB",
+    "amendDOBFrom", "amendDOBTo", "amendName", "amendNameFrom", "amendNameTo",
+    "amendPersonalInfo", "amendPersonalInfoFrom", "amendPersonalInfoTo", "amendSex",
+    "amendSexFrom", "amendSexTo", "businessPhone", "dep1Disability", "dep1Mononym",
+    "dep1NoMiddleName", "dep2Citizenship", "dep2DOB", "dep2Disability", "dep2Ext",
+    "dep2FirstName", "dep2LastName", "dep2MiddleName", "dep2Mononym", "dep2NoMiddleName",
+    "dep2Relationship", "dep3Citizenship", "dep3DOB", "dep3Disability", "dep3Ext",
+    "dep3FirstName", "dep3LastName", "dep3MiddleName", "dep3Mononym", "dep3NoMiddleName",
+    "dep3Relationship", "dep4Citizenship", "dep4DOB", "dep4Disability", "dep4Ext",
+    "dep4FirstName", "dep4LastName", "dep4MiddleName", "dep4Mononym", "dep4NoMiddleName",
+    "dep4Relationship", "groupEnrollmentNo", "mailingAddrBarangay", "mailingAddrBuilding",
+    "mailingAddrCity", "mailingAddrLot", "mailingAddrProvince", "mailingAddrStreet",
+    "mailingAddrSubdivision", "mailingAddrUnit", "mailingAddrZip", "mailingSameAsAbove",
+    "memberMononym", "memberNoMiddleName", "memberSignatureDate", "memberSignatureName",
+    "motherMononym", "motherNoMiddleName", "patientCitizenship", "philsysId", "praSrrvNo",
+    "preferredKonsulta", "proofOfIncome", "pwdIdNo", "registrationPurpose", "spouseMononym",
+    "spouseNoMiddleName", "tin",
+})
+
 # The CF2/CSF subset the server-side claim review/export works on
 # (mapping_service.map_claim, GET /api/claims/<id>), in display order.
 _CLAIM_REVIEW_KEYS = (

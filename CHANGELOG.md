@@ -11,6 +11,64 @@ Related documents:
 
 ---
 
+## 2026-10-27 07:27: UI update (reigh)
+
+- Changed: style.css, index.html, app.js, claim-loader.js
+
+**Main app (dashboard)**
+
+![Main app (dashboard)](docs/screenshots/2026-10-27_072735_app.jpg)
+
+## 2026-10-27: Sign-in on the server, checks before printing, form fixes (reigh)
+
+**After pulling:** no database migration. Restart the backend and press
+Ctrl+F5 on the forms. Every page now needs a signed-in account (the sign-in
+page sends you back if you are not). If you set `SCREENSHOT_EMAIL` /
+`SCREENSHOT_PASSWORD` in `Ocr_module/.env`, the screenshot hook keeps working.
+
+**Safety and housekeeping** (`Ocr_module/`)
+- The server now checks the sign-in for every page and API, not only some:
+  pages redirect to the sign-in page, APIs answer 401. Open without signing
+  in: the sign-in page and its files, sign-in, sign-up, sign-out, the
+  "first account?" status and `/db_health`. Admin-only routes stay admin-only
+  (`auth.require_sign_in`).
+- "Save as PDF to print" (one form or several) refuses again while any
+  critical rule fires, lists which, and opens the missing-information check
+  (`SKIP_VALIDATION_FOR_EXPORT = false`). The server's CF2/CSF export checks
+  the same critical rules (`mapping_service.critical_rule_problems`).
+- Logbook cell and row pictures are deleted once their claim's PDF is saved
+  (new `POST /api/claims/<id>/exported`), and at startup any older than
+  `OCR_REVIEW_CROPS_MAX_AGE_DAYS` (default 30) (`crop_cleanup.py`).
+- New `backup_db.bat`: dumps the database to `backups/` (not in git) and
+  keeps the newest 14. Set `XAMPP_DIR` if XAMPP is not in `C:/xampp`.
+- Every form key has a declared home: a column, or `claims.form_values`
+  (`field_catalog.FORM_VALUES_KEYS`) - `test_form_prefill` passes again.
+- Tests: 266, all passing (`python -m unittest discover -p "test_*.py"`).
+
+**Patient details**
+- All boxes line up; date and time of admission / discharge side by side;
+  "No PhilHealth" under the PIN boxes; nothing moves when a tick appears.
+- T-P-A-L in Obstetrical History (one digit per box, also on CF4); G and P
+  can be typed on CF4 too. Discharged 24 hours after admission when there
+  is a delivery (tick, on by default).
+- Mother's maiden surname follows the member's middle name; the spouse's
+  surname follows the member's while married.
+- Brief history: "Labor pains" card. Admission diagnosis starts as the
+  reason for admission until the clinic's wording is complete.
+
+**Forms**
+- CF4: Course in the Ward is the form's two boxes (one date each, the
+  paragraph wraps in the big box); medicines are the form's three rows,
+  quantity over dosage / route, all centred; BP gets its "/"; Lumbar /
+  Lower back pain buttons; "No known medical illness" card.
+- CF2 / CSF: Signed By shows and hides the representative's rows; case
+  rates take ICD-10 / RVS codes; Diagnosis A/B code boxes have a dropdown
+  that fills the diagnosis or procedure.
+- Red boxes only where something is still wanted: "Others" lines only when
+  Others is picked, referral details only when referred, never the suffix,
+  not a name left blank to be written by hand.
+- Clinic Details: accreditation number shown 4-7-1.
+
 ## 2026-10-26 09:02: UI update (reigh)
 
 - Changed: style.css, index.html, app.js, claim-loader.js

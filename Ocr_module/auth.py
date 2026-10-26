@@ -26,8 +26,9 @@ Usage in a route:
 """
 import functools
 import logging
+import os
 
-from flask import g, session
+from flask import g, redirect, request, session, url_for
 
 import user_store
 from errors import AuthenticationRequiredError, PermissionDeniedError
@@ -117,3 +118,48 @@ def public_user(user):
         "created_at": user["created_at"].isoformat()
                       if user.get("created_at") else None,
     }
+
+
+# ── Signed in for everything but the sign-in page ─────────────────────────
+# Every page and every API needs a signed-in, active account (current_user),
+# except what the sign-in page itself uses: the page, its CSS/JS/images/
+# fonts, sign-in, sign-up, sign-out, "is this a fresh install?" (status) and
+# /db_health. Admin-only routes keep their own role_required check on top.
+_PUBLIC_ENDPOINTS = {
+    "pclaimassist_home",            # "/" - the sign-in page
+    "db_health",
+    "auth.login", "auth.register", "auth.status", "auth.logout",
+}
+_PUBLIC_FILES = {"login.html"}
+_STATIC_EXTENSIONS = {
+    ".css", ".js", ".map", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".webp",
+    ".woff", ".woff2", ".ttf", ".otf", ".eot",
+}
+# Pages (not JSON): someone signed out is sent to the sign-in page instead.
+_PAGE_ENDPOINTS = {"ocr_workspace", "review", "logbook_setup.setup_page"}
+
+
+def _requested_file():
+    """The file name asked for through the frontend's file route, lower-case."""
+    filename = (request.view_args or {}).get("filename") or ""
+    return filename.replace("\\", "/").rsplit("/", 1)[-1].lower()
+
+
+def require_sign_in(app):
+    """Turn away anyone not signed in: pages redirect to the sign-in page,
+    everything else answers 401 JSON (AuthenticationRequiredError)."""
+    @app.before_request
+    def sign_in_wall():
+        endpoint = request.endpoint
+        # Unknown URLs fall through to a plain 404; CORS preflights carry no cookie.
+        if request.method == "OPTIONS" or endpoint is None or endpoint in _PUBLIC_ENDPOINTS:
+            return None
+        is_file = endpoint in ("pclaimassist_file", "static")
+        name = _requested_file() if is_file else ""
+        if is_file and (name in _PUBLIC_FILES or os.path.splitext(name)[1] in _STATIC_EXTENSIONS):
+            return None
+        if current_user() is not None:
+            return None
+        if endpoint in _PAGE_ENDPOINTS or (is_file and name.endswith(".html")):
+            return redirect(url_for("pclaimassist_home"))
+        raise AuthenticationRequiredError("Please sign in to continue.")

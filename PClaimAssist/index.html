@@ -7,7 +7,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" rel="stylesheet">
-  <link href="css/style.css?v=20261026d" rel="stylesheet">
+  <link href="css/style.css?v=20261027a" rel="stylesheet">
   <link href="css/easy.css?v=20261025q" rel="stylesheet">
 </head>
 <body class="easy">
@@ -293,15 +293,13 @@
           <div class="col-md-4">
             <!-- Red while empty, like every needed box; "No PhilHealth" (js/app.js
                  applyNoPhilhealth) takes it off the list for this patient. -->
-            <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
-              <label class="pca-label mb-0">PhilHealth PIN <span class="required-dot">*</span></label>
-              <div class="form-check pca-checkbox mb-0">
-                <input type="checkbox" class="form-check-input" data-autofill="patientNoPhilhealth" id="patientNoPhilhealth">
-                <label class="form-check-label" for="patientNoPhilhealth">No PhilHealth</label>
-              </div>
-            </div>
+            <label class="pca-label">PhilHealth PIN <span class="required-dot">*</span></label>
             <input type="text" class="form-control pca-input" data-autofill="patientPIN" placeholder="##-#########-#">
-            <div class="form-hint">Format: 12-345678901-3</div>
+            <!-- Under the PIN boxes, so the label stays one line and the boxes line up. -->
+            <div class="form-check pca-checkbox mt-1 mb-0">
+              <input type="checkbox" class="form-check-input" data-autofill="patientNoPhilhealth" id="patientNoPhilhealth">
+              <label class="form-check-label" for="patientNoPhilhealth">No PhilHealth</label>
+            </div>
           </div>
         </div>
 
@@ -349,14 +347,13 @@
             </div>
           </div>
           <div class="col-md-4">
-            <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
-              <label class="pca-label mb-0">PhilHealth PIN (Member) <span class="required-dot">*</span></label>
-              <div class="form-check pca-checkbox mb-0">
-                <input type="checkbox" class="form-check-input" data-autofill="memberNoPhilhealth" id="memberNoPhilhealth">
-                <label class="form-check-label" for="memberNoPhilhealth">No PhilHealth</label>
-              </div>
-            </div>
+            <label class="pca-label">PhilHealth PIN <span class="required-dot">*</span></label>
             <input type="text" class="form-control pca-input" data-autofill="memberPIN" placeholder="##-#########-#">
+            <!-- Under the PIN boxes, so the label stays one line and the boxes line up. -->
+            <div class="form-check pca-checkbox mt-1 mb-0">
+              <input type="checkbox" class="form-check-input" data-autofill="memberNoPhilhealth" id="memberNoPhilhealth">
+              <label class="form-check-label" for="memberNoPhilhealth">No PhilHealth</label>
+            </div>
           </div>
           <div class="col-md-4">
             <label class="pca-label">Relationship to Member <span class="required-dot">*</span></label>
@@ -461,11 +458,11 @@
 
         <p class="pca-tab-section-label mt-4">Confinement Details</p>
         <div class="row g-3">
-          <div class="col-md-4">
+          <div class="col-md-6">
             <label class="pca-label">Date Admitted <span class="required-dot">*</span></label>
             <input type="date" class="form-control pca-input" data-autofill="dateAdmitted">
           </div>
-          <div class="col-md-4">
+          <div class="col-md-6">
             <label class="pca-label">Time Admitted</label>
             <div class="d-flex gap-2 align-items-center">
               <input type="time" class="form-control pca-input" data-autofill="timeAdmitted">
@@ -481,19 +478,20 @@
               </div>
             </div>
           </div>
-          <div class="col-md-4">
+          <div class="col-md-6">
             <label class="pca-label">Date Discharged <span class="required-dot">*</span></label>
-            <!-- A mother goes home the day after delivering at the earliest
-                 (rule IC-08), most often exactly then, so the date is the
-                 day after the delivery date by default and can be typed
-                 instead for a longer stay. -->
-            <div class="form-check pca-checkbox mb-1">
-              <input class="form-check-input" type="checkbox" id="dischargeDayAfter" checked>
-              <label class="form-check-label" for="dischargeDayAfter">The day after delivery</label>
-            </div>
             <input type="date" class="form-control pca-input" data-autofill="dateDischarge">
+            <!-- After a delivery the mother goes home 24 hours after she was
+                 admitted, most often, so the date and time follow the admission
+                 by default and can be typed instead for a longer stay. Under
+                 the box, and keeping its space when not offered, so the date
+                 lines up with its time and nothing below moves. -->
+            <div class="form-check pca-checkbox mt-1" id="dischargeDayAfterRow">
+              <input class="form-check-input" type="checkbox" id="dischargeDayAfter" checked>
+              <label class="form-check-label" for="dischargeDayAfter">24 hours after admission</label>
+            </div>
           </div>
-          <div class="col-md-4">
+          <div class="col-md-6">
             <label class="pca-label">Time Discharged</label>
             <div class="d-flex gap-2 align-items-center">
               <input type="time" class="form-control pca-input" data-autofill="timeDischarge">
@@ -509,7 +507,7 @@
               </div>
             </div>
           </div>
-          <div class="col-md-4">
+          <div class="col-md-6">
             <label class="pca-label">Patient Disposition <span class="required-dot">*</span></label>
             <select class="form-select pca-input" data-autofill="disposition">
               <option value="">— Select —</option>
@@ -521,7 +519,7 @@
               <option value="Expired">Expired</option>
             </select>
           </div>
-          <div class="col-md-4">
+          <div class="col-md-6">
             <label class="pca-label">Type of Accommodation <span class="required-dot">*</span></label>
             <div class="d-flex flex-wrap gap-2 mt-1 pca-radio">
               <div class="form-check">
@@ -600,6 +598,15 @@
             <input type="number" min="0" class="form-control pca-input" data-autofill="para" placeholder="1">
             <div class="form-hint">Deliveries ≥20 weeks</div>
           </div>
+          <div class="col-md-6">
+            <span class="pca-label d-block">T-P-A-L</span>
+            <div class="tpal-boxes" role="group" aria-label="Term, preterm, abortion, living">
+              <label><input type="text" inputmode="numeric" maxlength="1" data-one-digit class="form-control pca-input text-center" data-autofill="obTerm" placeholder="1" aria-label="Term"><span>Term</span></label>
+              <label><input type="text" inputmode="numeric" maxlength="1" data-one-digit class="form-control pca-input text-center" data-autofill="obPreterm" placeholder="0" aria-label="Preterm"><span>Preterm</span></label>
+              <label><input type="text" inputmode="numeric" maxlength="1" data-one-digit class="form-control pca-input text-center" data-autofill="obAbortion" placeholder="0" aria-label="Abortion"><span>Abortion</span></label>
+              <label><input type="text" inputmode="numeric" maxlength="1" data-one-digit class="form-control pca-input text-center" data-autofill="obLiving" placeholder="1" aria-label="Living"><span>Living</span></label>
+            </div>
+          </div>
         </div>
 
         <p class="pca-tab-section-label mt-4">Delivery Information</p>
@@ -629,12 +636,12 @@
             <input type="text" class="form-control pca-input" data-autofill="mannerOfDelivery"
                    value="Normal Spontaneous Delivery (NSD)" readonly aria-readonly="true">
           </div>
-          <div class="col-md-4">
+          <div class="col-md-3">
             <label class="pca-label">Fetal Outcome <span class="required-dot">*</span></label>
             <input type="text" class="form-control pca-input" data-autofill="fetalOutcome"
                    value="Live Birth" readonly aria-readonly="true">
           </div>
-          <div class="col-md-4">
+          <div class="col-md-3">
             <label class="pca-label">Baby Sex</label>
             <div class="d-flex gap-3 mt-1 pca-radio">
               <div class="form-check">
@@ -647,11 +654,11 @@
               </div>
             </div>
           </div>
-          <div class="col-md-2">
+          <div class="col-md-3">
             <label class="pca-label">Birth Weight (g) <span class="required-dot">*</span></label>
             <input type="number" class="form-control pca-input" data-autofill="birthWeight" placeholder="3200">
           </div>
-          <div class="col-md-2">
+          <div class="col-md-3">
             <label class="pca-label">APGAR Score</label>
             <input type="number" min="0" max="10" class="form-control pca-input" data-autofill="apgarScore" placeholder="9">
           </div>
@@ -761,7 +768,7 @@
         <div class="row g-3">
           <div class="col-md-4">
             <label class="pca-label">Employer PEN</label>
-            <input type="text" class="form-control pca-input" data-autofill="employerPEN" placeholder="Employer PhilHealth Number">
+            <input type="text" class="form-control pca-input" data-autofill="employerPEN" placeholder="12-345678901-2">
           </div>
           <div class="col-md-4">
             <label class="pca-label">Employer Phone No.</label>
@@ -1086,7 +1093,7 @@
               <button type="button" class="btn-check-option" data-value="Representative"><i class="bi bi-check-lg"></i>Representative</button>
             </div>
           </div>
-          <div class="col-12">
+          <div class="col-12" data-signer="patientSignerType:Representative">
             <label class="pca-label">Relationship of Representative to Patient</label>
             <div class="btn-check-group" data-autofill="patientRepRelationship">
               <button type="button" class="btn-check-option btn-check-option--sm" data-value="Spouse"><i class="bi bi-check-lg"></i>Spouse</button>
@@ -1096,18 +1103,18 @@
               <button type="button" class="btn-check-option btn-check-option--sm" data-value="Others"><i class="bi bi-check-lg"></i>Others</button>
             </div>
           </div>
-          <div class="col-12">
+          <div class="col-12" data-signer="patientSignerType:Representative">
             <label class="pca-label">Others, Specify</label>
             <input type="text" class="form-control pca-input" data-autofill="patientRepRelationshipOther" placeholder="">
           </div>
-          <div class="col-12">
+          <div class="col-12" data-signer="patientSignerType:Representative">
             <label class="pca-label">Reason for Signing on Behalf of the Patient</label>
             <div class="btn-check-group" data-autofill="patientReason">
               <button type="button" class="btn-check-option btn-check-option--sm" data-value="Incapacitated"><i class="bi bi-check-lg"></i>Patient is Incapacitated</button>
               <button type="button" class="btn-check-option btn-check-option--sm" data-value="Other"><i class="bi bi-check-lg"></i>Other Reasons</button>
             </div>
           </div>
-          <div class="col-12">
+          <div class="col-12" data-signer="patientSignerType:Representative">
             <label class="pca-label">Other Reasons, Specify</label>
             <input type="text" class="form-control pca-input" data-autofill="patientReasonOther" placeholder="">
           </div>
@@ -1178,12 +1185,12 @@
         <div class="entry-section-title mt-1">Part V — Provider Information and Certification</div>
         <div class="row g-2">
           <div class="col-6">
-            <label class="pca-label">First Case Rate</label>
-            <input type="text" class="form-control pca-input" data-autofill="csfFirstCaseRate" placeholder="₱0.00">
+            <label class="pca-label">First Case Rate (ICD-10 or RVS code)</label>
+            <input type="text" class="form-control pca-input" data-autofill="csfFirstCaseRate" placeholder="Click to choose, e.g. O80.0">
           </div>
           <div class="col-6">
-            <label class="pca-label">Second Case Rate</label>
-            <input type="text" class="form-control pca-input" data-autofill="csfSecondCaseRate" placeholder="₱0.00">
+            <label class="pca-label">Second Case Rate (ICD-10 or RVS code)</label>
+            <input type="text" class="form-control pca-input" data-autofill="csfSecondCaseRate" placeholder="Click to choose, e.g. 99460">
           </div>
           <div class="col-12">
             <label class="pca-label">Signature Over Printed Name of Authorized HCI Representative</label>
@@ -1410,7 +1417,7 @@
             </div>
             <div class="col-5">
               <label class="pca-label">ICD-10 Code</label>
-              <input type="text" class="form-control pca-input" data-autofill="dxAIcd10" placeholder="K35.8">
+              <input type="text" class="form-control pca-input" data-autofill="dxAIcd10" placeholder="Click to choose, e.g. O80.0">
             </div>
           </div>
           <div class="dx-proc-row" data-roman="i.">
@@ -1454,7 +1461,7 @@
             </div>
             <div class="col-5">
               <label class="pca-label">ICD-10 Code</label>
-              <input type="text" class="form-control pca-input" data-autofill="dxBIcd10" placeholder="K35.8">
+              <input type="text" class="form-control pca-input" data-autofill="dxBIcd10" placeholder="Click to choose, e.g. O80.0">
             </div>
           </div>
           <div class="dx-proc-row" data-roman="i.">
@@ -1717,6 +1724,13 @@
             <div class="box-input-date" data-target="#cf2-cf2PatientRepSignedDate-real"></div>
           </div>
           <div class="col-12">
+            <label class="pca-label">Signed By</label>
+            <div class="btn-check-group" data-autofill="patientSignerType">
+              <button type="button" class="btn-check-option" data-value="Patient"><i class="bi bi-check-lg"></i>Patient</button>
+              <button type="button" class="btn-check-option" data-value="Representative"><i class="bi bi-check-lg"></i>Representative</button>
+            </div>
+          </div>
+          <div class="col-12" data-signer="patientSignerType:Representative">
             <label class="pca-label">Relationship of Representative to the Member/Patient</label>
             <div class="btn-check-group" data-autofill="cf2PatientRepRelationship">
               <button type="button" class="btn-check-option btn-check-option--sm" data-value="Spouse"><i class="bi bi-check-lg"></i>Spouse</button>
@@ -1726,18 +1740,18 @@
               <button type="button" class="btn-check-option btn-check-option--sm" data-value="Others"><i class="bi bi-check-lg"></i>Others</button>
             </div>
           </div>
-          <div class="col-12">
+          <div class="col-12" data-signer="patientSignerType:Representative">
             <label class="pca-label">Others, Specify</label>
             <input type="text" class="form-control pca-input" data-autofill="cf2PatientRepRelationshipOther" placeholder="">
           </div>
-          <div class="col-12">
+          <div class="col-12" data-signer="patientSignerType:Representative">
             <label class="pca-label">Reason for Signing on Behalf of the Member/Patient</label>
             <div class="btn-check-group" data-autofill="cf2PatientReason">
               <button type="button" class="btn-check-option btn-check-option--sm" data-value="Incapacitated"><i class="bi bi-check-lg"></i>Patient is Incapacitated</button>
               <button type="button" class="btn-check-option btn-check-option--sm" data-value="Other"><i class="bi bi-check-lg"></i>Other Reasons</button>
             </div>
           </div>
-          <div class="col-12">
+          <div class="col-12" data-signer="patientSignerType:Representative">
             <label class="pca-label">Other Reasons, Specify</label>
             <input type="text" class="form-control pca-input" data-autofill="cf2PatientReasonOther" placeholder="">
           </div>
@@ -1928,13 +1942,13 @@
           <div class="col-6 col-md-3"><label class="pca-label">P (Para)</label>
             <input type="number" min="0" class="form-control pca-input" data-autofill="para" placeholder="1"></div>
           <div class="col-3 col-md-1"><label class="pca-label">T</label>
-            <input type="number" min="0" class="form-control pca-input" data-autofill="obTerm" placeholder="1"></div>
+            <input type="text" inputmode="numeric" maxlength="1" data-one-digit class="form-control pca-input text-center" data-autofill="obTerm" placeholder="1" aria-label="Term"></div>
           <div class="col-3 col-md-1"><label class="pca-label">P</label>
-            <input type="number" min="0" class="form-control pca-input" data-autofill="obPreterm" placeholder="0"></div>
+            <input type="text" inputmode="numeric" maxlength="1" data-one-digit class="form-control pca-input text-center" data-autofill="obPreterm" placeholder="0" aria-label="Preterm"></div>
           <div class="col-3 col-md-1"><label class="pca-label">A</label>
-            <input type="number" min="0" class="form-control pca-input" data-autofill="obAbortion" placeholder="0"></div>
+            <input type="text" inputmode="numeric" maxlength="1" data-one-digit class="form-control pca-input text-center" data-autofill="obAbortion" placeholder="0" aria-label="Abortion"></div>
           <div class="col-3 col-md-1"><label class="pca-label">L</label>
-            <input type="number" min="0" class="form-control pca-input" data-autofill="obLiving" placeholder="1"></div>
+            <input type="text" inputmode="numeric" maxlength="1" data-one-digit class="form-control pca-input text-center" data-autofill="obLiving" placeholder="1" aria-label="Living"></div>
           <div class="col-md-8"><label class="pca-label">LMP</label>
             <div class="pca-box-group pca-box-group--date" data-box-key="lmp" data-box-type="date">
               <input type="text" inputmode="numeric" maxlength="2" class="pca-box" data-part="MM" placeholder="MM">
@@ -2099,7 +2113,12 @@
         </div>
         <div class="row g-2 mt-1">
           <div class="col-md-6"><label class="pca-label">Site of the pain</label>
-            <input type="text" class="form-control pca-input" data-autofill="cf4PainSite"></div>
+            <input type="text" class="form-control pca-input" data-autofill="cf4PainSite">
+            <!-- The clinic's usual sites: picking one fills the box above and ticks Pain. -->
+            <div class="btn-check-group mt-1" data-autofill="cf4PainSite" data-pain-sites>
+              <button type="button" class="btn-check-option btn-check-option--sm" data-value="LUMBAR PAIN"><i class="bi bi-check-lg"></i>Lumbar pain</button>
+              <button type="button" class="btn-check-option btn-check-option--sm" data-value="LOWER BACK PAIN"><i class="bi bi-check-lg"></i>Lower back pain</button>
+            </div></div>
           <div class="col-md-6"><label class="pca-label">Other symptoms</label>
             <input type="text" class="form-control pca-input" data-autofill="cf4SymptomOther"></div>
         </div>
@@ -2405,75 +2424,28 @@
           <input class="form-check-input" type="checkbox" id="cf4CourseExtraSheet" data-autofill="cf4CourseExtraSheet">
           <label class="form-check-label" for="cf4CourseExtraSheet">There is/are additional sheet(s)</label>
         </div>
+        <!-- The form has two boxes under Date / Doctor's order: a big one and
+             a small one below it. One date and one order each; the order wraps
+             onto as many printed lines as its box holds. -->
         <div class="row g-2 mb-1">
-          <div class="col-4 col-md-3"><input type="date" class="form-control pca-input" data-autofill="cf4CourseDate1" aria-label="Course date row 1"></div>
-          <div class="col-8 col-md-9"><input type="text" class="form-control pca-input" data-autofill="cf4CourseOrder1" placeholder="Doctor's order / action 1"></div>
+          <div class="col-12"><span class="pca-label">First box</span></div>
+          <div class="col-4 col-md-3"><input type="date" class="form-control pca-input" data-autofill="cf4CourseDate1" aria-label="Date, first box"></div>
+          <div class="col-8 col-md-9"><textarea class="form-control pca-input" rows="5" data-autofill="cf4CourseOrder1" placeholder="Doctor's order / action"></textarea></div>
         </div>
         <div id="cf4CourseExtraRows" hidden>
           <div class="row g-2 mb-1 course-row" data-course-row="2">
-            <div class="col-4 col-md-3"><input type="date" class="form-control pca-input" data-autofill="cf4CourseDate2" aria-label="Course date row 2"></div>
-            <div class="col-8 col-md-9"><input type="text" class="form-control pca-input" data-autofill="cf4CourseOrder2" placeholder="Doctor's order / action 2"></div>
-          </div>
-          <div class="row g-2 mb-1 course-row" data-course-row="3">
-            <div class="col-4 col-md-3"><input type="date" class="form-control pca-input" data-autofill="cf4CourseDate3" aria-label="Course date row 3"></div>
-            <div class="col-8 col-md-9"><input type="text" class="form-control pca-input" data-autofill="cf4CourseOrder3" placeholder="Doctor's order / action 3"></div>
-          </div>
-          <div class="row g-2 mb-1 course-row" data-course-row="4">
-            <div class="col-4 col-md-3"><input type="date" class="form-control pca-input" data-autofill="cf4CourseDate4" aria-label="Course date row 4"></div>
-            <div class="col-8 col-md-9"><input type="text" class="form-control pca-input" data-autofill="cf4CourseOrder4" placeholder="Doctor's order / action 4"></div>
-          </div>
-          <div class="row g-2 mb-1 course-row" data-course-row="5">
-            <div class="col-4 col-md-3"><input type="date" class="form-control pca-input" data-autofill="cf4CourseDate5" aria-label="Course date row 5"></div>
-            <div class="col-8 col-md-9"><input type="text" class="form-control pca-input" data-autofill="cf4CourseOrder5" placeholder="Doctor's order / action 5"></div>
-          </div>
-          <div class="row g-2 mb-1 course-row" data-course-row="6">
-            <div class="col-4 col-md-3"><input type="date" class="form-control pca-input" data-autofill="cf4CourseDate6" aria-label="Course date row 6"></div>
-            <div class="col-8 col-md-9"><input type="text" class="form-control pca-input" data-autofill="cf4CourseOrder6" placeholder="Doctor's order / action 6"></div>
-          </div>
-          <div class="row g-2 mb-1 course-row" data-course-row="7">
-            <div class="col-4 col-md-3"><input type="date" class="form-control pca-input" data-autofill="cf4CourseDate7" aria-label="Course date row 7"></div>
-            <div class="col-8 col-md-9"><input type="text" class="form-control pca-input" data-autofill="cf4CourseOrder7" placeholder="Doctor's order / action 7"></div>
-          </div>
-          <div class="row g-2 mb-1 course-row" data-course-row="8">
-            <div class="col-4 col-md-3"><input type="date" class="form-control pca-input" data-autofill="cf4CourseDate8" aria-label="Course date row 8"></div>
-            <div class="col-8 col-md-9"><input type="text" class="form-control pca-input" data-autofill="cf4CourseOrder8" placeholder="Doctor's order / action 8"></div>
-          </div>
-          <div class="row g-2 mb-1 course-row" data-course-row="9">
-            <div class="col-4 col-md-3"><input type="date" class="form-control pca-input" data-autofill="cf4CourseDate9" aria-label="Course date row 9"></div>
-            <div class="col-8 col-md-9"><input type="text" class="form-control pca-input" data-autofill="cf4CourseOrder9" placeholder="Doctor's order / action 9"></div>
-          </div>
-          <div class="row g-2 mb-1 course-row" data-course-row="10">
-            <div class="col-4 col-md-3"><input type="date" class="form-control pca-input" data-autofill="cf4CourseDate10" aria-label="Course date row 10"></div>
-            <div class="col-8 col-md-9"><input type="text" class="form-control pca-input" data-autofill="cf4CourseOrder10" placeholder="Doctor's order / action 10"></div>
-          </div>
-          <div class="row g-2 mb-1 course-row" data-course-row="11">
-            <div class="col-4 col-md-3"><input type="date" class="form-control pca-input" data-autofill="cf4CourseDate11" aria-label="Course date row 11"></div>
-            <div class="col-8 col-md-9"><input type="text" class="form-control pca-input" data-autofill="cf4CourseOrder11" placeholder="Doctor's order / action 11"></div>
-          </div>
-          <div class="row g-2 mb-1 course-row" data-course-row="12">
-            <div class="col-4 col-md-3"><input type="date" class="form-control pca-input" data-autofill="cf4CourseDate12" aria-label="Course date row 12"></div>
-            <div class="col-8 col-md-9"><input type="text" class="form-control pca-input" data-autofill="cf4CourseOrder12" placeholder="Doctor's order / action 12"></div>
-          </div>
-          <div class="row g-2 mb-1 course-row" data-course-row="13">
-            <div class="col-4 col-md-3"><input type="date" class="form-control pca-input" data-autofill="cf4CourseDate13" aria-label="Course date row 13"></div>
-            <div class="col-8 col-md-9"><input type="text" class="form-control pca-input" data-autofill="cf4CourseOrder13" placeholder="Doctor's order / action 13"></div>
-          </div>
-          <div class="row g-2 mb-1 course-row" data-course-row="14">
-            <div class="col-4 col-md-3"><input type="date" class="form-control pca-input" data-autofill="cf4CourseDate14" aria-label="Course date row 14"></div>
-            <div class="col-8 col-md-9"><input type="text" class="form-control pca-input" data-autofill="cf4CourseOrder14" placeholder="Doctor's order / action 14"></div>
-          </div>
-          <div class="row g-2 mb-1 course-row" data-course-row="15">
-            <div class="col-4 col-md-3"><input type="date" class="form-control pca-input" data-autofill="cf4CourseDate15" aria-label="Course date row 15"></div>
-            <div class="col-8 col-md-9"><input type="text" class="form-control pca-input" data-autofill="cf4CourseOrder15" placeholder="Doctor's order / action 15"></div>
+            <div class="col-12"><span class="pca-label">Second box</span></div>
+            <div class="col-4 col-md-3"><input type="date" class="form-control pca-input" data-autofill="cf4CourseDate2" aria-label="Date, second box"></div>
+            <div class="col-8 col-md-9"><textarea class="form-control pca-input" rows="2" data-autofill="cf4CourseOrder2" placeholder="Doctor's order / action"></textarea></div>
           </div>
         </div>
         <div class="course-row-controls mb-1">
           <button type="button" class="btn btn-sm course-row-btn" id="cf4CourseAddRow"
                   aria-controls="cf4CourseExtraRows" aria-expanded="false">
-            <i class="bi bi-plus-lg"></i> Add another line
+            <i class="bi bi-plus-lg"></i> Use the second box
           </button>
           <button type="button" class="btn btn-sm course-row-btn" id="cf4CourseRemoveRow" hidden>
-            <i class="bi bi-dash-lg"></i> Hide last line
+            <i class="bi bi-dash-lg"></i> Hide the second box
           </button>
           <span class="course-row-count text-muted" id="cf4CourseRowCount"></span>
         </div>
@@ -2491,74 +2463,21 @@
         </div>
         <div class="row g-2 mb-1">
           <div class="col-5"><input type="text" class="form-control pca-input" data-autofill="cf4DrugName1" placeholder="Generic name"></div>
-          <div class="col-4"><input type="text" class="form-control pca-input" data-autofill="cf4DrugDose1" placeholder="Qty / dosage / route"></div>
+          <div class="col-4"><input type="text" class="form-control pca-input" data-autofill="cf4DrugQty1" placeholder="Quantity" aria-label="Quantity, medicine 1"><input type="text" class="form-control pca-input mt-1" data-autofill="cf4DrugDose1" placeholder="Dosage / route" aria-label="Dosage / route, medicine 1"></div>
           <div class="col-3"><input type="text" class="form-control pca-input" data-autofill="cf4DrugCost1" placeholder="Total cost"></div>
         </div>
-        <div class="row g-2 mb-1">
-          <div class="col-5"><input type="text" class="form-control pca-input" data-autofill="cf4DrugName1b" placeholder="Generic name (cont.)"></div>
-          <div class="col-4"><input type="text" class="form-control pca-input" data-autofill="cf4DrugDose1b" placeholder="Qty / dosage / route"></div>
-          <div class="col-3"><input type="text" class="form-control pca-input" data-autofill="cf4DrugCost1b" placeholder="Total cost"></div>
-        </div>
+        <!-- One row per medicine, as the form prints three rows. More than
+             three go on an additional sheet (the tick above). -->
         <div id="cf4DrugExtraRows" hidden>
           <div class="row g-2 mb-1 drug-row" data-drug-row="2">
             <div class="col-5"><input type="text" class="form-control pca-input" data-autofill="cf4DrugName2" placeholder="Generic name"></div>
-            <div class="col-4"><input type="text" class="form-control pca-input" data-autofill="cf4DrugDose2" placeholder="Qty / dosage / route"></div>
+            <div class="col-4"><input type="text" class="form-control pca-input" data-autofill="cf4DrugQty2" placeholder="Quantity" aria-label="Quantity, medicine 2"><input type="text" class="form-control pca-input mt-1" data-autofill="cf4DrugDose2" placeholder="Dosage / route" aria-label="Dosage / route, medicine 2"></div>
             <div class="col-3"><input type="text" class="form-control pca-input" data-autofill="cf4DrugCost2" placeholder="Total cost"></div>
-          </div>
-          <div class="row g-2 mb-1 drug-row" data-drug-row="2">
-            <div class="col-5"><input type="text" class="form-control pca-input" data-autofill="cf4DrugName2b" placeholder="Generic name (cont.)"></div>
-            <div class="col-4"><input type="text" class="form-control pca-input" data-autofill="cf4DrugDose2b" placeholder="Qty / dosage / route"></div>
-            <div class="col-3"><input type="text" class="form-control pca-input" data-autofill="cf4DrugCost2b" placeholder="Total cost"></div>
           </div>
           <div class="row g-2 mb-1 drug-row" data-drug-row="3">
             <div class="col-5"><input type="text" class="form-control pca-input" data-autofill="cf4DrugName3" placeholder="Generic name"></div>
-            <div class="col-4"><input type="text" class="form-control pca-input" data-autofill="cf4DrugDose3" placeholder="Qty / dosage / route"></div>
+            <div class="col-4"><input type="text" class="form-control pca-input" data-autofill="cf4DrugQty3" placeholder="Quantity" aria-label="Quantity, medicine 3"><input type="text" class="form-control pca-input mt-1" data-autofill="cf4DrugDose3" placeholder="Dosage / route" aria-label="Dosage / route, medicine 3"></div>
             <div class="col-3"><input type="text" class="form-control pca-input" data-autofill="cf4DrugCost3" placeholder="Total cost"></div>
-          </div>
-          <div class="row g-2 mb-1 drug-row" data-drug-row="3">
-            <div class="col-5"><input type="text" class="form-control pca-input" data-autofill="cf4DrugName3b" placeholder="Generic name (cont.)"></div>
-            <div class="col-4"><input type="text" class="form-control pca-input" data-autofill="cf4DrugDose3b" placeholder="Qty / dosage / route"></div>
-            <div class="col-3"><input type="text" class="form-control pca-input" data-autofill="cf4DrugCost3b" placeholder="Total cost"></div>
-          </div>
-          <div class="row g-2 mb-1 drug-row" data-drug-row="4">
-            <div class="col-5"><input type="text" class="form-control pca-input" data-autofill="cf4DrugName4" placeholder="Generic name"></div>
-            <div class="col-4"><input type="text" class="form-control pca-input" data-autofill="cf4DrugDose4" placeholder="Qty / dosage / route"></div>
-            <div class="col-3"><input type="text" class="form-control pca-input" data-autofill="cf4DrugCost4" placeholder="Total cost"></div>
-          </div>
-          <div class="row g-2 mb-1 drug-row" data-drug-row="4">
-            <div class="col-5"><input type="text" class="form-control pca-input" data-autofill="cf4DrugName4b" placeholder="Generic name (cont.)"></div>
-            <div class="col-4"><input type="text" class="form-control pca-input" data-autofill="cf4DrugDose4b" placeholder="Qty / dosage / route"></div>
-            <div class="col-3"><input type="text" class="form-control pca-input" data-autofill="cf4DrugCost4b" placeholder="Total cost"></div>
-          </div>
-          <div class="row g-2 mb-1 drug-row" data-drug-row="5">
-            <div class="col-5"><input type="text" class="form-control pca-input" data-autofill="cf4DrugName5" placeholder="Generic name"></div>
-            <div class="col-4"><input type="text" class="form-control pca-input" data-autofill="cf4DrugDose5" placeholder="Qty / dosage / route"></div>
-            <div class="col-3"><input type="text" class="form-control pca-input" data-autofill="cf4DrugCost5" placeholder="Total cost"></div>
-          </div>
-          <div class="row g-2 mb-1 drug-row" data-drug-row="5">
-            <div class="col-5"><input type="text" class="form-control pca-input" data-autofill="cf4DrugName5b" placeholder="Generic name (cont.)"></div>
-            <div class="col-4"><input type="text" class="form-control pca-input" data-autofill="cf4DrugDose5b" placeholder="Qty / dosage / route"></div>
-            <div class="col-3"><input type="text" class="form-control pca-input" data-autofill="cf4DrugCost5b" placeholder="Total cost"></div>
-          </div>
-          <div class="row g-2 mb-1 drug-row" data-drug-row="6">
-            <div class="col-5"><input type="text" class="form-control pca-input" data-autofill="cf4DrugName6" placeholder="Generic name"></div>
-            <div class="col-4"><input type="text" class="form-control pca-input" data-autofill="cf4DrugDose6" placeholder="Qty / dosage / route"></div>
-            <div class="col-3"><input type="text" class="form-control pca-input" data-autofill="cf4DrugCost6" placeholder="Total cost"></div>
-          </div>
-          <div class="row g-2 mb-1 drug-row" data-drug-row="6">
-            <div class="col-5"><input type="text" class="form-control pca-input" data-autofill="cf4DrugName6b" placeholder="Generic name (cont.)"></div>
-            <div class="col-4"><input type="text" class="form-control pca-input" data-autofill="cf4DrugDose6b" placeholder="Qty / dosage / route"></div>
-            <div class="col-3"><input type="text" class="form-control pca-input" data-autofill="cf4DrugCost6b" placeholder="Total cost"></div>
-          </div>
-          <div class="row g-2 mb-1 drug-row" data-drug-row="7">
-            <div class="col-5"><input type="text" class="form-control pca-input" data-autofill="cf4DrugName7" placeholder="Generic name"></div>
-            <div class="col-4"><input type="text" class="form-control pca-input" data-autofill="cf4DrugDose7" placeholder="Qty / dosage / route"></div>
-            <div class="col-3"><input type="text" class="form-control pca-input" data-autofill="cf4DrugCost7" placeholder="Total cost"></div>
-          </div>
-          <div class="row g-2 mb-1 drug-row" data-drug-row="7">
-            <div class="col-5"><input type="text" class="form-control pca-input" data-autofill="cf4DrugName7b" placeholder="Generic name (cont.)"></div>
-            <div class="col-4"><input type="text" class="form-control pca-input" data-autofill="cf4DrugDose7b" placeholder="Qty / dosage / route"></div>
-            <div class="col-3"><input type="text" class="form-control pca-input" data-autofill="cf4DrugCost7b" placeholder="Total cost"></div>
           </div>
         </div>
         <div class="course-row-controls mb-1">
@@ -3620,9 +3539,9 @@
                 </div>
                 <div class="col-md-4">
                   <label class="pca-label">Accreditation No. (PAN)</label>
-                  <input type="text" class="form-control pca-input" id="clinicPAN" maxlength="14" inputmode="numeric"
-                         placeholder="123456789012">
-                  <div class="form-text" style="font-size:.72rem;">12 digits.</div>
+                  <input type="text" class="form-control pca-input" id="clinicPAN" data-pan-format maxlength="14" inputmode="numeric"
+                         placeholder="0000-0000000-0">
+                  <div class="form-text" style="font-size:.72rem;">12 digits, as on the form: 4 - 7 - 1.</div>
                 </div>
               </div>
             </div>
@@ -3727,11 +3646,11 @@
 <!-- PDF overlay coordinate maps (must load before pdf-overlay.js) -->
 <script src="js/pdf/overlays/csf.js?v=20261024g"></script>
 <script src="js/pdf/overlays/cf2.js?v=20261025f"></script>
-<script src="js/pdf/overlays/cf4.js?v=20261024s"></script>
+<script src="js/pdf/overlays/cf4.js?v=20261026e"></script>
 <script src="js/pdf/overlays/pmrf.js?v=20261024e"></script>
 <script src="js/pdf/overlays/index.js?v=20261024a"></script>
 <script src="js/entry-learning.js?v=20261022d"></script>
-<script src="js/pdf/pdf-overlay.js?v=20261025m"></script>
+<script src="js/pdf/pdf-overlay.js?v=20261027a"></script>
 <script src="js/pdf/pdf-calibrate.js?v=20261024a"></script>
 <!-- Rule-based validation engine (must load before app.js) -->
 <script src="js/validation-rules.js?v=20261024a"></script>
@@ -3740,12 +3659,12 @@
 <script src="js/box-input.js?v=20261022g"></script>
 <script src="js/date-text.js?v=20261022g"></script>
 <script src="js/pin-input.js?v=20261023a"></script>
-<script src="js/app.js?v=20261026c"></script>
+<script src="js/app.js?v=20261026q"></script>
 <script src="js/easy.js?v=20261023b"></script>
 <!-- Loads a claim sent from the OCR review: index.html?claim=<id> -->
 <script src="js/mother-baby.js?v=20261026c"></script>
-<script src="js/dx-templates.js?v=20261026f"></script>
-<script src="js/claim-loader.js?v=20261026d"></script>
+<script src="js/dx-templates.js?v=20261027b"></script>
+<script src="js/claim-loader.js?v=20261027a"></script>
 
 </body>
 </html>

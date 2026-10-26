@@ -111,9 +111,10 @@ const state = {
     cf4TransferReason:'',
     cf4AttendingProvider:'', cf4ProviderPAN:'', cf4ProviderSignedDate:'',
     /* CF4 course-in-ward rows */
-    cf4CourseDate1:'', cf4CourseOrder1:'', cf4CourseDate2:'', cf4CourseOrder2:'', cf4CourseDate3:'', cf4CourseOrder3:'', cf4CourseDate4:'', cf4CourseOrder4:'', cf4CourseDate5:'', cf4CourseOrder5:'', cf4CourseDate6:'', cf4CourseOrder6:'', cf4CourseDate7:'', cf4CourseOrder7:'', cf4CourseDate8:'', cf4CourseOrder8:'', cf4CourseDate9:'', cf4CourseOrder9:'', cf4CourseDate10:'', cf4CourseOrder10:'', cf4CourseDate11:'', cf4CourseOrder11:'', cf4CourseDate12:'', cf4CourseOrder12:'', cf4CourseDate13:'', cf4CourseOrder13:'', cf4CourseDate14:'', cf4CourseOrder14:'', cf4CourseDate15:'', cf4CourseOrder15:'',
+    cf4CourseDate1:'', cf4CourseOrder1:'', cf4CourseDate2:'', cf4CourseOrder2:'',
     /* CF4 drug rows */
-    cf4DrugName1:'', cf4DrugDose1:'', cf4DrugCost1:'', cf4DrugName1b:'', cf4DrugDose1b:'', cf4DrugCost1b:'', cf4DrugName2:'', cf4DrugDose2:'', cf4DrugCost2:'', cf4DrugName2b:'', cf4DrugDose2b:'', cf4DrugCost2b:'', cf4DrugName3:'', cf4DrugDose3:'', cf4DrugCost3:'', cf4DrugName3b:'', cf4DrugDose3b:'', cf4DrugCost3b:'', cf4DrugName4:'', cf4DrugDose4:'', cf4DrugCost4:'', cf4DrugName4b:'', cf4DrugDose4b:'', cf4DrugCost4b:'', cf4DrugName5:'', cf4DrugDose5:'', cf4DrugCost5:'', cf4DrugName5b:'', cf4DrugDose5b:'', cf4DrugCost5b:'', cf4DrugName6:'', cf4DrugDose6:'', cf4DrugCost6:'', cf4DrugName6b:'', cf4DrugDose6b:'', cf4DrugCost6b:'', cf4DrugName7:'', cf4DrugDose7:'', cf4DrugCost7:'', cf4DrugName7b:'', cf4DrugDose7b:'', cf4DrugCost7b:'',
+    cf4DrugName1:'', cf4DrugQty1:'', cf4DrugDose1:'', cf4DrugCost1:'', cf4DrugName2:'', cf4DrugQty2:'', cf4DrugDose2:'', cf4DrugCost2:'',
+    cf4DrugName3:'', cf4DrugQty3:'', cf4DrugDose3:'', cf4DrugCost3:'',
     /* CF2 – Referral */
     referredByHCI:'', referralHciName:'', referralStreet:'', referralCity:'',
     referralProvince:'', referralZip:'',
@@ -320,6 +321,7 @@ const DATE_FIELDS = new Set([
   'cf2Prof1DateSigned','cf2Prof2DateSigned','cf2Prof3DateSigned',
   'cf2PatientRepSignedDate','cf2ProviderSignedDate',
   'dep2DOB','dep3DOB','dep4DOB','memberSignatureDate',
+  'cf4CourseDate1','cf4CourseDate2',
 ]);
 
 /* "JUAN D. CRUZ" — the form prints this above the signature line, so it has
@@ -379,23 +381,21 @@ function getComputedValue(key) {
       const amount = (d.monthlyIncome || '').trim();
       return amount ? '₱' + amount.replace(/^₱\s*/, '') : '';
     }
-    // The course in the ward is typed as dated lines, not one box. It
-    // counts as filled when any line has an order written on it.
+    // The course in the ward is the form's two boxes (date + order). It
+    // counts as filled when either box has an order written in it.
     case 'cf4CourseInWard': {
-      for (let i = 1; i <= 15; i++) {
+      for (let i = 1; i <= 2; i++) {
         const order = (d['cf4CourseOrder' + i] || '').trim();
         if (order) return order;
       }
       return '';
     }
     // Drugs are typed as a table, not one box. Counted as filled when any
-    // line names a medicine; the left and right halves both count.
+    // of the form's three rows names a medicine.
     case 'cf4DrugsAdministered': {
-      for (let i = 1; i <= 7; i++) {
-        const left = (d['cf4DrugName' + i] || '').trim();
-        if (left) return left;
-        const right = (d['cf4DrugName' + i + 'b'] || '').trim();
-        if (right) return right;
+      for (let i = 1; i <= 3; i++) {
+        const name = (d['cf4DrugName' + i] || '').trim();
+        if (name) return name;
       }
       return '';
     }
@@ -766,6 +766,14 @@ function todayIso() {
 const DERIVED_FIELDS = {
   patientAge: d => ageOn(d.patientDOB, d.dateAdmitted || todayIso()),
   expectedDD: d => addDaysIso(d.lmp, 280),
+  // The admission diagnosis (Patient details, CF2 6, CF4) starts as the
+  // reason for admission; the clinic's wording replaces it once complete
+  // (js/dx-templates.js), and anything typed there is kept.
+  admissionDx: d => d.chiefComplaint || '',
+  // PMRF: a Filipino middle name is the mother's maiden surname, and a
+  // married member's spouse most often shares the member's surname.
+  motherLastName: d => d.memberMiddleName || '',
+  spouseLastName: d => (d.civilStatus === 'Married' ? d.memberLastName || '' : ''),
 };
 
 function applyDerivedFields() {
@@ -896,6 +904,7 @@ function syncBtnCheckGroups() {
 
 const AMPM_TIME_KEY = { amPmAdmitted: 'timeAdmitted', amPmDischarge: 'timeDischarge', amPmDelivery: 'deliveryTime' };
 
+
 document.querySelectorAll('.btn-check-group[data-autofill]').forEach(group => {
   const key = group.dataset.autofill;
   group.querySelectorAll('.btn-check-option').forEach(btn => {
@@ -920,6 +929,70 @@ document.querySelectorAll('.btn-check-group[data-autofill]').forEach(group => {
       }
       updateFormPreviews();
     });
+  });
+});
+
+/* CF4 pain site: picking one of the clinic's usual sites (Lumbar pain,
+   Lower back pain) fills the site box and ticks "Pain" with it. Runs after
+   the button group's own click (registered just above), which sets the site. */
+document.querySelectorAll('[data-pain-sites] .btn-check-option').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const symptoms = Array.isArray(state.data.cf4Symptoms) ? state.data.cf4Symptoms : [];
+    if (!state.data.cf4PainSite || symptoms.includes('Pain')) return;
+    state.data.cf4Symptoms = [...symptoms, 'Pain'];
+    updateFormPreviews();
+  });
+});
+
+/* CF4 blood pressure is written systolic/diastolic, and the form's BP line
+   has no slash of its own, so the box puts it in: "12080" becomes "120/80",
+   "9060" becomes "90/60" (a reading starting with 1 or 2 has a 3-digit
+   systolic). A slash typed by hand is kept; anything but digits is dropped. */
+function formatBloodPressure(raw) {
+  const s = String(raw || '').replace(/[^\d/]/g, '');
+  if (s.includes('/')) {
+    const [sys, ...rest] = s.split('/');
+    return sys.slice(0, 3) + '/' + rest.join('').slice(0, 3);
+  }
+  const sysLen = /^[12]/.test(s) ? 3 : 2;
+  return s.length > sysLen ? s.slice(0, sysLen) + '/' + s.slice(sysLen, sysLen + 3) : s;
+}
+/* T-P-A-L boxes take one digit each, as the form prints them: typing
+   replaces the digit there and moves on to the next box. */
+const ONE_DIGIT_ORDER = ['obTerm', 'obPreterm', 'obAbortion', 'obLiving'];
+document.querySelectorAll('[data-one-digit]').forEach(el => {
+  el.addEventListener('input', () => {
+    const digit = el.value.replace(/\D/g, '').slice(-1);
+    if (el.value !== digit) el.value = digit;
+    state.data[el.dataset.autofill] = digit;
+    updateFormPreviews();
+    if (!digit) return;
+    const nextKey = ONE_DIGIT_ORDER[ONE_DIGIT_ORDER.indexOf(el.dataset.autofill) + 1];
+    const section = el.closest('section.content-section');
+    const next = nextKey && section && section.querySelector(`[data-one-digit][data-autofill="${nextKey}"]`);
+    if (next) { next.focus(); next.select(); }
+  });
+  // Typed digits are put in here, not left to the browser: replacing the
+  // digit already in a one-character box was emptying it instead.
+  el.addEventListener('beforeinput', e => {
+    if (e.inputType !== 'insertText') return;
+    e.preventDefault();
+    const digit = String(e.data || '').replace(/\D/g, '').slice(-1);
+    if (!digit) return;
+    el.value = digit;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  el.addEventListener('focus', () => el.select());
+});
+
+document.querySelectorAll('[data-autofill="cf4VitalBP"]').forEach(el => {
+  el.setAttribute('inputmode', 'numeric');
+  el.addEventListener('input', () => {
+    const bp = formatBloodPressure(el.value);
+    if (el.value === bp && state.data.cf4VitalBP === bp) return;
+    el.value = bp;
+    state.data.cf4VitalBP = bp;
+    updateFormPreviews();
   });
 });
 
@@ -964,6 +1037,8 @@ function time12hDigits(hhmm) {
 const LINKED_FIELD_GROUPS = [
   ['dischargeDx', 'dxADiagnosis', 'cf4FinalDiagnosis'],
   ['chiefComplaint', 'cf4ChiefComplaint'],
+  // The case rate codes: CSF Part V and CF4.
+  ['csfFirstCaseRate', 'cf4IcdCode'], ['csfSecondCaseRate', 'cf4RvsCode'],
   // Health care professionals: CSF Part III and CF2 Part II
   // The first of them is the attending midwife, who also signs CF4.
   ...[1, 2, 3].flatMap(n => [
@@ -1049,6 +1124,10 @@ const FORM_SECTIONS = ['csf', 'cf2', 'cf4', 'pmrf'];
 // Switches, not details: these choose how other boxes are filled, so
 // they stay usable on the form itself.
 const PATIENT_PANEL_CONTROLS = new Set(['memberIsPatient']);
+// Asked on Patient details but typed on the form just as often (CF4's
+// OB/GYN history: G, P and T-P-A-L): left open there too. Both boxes share one key, so
+// typing in either fills the other.
+const EDITABLE_ON_FORMS = new Set(['gravida', 'para', 'obTerm', 'obPreterm', 'obAbortion', 'obLiving']);
 
 function patientOwnedKeys() {
   const keys = new Set();
@@ -1082,6 +1161,7 @@ function markPatientOwnedFields() {
     if (!section) return;
     section.querySelectorAll('[data-autofill]').forEach(el => {
       if (PATIENT_PANEL_CONTROLS.has(el.dataset.autofill)) return;
+      if (EDITABLE_ON_FORMS.has(el.dataset.autofill)) return;
       if (owned.has(el.dataset.autofill)) lockToPatientDetails(el);
     });
     section.querySelectorAll('.pca-box-group[data-box-key]').forEach(group => {
@@ -1239,7 +1319,35 @@ const SPECIFY_LINES = {
   cf2Prof1CopayAmount:            ['cf2Prof1Copay', 'Yes'],
   cf2Prof2CopayAmount:            ['cf2Prof2Copay', 'Yes'],
   cf2Prof3CopayAmount:            ['cf2Prof3Copay', 'Yes'],
+  // CF4: a tick-all-that-apply group holds a list, so its option is looked for in it.
+  cf4SymptomOther:                ['cf4Symptoms', 'Others'],
+  cf4ReferralReason:              ['cf4Referred', 'Yes'],
+  cf4ReferralHci:                 ['cf4Referred', 'Yes'],
+  // CF2 referral: the referring facility's details only when referred.
+  referralHciName:                ['referredByHCI', 'Yes'],
+  referralStreet:                 ['referredByHCI', 'Yes'],
+  referralCity:                   ['referredByHCI', 'Yes'],
+  referralProvince:               ['referredByHCI', 'Yes'],
+  referralZip:                    ['referredByHCI', 'Yes'],
+  cf4PainSite:                    ['cf4Symptoms', 'Pain'],
+  cf4AlteredSensorium:            ['cf4GeneralSurvey', 'Altered sensorium'],
+  cf4TransferReason:              ['disposition', 'Transferred'],
 };
+/* "Others" lines with no option of their own: other physical-exam findings
+   are written only when there are some, so they are never asked for. */
+const OPTIONAL_LINES = new Set([
+  'cf4HeentOthers', 'cf4ChestOthers', 'cf4CvsOthers', 'cf4AbdomenOthers',
+  'cf4GuOthers', 'cf4SkinOthers', 'cf4NeuroOthers',
+]);
+/* Name suffixes (JR, SR, III): most people have none, so never asked for. */
+const SUFFIX_KEYS = new Set([
+  'patientNameExt', 'memberNameExt', 'motherNameExt', 'spouseNameExt',
+  'dep2Ext', 'dep3Ext', 'dep4Ext',
+]);
+function specifyChosen([key, option]) {
+  const value = state.data[key];
+  return Array.isArray(value) ? value.includes(option) : value === option;
+}
 
 const PATIENT_REP_KEYS = new Set([
   'patientRepRelationship', 'patientRepRelationshipOther', 'patientReason', 'patientReasonOther',
@@ -1259,12 +1367,10 @@ function keyIsSkipped(form, key) {
   // CF2 III-B) is not asked when the patient signs it.
   if (state.data.patientSignerType === 'Patient' && PATIENT_REP_KEYS.has(key)) return true;
   // CF4 course in the ward and drugs: a line is only asked for once it is
-  // open in "Type the details here" (they open one at a time with "+"),
-  // and a drug's second "(cont.)" line never is.
+  // open in "Type the details here" (they open one at a time with "+").
   // The "additional sheet(s)" ticks are only for when there are more.
-  if (/^cf4Drug(Name|Dose|Cost)\d+b$/.test(key)) return true;
   if (key === 'cf4CourseExtraSheet' || key === 'cf4DrugsExtraSheet') return true;
-  if (/^cf4(Course(Date|Order)|Drug(Name|Dose|Cost))\d+$/.test(key)) {
+  if (/^cf4(Course(Date|Order)|Drug(Name|Qty|Dose|Cost))\d+$/.test(key)) {
     // Closed lines only - not the whole page group, hidden while the
     // form's other page is showing.
     const box = document.querySelector(`#section-cf4 [data-autofill="${key}"]`);
@@ -1275,7 +1381,13 @@ function keyIsSkipped(form, key) {
       !(state.data.cf2NewbornCare || []).includes('Essential Newborn Care')) return true;
   // A "specify" line is only wanted once the option it belongs to is chosen.
   const specifies = SPECIFY_LINES[key];
-  if (specifies && state.data[specifies[0]] !== specifies[1]) return true;
+  if (specifies && !specifyChosen(specifies)) return true;
+  if (OPTIONAL_LINES.has(key) || SUFFIX_KEYS.has(key)) return true;
+  // A name ticked "Leave blank - written by hand after printing": its line
+  // on this form prints empty on purpose (PCA_HANDWRITTEN holds the
+  // overlay ids, js/pdf/overlays/*.js).
+  if (window.PCA_HANDWRITTEN && window.PCA_HANDWRITTEN.size && typeof OVERLAY_MAP !== 'undefined' &&
+      (OVERLAY_MAP[form] || []).some(f => (f.digitKey || f.key) === key && window.PCA_HANDWRITTEN.has(f.id))) return true;
   // CF2 8.a: a procedure's dates are only wanted once it is ticked.
   const procDates = /^cf2ProcDates([1-8])$/.exec(key);
   if (procDates && !(state.data.cf2SpecialProcedures || [])
@@ -1795,7 +1907,7 @@ function editableFieldFor(key) {
   // A date is typed in the MM/DD/YYYY box standing in for it (js/date-text.js).
   if (typed) return typed.pcaDateText || typed;
 
-  // Discharged the day after delivery: the date follows the delivery date,
+  // Discharged 24 hours after admission: the date follows the admission,
   // so the place to go is that tick (keep it and fill the delivery date, or
   // untick it).
   const dayAfter = document.getElementById('dischargeDayAfter');
@@ -1936,6 +2048,10 @@ function markFieldsNeedingTyping() {
       if (el.classList.contains('d-none') || el.hidden ||
           el.closest('.d-none, [hidden]')) return;
       if (el.closest('.part-not-needed')) return;
+      // Not asked for right now - e.g. an "Others, specify" line whose
+      // option is not chosen (keyIsSkipped, as the preview and checker use).
+      const key = el.dataset.autofill || el.closest('[data-box-key]')?.dataset.boxKey;
+      if (key && keyIsSkipped(form, key)) return;
       // A tick box or a choice is never "blank" in the way a typed box is.
       if (el.type === 'checkbox' || el.type === 'radio') return;
       if (String(el.value || '').trim()) return;
@@ -2085,7 +2201,22 @@ function updateDashboardStats() {
 /* Set state.data and every bound input from `values` (form key -> value);
    keys not in `values` are left as they are. Shared by the sample data
    loader and js/claim-loader.js (claims loaded from the OCR review). */
+/* Claims saved before the course in the ward became the form's two boxes
+   kept it as up to 15 lines of one text: put those lines back together in
+   the first box, rather than leave line 2 in the second box on its own. */
+function joinOldCourseLines(values) {
+  const old = Object.keys(values || {}).some(k =>
+    /^cf4CourseOrder([3-9]|1[0-5])$/.test(k) && String(values[k] || '').trim());
+  if (!old) return values;
+  const text = Array.from({ length: 15 }, (_, i) => String(values['cf4CourseOrder' + (i + 1)] || '').trim())
+    .filter(Boolean).join(' ');
+  const out = { ...values, cf4CourseOrder1: text, cf4CourseOrder2: '', cf4CourseDate2: '' };
+  for (let i = 3; i <= 15; i++) { delete out['cf4CourseOrder' + i]; delete out['cf4CourseDate' + i]; }
+  return out;
+}
+
 function applyFormData(values) {
+  values = joinOldCourseLines(values);
   Object.assign(state.data, values);
   document.querySelectorAll('[data-autofill]').forEach(el => {
     const key = el.dataset.autofill;
@@ -2099,7 +2230,7 @@ function applyFormData(values) {
       if (typeof values[key] === 'string') state.data[key] = toFormCase(el);
     }
   });
-  refreshDischargeTick();
+  refreshDischargeTick(values);
   refreshFinalDxTick(values);
   applyFixedFields();
   updateFormPreviews();
@@ -2122,7 +2253,7 @@ function resetFormData() {
     delete group.dataset.unfinished;
   });
   if (typeof clearUnfinishedEntries === 'function') clearUnfinishedEntries();
-  // Discharge back to following the delivery date.
+  // Discharge back to following the admission (24 hours after).
   refreshDischargeTick();
   refreshFinalDxTick();
   // A new patient still has this clinic's fixed values, and its details
@@ -2479,7 +2610,8 @@ async function loadClinicSettings() {
   // Fill the Settings inputs...
   Object.entries(CLINIC_FIELDS).forEach(([inputId, key]) => {
     const el = document.getElementById(inputId);
-    if (el) el.value = settings[key] || '';
+    // Accreditation numbers are shown 4-7-1, as on the form (stored as digits).
+    if (el) el.value = el.matches('[data-pan-format]') ? formatAccreditationNo(settings[key]) : (settings[key] || '');
   });
   const savedAt = document.getElementById('clinicSavedAt');
   if (savedAt && settings.updated_at) {
@@ -2540,11 +2672,11 @@ async function loadClinicSettings() {
 })();
 
 /* ══════════════════════════════════════════════════════════
-   DATE DISCHARGED — "the day after delivery"
-   A mother goes home the day after delivering at the earliest
-   (rule IC-08), most often exactly then, so the date follows the
-   delivery date by default. Unticking lets staff type a later
-   date for a longer stay.
+   DATE DISCHARGED — "24 hours after admission"
+   After a delivery the mother most often goes home 24 hours after
+   she was admitted, so the discharge date, time and AM/PM follow the
+   admission by default. Unticking lets staff type a later discharge
+   for a longer stay. Without a delivery the tick is not offered.
 ══════════════════════════════════════════════════════════ */
 function dayAfterIso(iso) {
   const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -2555,43 +2687,65 @@ function dayAfterIso(iso) {
 }
 
 // Called when a claim is loaded or cleared; the setup below fills in .run.
-function refreshDischargeTick() {
-  if (refreshDischargeTick.run) refreshDischargeTick.run();
+// values: what applyFormData just put in - the tick is only decided again
+// when they bring a discharge date of their own.
+function refreshDischargeTick(values) {
+  if (refreshDischargeTick.run) refreshDischargeTick.run(values);
 }
 
-(function setupDayAfterDischarge() {
+(function setupDischargeAfterAdmission() {
   const toggle = document.getElementById('dischargeDayAfter');
   if (!toggle) return;
+  const row = document.getElementById('dischargeDayAfterRow');
   const field = document.querySelector('input[type="date"][data-autofill="dateDischarge"]');
   if (!field) return;
 
-  function apply() {
-    const follow = toggle.checked;
-    field.readOnly = follow;
-    field.classList.toggle('is-locked', follow);
-    const next = dayAfterIso(state.data.deliveryDate);
-    if (follow && next) {
-      state.data.dateDischarge = next;
-      field.value = next;
-      updateFormPreviews();
-    }
+  const hasDelivery = () => !!state.data.deliveryDate;
+  // 24 hours after admission: the next day, at the time of admission.
+  function target() {
+    const d = state.data;
+    return { dateDischarge: dayAfterIso(d.dateAdmitted),
+             timeDischarge: d.timeAdmitted || '', amPmDischarge: d.timeAdmitted ? (d.amPmAdmitted || '') : '' };
   }
 
-  toggle.addEventListener('change', apply);
+  let busy = false;
+  function apply(sync) {
+    const offered = hasDelivery();
+    // Kept in place when not offered, so the boxes below never move.
+    if (row) row.style.visibility = offered ? '' : 'hidden';
+    const follow = offered && toggle.checked;
+    field.readOnly = follow;
+    field.classList.toggle('is-locked', follow);
+    const want = target();
+    if (!follow || !want.dateDischarge || busy) return;
+    const changed = Object.keys(want).filter(k => (state.data[k] || '') !== want[k]);
+    if (!changed.length) return;
+    changed.forEach(k => { state.data[k] = want[k]; });
+    field.value = want.dateDischarge;
+    busy = true;
+    try { sync(); } finally { busy = false; }
+  }
 
-  // Keep it in step while the delivery date is still being typed.
-  document.querySelectorAll('[data-autofill="deliveryDate"]').forEach(el =>
-    el.addEventListener('change', () => { if (toggle.checked) apply(); }));
+  // Kept in step with the admission and the delivery as they change.
+  const before = updateFormPreviews;
+  updateFormPreviews = function () {
+    before.apply(this, arguments);
+    apply(() => before.apply(this, arguments));
+  };
+  toggle.addEventListener('change', () => updateFormPreviews());
 
-  // A claim loaded with its own discharge date (from the logbook) keeps
-  // it: the tick stays on only when that date is the day after delivery.
-  refreshDischargeTick.run = () => {
+  // A claim loaded with its own discharge (from the logbook) keeps it: the
+  // tick stays on only when that is 24 hours after admission.
+  refreshDischargeTick.run = values => {
+    if (values && !('dateDischarge' in values)) { updateFormPreviews(); return; }
     const given = state.data.dateDischarge;
-    toggle.checked = !given || given === dayAfterIso(state.data.deliveryDate);
-    apply();
+    const want = target();
+    toggle.checked = !given || (given === want.dateDischarge &&
+      (!state.data.timeDischarge || state.data.timeDischarge === want.timeDischarge));
+    updateFormPreviews();
   };
 
-  apply();
+  apply(() => {});
 })();
 
 /* ══════════════════════════════════════════════════════════
@@ -2708,14 +2862,13 @@ const PCA_HANDWRITTEN = new Set();
 /* ═══════════════════════════════════════════════════════════
    Long entry tables — show one line at a time
 
-   The course in the ward (15 dated lines) and the drugs list (7 printed
-   lines) were too much to look at, so only the first line is shown.
+   The course in the ward (2 printed boxes) and the drugs list (3 printed
+   rows) were too much to look at, so only the first line is shown.
    "Add" reveals the next, the minus button puts it away again. A line
    that has been filled in is never hidden, so nothing typed can vanish.
 
-   A printed line can be more than one row on screen: on the CF4 the
-   drugs table has a left and a right half that share the same line on
-   paper, and both are revealed together via data-drug-row.
+   Rows are grouped by their data-* key (data-course-row, data-drug-row):
+   the rows of one group are revealed together.
 ═══════════════════════════════════════════════════════════ */
 function setupExpandingRows(opts) {
   const wrap = document.getElementById(opts.wrapId);
@@ -2791,7 +2944,7 @@ function setupExpandingRows(opts) {
     wrapId: 'cf4CourseExtraRows', addId: 'cf4CourseAddRow',
     removeId: 'cf4CourseRemoveRow', countId: 'cf4CourseRowCount',
     rowClass: 'course-row', dataKey: 'courseRow',
-    label: 'Line', noun: 'lines',
+    label: 'Box', noun: 'boxes',
   });
   const drugs = setupExpandingRows({
     wrapId: 'cf4DrugExtraRows', addId: 'cf4DrugAddRow',
