@@ -209,6 +209,12 @@ def propose_columns(width, vertical_rules, header, side):
     for index, name in enumerate(categories):
         if name is None and unused:
             categories[index] = unused.pop(0)
+    # A column this system has no use for - a code, a remark, a tick - is
+    # still proposed, named "" so nothing reads it. It is not clutter: its
+    # line is what stops the column before it running to the page edge, and
+    # a template whose lines match every rule the page prints is how the
+    # reader tells this side of the logbook from the other
+    # (score_template_fit). Drop it and the wrong page's setup can win.
     return {
         "lines": [0.01] + [round(x / width, 4) for x in dividers],
         "categories": [c or "" for c in categories],
