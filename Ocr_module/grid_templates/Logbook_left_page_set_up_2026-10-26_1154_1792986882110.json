@@ -1,12 +1,12 @@
 {
-  "name": "Logbook left page (set up 2026-10-21 13:18)",
+  "name": "Logbook left page (set up 2026-10-26 11:54)",
   "gridLines": [
     0.01,
-    0.1123,
-    0.2194,
-    0.3648,
-    0.4718,
-    0.8321
+    0.1311,
+    0.3154,
+    0.5212,
+    0.6998,
+    0.9219
   ],
   "segmentInfo": [
     {
@@ -36,18 +36,18 @@
   ],
   "cropBoxPercent": null,
   "rowTemplate": {
-    "y": 228.0,
-    "height": 80.0,
-    "spacing": 0.0
+    "y": 102.0,
+    "height": 93.0,
+    "spacing": 3.0
   },
   "cropPresets": [],
-  "created_at": 1792559923173,
+  "created_at": 1792986882110,
   "metadata": {
     "source": "guided_setup",
     "pageParity": "odd",
-    "setupId": "364c126b58c6486099cf00dd2aed812a",
+    "setupId": "b2e5953d38f0402e952e06f3bd345bed",
     "setupBy": "midwife@clinic.ph"
   },
-  "imageWidth": 1224,
-  "imageHeight": 1584
+  "imageWidth": 1024,
+  "imageHeight": 1684
 }
