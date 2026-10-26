@@ -71,6 +71,11 @@ button.go{ background:var(--ok); border-color:var(--ok); color:#fff; }
 button:disabled{ opacity:.55; cursor:default; }
 button.primary:disabled, button.go:disabled{ opacity:1; background:#d1d5db; border-color:#d1d5db; color:#4b5563; }
 button.small{ min-height:46px; padding:6px 14px; font-size:.95rem; }
+/* Deleting a column is the one tool here that takes something away,
+   so it does not look like the two that rearrange. */
+button.small.danger{ color:#b3261e; border-color:#e9b4ae; }
+button.small.danger:hover{ background:#fdeceb; border-color:#d9897f; }
+.note-unread{ grid-column:1 / -1; margin:6px 0 0; font-size:.9rem; color:#5f5042; background:#fff8ec; border-left:3px solid #e0a800; padding:8px 10px; border-radius:4px; }
 button:focus-visible, select:focus-visible, input:focus-visible, .file-button:focus-within, a:focus-visible{
     outline:4px solid #f59e0b; outline-offset:2px;
 }
@@ -283,7 +288,7 @@ function escapeHtml(text){
     return String(text ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
 function plainName(side, value){
-    if(!value) return "Do not read";
+    if(!value) return "Not read – marks where the column before it ends";
     const found = (SIDES[side] || []).find(c => c.value === value);
     return found ? found.label : value;
 }
@@ -511,7 +516,7 @@ function drawList(){
     $("columnList").innerHTML = page.categories.map((name, i) => {
         const color = COLORS[i % COLORS.length];
         const opts = options.map(o => `<option value="${escapeHtml(o.value)}" ${o.value === name ? "selected" : ""}>${escapeHtml(o.label)}</option>`).join("")
-            + `<option value="" ${name ? "" : "selected"}>Do not read this column</option>`;
+            + `<option value="" ${name ? "" : "selected"}>Not read – marks where the column before it ends</option>`;
         return `<li data-col="${i}">
             <span class="swatch" style="background:${color}" aria-hidden="true">${i + 1}</span>
             <label><span class="muted" style="display:block;font-size:.9rem;">Column ${i + 1} is:</span>
@@ -519,7 +524,14 @@ function drawList(){
             <span class="tools">
                 <button type="button" class="small" data-split="${i}">Split in two</button>
                 ${i > 0 ? `<button type="button" class="small" data-join="${i}">Join with column ${i}</button>` : ""}
-            </span></li>`;
+                ${page.categories.length > 1 ? `<button type="button" class="small danger" data-remove="${i}">Delete</button>` : ""}
+            </span>
+            ${name ? "" : `<p class="note-unread">This column is not read. Its line is what stops
+                <strong>${escapeHtml(plainName(page.side, page.categories[i - 1] || ""))}</strong>
+                running past it, and a setup that marks every line this logbook prints is how the
+                reader tells the left page from the right. Delete it only if the logbook has no
+                line there.</p>`}
+            </li>`;
     }).join("");
 }
 
@@ -564,6 +576,7 @@ $("columnList").addEventListener("change", e => {
 $("columnList").addEventListener("click", e => {
     const split = e.target.closest("[data-split]");
     const join = e.target.closest("[data-join]");
+    const remove = e.target.closest("[data-remove]");
     const page = current;
     if(split){
         const i = +split.dataset.split;
@@ -579,6 +592,18 @@ $("columnList").addEventListener("click", e => {
         const keep = page.categories[i - 1] || page.categories[i];
         page.categories.splice(i, 1);
         page.categories[i - 1] = keep;
+        drawPage();
+    }else if(remove){
+        // The reader finds a line wherever the page has one, so a book with
+        // a column this system has no use for - a code, a remark, a tick -
+        // arrives as a column too. Deleting it gives its width to the
+        // column beside it, which is what the page looks like without the
+        // line. The first column gives its width to the one on its right;
+        // every other gives it to the one on its left.
+        const i = +remove.dataset.remove;
+        if(page.categories.length < 2) return;
+        page.lines.splice(i === 0 ? 1 : i, 1);
+        page.categories.splice(i, 1);
         drawPage();
     }
 });
