@@ -219,12 +219,12 @@ const state = {
 ══════════════════════════════════════════════════════════ */
 const SAMPLE_DATA = {
   patientLastName:'DELA CRUZ', patientFirstName:'MARIA', patientMiddleName:'SANTOS',
-  patientNameExt:'', patientDOB:'1995-03-15', patientSex:'Female',
+  patientNameExt:"N/A", patientDOB:'1995-03-15', patientSex:'Female',
   patientPIN:'12-345678901-3',
   memberLastName:'DELA CRUZ', memberFirstName:'PEDRO', memberMiddleName:'REYES',
-  memberNameExt:'', memberDOB:'1992-07-22', memberSex:'Male',
+  memberNameExt:"N/A", memberDOB:'1992-07-22', memberSex:'Male',
   memberPIN:'12-345678901-2', relationship:'Spouse',
-  addrUnit:'', addrBuilding:'', addrLot:'123', addrStreet:'Rizal Street',
+  addrUnit:"Unit 2", addrLot:'123', addrStreet:'Rizal Street',
   addrSubdivision:'Bgy. Uno Subdivision', addrBarangay:'Barangay Uno',
   addrCity:'Quezon City', addrProvince:'Metro Manila', addrZip:'1100',
   mobile:'0917-123-4567', homePhone:'02-8123-4567', email:'pedro.delacruz@email.com',
@@ -255,12 +255,12 @@ const SAMPLE_DATA = {
   dxADiagnosis:'Normal Spontaneous Delivery, Full Term, Live Birth',
   dxAIcd10:'O80',
   hciPAN:'120000012345', hciName:'Mapagpala Maternity Clinic',
-  cf2SpecialProcedures:[], cf2SpecialProcedureDetail:'',
-  cf2TbPhase:'', cf2NewbornCare:['Essential Newborn Care','Newborn Screening Test'],
+  
+  cf2NewbornCare:['Essential Newborn Care','Newborn Screening Test'],
   cf2EssentialNewbornCare:['Immediate drying of newborn','Early skin-to-skin contact','Timely cord clamping',
     'Eye Prophylaxis','Vitamin K administration','Weighing of the newborn'],
   hciStreet:'456 Bonifacio Avenue', hciCity:'Quezon City', hciProvince:'Metro Manila',
-  employerPEN:'', employerPhone:'', employerName:'',
+  employerPEN:"123456789012", 
   civilStatus:'Married', placeOfBirth:'Quezon City, Metro Manila', citizenship:'FILIPINO',
   motherLastName:'SANTOS', motherFirstName:'LILIA', motherMiddleName:'GARCIA',
   spouseLastName:'DELA CRUZ', spouseFirstName:'PEDRO', spouseMiddleName:'REYES',
@@ -283,30 +283,287 @@ const SAMPLE_DATA = {
   /* PMRF – Dependent 1 extras */
   patientCitizenship:'FILIPINO', dep1NoMiddleName:false, dep1Mononym:false, dep1Disability:false,
   /* PMRF – Dependents 2–4 (left blank by default) */
-  dep2LastName:'', dep2FirstName:'', dep2Ext:'', dep2MiddleName:'',
-  dep2Relationship:'', dep2DOB:'', dep2Citizenship:'',
+  dep2LastName:"DELA CRUZ", 
+  dep2Relationship:"Child", 
   dep2NoMiddleName:false, dep2Mononym:false, dep2Disability:false,
-  dep3LastName:'', dep3FirstName:'', dep3Ext:'', dep3MiddleName:'',
-  dep3Relationship:'', dep3DOB:'', dep3Citizenship:'',
+  dep3LastName:"DELA CRUZ", 
+  dep3Relationship:"Child", 
   dep3NoMiddleName:false, dep3Mononym:false, dep3Disability:false,
-  dep4LastName:'', dep4FirstName:'', dep4Ext:'', dep4MiddleName:'',
-  dep4Relationship:'', dep4DOB:'', dep4Citizenship:'',
+  dep4LastName:"SANTOS", 
+  dep4Relationship:"Parent", 
   dep4NoMiddleName:false, dep4Mononym:false, dep4Disability:false,
   /* PMRF – Mailing Address */
-  mailingSameAsAbove:true, businessPhone:'',
-  mailingAddrUnit:'', mailingAddrBuilding:'', mailingAddrLot:'', mailingAddrStreet:'',
-  mailingAddrSubdivision:'', mailingAddrBarangay:'', mailingAddrCity:'',
-  mailingAddrProvince:'', mailingAddrZip:'',
+  mailingSameAsAbove:true, 
+  mailingAddrUnit:"Unit 2", 
+  mailingAddrSubdivision:"Deca Homes", 
+  mailingAddrProvince:"Davao del Sur", 
   /* PMRF – Member Type extras */
-  pwdIdNo:'', praSrrvNo:'', acrICardNo:'', groupEnrollmentNo:'', proofOfIncome:'',
+  pwdIdNo:"N/A", 
   /* PMRF Page 2 – V. Updating/Amendment (left unchecked by default) */
-  amendName:false, amendNameFrom:'', amendNameTo:'',
-  amendDOB:false, amendDOBFrom:'', amendDOBTo:'',
-  amendSex:false, amendSexFrom:'', amendSexTo:'',
-  amendCivilStatus:false, amendCivilStatusFrom:'', amendCivilStatusTo:'',
-  amendPersonalInfo:false, amendPersonalInfoFrom:'', amendPersonalInfoTo:'',
+  amendName:false, 
+  amendDOB:false, 
+  amendSex:false, 
+  amendCivilStatus:false, 
+  amendPersonalInfo:false, 
   /* PMRF Page 2 – Member's Signature */
   memberSignatureName:'Pedro R. Dela Cruz', memberSignatureDate:'2026-06-01',
+
+
+  /* Every remaining box, so "Fill with practice data" leaves nothing
+     empty and a test export exercises all four forms end to end.
+     Fictional, but shaped like this clinic's real work: one NSD, a
+     live term baby girl, and the usual post-partum orders. */
+  memberIsPatient: false,
+  cf2ProcDates1: "2026-06-13",
+  cf2ProcDates2: "2026-06-13",
+  cf2ProcDates3: "2026-06-13",
+  cf2ProcDates4: "2026-06-13",
+  cf2ProcDates5: "2026-06-13",
+  cf2ProcDates6: "2026-06-13",
+  cf2ProcDates7: "2026-06-13",
+  cf2ProcDates8: "2026-06-13",
+  hciBldg: "Ground Floor",
+  hciZip: "8000",
+  cf4PastMedicalHistory: "No known medical illness",
+  cf4TimeAdmittedDigits: "",
+  cf4TimeDischargeDigits: "",
+  cf4LmpNA: false,
+  cf4PainSite: "Lower abdomen, radiating to lower back",
+  cf4SymptomOther: "Bloody show noted since 4:00 AM",
+  cf4ReferralReason: "Not referred - direct admission",
+  cf4ReferralHci: "N/A - direct admission",
+  cf4AlteredSensorium: "N/A - awake and alert",
+  cf4VitalBP: "120/80",
+  cf4VitalHR: "86",
+  cf4VitalRR: "18",
+  cf4VitalTemp: "36.8",
+  cf4Height: "158",
+  cf4Weight: "62",
+  cf4Heent: ["Essentially normal"],
+  cf4HeentOthers: "Pink palpebral conjunctivae",
+  cf4ChestOthers: "Clear breath sounds",
+  cf4Cvs: ["Essentially normal"],
+  cf4CvsOthers: "Regular rate and rhythm",
+  cf4Abdomen: ["Essentially normal"],
+  cf4AbdomenOthers: "Gravid, fundic height 32 cm",
+  cf4Gu: ["Essentially normal"],
+  cf4GuOthers: "Cervix 5 cm dilated on admission",
+  cf4Skin: ["Essentially normal"],
+  cf4SkinOthers: "Warm, good turgor",
+  cf4Neuro: ["Essentially normal"],
+  cf4NeuroOthers: "Oriented to time, place and person",
+  cf4SurgicalProcedure: "Normal spontaneous delivery, RVS 59400",
+  cf4CourseOrder1: "Admitted, 5 cm dilated. FHT 142 bpm. Partograph started.",
+  cf4CourseDate2: "2026-06-13",
+  cf4CourseOrder2: "Progressed to 8 cm. Ambulation and breathing encouraged.",
+  cf4CourseDate3: "2026-06-13",
+  cf4CourseOrder3: "Fully dilated. Transferred to delivery room.",
+  cf4CourseDate4: "2026-06-13",
+  cf4CourseOrder4: "NSD to a live term baby girl, APGAR 9/9. Placenta complete.",
+  cf4CourseDate5: "2026-06-13",
+  cf4CourseOrder5: "Post-partum monitoring. Uterus firm, lochia moderate.",
+  cf4CourseDate6: "2026-06-14",
+  cf4CourseOrder6: "Ambulatory, tolerating diet. Breastfeeding established.",
+  cf4CourseDate7: "2026-06-14",
+  cf4CourseOrder7: "Discharged well with take-home medicines and advice.",
+  cf4CourseDate8: "2026-06-14",
+  cf4CourseOrder8: "Vital signs stable. Fundus firm at umbilicus.",
+  cf4CourseDate9: "2026-06-14",
+  cf4CourseOrder9: "Baby latched well. Newborn screening explained.",
+  cf4CourseDate10: "2026-06-14",
+  cf4CourseOrder10: "Perineal care taught. No signs of infection.",
+  cf4CourseDate11: "2026-06-14",
+  cf4CourseOrder11: "Iron and vitamins dispensed with instructions.",
+  cf4CourseDate12: "2026-06-14",
+  cf4CourseOrder12: "Newborn screening sample taken.",
+  cf4CourseDate13: "2026-06-15",
+  cf4CourseOrder13: "Hearing screening done, passed both ears.",
+  cf4CourseDate14: "2026-06-15",
+  cf4CourseOrder14: "Follow-up booked for 1 week post-partum.",
+  cf4CourseDate15: "2026-06-15",
+  cf4CourseOrder15: "Home care and danger signs explained to the family.",
+  cf4DrugDose1: "10 units IM",
+  cf4DrugCost1: "350.00",
+  cf4DrugName1b: "Ascorbic acid",
+  cf4DrugDose1b: "500 mg PO OD",
+  cf4DrugCost1b: "95.00",
+  cf4DrugName2: "Mefenamic acid",
+  cf4DrugDose2: "500 mg PO q6h PRN",
+  cf4DrugCost2: "180.00",
+  cf4DrugName2b: "Calcium carbonate",
+  cf4DrugDose2b: "500 mg PO BID",
+  cf4DrugCost2b: "110.00",
+  cf4DrugName3: "Ferrous sulfate",
+  cf4DrugDose3: "325 mg PO OD",
+  cf4DrugCost3: "120.00",
+  cf4DrugName3b: "Lactulose",
+  cf4DrugDose3b: "30 mL PO HS PRN",
+  cf4DrugCost3b: "230.00",
+  cf4DrugName4: "Paracetamol",
+  cf4DrugDose4: "500 mg PO q6h PRN",
+  cf4DrugCost4: "90.00",
+  cf4DrugName4b: "Tranexamic acid",
+  cf4DrugDose4b: "500 mg IV q8h",
+  cf4DrugCost4b: "310.00",
+  cf4DrugName5: "Cefalexin",
+  cf4DrugDose5: "500 mg PO q6h",
+  cf4DrugCost5: "420.00",
+  cf4DrugName5b: "Metronidazole",
+  cf4DrugDose5b: "500 mg PO TID",
+  cf4DrugCost5b: "175.00",
+  cf4DrugName6: "Vitamin K",
+  cf4DrugDose6: "1 mg IM (newborn)",
+  cf4DrugCost6: "150.00",
+  cf4DrugName6b: "BCG vaccine",
+  cf4DrugDose6b: "0.05 mL ID (newborn)",
+  cf4DrugCost6b: "260.00",
+  cf4DrugName7: "Hepatitis B vaccine",
+  cf4DrugDose7: "0.5 mL IM (newborn)",
+  cf4DrugCost7: "280.00",
+  cf4DrugName7b: "Erythromycin eye ointment",
+  cf4DrugDose7b: "0.5% OU (newborn)",
+  cf4DrugCost7b: "140.00",
+  referralHciName: "Davao Regional Medical Center",
+  referralStreet: "Apokon Road",
+  referralCity: "Tagum City",
+  referralProvince: "Davao del Norte",
+  referralZip: "8100",
+  dxAProcI: "Normal spontaneous delivery",
+  dxARvsI: "59400",
+  dxADateI: "2026-06-13",
+  dxALatI: "both",
+  dxAProcII: "Episiotomy",
+  dxARvsII: "59300",
+  dxADateII: "2026-06-13",
+  dxALatII: "left",
+  dxAProcIII: "Perineal repair",
+  dxARvsIII: "59300",
+  dxADateIII: "2026-06-13",
+  dxALatIII: "both",
+  dxBDiagnosis: "Anemia in pregnancy, mild",
+  dxBIcd10: "O99.0",
+  dxBProcI: "Complete blood count",
+  dxBRvsI: "85025",
+  dxBDateI: "2026-06-13",
+  dxBLatI: "both",
+  dxBProcII: "Iron supplementation",
+  dxBRvsII: "99070",
+  dxBDateII: "2026-06-13",
+  dxBLatII: "both",
+  dxBProcIII: "Dietary counselling",
+  dxBRvsIII: "99402",
+  dxBDateIII: "2026-06-14",
+  dxBLatIII: "both",
+  repSignedDate: "2026-06-14",
+  memberSignerType: "Member",
+  repRelationship: "Spouse",
+  repRelationshipOther: "",
+  repReason: "Incapacitated",
+  repReasonOther: "Resting after delivery",
+  employerRepName: "MA. CORAZON B. VILLAREAL",
+  employerCapacity: "HR Officer",
+  patientRepSignedDate: "2026-06-14",
+  patientSignerType: "Patient",
+  patientRepRelationship: "Parent",
+  patientRepRelationshipOther: "",
+  patientReason: "Incapacitated",
+  patientReasonOther: "Newborn",
+  hciProf1Name: "DR. LIEZL M. ANDRADA",
+  hciProf1DateSigned: "2026-06-14",
+  hciProf2AccredNo: "110000006789",
+  hciProf2Name: "DR. RAMON T. DELA PENA",
+  hciProf2DateSigned: "2026-06-14",
+  hciProf3AccredNo: "110000007890",
+  hciProf3Name: "MIDWIFE ROSA L. GUEVARRA",
+  hciProf3DateSigned: "2026-06-14",
+  csfSecondCaseRate: "2,400.00",
+  providerRepName: "ANGELO D. MENDOZA",
+  providerCapacity: "Clinic Administrator",
+  providerSignedDate: "2026-06-14",
+  cf2Prof1Name: "DR. LIEZL M. ANDRADA",
+  cf2Prof1DateSigned: "2026-06-14",
+  cf2Prof1Copay: "No",
+  cf2Prof1CopayAmount: "",
+  cf2Prof2AccredNo: "110000006789",
+  cf2Prof2Name: "DR. RAMON T. DELA PENA",
+  cf2Prof2DateSigned: "2026-06-14",
+  cf2Prof2Copay: "No",
+  cf2Prof2CopayAmount: "",
+  cf2Prof3AccredNo: "110000007890",
+  cf2Prof3Name: "MIDWIFE ROSA L. GUEVARRA",
+  cf2Prof3DateSigned: "2026-06-14",
+  cf2Prof3Copay: "No",
+  cf2Prof3CopayAmount: "",
+  cf2PatientRepSignedDate: "2026-06-14",
+  cf2PatientRepRelationship: "Parent",
+  cf2PatientRepRelationshipOther: "",
+  cf2PatientReason: "Incapacitated",
+  cf2PatientReasonOther: "Newborn",
+  cf2ProviderCapacity: "Clinic Administrator",
+  cf2ProviderSignedDate: "2026-06-14",
+  dxDrugsAdded: true,
+
+  /* Remaining boxes, so nothing on any form prints empty. */
+  employerPhone: "082-224-5566",
+  employerName: "Cabantian Trading Corporation",
+  memberSignedDate: "2026-06-14",
+  employerSignedDate: "2026-06-14",
+  patientRepName: "MARIA S. DELA CRUZ",
+  hciProf1AccredNo: "110000005678",
+  csfFirstCaseRate: "8,000.00",
+  cf2Prof1AccredNo: "110000005678",
+  cf2PatientRepName: "MARIA S. DELA CRUZ",
+  cf2ProviderRepName: "ANGELO D. MENDOZA",
+  cf4CourseDate1: "2026-06-13",
+  cf4DrugName1: "Oxytocin",
+  cf4TransferReason: "N/A - not transferred",
+  addrBuilding: "Mahogany Apartments",
+  businessPhone: "082-224-5566",
+  mailingAddrBuilding: "Mahogany Apartments",
+  mailingAddrLot: "Lot 14",
+  mailingAddrStreet: "Narra Street",
+  mailingAddrBarangay: "Cabantian",
+  mailingAddrCity: "Davao City",
+  mailingAddrZip: "8000",
+  dep2FirstName: "JOSE",
+  dep2Ext: "N/A",
+  dep2MiddleName: "SANTOS",
+  dep2DOB: "2022-03-11",
+  dep2Citizenship: "FILIPINO",
+  dep3FirstName: "ANA",
+  dep3Ext: "N/A",
+  dep3MiddleName: "SANTOS",
+  dep3DOB: "2024-08-02",
+  dep3Citizenship: "FILIPINO",
+  dep4FirstName: "ROSARIO",
+  dep4Ext: "N/A",
+  dep4MiddleName: "LIM",
+  dep4DOB: "1962-11-20",
+  dep4Citizenship: "FILIPINO",
+  praSrrvNo: "N/A",
+  acrICardNo: "N/A",
+  groupEnrollmentNo: "N/A",
+  amendNameFrom: "MARIA S. DELA CRUZ",
+  amendNameTo: "MARIA SANTOS DELA CRUZ",
+  amendDOBFrom: "1996-04-18",
+  amendDOBTo: "1996-04-18",
+  amendSexFrom: "Female",
+  amendSexTo: "Female",
+  amendCivilStatusFrom: "Single",
+  amendCivilStatusTo: "Married",
+  amendPersonalInfoFrom: "Narra Street, Cabantian",
+  amendPersonalInfoTo: "Lot 14 Narra Street, Deca Homes, Cabantian",
+
+  cf2SpecialProcedures: "No",
+  cf2SpecialProcedureDetail: "N/A",
+  cf2TbPhase: "",   // TB treatment does not apply to a maternity claim
+  cf4Symptoms: ["Abdominal pain"],
+  cf4Referred: "No",
+  referredByHCI: "No",
+  cf4GeneralSurvey: "Awake and alert",
+  cf4Chest: ["Essentially normal"],
+  dxPackage: "Maternity Care Package (MCP)",
+  proofOfIncome: "Point of Service (POS)",
 };
 
 /* ══════════════════════════════════════════════════════════
@@ -863,6 +1120,9 @@ function syncAllAutofillElements() {
   // Course-in-the-ward lines may have been filled from a saved claim, so
   // reveal as many as hold data once the boxes are written.
   if (window.PCACourseRows) setTimeout(window.PCACourseRows.refresh, 0);
+  // Likewise the CF4 examination groups, whose findings are locked while
+  // "Essentially normal" is ticked.
+  if (window.PCAExamGroups) setTimeout(window.PCAExamGroups.refresh, 0);
   const seen = new Set();
   document.querySelectorAll('[data-autofill]').forEach(el => {
     const key = el.dataset.autofill;
@@ -2260,6 +2520,8 @@ function resetFormData() {
   // (name, address, the representative signing Part V).
   applyFixedFields();
   seedClinicDetails();
+  // Nothing left to recover: this patient was cleared on purpose.
+  if (typeof clearDraft === 'function') clearDraft();
   updateFormPreviews();
 }
 
@@ -2973,3 +3235,174 @@ document.addEventListener('input', e => {
   const shown = formatAccreditationNo(el.value);
   if (el.value !== shown) el.value = shown;
 }, true);
+
+/* ═══════════════════════════════════════════════════════════
+   KEEP WHAT HAS BEEN TYPED
+
+   The clinic's staff are not computer people, and a claim takes a long
+   time to fill in. Closing the tab by accident, or the browser falling
+   over, used to lose all of it. Everything typed is written to this
+   browser's own storage as it is typed, and offered back on the next
+   visit.
+
+   It is a safety net, not a filing cabinet: it lives on this one
+   computer, holds one claim in progress, and is cleared the moment the
+   claim is saved or a new patient is started. The claim itself is still
+   saved to the database as it always was.
+═══════════════════════════════════════════════════════════ */
+const PCA_DRAFT_KEY = 'pca_draft_v1';
+const PCA_DRAFT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;   // a week
+
+function saveDraft() {
+  try {
+    /* A claim that is open is already being saved to the database by
+       js/claim-loader.js, and reopening it brings everything back. The
+       draft is for the gap before that: a patient typed in but not yet
+       saved, which is exactly what used to be lost. */
+    if (window.PCAClaim && window.PCAClaim.isOpen && window.PCAClaim.isOpen()) {
+      localStorage.removeItem(PCA_DRAFT_KEY);
+      return;
+    }
+    const hasAnything = Object.values(state.data).some(
+      v => Array.isArray(v) ? v.length : (v !== '' && v !== false && v != null));
+    if (!hasAnything) { localStorage.removeItem(PCA_DRAFT_KEY); return; }
+    localStorage.setItem(PCA_DRAFT_KEY, JSON.stringify({
+      savedAt: Date.now(),
+      data: state.data,
+      notNeeded: state.notNeeded,
+    }));
+  } catch (e) {
+    // Storage full or blocked (private window): the claim is not lost,
+    // it just is not held for next time. Never interrupt the staff.
+  }
+}
+
+function clearDraft() {
+  try { localStorage.removeItem(PCA_DRAFT_KEY); } catch (e) { /* nothing to clear */ }
+}
+
+function readDraft() {
+  try {
+    const raw = localStorage.getItem(PCA_DRAFT_KEY);
+    if (!raw) return null;
+    const draft = JSON.parse(raw);
+    if (!draft || !draft.data) return null;
+    if (Date.now() - (draft.savedAt || 0) > PCA_DRAFT_MAX_AGE_MS) { clearDraft(); return null; }
+    return draft;
+  } catch (e) {
+    return null;
+  }
+}
+
+/* Typing fires on every keystroke, so hold the write back a moment. */
+let draftTimer = null;
+function scheduleDraftSave() {
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(saveDraft, 400);
+}
+
+document.addEventListener('input', scheduleDraftSave, true);
+document.addEventListener('change', scheduleDraftSave, true);
+// A tab being closed or hidden gets one last write, without the wait.
+window.addEventListener('pagehide', saveDraft);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') saveDraft();
+});
+
+(function offerLastDraft() {
+  const draft = readDraft();
+  if (!draft) return;
+  const when = new Date(draft.savedAt).toLocaleString();
+  const filled = Object.values(draft.data).filter(
+    v => Array.isArray(v) ? v.length : (v !== '' && v !== false && v != null)).length;
+  if (!filled) { clearDraft(); return; }
+
+  const keep = confirm(
+    'Unsaved patient information was found on this computer.\n\n' +
+    filled + ' box' + (filled === 1 ? '' : 'es') + ' were filled in on ' + when + ', ' +
+    'and the page closed before they were saved.\n\n' +
+    'Press OK to put them back, or Cancel to start with empty forms.');
+  if (!keep) { clearDraft(); return; }
+
+  applyFormData(draft.data);
+  if (draft.notNeeded && typeof applyNotNeededParts === 'function') {
+    state.notNeeded = draft.notNeeded;
+    applyNotNeededParts();
+  }
+  if (typeof syncBoxGroupsFromState === 'function') syncBoxGroupsFromState();
+  if (typeof showToast === 'function') {
+    showToast('Put back what was typed',
+      'The information from ' + when + ' is back in the forms. Check it before printing.', 'info');
+  }
+})();
+
+/* ═══════════════════════════════════════════════════════════
+   CF4 PHYSICAL EXAMINATION — "Essentially normal" stands alone
+
+   Each examination group on the CF4 is a tick-all-that-apply list whose
+   first choice is "Essentially normal". Normal and a finding cannot both
+   be true, so ticking normal clears the findings and puts them out of
+   reach; ticking any finding releases normal. Staff were ticking both.
+═══════════════════════════════════════════════════════════ */
+(function setupEssentiallyNormal() {
+  const NORMAL = 'Essentially normal';
+  const refreshers = [];
+  const GROUPS = ['cf4Heent', 'cf4Chest', 'cf4Cvs', 'cf4Abdomen',
+                  'cf4Gu', 'cf4Skin', 'cf4Neuro'];
+
+  GROUPS.forEach(key => {
+    const boxes = Array.from(
+      document.querySelectorAll(`input[type="checkbox"][data-autofill="${key}"][data-multi]`));
+    if (!boxes.length) return;
+    const normalBox = boxes.find(b => b.value === NORMAL);
+    if (!normalBox) return;
+    const findings = boxes.filter(b => b !== normalBox);
+
+    // The free-text "others" box beside the group belongs to the findings.
+    const others = document.querySelector(`[data-autofill="${key}Others"]`);
+
+    function apply() {
+      const normal = normalBox.checked;
+      findings.forEach(b => {
+        b.disabled = normal;
+        const row = b.closest('.form-check') || b.parentElement;
+        if (row) row.classList.toggle('choice-blocked', normal);
+      });
+      if (others) {
+        others.disabled = normal;
+        others.classList.toggle('is-locked', normal);
+      }
+    }
+
+    normalBox.addEventListener('change', () => {
+      if (normalBox.checked) {
+        // Untick findings through their own handler so state.data follows.
+        findings.forEach(b => {
+          if (b.checked) { b.checked = false; b.dispatchEvent(new Event('change', { bubbles: true })); }
+        });
+        if (others && others.value) {
+          others.value = '';
+          others.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      }
+      apply();
+    });
+
+    findings.forEach(b => b.addEventListener('change', () => {
+      if (b.checked && normalBox.checked) {
+        normalBox.checked = false;
+        normalBox.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      apply();
+    }));
+
+    // A claim loaded from the database arrives with boxes already ticked.
+    refreshers.push(apply);
+    apply();
+  });
+
+  // Re-checked after anything rewrites the boxes (a loaded claim, sample
+  // data, a new patient), the same way the expanding rows are.
+  window.PCAExamGroups = { refresh: () => refreshers.forEach(fn => fn()) };
+})();
+

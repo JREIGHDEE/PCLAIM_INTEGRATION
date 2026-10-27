@@ -272,16 +272,46 @@ body {
 .sidebar.collapsed {
   width: 64px;
 }
+/* The width glides, so the wording has to glide with it: display:none
+   made every label vanish on the first frame while the panel was still
+   moving, which read as a flicker rather than a fold. These fade and
+   narrow over the same quarter second, and are taken out of the reading
+   order at the end of it. */
+.sidebar-section-label,
+.sidebar-item span:not(.sidebar-badge),
+.sidebar-badge {
+  transition: opacity .18s ease, max-width .25s ease;
+  opacity: 1;
+  max-width: 14rem;
+  white-space: nowrap;
+  overflow: hidden;
+}
 .sidebar.collapsed .sidebar-section-label,
-.sidebar.collapsed .sidebar-item span,
+.sidebar.collapsed .sidebar-item span:not(.sidebar-badge),
 .sidebar.collapsed .sidebar-badge {
-  display: none;
+  opacity: 0;
+  max-width: 0;
+  pointer-events: none;
 }
 .sidebar.collapsed .sidebar-item {
   justify-content: center;
   padding: .65rem;
 }
+.sidebar-item,
+.sidebar-footer {
+  transition: padding .25s ease, justify-content .25s ease;
+}
 .sidebar.collapsed .sidebar-footer { padding: .75rem .5rem; }
+
+/* Someone who would rather not see motion gets the fold with none. */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .sidebar-section-label,
+  .sidebar-item,
+  .sidebar-item span:not(.sidebar-badge),
+  .sidebar-badge,
+  .sidebar-footer { transition: none; }
+}
 
 /* Mobile sidebar */
 @media (max-width: 767.98px) {
@@ -2456,6 +2486,30 @@ textarea.from-patient-details:focus {
 .part-skip input { cursor: pointer; margin: 0; }
 .part-skip:hover { color: #35485a; }
 
+/* The clinic's staff are not computer people and were missing this tick,
+   so it is red and a size larger than a stock check box: plainly a thing
+   to be noticed, and plainly on when it is on. */
+.part-skip {
+  color: #b42318;
+}
+.part-skip:hover { color: #8c1a12; }
+.part-skip input.part-skip-box {
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: #d92d20;
+  border: 2px solid #d92d20;
+  border-radius: 3px;
+}
+.part-skip input.part-skip-box:focus-visible {
+  outline: 2px solid #d92d20;
+  outline-offset: 2px;
+}
+/* Once it is ticked the whole label reads as switched on. */
+.part-skip:has(input.part-skip-box:checked) {
+  color: #b42318;
+  font-weight: 700;
+}
+
 .entry-part.part-not-needed > *:not(.entry-section-title):not(.dx-group-label) { opacity: .45; }
 /* A professional's own tick sits on the card's label line. */
 .dx-group-label .part-skip { float: right; }
@@ -3000,3 +3054,12 @@ textarea.from-patient-details:focus {
 .dx-code-menu .dx-code { font-weight: 700; font-variant-numeric: tabular-nums; }
 .dx-code-menu .dx-code-pkg { font-size: .75rem; color: var(--text-muted); }
 .dx-code-menu .dropdown-item.active .dx-code-pkg { color: inherit; }
+
+/* A finding that cannot apply because "Essentially normal" is ticked.
+   Dimmed and not clickable, but still readable, so staff can see what
+   ticking normal has ruled out. */
+.form-check.choice-blocked {
+  opacity: .45;
+  pointer-events: none;
+}
+.form-check.choice-blocked .form-check-label { cursor: default; }

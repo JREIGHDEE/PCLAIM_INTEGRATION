@@ -573,6 +573,19 @@ function flattenBlankForm(pdfDoc) {
 /* One form, filled: the blank PDF with every overlay value drawn on it.
    Used for saving a single form and for putting all of them into one
    document (exportAllForms). */
+/* A field that holds words, as opposed to one character of a number, a
+   tick, or a piece of a date or time. Only these get N/A when left blank. */
+function isFreeTextField(f) {
+  return f.digit === undefined && !f.checkbox && !f.checkboxMulti &&
+         !f.dateComponent && !f.timeComponent && !f.amPmCheck;
+}
+
+/* Staff can mark a name over a signature to be written in by hand; that
+   box is meant to print empty, not as N/A. */
+function isHandwrittenField(f) {
+  return !!(window.PCA_HANDWRITTEN && window.PCA_HANDWRITTEN.has(f.id));
+}
+
 /* ── Make the print clip and wrap the way the screen does ──
    The preview is a CSS box: a plain field is one line with the overflow
    hidden, and a `wrap` field breaks on spaces and stops after maxLines.
@@ -626,8 +639,16 @@ async function buildFilledPdf(formKey) {
       if (!pg) return;
       const { width, height } = pg.getSize();
 
-      const val = resolveOverlayFieldValue(f);
-      if (!val) return;
+      /* PhilHealth wants a box that was left blank to say so, rather than
+         come back as an empty line, so the print fills one in with N/A.
+         Only a box that holds words: a digit cell, a tick box, a date part
+         or a time would read as nonsense with "N/A" in it, and a field the
+         staff marked to sign by hand is meant to be empty. */
+      let val = resolveOverlayFieldValue(f);
+      if (!val) {
+        if (!isFreeTextField(f) || isHandwrittenField(f)) return;
+        val = 'N/A';
+      }
       // pdf-lib's standard Helvetica uses WinAnsi encoding, which can't
       // represent '✓' — substitute a safe ASCII mark for the exported PDF
       // (the on-screen overlay still renders the real checkmark glyph).
