@@ -145,6 +145,55 @@ upload them again to get the better reading.
   validation-rules.js, pdf-overlay.js, sidebar.js, style.css. New:
   overlays/cf1.js, forms/CF1.pdf, colorblind.js/.css,
   test_logbook_saved_setup.py.
+## 2026-10-27: Second round of staff testing - N/A on print, practice data, draft recovery (yutaka)
+
+**After pulling:** no database migration. Restart the backend and press
+Ctrl+F5 on the forms.
+
+**What the clinic staff asked for**
+- A box left blank now prints `N/A`, which is what PhilHealth wants to see
+  instead of an empty line. Only boxes that hold words: a digit cell, a tick
+  box, or a piece of a date would read as nonsense with "N/A" in it, and a
+  name left for pen still prints empty.
+- "Not needed" is red and a size larger. The staff were missing it.
+- Suffix boxes offer N/A, Jr., Sr., II, III and IV, and still take typing.
+- The sidebar folds smoothly. Its labels used to vanish on the first frame
+  while the panel was still moving, which read as a flicker.
+- CF4 physical examination: "Essentially normal" and a finding can no longer
+  both be ticked. Ticking normal clears the findings and puts them out of
+  reach; ticking a finding releases normal. All seven groups.
+- Typing is kept in this browser as it is typed, and offered back if the tab
+  is closed by accident or the browser falls over. It stands aside while a
+  claim is open, because `js/claim-loader.js` already saves that to the
+  database; this covers the gap before a claim exists, which was what used
+  to be lost. Cleared on "start a new patient".
+
+**Fill with practice data now fills everything**
+- Was 164 of 337 fields, now all 373: every box on CSF, CF2, CF4 and PMRF.
+  One NSD, a live term baby girl, the usual post-partum orders, and
+  medicines a maternity clinic actually gives. Each value was checked
+  against the field's own options, so no dropdown gets a choice it does not
+  have.
+
+**Already working, checked rather than changed**
+- Number boxes already move to the next box on their own, in all three box
+  systems, with backspace to the previous one and paste across the row.
+- Dates already read MM/DD/YYYY on the forms and in the logbook reader.
+- The zip code is already optional: no rule asks for it.
+
+**Still to answer** (asked of the staff, not changed)
+- CF4 page 2 "number won't show": all 139 fields on that page resolve, so
+  this could not be reproduced - which tick box, and what number?
+- CF4 "HCI - if no don't highlight": no yes/no HCI box found on CF4.
+- CF4 "BP one box field": BP is already one box, on screen and in print.
+- CF4 "text box in between": between which two fields?
+
+**Found while checking, not changed** (it came with the CF2 restoration)
+- `cf2ProcDetail1` to `cf2ProcDetail8` read keys that exist nowhere, so
+  those eight boxes print blank whatever is typed.
+
+- Changed: index.html, css/style.css, js/app.js, js/claim-loader.js,
+  js/pdf/pdf-overlay.js
 
 ---
 

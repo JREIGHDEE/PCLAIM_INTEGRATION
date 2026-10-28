@@ -7,7 +7,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" rel="stylesheet">
-  <link href="css/style.css?v=20261028cf1" rel="stylesheet">
+  <link href="css/style.css?v=20261028m" rel="stylesheet">
   <link href="css/easy.css?v=20261025q" rel="stylesheet">
   <link href="css/colorblind.css?v=20261027c" rel="stylesheet">
   <script src="js/colorblind.js?v=20261027a"></script>
@@ -282,7 +282,7 @@
           </div>
           <div class="col-md-3">
             <label class="pca-label">Suffix (Jr./Sr./III)</label>
-            <input type="text" class="form-control pca-input" data-autofill="patientNameExt" placeholder="Jr.">
+            <input type="text" class="form-control pca-input" data-autofill="patientNameExt" placeholder="Jr. / N/A" list="suffixOptions">
           </div>
           <div class="col-md-4">
             <label class="pca-label">Date of Birth <span class="required-dot">*</span></label>
@@ -338,7 +338,7 @@
           </div>
           <div class="col-md-3">
             <label class="pca-label">Suffix</label>
-            <input type="text" class="form-control pca-input" data-autofill="memberNameExt" placeholder="Jr.">
+            <input type="text" class="form-control pca-input" data-autofill="memberNameExt" placeholder="Jr. / N/A" list="suffixOptions">
           </div>
           <div class="col-md-4">
             <label class="pca-label">Date of Birth <span class="required-dot">*</span></label>
@@ -967,7 +967,7 @@
           </div>
           <div class="col-6">
             <label class="pca-label">Suffix</label>
-            <input type="text" class="form-control pca-input" data-autofill="memberNameExt" placeholder="Jr.">
+            <input type="text" class="form-control pca-input" data-autofill="memberNameExt" placeholder="Jr. / N/A" list="suffixOptions">
           </div>
           <div class="col-12">
             <label class="pca-label">Date of Birth</label>
@@ -997,7 +997,7 @@
           </div>
           <div class="col-6">
             <label class="pca-label">Suffix</label>
-            <input type="text" class="form-control pca-input" data-autofill="patientNameExt" placeholder="Jr.">
+            <input type="text" class="form-control pca-input" data-autofill="patientNameExt" placeholder="Jr. / N/A" list="suffixOptions">
           </div>
           <div class="col-12">
             <label class="pca-label">Relationship to Member</label>
@@ -1644,7 +1644,7 @@
           </div>
           <div class="col-4">
             <label class="pca-label">Suffix</label>
-            <input type="text" class="form-control pca-input" data-autofill="patientNameExt" placeholder="">
+            <input type="text" class="form-control pca-input" data-autofill="patientNameExt" placeholder="Jr. / N/A" list="suffixOptions">
           </div>
         </div>
 
@@ -2957,7 +2957,7 @@
           </div>
           <div class="col-4">
             <label class="pca-label">Suffix</label>
-            <input type="text" class="form-control pca-input" data-autofill="memberNameExt" placeholder="Jr.">
+            <input type="text" class="form-control pca-input" data-autofill="memberNameExt" placeholder="Jr. / N/A" list="suffixOptions">
           </div>
           <div class="col-8">
             <label class="pca-label">Date of Birth (mm-dd-yyyy)</label>
@@ -3208,7 +3208,7 @@
           </div>
           <div class="col-4">
             <label class="pca-label">Suffix</label>
-            <input type="text" class="form-control pca-input" data-autofill="patientNameExt" placeholder="">
+            <input type="text" class="form-control pca-input" data-autofill="patientNameExt" placeholder="Jr. / N/A" list="suffixOptions">
           </div>
           <div class="col-4">
             <label class="pca-label">Citizenship</label>
@@ -3986,10 +3986,10 @@
 <!-- pdf-lib: write filled text onto PDF for export -->
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <!-- Shared sidebar (must load before app.js, which binds to .sidebar-item) -->
-<script src="js/sidebar.js?v=20261028cf1"></script>
+<script src="js/sidebar.js?v=20261028m"></script>
 <script>PCASidebar.render({ page: 'app', active: 'dashboard' });</script>
 <!-- Authentication client (must load before app.js) -->
-<script src="js/auth-client.js?v=20261022d"></script>
+<script src="js/auth-client.js?v=20261027c"></script>
 <!-- PDF overlay coordinate maps (must load before pdf-overlay.js) -->
 <script src="js/pdf/overlays/csf.js?v=20261027d"></script>
 <script src="js/pdf/overlays/cf1.js?v=20261028a"></script>
@@ -3998,21 +3998,29 @@
 <script src="js/pdf/overlays/pmrf.js?v=20261028e"></script>
 <script src="js/pdf/overlays/index.js?v=20261028cf1"></script>
 <script src="js/entry-learning.js?v=20261022d"></script>
-<script src="js/pdf/pdf-overlay.js?v=20261028forms"></script>
+<script src="js/pdf/pdf-overlay.js?v=20261028m"></script>
 <script src="js/pdf/pdf-calibrate.js?v=20261028cf1"></script>
 <!-- Rule-based validation engine (must load before app.js) -->
 <script src="js/validation-rules.js?v=20261028ncp"></script>
-<script src="js/ocr-review.js?v=20261022d"></script>
+<script src="js/ocr-review.js?v=20261028m"></script>
 <!-- Segmented inputs: date/PAN boxes and the PhilHealth PIN (2-9-1) -->
 <script src="js/box-input.js?v=20261022g"></script>
 <script src="js/date-text.js?v=20261022g"></script>
 <script src="js/pin-input.js?v=20261023a"></script>
-<script src="js/app.js?v=20261028dxob"></script>
+<script src="js/app.js?v=20261028m"></script>
 <script src="js/easy.js?v=20261028a"></script>
 <!-- Loads a claim sent from the OCR review: index.html?claim=<id> -->
 <script src="js/mother-baby.js?v=20261028b"></script>
 <script src="js/dx-templates.js?v=20261028cf1"></script>
-<script src="js/claim-loader.js?v=20261027a"></script>
+<script src="js/claim-loader.js?v=20261028m"></script>
 
+<datalist id="suffixOptions">
+  <option value="N/A"></option>
+  <option value="Jr."></option>
+  <option value="Sr."></option>
+  <option value="II"></option>
+  <option value="III"></option>
+  <option value="IV"></option>
+</datalist>
 </body>
 </html>

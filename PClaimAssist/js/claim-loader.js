@@ -341,4 +341,9 @@ document.addEventListener('change', e => {
   if (e.target.matches && e.target.matches('[data-ocr-required]')) refreshRequiredHighlights();
 });
 
+/* js/app.js keeps a copy of unsaved typing in this browser, as a safety
+   net for a tab closed by accident. It must stand aside while a claim is
+   open, because this file is already saving that claim to the database. */
+window.PCAClaim = { isOpen: () => openClaimId !== null };
+
 loadClaimFromUrl();
