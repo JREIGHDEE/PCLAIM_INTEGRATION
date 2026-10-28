@@ -167,6 +167,20 @@ def update_claim_family(claim_id):
     return jsonify({"success": True, **family})
 
 
+@claims_bp.route("/mothers", methods=["GET"])
+def get_mothers():
+    """The mothers' claims a baby typed in by hand can copy from, before
+    the baby's own claim is saved (claims_store.list_mothers)."""
+    return jsonify({"success": True, "mothers": claims_store.list_mothers()})
+
+
+@claims_bp.route("/<int:claim_id>/for-baby", methods=["GET"])
+def get_values_for_baby(claim_id):
+    """What a baby's claim copies from this mother's claim, without the
+    baby's claim (claims_store.values_for_baby_from)."""
+    return jsonify({"success": True, **claims_store.values_for_baby_from(claim_id)})
+
+
 @claims_bp.route("/<int:claim_id>/from-mother", methods=["GET"])
 def get_values_from_mother(claim_id):
     """What a baby's claim copies from its linked mother's claim, grouped

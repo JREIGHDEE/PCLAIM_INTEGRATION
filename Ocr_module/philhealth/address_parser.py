@@ -92,6 +92,66 @@ _SUBDIVISION = re.compile(
 _NOT_A_NAME = {"BESIDE", "BESIDES", "NEAR", "BEHIND", "INFRONT", "FRONT", "ALONG", "OF", "AT", "THE", "IN"}
 
 
+# Misread place names fixed by fix_place_names(): the first word of each
+# known city, and every one-word barangay (two-word ones are rarely
+# misread whole and are found by _find_barangay as written).
+_CITY_WORDS = sorted({key.split()[0] for key in CITIES if len(key.split()[0]) >= 5})
+_BARANGAY_WORDS = sorted({n for n in _BARANGAY_CITY if " " not in n and len(n) >= 5})
+# "CITY" shortened or misread after a city's name: "CIT", "CY", "CTY",
+# "CRY", "CIM", "CURY".
+_CITY_WORD = re.compile(r"^C[A-Z0-9]{0,3}$")
+# How close a word must be (difflib ratio) to be taken for a place name: a
+# city before "CITY" or at the end; a barangay anywhere, or - more loosely -
+# right before the city.
+_CITY_MATCH = 0.75
+_BARANGAY_MATCH = 0.85
+_BARANGAY_BEFORE_CITY_MATCH = 0.7
+
+
+def _closest(word, names, cutoff):
+    found = difflib.get_close_matches(word, names, n=1, cutoff=cutoff)
+    return found[0] if found else None
+
+
+def fix_place_names(text):
+    """The address with misread city and barangay names written properly:
+    "RAMONAVILLE CABAMTIAN DAVAB CITY" -> "RAMONAVILLE CABANTIAN DAVAO CITY",
+    "CARANTIAN, DAVAD CIT" -> "CABANTIAN, DAVAO CITY". Only a word close to a
+    known name changes, so a subdivision, street or purok is left as written.
+    Used even on readings the OCR was sure of, which can still be wrong."""
+    if not text:
+        return text
+    tokens = re.split(r"([^A-Za-z0-9\-]+)", str(text).upper())
+    words = [i for i, t in enumerate(tokens) if t and re.match(r"[A-Z0-9\-]", t)]
+    city_at = None
+    for n, i in enumerate(words):
+        word = tokens[i]
+        nxt = tokens[words[n + 1]] if n + 1 < len(words) else None
+        last = n + 1 == len(words)
+        if len(word) < 4 or word in _CITY_WORDS:
+            if word in _CITY_WORDS:
+                city_at = n
+            continue
+        if nxt is not None and (nxt == "CITY" or _CITY_WORD.match(nxt)) or last:
+            city = _closest(word, _CITY_WORDS, _CITY_MATCH)
+            if city:
+                tokens[i], city_at = city, n
+    if city_at is not None and city_at + 1 < len(words):
+        after = words[city_at + 1]
+        if _CITY_WORD.match(tokens[after]) and tokens[after] != "CITY":
+            tokens[after] = "CITY"
+    for n, i in enumerate(words):
+        word = tokens[i]
+        if len(word) < 5 or word in _BARANGAY_CITY or word in _CITY_WORDS or not word.isalpha():
+            continue
+        before_city = city_at is not None and n + 1 == city_at
+        name = _closest(word, _BARANGAY_WORDS,
+                        _BARANGAY_BEFORE_CITY_MATCH if before_city else _BARANGAY_MATCH)
+        if name:
+            tokens[i] = name
+    return "".join(tokens)
+
+
 def is_ditto(text):
     """True for a ditto mark ("-DO-", "do", "same"): same as the row above."""
     return bool(_DITTO.match(str(text or "").upper()))
@@ -112,7 +172,9 @@ def _find_barangay(text, city=None):
     """(name, match span) of a known barangay in text - of `city` when the
     address names one - allowing one or two OCR letter slips in a long name
     ("PATIMA" for "FATIMA")."""
-    names = [n for n in _BARANGAYS if city is None or _BARANGAY_CITY[n] == city]
+    # A city with no barangay list (or one misread) limits nothing.
+    known_city = city in KNOWN_BARANGAYS
+    names = [n for n in _BARANGAYS if not known_city or _BARANGAY_CITY[n] == city]
     for name in names:
         found = re.search(r"\b" + re.escape(name) + r"\b", text)
         if found:
@@ -135,6 +197,7 @@ def split_address(text):
     raw = str(text or "").upper().strip()
     if not raw or is_ditto(raw):
         return {}
+    raw = fix_place_names(raw)
     rest = re.sub(r"\s+", " ", raw.replace(";", ","))
     parts = {}
 

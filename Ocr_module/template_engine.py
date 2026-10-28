@@ -538,18 +538,54 @@ def map_rows_between_pages(rows: List[Dict[str, float]], rules_from: List[float]
     ruled lines k and k+1 on the other. The two halves of a scanned spread
     are often a few lines' height apart vertically, so copying raw pixel
     positions would put every band on the wrong text. None if either page
-    has too few ruled lines to map reliably."""
-    count = min(len(rules_from), len(rules_to))
-    if count < 5:
+    has too few ruled lines to map reliably.
+
+    The lines are not paired by their order: handwriting written across a
+    ruled line hides it from detect_ruling_lines(), and the diagnosis page
+    of a spread loses many that way (a scan found 40 lines on its left page
+    and 22 on its right). Pairing the k-th with the k-th then puts every
+    row below the first missed line on the wrong entry, further off with
+    each line missed. Instead the right page's position is worked out as
+    y' = a*y + b - a from the ruled spacing on each page, b from their
+    first lines (under the printed header, found on both) - and then every
+    line found on both pages pulls the rows near it onto it."""
+    src, dst = np.array(sorted(rules_from), dtype=float), np.array(sorted(rules_to), dtype=float)
+    if len(src) < 5 or len(dst) < 5:
         return None
-    src, dst = np.array(rules_from[:count]), np.array(rules_to[:count])
-    # Beyond the first/last ruled line, keep the same spacing.
+    unit_src = float(np.median(np.diff(src)))
+    if unit_src <= 0:
+        return None
+    # A gap of two or three missed lines is two or three spacings.
+    gaps = np.diff(dst)
+    steps = np.maximum(1, np.round(gaps / unit_src))
+    unit_dst = float(np.median(gaps / steps))
+    a = unit_dst / unit_src if 0.8 <= unit_dst / unit_src <= 1.25 else 1.0
+    tolerance = 0.3 * unit_dst
+
+    def matched_pairs(b):
+        pairs = []
+        for y in src:
+            moved = a * y + b
+            nearest = dst[np.argmin(np.abs(dst - moved))]
+            if abs(nearest - moved) <= tolerance:
+                pairs.append((y, nearest))
+        return pairs
+
+    b = dst[0] - a * src[0]
+    pairs = matched_pairs(b)
+    if len(pairs) < 3:
+        return None
+    b += float(np.median([d - (a * s + b) for s, d in pairs]))
+    pairs = matched_pairs(b)
+    if len(pairs) < 3:
+        return None
+    pair_src = np.array([s for s, _ in pairs])
+    pair_fix = np.array([d - (a * s + b) for s, d in pairs])
+
     def move(y):
-        if y <= src[0]:
-            return float(dst[0] - (src[0] - y))
-        if y >= src[-1]:
-            return float(dst[-1] + (y - src[-1]))
-        return float(np.interp(y, src, dst))
+        # Beyond the first/last line found on both pages the nearest one's
+        # correction holds (np.interp keeps the end values).
+        return float(a * y + b + np.interp(y, pair_src, pair_fix))
     mapped = []
     for row in rows:
         top = move(row["y"])

@@ -204,6 +204,7 @@ input.big{
 .scan{ display:block; border:1px solid var(--line); border-radius:8px; background:#fafafa; padding:6px; overflow-x:auto; }
 .scan img{ display:block; max-width:100%; height:auto; min-height:48px; }
 .input-label{ font-size:.9rem; color:var(--muted); margin:12px 0 4px; display:block; }
+input.big.date-unfinished{ border-color:var(--type-line); background:#fff7f7; }
 input.big.empty-required{ border-color:var(--type-line); background:#fff7f7; }
 .field.empty-required input.big:not([data-part="middle"]):not([data-part="suffix"]){ border-color:var(--type-line); background:#fff7f7; }
 .inputs-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr)); gap:10px 14px; }
@@ -216,20 +217,18 @@ input.big.empty-required{ border-color:var(--type-line); background:#fff7f7; }
 .ampm{ min-width:72px; min-height:52px; padding:8px 12px; }
 .ampm[aria-pressed="true"]{ background:var(--blue); color:#fff; }
 .quick{ min-height:44px; padding:6px 14px; font-size:.95rem; margin-top:8px; }
-/* "Use the delivery message" for the reason for admission: the sentence with its blanks. */
-.dx-confirm{ margin-top:10px; padding:10px 12px; border:2px solid var(--check-line); border-radius:10px; background:var(--check-soft); }
-.dx-confirm[hidden]{ display:none; }
-.dx-confirm-title{ margin:0 0 6px; font-weight:700; color:var(--check); }
-.dx-confirm-old{ margin:0 0 8px; padding:6px 8px; background:#fff; border-radius:8px; }
+/* "Use a clinic wording" for the reason for admission: the sentences with their blanks. */
 .dx-template{ margin-top:10px; padding:12px 14px; border:2px solid var(--blue-soft); border-radius:12px; background:#f8fbff; }
 .dx-template[hidden]{ display:none; }
 .dx-sentence{ line-height:2.8; margin:0; }
 .dx-blank{ font:inherit; font-weight:700; text-align:center; min-height:40px; padding:2px 4px; margin:0 2px;
     border:2px solid #93c5fd; border-radius:8px; background:#fff; }
 .dx-blank.dx-empty{ border-color:var(--type-line); background:var(--type-soft); }
-.dx-preview{ margin:10px 0; padding:8px 10px; background:#fff; border:2px dashed var(--line); border-radius:8px; font-weight:700; }
+/* A part worked out from elsewhere on the page that isn't known yet (the delivery's date). */
+.dx-sentence strong.dx-empty{ color:var(--type); }
 .dx-actions{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
 .dx-note{ color:var(--type); font-weight:600; }
+.dx-note.done{ color:var(--ok); }
 .req{ color:var(--type); }
 .field-note{ font-size:.95rem; margin:8px 0 0; }
 .field-problem{ color:var(--type); font-weight:700; margin:8px 0 0; }
@@ -288,6 +287,8 @@ details.more dd{ margin:0; word-break:break-word; }
 <script>/* Shown inside PClaimAssist (Read Logbook Scan / Set Up a Logbook), whose page
    already has the title: hide this page's own title and intro. */
 if (window.top !== window.self) document.documentElement.classList.add('embedded');</script>
+<link href="/css/colorblind.css?v=20261027c" rel="stylesheet">
+<script src="/js/colorblind.js?v=20261027a"></script>
 </head>
 <body>
 <main>
@@ -661,103 +662,250 @@ function withCaseYear(number){
     return n;
 }
 
-// The doctors' usual admitting diagnosis - a claim is only made for a
-// delivery, so it is nearly always this sentence (the same template as on
-// Patient details, js/app.js). Its blanks start from whatever the computer
-// read in the box, so only what it could not read is typed.
-const DX_PARTS = ["weeks", "days", "sex", "size", "apgar1", "apgar5", "g", "p", "t", "pre", "a", "l"];
+// What a diagnosis box already says, read loosely (the logbook's own
+// shorthand, "PUFT 39 1/7 WKS AOG ... W/ AS OF 8 & 9; G3P2 (2002)", as well
+// as the clinic's wordings), so a wording's blanks start from it.
 function readDx(text){
     const t = String(text || "").toUpperCase();
     const out = {};
     let m;
     if((m = t.match(/\b(\d{2})\s*(?:(\d)\s*\/\s*7)?\s*W/))) { out.weeks = m[1]; if(m[2]) out.days = m[2]; }
     if((m = t.match(/\b(BOY|GIRL)\b/))) out.sex = m[1].toLowerCase();
-    if((m = t.match(/\b(AGA|SGA|LGA)\b/))) out.size = m[1];
     if((m = t.match(/AS\s*(?:OF)?\s*(\d{1,2})\s*(?:&|AND|,|\/)\s*(\d{1,2})/))) { out.apgar1 = m[1]; out.apgar5 = m[2]; }
     if((m = t.match(/G\s*(\d{1,2})\s*P\s*(\d{1,2})/))) { out.g = m[1]; out.p = m[2]; }
     if((m = t.match(/\(\s*(\d)\s*-?\s*(\d)\s*-?\s*(\d)\s*-?\s*(\d)\s*\)/))) { out.t = m[1]; out.pre = m[2]; out.a = m[3]; out.l = m[4]; }
     return out;
 }
-function dxSentence(v){
-    const age = v.weeks + (v.days && v.days !== "0" ? ` ${v.days}/7` : "");
-    return `PUFT ${age} WKS AOG DELIVERED VIA NSVD TO A LIVE TERM BABY ${(v.sex || "").toUpperCase()} ${v.size} ` +
-        `W/ AS OF ${v.apgar1} & ${v.apgar5}; G${v.g}P${v.p} (${v.t}${v.pre}${v.a}${v.l})`;
+// Backspace in an empty blank goes back to the one before.
+function dxBack(el, event){
+    if(event.key !== "Backspace" || el.value) return;
+    const blanks = [...el.closest(".dx-template").querySelectorAll(".dx-blank")];
+    const before = blanks[blanks.indexOf(el) - 1];
+    if(before){
+        event.preventDefault();
+        before.focus();
+    }
 }
-function renderDxTemplate(id){
-    const num = (part, label, width) => `<input class="dx-blank" data-dx="${part}" inputmode="numeric" maxlength="2"
-        aria-label="${label}" style="width:${width}" oninput="onlyNumbers(this); refreshDx(this)">`;
-    return `<button type="button" class="quick dx-open" onclick="openDx(this, '${id}')">Use the delivery message</button>
-        <div class="dx-template" hidden>
-            <p class="dx-sentence">PUFT ${num("weeks", "Weeks AOG", "3em")} ${num("days", "Days (out of 7)", "2.4em")}/7 wks AOG
-                delivered via NSVD to a live term baby
-                <select class="dx-blank" data-dx="sex" aria-label="Baby boy or girl" onchange="refreshDx(this)">
-                    <option value="">boy / girl</option><option value="boy">boy</option><option value="girl">girl</option></select>
-                <select class="dx-blank" data-dx="size" aria-label="Size for gestational age" onchange="refreshDx(this)">
-                    <option>AGA</option><option>SGA</option><option>LGA</option></select>
-                w/ AS of ${num("apgar1", "APGAR score at 1 minute", "2.4em")} &amp; ${num("apgar5", "APGAR score at 5 minutes", "2.4em")};
-                G${num("g", "Gravida", "2.4em")}P${num("p", "Para", "2.4em")}
-                (${num("t", "Term", "2em")}${num("pre", "Preterm", "2em")}${num("a", "Abortion", "2em")}${num("l", "Living", "2em")})</p>
-            <p class="dx-preview" aria-live="polite"></p>
-            <div class="dx-actions">
-                <button type="button" class="primary" data-dx-use onclick="useDx(this, '${id}')">Put this in the box</button>
-                <button type="button" onclick="this.closest('.dx-template').hidden = true">Close</button>
-                <span class="dx-note"></span>
+
+// The clinic's wording for each PhilHealth package - the same sentences as
+// on Patient details (PClaimAssist/js/dx-templates.js DX_PACKAGES). A
+// delivery has two: the reason for admission (in labor) and the final
+// diagnosis (delivered), which goes in the final diagnosis box.
+const FINAL = "FINAL DIAGNOSIS", DELIVERY = "DATE & TIME OF DELIVERY";
+const PKG_WORDINGS = {
+    NSDBF: {name: "NSDBF — Normal delivery (mother)",
+        text: "PREGNANCY UTERINE FULL TERM {aog} WEEKS AOG, CEPHALIC IN LABOR GRAVIDA {g} PARA {p} ({tpal}).",
+        final: "PREGNANCY UTERINE FULL TERM {aog} WEEKS AOG GRAVIDA {g} PARA {p2} ({tpal2}), DELIVERED VIA " +
+               "NORMAL SPONTANEOUS VAGINAL DELIVERY ON {ddate}, {time} TO A LIVE TERM BABY {sex} IN CEPHALIC " +
+               "PRESENTATION WEIGHING {weight} GMS. WITH AN APGAR SCORE OF {apgar} AND WITH AGA."},
+    NCP: {name: "99460/NCP — Newborn care (baby)",
+        text: "LIVE TERM BABY {sex} DELIVERED VIA NORMAL SPONTANEOUS VAGINAL DELIVERY TO A GRAVIDA {g} " +
+              "PARA {p} MOTHER WEIGHING {weight} GRAMS WITH AN APGAR SCORE OF {apgar}."},
+    FP001: {name: "FP001 — Implant insertion", text: "FOR INSERTION OF IMPLANTABLE SUBDERMAL CONTRACEPTIVE"},
+    IUD: {name: "58300 — IUD insertion", text: "MULTIPARITY G{g} P{p} ({tpal}) FOR INTRAUTERINE DEVICE INSERTION"},
+    ANV: {name: "ANV/01/02/03 — Prenatal care",
+        text: "PREGNANCY UTERINE PRENATAL CARE {aog} WEEKS AOG, GRAVIDA {g} PARA {p} ({tpal})"},
+    PPC01: {name: "PPC01 — Postpartum visit", text: "POSTPARTUM VISITS AFTER DISCHARGE."},
+};
+// Each blank: its label, width, and how many characters fill it (the
+// cursor moves on to the next blank then).
+const PKG_BLANKS = {
+    aog: {label: "Weeks AOG, e.g. 39 1/7", width: "5em", max: 6},
+    g: {label: "Gravida", width: "2.4em", max: 2, digits: true},
+    p: {label: "Para", width: "2.4em", max: 2, digits: true},
+    tpal: {label: "Term, preterm, abortion, living - 4 digits", width: "4em", max: 4, digits: true},
+    sex: {label: "Baby boy or girl", options: ["BOY", "GIRL"]},
+    weight: {label: "Weight in grams", width: "4.4em", max: 4, digits: true},
+    apgar: {label: "APGAR score, e.g. 8 & 9", width: "4.6em", max: 7},
+};
+// Worked out, not typed: after the delivery one more para, term and living
+// child; the delivery's date and time from its own boxes on this page.
+const MONTHS = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER",
+                "OCTOBER", "NOVEMBER", "DECEMBER"];
+const PKG_WORKED_OUT = {
+    p2: v => /^\d+$/.test(v.p || "") ? String(Number(v.p) + 1) : "",
+    tpal2: v => /^\d{4}$/.test(v.tpal || "")
+        ? `${Number(v.tpal[0]) + 1}${v.tpal[1]}${v.tpal[2]}${Number(v.tpal[3]) + 1}` : "",
+    ddate: () => {
+        const iso = fieldEl(DELIVERY)?.querySelector('[data-part="date"]')?.value || "";
+        const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        return m ? `${MONTHS[Number(m[2]) - 1]} ${Number(m[3])}, ${m[1]}` : "";
+    },
+    time: () => {
+        const field = fieldEl(DELIVERY);
+        const hour = field?.querySelector('[data-part="hour"]')?.value.trim() || "";
+        const minute = field?.querySelector('[data-part="minute"]')?.value.trim() || "";
+        const ampm = field?.querySelector('.ampm[aria-pressed="true"]')?.textContent.trim() || "";
+        return hour && minute && ampm ? `${hour.padStart(2, "0")}:${minute.padStart(2, "0")} ${ampm}` : "";
+    },
+};
+// What to say when a worked-out part can't be worked out yet.
+const PKG_NEEDS = {
+    ddate: "the date of delivery (Date & time of delivery)",
+    time: "the time of delivery with AM or PM (Date & time of delivery)",
+};
+// What the box already says, in any of the clinic's wordings.
+function readPkg(text){
+    const t = String(text || "").toUpperCase();
+    const d = readDx(t);
+    const out = {};
+    let m;
+    if(d.weeks) out.aog = d.weeks + (d.days && d.days !== "0" ? ` ${d.days}/7` : "");
+    if(d.g) { out.g = d.g; out.p = d.p; }
+    if((m = t.match(/GRAVIDA\s*(\d{1,2})\s*PARA\s*(\d{1,2})/))) { out.g = m[1]; out.p = m[2]; }
+    if(d.t) out.tpal = d.t + d.pre + d.a + d.l;
+    if((m = t.match(/\(\s*(\d{4})\s*\)/))) out.tpal = m[1];
+    if(d.sex) out.sex = d.sex.toUpperCase();
+    if((m = t.match(/WEIGHING\s*([\d,]{3,5})/))) out.weight = m[1].replace(/,/g, "");
+    if(d.apgar1) out.apgar = `${d.apgar1} & ${d.apgar5}`;
+    if((m = t.match(/APGAR\s+SCORE\s+OF\s*(\d{1,2}\s*(?:&|AND)\s*\d{1,2})/))) out.apgar = m[1].replace(/\s*AND\s*/, " & ");
+    if(!out.apgar) out.apgar = "8 & 9";
+    return out;
+}
+function textBox(category){
+    return fieldEl(category)?.querySelector('[data-part="text"]');
+}
+// Opened from the reason for admission. Each sentence goes into its box by
+// itself as soon as no blank is left, and follows the blanks after that;
+// "Put back what was read" returns the boxes to what they said before.
+function renderPkgTemplate(id){
+    const options = Object.entries(PKG_WORDINGS).map(([key, p]) => `<option value="${key}">${escapeHtml(p.name)}</option>`).join("");
+    return `<button type="button" class="quick dx-open" onclick="openPkg(this, '${id}')">Use a clinic wording (NSDBF, newborn care…)</button>
+        <div class="dx-template dx-pkg" data-for="${id}" hidden>
+            <label class="input-label">Package:
+                <select class="dx-blank" data-pkg-choice onchange="drawPkg(this.closest('.dx-template'))">${options}</select></label>
+            <p class="input-label">Reason for admission:</p>
+            <p class="dx-sentence" data-sentence="text"></p>
+            <div data-final-part hidden>
+                <p class="input-label">Final diagnosis (goes in the final diagnosis box):</p>
+                <p class="dx-sentence" data-sentence="final"></p>
             </div>
-            <div class="dx-confirm" role="alertdialog" aria-label="The box already has something in it" hidden>
-                <p class="dx-confirm-title">The box already has something in it:</p>
-                <p class="dx-confirm-old"></p>
-                <div class="dx-actions">
-                    <button type="button" class="primary" onclick="putDx(this, '${id}')">Replace it</button>
-                    <button type="button" onclick="this.closest('.dx-confirm').hidden = true">Keep what is there</button>
-                </div>
+            <div class="dx-actions">
+                <button type="button" onclick="this.closest('.dx-template').hidden = true">Close</button>
+                <button type="button" onclick="undoPkg(this.closest('.dx-template'))">Put back what was read</button>
+                <span class="dx-note" aria-live="polite"></span>
             </div>
         </div>`;
 }
-function dxValues(box){
+function openPkg(button, id){
+    const box = button.nextElementSibling;
+    const admitting = document.getElementById(id).value;
+    const final = textBox(FINAL)?.value || "";
+    box._found = {...readPkg(final), ...readPkg(admitting)};
+    if(!box._original) box._original = {text: admitting, final};
+    const choice = box.querySelector("[data-pkg-choice]");
+    // A baby's wording names its mother; anything else starts as a delivery.
+    if(!box._picked) choice.value = /MOTHER WEIGHING|NEWBORN/i.test(admitting) ? "NCP" : "NSDBF";
+    box.hidden = false;
+    drawPkg(box);
+}
+function blankHtml(name, found){
+    const spec = PKG_BLANKS[name];
+    if(spec.options){
+        return `<select class="dx-blank" data-v="${name}" aria-label="${spec.label}" onchange="refreshPkg(this); pkgNext(this)">
+            <option value=""></option>${spec.options.map(o => `<option ${found[name] === o ? "selected" : ""}>${o}</option>`).join("")}</select>`;
+    }
+    return `<input class="dx-blank" data-v="${name}" aria-label="${spec.label}" title="${spec.label}" style="width:${spec.width}"
+        maxlength="${spec.max}" ${spec.digits ? 'inputmode="numeric"' : ""} value="${attr(found[name] || "")}"
+        oninput="${spec.digits ? "onlyNumbers(this); " : ""}refreshPkg(this); pkgNext(this)" onkeydown="dxBack(this, event)">`;
+}
+// A sentence with a blank for each part typed here - once only: a part in
+// both sentences is typed in the first and shown in the second - and the
+// worked-out parts shown as they are.
+function sentenceHtml(template, found, typedAbove){
+    return template.split(/(\{\w+\})/).map(part => {
+        const m = part.match(/^\{(\w+)\}$/);
+        if(!m) return escapeHtml(part);
+        if(PKG_WORKED_OUT[m[1]] || typedAbove.has(m[1])) return `<strong data-show="${m[1]}"></strong>`;
+        typedAbove.add(m[1]);
+        return blankHtml(m[1], found);
+    }).join("");
+}
+function drawPkg(box){
+    const wording = PKG_WORDINGS[box.querySelector("[data-pkg-choice]").value];
+    box._picked = true;
+    const found = box._found || {};
+    const typed = new Set();
+    box.querySelector('[data-sentence="text"]').innerHTML = sentenceHtml(wording.text, found, typed);
+    box.querySelector('[data-sentence="final"]').innerHTML = wording.final ? sentenceHtml(wording.final, found, typed) : "";
+    box.querySelector("[data-final-part]").hidden = !wording.final;
+    refreshPkg(box);
+    (box.querySelector(".dx-sentence .dx-empty") || box.querySelector("[data-pkg-choice]")).focus();
+}
+function pkgValues(box){
     const v = {};
-    DX_PARTS.forEach(part => { v[part] = String(box.querySelector(`[data-dx="${part}"]`).value || "").trim(); });
+    box.querySelectorAll("[data-v]").forEach(b => { v[b.dataset.v] = b.value.trim().toUpperCase(); });
+    Object.entries(PKG_WORKED_OUT).forEach(([name, work]) => { v[name] = work(v); });
     return v;
 }
-function refreshDx(el){
-    const box = el.closest(".dx-template");
-    const v = dxValues(box);
-    const left = DX_PARTS.filter(part => part !== "days" && !v[part]);
-    box.querySelectorAll(".dx-blank").forEach(b => b.classList.toggle("dx-empty", b.dataset.dx !== "days" && !b.value));
-    box.querySelector(".dx-preview").textContent = dxSentence(v);
-    box.querySelector("[data-dx-use]").disabled = left.length > 0;
-    box.querySelector(".dx-note").textContent = left.length ? `Fill in the ${left.length} red blank${left.length === 1 ? "" : "s"} first.` : "";
+function fillSentence(template, v){
+    return template.replace(/\{(\w+)\}/g, (_, name) => v[name] || "").toUpperCase();
 }
-function openDx(button, id){
-    const box = button.nextElementSibling;
-    const found = readDx(document.getElementById(id).value);
-    DX_PARTS.forEach(part => { box.querySelector(`[data-dx="${part}"]`).value = found[part] || (part === "size" ? "AGA" : ""); });
-    box.querySelector(".dx-confirm").hidden = true;
-    box.hidden = false;
-    refreshDx(button.nextElementSibling.querySelector(".dx-blank"));
-    (box.querySelector(".dx-empty") || box.querySelector(".dx-blank")).focus();
+function missingIn(template, v){
+    return [...template.matchAll(/\{(\w+)\}/g)].map(m => m[1]).filter(name => !v[name]);
 }
-// Asked in the page, not with the browser's own pop-up.
-function useDx(button, id){
-    const box = button.closest(".dx-template");
-    const current = document.getElementById(id).value.trim();
-    if(current && current !== dxSentence(dxValues(box))){
-        box.querySelector(".dx-confirm-old").textContent = current;
-        box.querySelector(".dx-confirm").hidden = false;
-        box.querySelector(".dx-confirm .primary").focus();
-        return;
-    }
-    putDx(button, id);
-}
-function putDx(button, id){
-    const box = button.closest(".dx-template");
-    const input = document.getElementById(id);
-    input.value = dxSentence(dxValues(box));
+// Into its box, unless it already says exactly that.
+function putInBox(input, text){
+    if(!input || input.value === text) return;
+    input.value = text;
     input.dispatchEvent(new Event("input", {bubbles: true}));
-    box.querySelector(".dx-confirm").hidden = true;
-    box.hidden = true;
-    input.focus();
-    flashNote(input, "✓ The delivery message is in the box. Check it, then save this patient.");
 }
+function refreshPkg(el){
+    const box = el.classList.contains("dx-template") ? el : el.closest(".dx-template");
+    const wording = PKG_WORDINGS[box.querySelector("[data-pkg-choice]").value];
+    const v = pkgValues(box);
+    box.querySelectorAll("[data-v]").forEach(b => b.classList.toggle("dx-empty", !b.value.trim()));
+    box.querySelectorAll("[data-show]").forEach(s => {
+        s.textContent = v[s.dataset.show] || "____";
+        s.classList.toggle("dx-empty", !v[s.dataset.show]);
+    });
+    const notes = [];
+    const blanksLeft = box.querySelectorAll(".dx-sentence .dx-blank.dx-empty").length;
+    if(blanksLeft) notes.push(`Fill in the ${blanksLeft} red blank${blanksLeft === 1 ? "" : "s"} - each wording goes in by itself once complete.`);
+    if(!missingIn(wording.text, v).length){
+        putInBox(document.getElementById(box.dataset.for), fillSentence(wording.text, v));
+        notes.push("✓ The reason for admission is in its box.");
+    }
+    if(wording.final){
+        const missing = missingIn(wording.final, v);
+        if(!missing.length){
+            const final = textBox(FINAL);
+            const same = fieldEl(FINAL)?.querySelector("[data-same-as-admitting]");
+            if(same && same.checked){ same.checked = false; final.readOnly = false; }
+            // The final diagnosis writes the APGAR score "8 AND 9".
+            putInBox(final, fillSentence(wording.final, {...v, apgar: v.apgar.replace(/\s*&\s*/, " AND ")}));
+            notes.push("✓ The final diagnosis is in its box.");
+        }else{
+            const needs = missing.filter(name => PKG_NEEDS[name]).map(name => PKG_NEEDS[name]);
+            if(needs.length) notes.push(`The final diagnosis still needs ${needs.join(" and ")}.`);
+        }
+    }
+    const note = box.querySelector(".dx-note");
+    note.textContent = notes.join(" ");
+    // Green once every wording is in its box.
+    note.classList.toggle("done", notes.length > 0 && notes.every(n => n.startsWith("✓")));
+}
+function pkgNext(el){
+    const spec = PKG_BLANKS[el.dataset.v];
+    if(!(spec.options ? el.value : el.value.length >= spec.max)) return;
+    const blanks = [...el.closest(".dx-template").querySelectorAll("[data-v]")];
+    const next = blanks.slice(blanks.indexOf(el) + 1).find(b => !b.value) || blanks.find(b => !b.value);
+    if(next) next.focus();
+}
+function undoPkg(box){
+    const original = box._original || {};
+    putInBox(document.getElementById(box.dataset.for), original.text || "");
+    if(PKG_WORDINGS[box.querySelector("[data-pkg-choice]").value].final) putInBox(textBox(FINAL), original.final || "");
+    box.hidden = true;
+}
+// The delivery's date and time are typed in their own boxes on this page:
+// an open delivery wording follows them.
+function refreshOpenWordings(e){
+    if(!e.target.closest || e.target.closest(".field")?.dataset.category !== DELIVERY) return;
+    document.querySelectorAll(".dx-pkg:not([hidden])").forEach(box => refreshPkg(box));
+}
+document.addEventListener("input", refreshOpenWordings);
+document.addEventListener("click", e => setTimeout(() => refreshOpenWordings(e)));
 
 const DATETIME_LABELS = {
     "DATE & TIME OF ADMISSION": "Date admitted",
@@ -793,8 +941,8 @@ function renderInputs(f, id){
                 so the computer guessed which word is the last name. Move any word that is in the wrong box.</p>` : ""}`;
     }
     if(f.kind === "date"){
-        return `<label class="input-label" for="${id}">Birthday (click the calendar to pick the date):</label>
-            <input class="big" type="date" id="${id}" data-part="date" min="1900-01-01" max="${TODAY}" value="${attr(p.date)}">`;
+        return `<label class="input-label" for="${id}">Birthday (month/day/year, as in the logbook):</label>
+            ${dateBox(id, p.date)}`;
     }
     if(f.kind === "datetime"){
         // Went home: at the earliest the day after the delivery (review_fields.check).
@@ -804,8 +952,8 @@ function renderInputs(f, id){
             ? `<button type="button" class="quick" onclick="sameDayAsAdmitted('${cat}')">Same day as admitted</button>` : "";
         return `<div class="when">
             <div class="date-box">
-                <label class="input-label" for="${id}">${DATETIME_LABELS[f.category] || "Date"} (click the calendar to pick the date):</label>
-                <input class="big" type="date" id="${id}" data-part="date" min="2000-01-01" max="${TODAY}" value="${attr(p.date)}">
+                <label class="input-label" for="${id}">${DATETIME_LABELS[f.category] || "Date"} (month/day/year, as in the logbook):</label>
+                ${dateBox(id, p.date)}
                 ${sameDay}
             </div>
             <div>
@@ -824,10 +972,10 @@ function renderInputs(f, id){
     }
     const sameAs = f.category === "FINAL DIAGNOSIS" && sameAsAdmittingAtStart(p);
     return `<label class="input-label" for="${id}">What it says:</label>
-        <input class="big" id="${id}" data-part="text" autocomplete="off" maxlength="255" value="${attr(caps(p.text))}"
+        <input class="big" id="${id}" data-part="text" autocomplete="off" ${f.category === "ADDRESS" ? 'maxlength="255"' : ""} value="${attr(caps(p.text))}"
             oninput="toCaps(this)" ${sameAs ? "readonly" : ""}
             ${f.status === "manual_encoding_required" ? 'placeholder="Type what you see in the picture"' : ""}>
-        ${f.category === "ADMITTING DIAGNOSIS" ? renderDxTemplate(id) : ""}
+        ${f.category === "ADMITTING DIAGNOSIS" ? renderPkgTemplate(id) : ""}
         ${f.category === "FINAL DIAGNOSIS" ? `<label class="same-as">
             <input type="checkbox" data-same-as-admitting onchange="sameAsAdmitting(this)" ${sameAs ? "checked" : ""}>
             Same as the reason for admission</label>` : ""}`;
@@ -860,7 +1008,7 @@ function sameAsAdmitting(box){
     }
 }
 // Keep a ticked final diagnosis in step with the reason for admission,
-// typed or put in with "Use the delivery message".
+// typed or put in with a clinic wording.
 document.addEventListener("input", e => {
     if(e.target.dataset?.part !== "text" || e.target.closest(".field")?.dataset.category !== ADMITTING) return;
     const box = fieldEl("FINAL DIAGNOSIS")?.querySelector("[data-same-as-admitting]");
@@ -885,7 +1033,7 @@ function toggleEmpty(button){
     const field = button.closest(".field");
     setEmpty(field, field.dataset.empty !== "true");
     fieldChanged(field);
-    if(field.dataset.empty !== "true") field.querySelector("[data-part]")?.focus();
+    if(field.dataset.empty !== "true") field.querySelector("[data-date-text], [data-part]")?.focus();
 }
 
 // Lock (and clear) a field's boxes while it is marked empty.
@@ -898,7 +1046,7 @@ function setEmpty(field, empty){
         button.querySelector(".tick").textContent = empty ? "☑" : "☐";
     }
     field.querySelectorAll(".field-inputs input, .field-inputs button").forEach(el => {
-        // The wording template's blanks and button keep their own state (refreshDx).
+        // The wording template's blanks and buttons keep their own state (refreshPkg).
         if(el.closest(".dx-template")) return;
         el.disabled = empty;
         if(empty && el.tagName === "INPUT") el.value = "";
@@ -1102,7 +1250,7 @@ function describeValue(field){
         return {text: must ? "Not filled in — needed" : "Not filled in (can be typed on the forms)",
                 cls: must ? "missing" : "blank"};
     }
-    const longDate = iso => new Date(iso + "T00:00:00").toLocaleDateString(undefined, {year: "numeric", month: "long", day: "numeric"});
+    const longDate = iso => new Date(iso + "T00:00:00").toLocaleDateString("en-US", {year: "numeric", month: "long", day: "numeric"});
     if(kind === "name"){
         const given = [p.first, p.middle].filter(Boolean).join(" ");
         return {text: `${p.last}, ${given}${p.suffix ? " " + p.suffix : ""}`, cls: ""};
@@ -1319,6 +1467,70 @@ function setAmPm(button, value){
     fieldChanged(field);
 }
 
+// Dates are typed MM/DD/YYYY, the order the logbook and the forms write
+// them. The browser's own date picker follows the PC's region setting,
+// which on the clinic's PCs is day/month/year. The hidden data-part="date"
+// input still holds yyyy-mm-dd, so saving and the checks are unchanged.
+const DATE_EXAMPLE = "03/15/2024";
+function isoFromTyped(text){
+    const m = String(text).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if(!m) return "";
+    const [, mm, dd, yyyy] = m;
+    const day = new Date(+yyyy, +mm - 1, +dd);
+    if(day.getFullYear() !== +yyyy || day.getMonth() !== +mm - 1 || day.getDate() !== +dd) return "";
+    return `${yyyy}-${mm}-${dd}`;
+}
+function typedFromIso(iso){
+    const m = String(iso || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return m ? `${m[2]}/${m[3]}/${m[1]}` : "";
+}
+function dateBox(id, iso){
+    return `<input class="big" type="text" id="${id}" data-date-text inputmode="numeric" maxlength="10"
+                autocomplete="off" placeholder="MM/DD/YYYY" aria-label="Date, month/day/year"
+                value="${attr(typedFromIso(iso))}" oninput="dateTyped(this, event)" onblur="dateLeft(this)">
+            <input type="hidden" data-part="date" value="${attr(iso)}">`;
+}
+// Slashes go in as it is typed: "03152024" and "3/15/2024" become 03/15/2024.
+function formatTypedDate(value){
+    const separators = (value.match(/[^\d]+/g) || []).length;
+    let mm, dd, yyyy;
+    if(!separators){
+        const digits = value.replace(/\D/g, "");
+        mm = digits.slice(0, 2); dd = digits.slice(2, 4); yyyy = digits.slice(4, 8);
+    }else{
+        const parts = value.split(/[^\d]+/);
+        mm = parts[0] || ""; dd = parts[1] || ""; yyyy = (parts[2] || "").slice(0, 4);
+        if(mm.length === 1 && separators >= 1) mm = "0" + mm;
+        if(dd.length === 1 && separators >= 2) dd = "0" + dd;
+        mm = mm.slice(0, 2); dd = dd.slice(0, 2);
+    }
+    let out = mm;
+    if(mm.length === 2) out += "/" + dd;
+    if(mm.length === 2 && dd.length === 2) out += "/" + yyyy;
+    return out;
+}
+function dateTyped(box, event){
+    if(!(event.inputType || "").startsWith("delete")){
+        const formatted = formatTypedDate(box.value);
+        if(formatted !== box.value) box.value = formatted;
+    }
+    box.classList.remove("date-unfinished");
+    box.parentElement.querySelector('[data-part="date"]').value = isoFromTyped(box.value);
+}
+function dateLeft(box){
+    if(!box.value || isoFromTyped(box.value)) return;
+    box.classList.add("date-unfinished");
+    showFieldMessages(box.closest(".field"), [`Type the date as month/day/year, for example ${DATE_EXAMPLE}.`], []);
+}
+// A date put in by a button reaches the box that shows it.
+function setDate(target, iso){
+    target.value = iso;
+    const box = target.parentElement.querySelector("[data-date-text]");
+    box.value = typedFromIso(iso);
+    box.classList.remove("date-unfinished");
+    fieldChanged(target);
+}
+
 function sameDayAsAdmitted(category){
     const admitted = fieldEl("DATE & TIME OF ADMISSION")?.querySelector('[data-part="date"]').value;
     const target = fieldEl(category).querySelector('[data-part="date"]');
@@ -1326,8 +1538,7 @@ function sameDayAsAdmitted(category){
         flashNote(target, "Fill in the admission date first.");
         return;
     }
-    target.value = admitted;
-    fieldChanged(target);
+    setDate(target, admitted);
 }
 
 function dayAfterDelivery(category){
@@ -1339,9 +1550,8 @@ function dayAfterDelivery(category){
     }
     const next = new Date(delivered + "T00:00:00");
     next.setDate(next.getDate() + 1);
-    target.value = [next.getFullYear(), String(next.getMonth() + 1).padStart(2, "0"),
-                    String(next.getDate()).padStart(2, "0")].join("-");
-    fieldChanged(target);
+    setDate(target, [next.getFullYear(), String(next.getMonth() + 1).padStart(2, "0"),
+                     String(next.getDate()).padStart(2, "0")].join("-"));
 }
 
 function showFieldMessages(field, problems, warnings){
@@ -1615,6 +1825,8 @@ async function uploadLogbook(){
     try{
         const formData = new FormData();
         formData.append("file", file);
+        // Start from the clinic's saved logbook setup, not a fresh guess.
+        formData.append("use_saved", "1");
         const resp = await fetch("/api/logbook-setup/read", {method: "POST", body: formData});
         const found = await resp.json().catch(() => ({}));
         if(!resp.ok || !found.success) throw new Error(found.error || "The scan could not be opened.");

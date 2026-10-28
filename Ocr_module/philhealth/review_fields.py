@@ -56,7 +56,10 @@ _CASE_NUMBER_RE = re.compile(r"^\d+(-\d+)*$")
 # real names use: hyphen and apostrophe (periods are taken out, see
 # clean_name_part).
 _NAME_RE = re.compile(r"^[^\W\d_]+(?:[ '\-]+[^\W\d_]*)*$", re.UNICODE)
-_MAX_TEXT = 255          # patients.address is VARCHAR(255)
+# Only the address has a length limit: patients.address is VARCHAR(255).
+# The diagnoses are TEXT columns - the clinic's full final diagnosis is
+# longer than 255 letters - so they have none.
+_MAX_ADDRESS = 255
 _MAX_NAME_PART = 100     # patients name columns are VARCHAR(100)
 _MAX_SUFFIX = 10         # patients.name_ext is VARCHAR(10)
 _OLDEST_BIRTHDAY = date(1900, 1, 1)
@@ -115,15 +118,17 @@ def suggest_parts(category, text):
     if kind == CASE_NUMBER_KIND:
         return {"number": "-".join(re.findall(r"\d+", text))}
     if kind == NAME_KIND:
-        last, first, middle, warning = case_bridge._split_name(text) if text else (None, None, None, None)
+        last, first, middle, suffix, warning = (case_bridge._split_name(text) if text
+                                                else (None, None, None, None, None))
         return {"last": clean_name_part(last, drop_digits=True), "first": clean_name_part(first, drop_digits=True),
-                "middle": clean_name_part(middle, drop_digits=True), "suffix": "",
+                "middle": clean_name_part(middle, drop_digits=True), "suffix": suffix or "",
                 "guessed": bool(text) and bool(warning)}
     if kind == DATE_KIND:
-        return {"date": case_bridge._parse_date_flexible(text) or ""}
+        return {"date": case_bridge._parse_date_flexible(text, case_bridge.date_kind(category)) or ""}
     if kind == DATETIME_KIND:
         hour, minute, am_pm = _split_time(text)
-        return {"date": case_bridge._parse_date_flexible(text) or "", "hour": hour, "minute": minute,
+        return {"date": case_bridge._parse_date_flexible(text, case_bridge.date_kind(category)) or "",
+                "hour": hour, "minute": minute,
                 "am_pm": am_pm}
     return {"text": text}
 
@@ -132,6 +137,19 @@ def suggest_parts(category, text):
 
 def _s(value):
     return str(value if value is not None else "").strip()
+
+
+# "-do-" (ditto) written in a logbook box: nothing of its own is written
+# there, so it is taken as "Nothing is written here". As OCR reads it:
+# "-do-", "- DO -", "do.", "-d0-", "~do~", "ditto", or the marks " and 〃.
+_DITTO_RE = re.compile(r"^[\s\-~=_.,:;'\"`]*(?:d\s*[o0]|ditto)[\s\-~=_.,:;'\"`]*$|^[\s'\"`〃″”“]+$",
+                       re.IGNORECASE)
+
+
+def is_ditto(text):
+    """True when a logbook box only says "-do-" (or a ditto mark)."""
+    text = str(text or "").strip()
+    return bool(text) and bool(_DITTO_RE.match(text))
 
 
 def is_marked_empty(parts):
@@ -267,8 +285,8 @@ def _field_problems(category, parts, today):
             if parts.get("am_pm") not in ("AM", "PM"):
                 problems.append("Please press AM or PM.")
 
-    elif len(parts["text"]) > _MAX_TEXT:
-        problems.append(f"This is too long - keep it under {_MAX_TEXT} letters.")
+    elif category == ADDRESS and len(parts["text"]) > _MAX_ADDRESS:
+        problems.append(f"This address is too long - keep it under {_MAX_ADDRESS} letters.")
     return problems
 
 

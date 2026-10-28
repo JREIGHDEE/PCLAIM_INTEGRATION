@@ -239,6 +239,12 @@ class OcrCellTests(unittest.TestCase):
         # Every entry must have these - a blank one still needs typing.
         self.assertEqual(logbook_pipeline.field_status("NAME", confidence, flags), MANUAL)
 
+    def test_ditto_cell_is_empty(self):
+        flags = {"blank": False, "incomplete": False, "ditto": True}
+        self.assertEqual(logbook_pipeline.field_status("ADDRESS", 0.95, flags), logbook_pipeline.EMPTY)
+        # Every entry must have these - "-do-" there still needs typing.
+        self.assertNotEqual(logbook_pipeline.field_status("NAME", 0.95, flags), logbook_pipeline.EMPTY)
+
     def test_unreadable_writing_is_manual_not_empty(self):
         _, confidence, _, _, flags = logbook_pipeline.ocr_cell(_two_line_cell(), lambda _: [])
         self.assertFalse(flags["blank"])

@@ -55,6 +55,11 @@ class CriticalRuleTests(unittest.TestCase):
             with self.subTest(rule=rule):
                 self.assertIn(rule, rule_ids({**READY, **change}))
 
+    def test_short_cf2_delivery_diagnosis_matches_cf4(self):
+        # CF2 "SPONTANEOUS VERTEX DELIVERY", CF4 the full final diagnosis.
+        self.assertNotIn("IC-09", rule_ids({**READY, "dxADiagnosis": "SPONTANEOUS VERTEX DELIVERY",
+                                            "cf4FinalDiagnosis": "PREGNANCY UTERINE FULL TERM ... DELIVERED VIA NSVD"}))
+
     def test_no_philhealth_member_needs_no_pin(self):
         self.assertEqual(rule_ids({**READY, "memberPIN": "", "memberNoPhilhealth": True}), [])
 

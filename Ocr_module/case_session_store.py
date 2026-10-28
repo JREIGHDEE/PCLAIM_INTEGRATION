@@ -163,6 +163,20 @@ def list_reviewed_ocr_fields(limit=2000):
     return [field for row in rows for field in _parse_json_dict(row["ocr_data"]).get("fields", [])]
 
 
+def names_with_enye():
+    """Patients' names typed with Ñ - the OCR reads Ñ as N, so these are put
+    back in later readings (philhealth/case_bridge.remember_enye_names). The
+    columns' collation counts Ñ as N, so the match is made byte for byte."""
+    with get_db_cursor() as cursor:
+        cursor.execute(
+            "SELECT last_name, first_name, middle_name FROM patients "
+            "WHERE CONCAT_WS(' ', last_name, first_name, middle_name) COLLATE utf8mb4_bin LIKE %s",
+            ("%Ñ%",),
+        )
+        rows = cursor.fetchall()
+    return [name for row in rows for name in row.values() if name]
+
+
 def list_upload_sessions(upload_id):
     """Every session created from one upload, in logbook row order."""
     with get_db_cursor() as cursor:

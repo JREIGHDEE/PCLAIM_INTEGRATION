@@ -22,6 +22,17 @@ logger = logging.getLogger(__name__)
 
 _ocr_instance = None
 
+# PaddleOCR's angle classifier turns a text line it takes for upside down
+# by 180 degrees before reading it. A logbook cell is never upside down - a
+# page only matches its logbook setup's printed columns the right way up -
+# but short handwritten digits look much the same either way up, so dates
+# were often flipped and read as nonsense: 04-24-94 came out "hb-hZ-ho"
+# (each digit upside down, in reverse order), 09-14-26 "92-h1-b0". The
+# logbook readers below (cells, row strips, the AI second look) therefore
+# read every line as it is. extract_text() keeps the classifier for
+# arbitrary images.
+FLIP_UPSIDE_DOWN_LINES = False
+
 # The PaddleOCR models, kept in the repository (ocr_models/, 16 MB) so every
 # groupmate's PC reads with exactly the same models and needs no internet
 # on first run. They are the models paddleocr 2.8.1 downloads for lang="en"
@@ -82,7 +93,7 @@ def extract_tokens_from_array(image):
 
     Unlike extract_text_from_array(), errors propagate: the logbook review
     pipeline must not mistake an OCR failure for an empty cell."""
-    result = get_ocr_engine().ocr(image, cls=True)
+    result = get_ocr_engine().ocr(image, cls=FLIP_UPSIDE_DOWN_LINES)
     tokens = []
     if result and result[0]:
         for item in result[0]:
@@ -124,7 +135,8 @@ def read_versions_many(jobs):
     results = [[[] for _ in versions] for _, versions in jobs]
     if not lines:
         return results
-    lines, _, _ = engine.text_classifier(lines)
+    if FLIP_UPSIDE_DOWN_LINES:
+        lines, _, _ = engine.text_classifier(lines)
     readings, _ = engine.text_recognizer(lines)
     for (job_index, version_index, box), (text, confidence) in zip(owners, readings):
         if confidence < engine.drop_score:

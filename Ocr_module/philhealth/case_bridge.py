@@ -17,8 +17,9 @@ were captured during OCR review but had nowhere to go and were silently
 dropped when a claim was generated. CASE # remains lookup-only (it is the
 case_sessions.logbook_case_number key, not a patient/claim field).
 """
+import difflib
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from philhealth import address_parser, field_catalog
 
@@ -58,16 +59,51 @@ _DATE_FORMATS = (
 )
 # Handwriting OCR often reads a digit as a look-alike letter. Only ever
 # applied inside a date or time pattern, never to names or words.
+# ("h" is only a 4 upside down - _UPSIDE_DOWN - the right way up it is as
+# often a misread "12".)
 _OCR_DIGITS = str.maketrans({"O": "0", "o": "0", "D": "0", "Q": "0", "I": "1", "l": "1", "|": "1",
-                             "i": "1", "Z": "2", "z": "2", "S": "5", "s": "5", "B": "8", "G": "6",
-                             "b": "6", "g": "9", "q": "9"})
-_DIGITISH = r"[0-9OoDQIl|iZzSsBGbgq]"
+                             "i": "1", "r": "1", "Z": "2", "z": "2", "S": "5", "s": "5", "B": "8", "G": "6",
+                             "b": "6", "g": "9", "q": "9", "y": "4", "Y": "4"})
+_DIGITISH = r"[0-9OoDQIl|irZzSsBGbgqhyY]"
 # mm-dd-yy(yy) as staff write it in the logbook, with -, / or . between.
 _DATE_TOKEN = re.compile(
     rf"(?<![0-9A-Za-z])({_DIGITISH}{{1,2}})\s*[-/.]\s*({_DIGITISH}{{1,2}})\s*[-/.]\s*({_DIGITISH}{{2}}(?:{_DIGITISH}{{2}})?)(?![0-9A-Za-z])")
 # h:mm, also written h.mm or h;mm, with an optional AM/PM ("1;20pm", "10.30 Am").
 _TIME_RE = re.compile(r"(\d{1,2})\s*[:.;]\s*(\d{2})\s*([AaPp])?\.?\s*[Mm]?\b")
 _TIME_TOKEN = re.compile(rf"({_DIGITISH}{{1,2}})\s*[:.;]\s*({_DIGITISH}{{2}})\s*([AaPp]\.?\s*[Mm]\.?)?")
+# hhmm with the colon lost ("1000AM", "10DDAM"): only taken with its AM/PM.
+_COMPACT_TIME_TOKEN = re.compile(
+    rf"(?<![0-9A-Za-z])({_DIGITISH}{{1,2}})({_DIGITISH}{{2}})\s*([AaPp]\.?\s*[Mm]\.?)(?![A-Za-z])")
+# A date the OCR read upside down (older scans, see ocr_engine.py): its
+# characters come in reverse order, each one turned over - 9 reads as "b"
+# or 6, 6 as "q" or 9, 4 as "h", 7 as "L", 3 as "E". 04-24-94 read as
+# "hb-hZ-ho".
+_UPSIDE_DOWN = {"0": "0", "O": "0", "o": "0", "D": "0", "1": "1", "l": "1", "I": "1", "i": "1", "|": "1",
+                "2": "2", "Z": "2", "z": "2", "5": "5", "S": "5", "s": "5", "6": "9", "b": "9", "9": "6",
+                "q": "6", "g": "6", "8": "8", "B": "8", "h": "4", "y": "4", "Y": "4", "L": "7", "E": "3",
+                "-": "-", "/": "/", ".": "."}
+
+# How far a logbook date can be from today and still be believed: a
+# birthday is never in the future; an admission, delivery or discharge is
+# recent (pages are read within a few years of being written).
+_EVENT_YEARS_BACK = 3
+_EVENT_DAYS_AHEAD = 31
+
+
+def date_kind(category):
+    """"birth" for the birthday column, "event" for the other date columns."""
+    return "birth" if category == BDAY else "event"
+
+
+def _plausible(iso, kind):
+    if not iso or not kind:
+        return bool(iso)
+    day = datetime.strptime(iso, "%Y-%m-%d").date()
+    today = datetime.now().date()
+    if kind == "birth":
+        return day.year >= 1900 and day <= today
+    return (today.replace(year=today.year - _EVENT_YEARS_BACK) <= day
+            <= today + timedelta(days=_EVENT_DAYS_AHEAD))
 
 
 def _date_from_token(match):
@@ -83,23 +119,50 @@ def _date_from_token(match):
         return None
 
 
-def _parse_date_flexible(text):
+def _turned_over(text):
+    """The text as it reads turned the right way up, or None when it has a
+    character with no upright reading."""
+    out = []
+    for char in reversed(text.strip()):
+        if char.isspace():
+            continue
+        if char not in _UPSIDE_DOWN:
+            return None
+        out.append(_UPSIDE_DOWN[char])
+    return "".join(out)
+
+
+def _parse_date_flexible(text, kind=None):
     """Returns 'YYYY-MM-DD' on success, or None if nothing recognizable.
 
     Finds the date even when the rest of the text is garbled ("05-21-20
     10.COAM"), and reads OCR look-alikes inside it as digits ("0F" is not
     fixed - F is no digit - but "O8-2I-26" is 08-21-26). A date that isn't
-    a real calendar date is None, never guessed."""
+    a real calendar date is None, never guessed. One read upside down
+    ("92-h1-b0" for 09-14-26) is turned over when it can't be read as it is.
+
+    kind ("birth" / "event", date_kind()): a date that column can't hold -
+    a birthday in the future, an admission years ago - is not believed
+    either, so it is left for staff to type rather than suggested."""
     if not text:
         return None
     candidate = _TIME_RE.sub("", text).strip(" ,.-")
     for fmt in _DATE_FORMATS:
         try:
-            return datetime.strptime(candidate, fmt).date().isoformat()
+            found = datetime.strptime(candidate, fmt).date().isoformat()
         except ValueError:
             continue
-    found = _DATE_TOKEN.search(text)
-    return _date_from_token(found) if found else None
+        return found if _plausible(found, kind) else None
+    for match in _DATE_TOKEN.finditer(text):
+        found = _date_from_token(match)
+        if found and _plausible(found, kind):
+            return found
+        flipped = _turned_over(match.group(0))
+        upright = _DATE_TOKEN.fullmatch(flipped) if flipped else None
+        found = _date_from_token(upright) if upright else None
+        if found and _plausible(found, kind):
+            return found
+    return None
 
 
 def _parse_time_flexible(text):
@@ -109,12 +172,16 @@ def _parse_time_flexible(text):
     # The time is what's left once the date is taken out ("08.20.26" is a
     # date, not 08:20).
     rest = _DATE_TOKEN.sub(" ", text)
-    match = _TIME_TOKEN.search(rest)
+    match = _TIME_TOKEN.search(rest) or _COMPACT_TIME_TOKEN.search(rest)
     if not match:
         return None, None
     hour, minute = (part.translate(_OCR_DIGITS) for part in match.groups()[:2])
     meridiem = (match.group(3) or "").replace(".", "").replace(" ", "")
     if not (hour.isdigit() and minute.isdigit()) or int(hour) > 23 or int(minute) > 59:
+        return None, None
+    # A lone "0" before AM/PM is an hour that lost a digit ("0:00AM" for
+    # 10:00 AM): the logbook writes midnight as 12, so it is not read.
+    if hour == "0" and meridiem:
         return None, None
     meridiem = meridiem[:1].upper() + "M" if meridiem else None
     hour = int(hour)
@@ -132,50 +199,266 @@ def _parse_time_flexible(text):
     return f"{hour:02d}:{minute}", am_pm
 
 
+# A name suffix as written in the logbook ("JR.", "Jr", "III"), with the
+# periods and commas taken off, -> as it goes in patients.name_ext. Not "V"
+# or "I": at the end of a name those are far more often a middle initial.
+_SUFFIXES = {"JR": "JR", "JNR": "JR", "SR": "SR", "SNR": "SR", "II": "II", "III": "III", "IV": "IV",
+             "2ND": "II", "3RD": "III", "4TH": "IV"}
+# Words that belong to the word after them in a surname ("DELA CRUZ",
+# "DE LOS SANTOS", "SAN JUAN"): one surname, never split up.
+_SURNAME_PARTICLES = {"de", "dela", "del", "della", "delos", "delas", "la", "las", "los", "le",
+                      "san", "santa", "sto", "sta", "mac", "mc", "van", "von", "di", "da", "du"}
+
+
+# A newborn without a name yet is written "BABY GIRL <surname>" (or BOY).
+# Handwriting read by OCR: "BBY GIRL", "BB. GRL", "8ABY B0Y", "13ABY GIRI",
+# "BABYGIRL". Digits that look like letters are read as those letters, then
+# the words are compared with what the logbook writes.
+_OCR_LETTERS = str.maketrans({"0": "O", "1": "I", "8": "B", "|": "I", "!": "I"})
+_BABY_SPELLINGS = {"BABY", "BBY", "BB", "BABE", "BAEY", "BABV", "BAHY", "BAB", "BABI", "BBAY", "BAYB"}
+_GIRL_SPELLINGS = {"GIRL", "GRL", "GIRI", "GURL", "GRIL", "GIRLL", "GIR", "GIRK", "CIRL", "GLRL", "GIRT"}
+_BOY_SPELLINGS = {"BOY", "BOI", "BOYY", "BQY", "BOV", "B0Y", "BUY"}
+
+
+def _ocr_word(word):
+    word = re.sub(r"[^A-Za-z0-9|!]", "", word).upper().replace("13", "B")
+    return word.translate(_OCR_LETTERS)
+
+
+def _is_baby_word(word):
+    word = _ocr_word(word)
+    return word in _BABY_SPELLINGS or (len(word) >= 4 and bool(
+        difflib.get_close_matches(word, ["BABY"], n=1, cutoff=0.75)))
+
+
+def _sex_word(word):
+    word = _ocr_word(word)
+    if word in _GIRL_SPELLINGS:
+        return "GIRL"
+    if word in _BOY_SPELLINGS:
+        return "BOY"
+    return None
+
+
+def newborn_words(words):
+    """("BABY GIRL" | "BABY BOY", the words after it) when a name starts
+    with a newborn's "BABY GIRL/BOY" however it was misread, else None."""
+    if not words:
+        return None
+    joined = _ocr_word(words[0])
+    for baby in sorted(_BABY_SPELLINGS, key=len, reverse=True):
+        # Written as one word: "BABYGIRL", "BBBOY".
+        if joined.startswith(baby) and len(joined) > len(baby) and _sex_word(joined[len(baby):]):
+            return f"BABY {_sex_word(joined[len(baby):])}", list(words[1:])
+    if len(words) >= 2 and _is_baby_word(words[0]) and _sex_word(words[1]):
+        return f"BABY {_sex_word(words[1])}", list(words[2:])
+    return None
+
+
+def newborn_of(name):
+    """"BABY GIRL" / "BABY BOY" when the name is a newborn's - at its start
+    or after the comma ("QUIADO, BB GIRL") - else None."""
+    before, comma, after = str(name or "").partition(",")
+    found = (newborn_words(after.split()) if comma else None) or newborn_words(before.split())
+    return found[0] if found else None
+
+
+def clean_newborn_name(text):
+    """The name with a misread "BABY GIRL/BOY" at its start written properly
+    ("BBY GRL DELA CRUZ" -> "BABY GIRL DELA CRUZ"), also after a comma
+    ("DELA CRUZ, BB BOY"). Any other name is returned as it was."""
+    if not text:
+        return text
+    before, comma, after = str(text).partition(",")
+    if comma:
+        found = newborn_words(after.split())
+        return f"{before.strip()}, {' '.join([found[0], *found[1]])}" if found else text
+    found = newborn_words(str(text).split())
+    return " ".join([found[0], *found[1]]) if found else text
+
+
+# The OCR's character set has no Ñ: PAÑARES is read "PANARES", QUIÑONES
+# "QUINONES". Names the clinic's patients have that are written with Ñ are
+# put back when a name word matches one exactly with N in its place. Names
+# as common without it (NINA, MONTANO, CANADA) are not on the list. Names
+# staff have typed with Ñ are added to it (remember_enye_names).
+_ENYE_NAMES = {
+    "ACUÑA", "BAÑAGA", "BAÑEZ", "BUÑAG", "CABAÑAS", "CABAÑERO", "CAÑEDO", "CAÑETE", "CASTAÑEDA",
+    "DAÑO", "DUEÑAS", "ESPAÑA", "ESPAÑOL", "IBAÑEZ", "MAÑAGO", "MAÑALAC", "MIÑOZA", "MUÑOZ", "NIÑO",
+    "NUÑEZ", "OÑATE", "ORDOÑEZ", "PAÑARES", "PEÑA", "PEÑAFLOR", "PEÑARANDA", "PIÑOL", "PIÑON",
+    "QUIÑONES", "SALDAÑA", "VIÑAS", "YBAÑEZ", "ZUÑIGA",
+}
+_LEARNED_ENYE = set()
+
+
+def remember_enye_names(names):
+    """Add the words written with Ñ in these names (as staff typed them) to
+    the ones put back in OCR readings."""
+    for name in names or ():
+        for word in re.findall(r"[^\W\d_]+", str(name or "").upper()):
+            if "Ñ" in word:
+                _LEARNED_ENYE.add(word)
+
+
+def restore_enye(text):
+    """(text with Ñ put back in known names, whether anything changed):
+    "MYLENE ABARQUEZ PANARES" -> "MYLENE ABARQUEZ PAÑARES"."""
+    if not text:
+        return text, False
+    known = {name.replace("Ñ", "N"): name for name in _ENYE_NAMES | _LEARNED_ENYE}
+    changed = False
+
+    def put_back(match):
+        nonlocal changed
+        word = match.group(0)
+        name = known.get(word.upper())
+        if not name:
+            return word
+        changed = True
+        # Written as the word was: PANARES, panares, Panares.
+        return name if word.isupper() else name.lower() if word.islower() else name.capitalize()
+    return re.sub(r"[A-Za-z]+", put_back, str(text)), changed
+
+
+def _suffix_of(word):
+    return _SUFFIXES.get(word.strip(".,").upper())
+
+
+def _name_units(words):
+    """The words of a name grouped into names: a surname particle goes with
+    the word after it ("DE", "LOS", "SANTOS" -> "DE LOS SANTOS"); one left
+    at the very end stays with the word before it."""
+    units, particles = [], []
+    for word in words:
+        if word.lower().strip(".") in _SURNAME_PARTICLES:
+            particles.append(word)
+            continue
+        units.append(" ".join(particles + [word]))
+        particles = []
+    if particles:
+        if units:
+            units[-1] = " ".join([units[-1]] + particles)
+        else:
+            units.append(" ".join(particles))
+    return units
+
+
+def _split_given(units):
+    """The names before the surname -> (first, middle). The clinic's
+    patients most often have one or two given names and one middle name:
+      MARY                      first MARY
+      MARY MAE                  first MARY, middle MAE
+      MARY ANN DENISE           first MARY ANN, middle DENISE
+      MA LOURDES ANN SANTOS     first MA LOURDES ANN, middle SANTOS
+    The middle name is always the last of them."""
+    if not units:
+        return None, None
+    if len(units) == 1:
+        return units[0], None
+    if len(units) == 2:
+        return units[0], units[1]
+    return " ".join(units[:-1]), units[-1]
+
+
 def _split_name(raw_name):
-    """Best-effort 'NAME' free text -> (last, first, middle), plus a warning
-    if the split is a guess (no comma to disambiguate order)."""
+    """_split_name_parts() with Ñ put back in names the OCR can only read
+    with N (restore_enye) - said in the warning, so it is checked."""
+    last, first, middle, suffix, warning = _split_name_parts(raw_name)
+    restored = False
+    parts = []
+    for part in (last, first, middle):
+        fixed, changed = restore_enye(part)
+        parts.append(fixed)
+        restored = restored or changed
+    if restored:
+        note = "Ñ was put back in the name (the computer reads it as N) - please check it."
+        warning = f"{warning} {note}" if warning else note
+    return parts[0], parts[1], parts[2], suffix, warning
+
+
+def _split_name_parts(raw_name):
+    """Best-effort 'NAME' free text -> (last, first, middle, suffix), plus a
+    warning if the split is a guess (no comma to disambiguate order).
+
+    "LAST, FIRST MIDDLE" is taken as written. Without a comma the order is
+    "FIRST [MIDDLE] LAST", and how many names there are decides the rest:
+      MARY MABEL                    first MARY, last MABEL
+      MARY MAE JONAS                first MARY, middle MAE, last JONAS
+      MARY ANN DENISE ALCANTARA     first MARY ANN, middle DENISE, last ALCANTARA
+    A surname with particles ("DELA CRUZ", "DE LOS SANTOS") counts as one
+    name. A suffix (JR, SR, II, III, IV) is taken off wherever the logbook
+    put it - at the end, before the comma, or alone after a comma."""
     if not raw_name or not raw_name.strip():
-        return None, None, None, "Patient name was blank in the OCR review - enter it manually."
+        return None, None, None, None, "Patient name was blank in the OCR review - enter it manually."
 
-    text = raw_name.strip()
+    text = " ".join(raw_name.split())
+    suffix = None
+
+    # A newborn: "BABY GIRL" (or BOY) is the first name, the last name is
+    # the surname, and the words between are its middle name - the mother's
+    # maiden surname ("BABY BOY ABARQUEZ PANARES", as staff confirm them).
+    # Sometimes they are the mother's first name instead ("BABY GIRL LORNA
+    # QUIADO"), so the reviewer is asked to check.
+    before, comma, after = text.partition(",")
+    found = newborn_words(after.split()) if comma else newborn_words(text.split())
+    if found:
+        first, rest = found
+        if comma:
+            last, between = before.strip() or None, rest
+        else:
+            units = _name_units(rest)
+            last, between = (units[-1] if units else None), units[:-1]
+        warning = None
+        if not last:
+            warning = f"Patient name \"{raw_name.strip()}\" has no surname after \"{first}\" - please add it."
+        elif between:
+            warning = (f"Patient name \"{raw_name.strip()}\" is a newborn's: \"{first}\" as first name, "
+                       f"\"{' '.join(between)}\" as middle name, \"{last}\" as last name. If "
+                       f"\"{' '.join(between)}\" is the mother's first name, take it out of the middle name.")
+        return last, first, " ".join(between) or None, None, warning
+
+    def take_suffix(words):
+        nonlocal suffix
+        while len(words) > 1 and _suffix_of(words[-1]):
+            suffix = suffix or _suffix_of(words[-1])
+            words = words[:-1]
+        return words
+
     if "," in text:
-        last, _, rest = text.partition(",")
-        rest_parts = rest.split()
-        first = rest_parts[0] if rest_parts else None
-        middle = " ".join(rest_parts[1:]) or None
-        return last.strip() or None, first, middle, None
+        before, _, after = text.partition(",")
+        after_words = after.replace(",", " ").split()
+        # "JUAN DELA CRUZ, JR": the comma only sets the suffix off.
+        if after_words and all(_suffix_of(w) for w in after_words):
+            suffix = _suffix_of(after_words[0])
+            text = before.strip()
+        else:
+            last_words = take_suffix(before.split())          # "DELA CRUZ JR., JUAN"
+            given_words = after_words
+            if len(given_words) > 1 and _suffix_of(given_words[-1]):
+                suffix = suffix or _suffix_of(given_words[-1])  # "DELA CRUZ, JUAN JR."
+                given_words = given_words[:-1]
+            first, middle = _split_given(_name_units(given_words))
+            return " ".join(last_words) or None, first, middle, suffix, None
 
-    parts = text.split()
-    if len(parts) == 1:
-        return parts[0], None, None, (
+    words = take_suffix(text.split())
+    units = _name_units(words)
+    if len(units) == 1:
+        return units[0], None, None, suffix, (
             "Patient name had only one word with no comma - could not split "
             "into last/first name; please complete it manually."
         )
-    # No comma: assume "First [Middle] Last" order (last token is the
-    # surname) - flagged since this is a guess, not a confident parse.
-    # Common Filipino/Spanish-origin surname particles ("Dela Cruz", "De
-    # Los Santos") are two or three words, not one - a bare last-token
-    # split would wrongly cut them down to just "Cruz"/"Santos", so those
-    # particles are folded into the surname instead.
-    surname_len = 1
-    lower_parts = [p.lower() for p in parts]
-    if len(parts) >= 4 and lower_parts[-3] in ("de",) and lower_parts[-2] in ("los", "las", "la"):
-        surname_len = 3
-    elif len(parts) >= 3 and lower_parts[-2] in (
-        "dela", "de", "del", "san", "santa", "sto", "sta", "mac", "mc", "van", "von",
-    ):
-        surname_len = 2
-
-    last = " ".join(parts[-surname_len:])
-    first = parts[0]
-    middle = " ".join(parts[1:-surname_len]) or None
+    last = units[-1]
+    first, middle = _split_given(units[:-1])
+    guessed = f"\"{first}\" as first name"
+    if middle:
+        guessed += f", \"{middle}\" as middle name"
+    if suffix:
+        guessed += f", \"{suffix}\" as suffix"
     warning = (
-        f"Patient name \"{text}\" had no comma to disambiguate order - "
-        f"guessed \"{last}\" as last name and \"{first}\" as first name; "
-        "please verify."
+        f"Patient name \"{raw_name.strip()}\" had no comma to disambiguate order - "
+        f"guessed \"{last}\" as last name and {guessed}; please verify."
     )
-    return last, first, middle, warning
+    return last, first, middle, suffix, warning
 
 
 # Diagnoses only a woman can have (pregnancy, delivery, after-birth care):
@@ -184,7 +467,6 @@ _MATERNAL_DX = re.compile(
     r"\bG\s?\d+\s?P\s?\d+|\bAOG\b|\bPRE-?NATAL\b|\bPOST-?\s?PARTUM\b|\bN?SVD\b|\bDELIVER(Y|ED)\b|"
     r"\bLABOU?R\b|\bPREGNAN|\bCESAREAN\b|\bC-?SECTION\b|\bPUERPER|\bANTE-?PARTUM\b|\bPPTL\b",
     re.IGNORECASE)
-_NEWBORN = re.compile(r"^\s*BABY\s+(GIRL|BOY)\b", re.IGNORECASE)
 # Entries about the baby's own care ("WELL BABY CARE"): the patient may be
 # the baby, so no sex guess. (A delivery diagnosis mentioning "BABY BOY"
 # is still about the mother.)
@@ -196,9 +478,9 @@ def infer_patient_sex(name, diagnoses):
     """(sex, reason) when the logbook makes it plain, else (None, None):
     a "BABY GIRL/BOY ..." name, or a pregnancy/delivery/after-birth
     diagnosis (only a woman has those) - unless the entry is about a baby."""
-    newborn = _NEWBORN.match(name or "")
+    newborn = newborn_of(name)
     if newborn:
-        return ("Female" if newborn.group(1).upper() == "GIRL" else "Male",
+        return ("Female" if newborn == "BABY GIRL" else "Male",
                 f"The logbook names the patient \"{name.strip()}\"")
     text = " ".join(d for d in diagnoses if d)
     if _BABY_CARE.search(text):
@@ -249,19 +531,21 @@ def draft_patient_and_encounter(values, reviewed_parts=None, previous_address=No
             values.pop(category, None)
 
     if NAME in reviewed_parts:
-        last, first, middle, name_warning = None, None, None, None
+        last, first, middle, suffix, name_warning = None, None, None, None, None
     else:
-        last, first, middle, name_warning = _split_name(values.get(NAME))
+        last, first, middle, suffix, name_warning = _split_name(values.get(NAME))
     if last:
         patient_fields["last_name"] = last
     if first:
         patient_fields["first_name"] = first
     if middle:
         patient_fields["middle_name"] = middle
+    if suffix:
+        patient_fields["name_ext"] = suffix
     if name_warning:
         warnings.append(name_warning)
 
-    dob = _parse_date_flexible(values.get(BDAY))
+    dob = _parse_date_flexible(values.get(BDAY), "birth")
     if dob:
         patient_fields["date_of_birth"] = dob
     elif values.get(BDAY):
@@ -274,7 +558,7 @@ def draft_patient_and_encounter(values, reviewed_parts=None, previous_address=No
         patient_fields["address"] = address_raw.strip()
 
     admission_raw = values.get(ADMISSION_DT)
-    admission_date = _parse_date_flexible(admission_raw)
+    admission_date = _parse_date_flexible(admission_raw, "event")
     admission_time, admission_ampm = _parse_time_flexible(admission_raw)
     if admission_date:
         encounter_fields["date_admitted"] = admission_date
@@ -286,7 +570,7 @@ def draft_patient_and_encounter(values, reviewed_parts=None, previous_address=No
         encounter_fields["am_pm_admitted"] = admission_ampm
 
     discharge_raw = values.get(DISCHARGE_DT)
-    discharge_date = _parse_date_flexible(discharge_raw)
+    discharge_date = _parse_date_flexible(discharge_raw, "event")
     discharge_time, discharge_ampm = _parse_time_flexible(discharge_raw)
     if discharge_date:
         encounter_fields["date_discharge"] = discharge_date
@@ -298,7 +582,7 @@ def draft_patient_and_encounter(values, reviewed_parts=None, previous_address=No
         encounter_fields["am_pm_discharge"] = discharge_ampm
 
     delivery_raw = values.get(DELIVERY_DT)
-    delivery_date = _parse_date_flexible(delivery_raw)
+    delivery_date = _parse_date_flexible(delivery_raw, "event")
     delivery_time, delivery_ampm = _parse_time_flexible(delivery_raw)
     if delivery_date:
         claims_fields["delivery_date"] = delivery_date

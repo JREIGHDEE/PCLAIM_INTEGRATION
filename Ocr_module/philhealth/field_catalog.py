@@ -142,6 +142,12 @@ FORM_VALUES_KEYS = frozenset({
     # the patient, the diagnosis package, the age at admission) and the clinic's
     # building/ZIP as copied onto this claim from Clinic Details.
     "dxDrugsAdded", "dxPackage", "hciBldg", "hciZip", "memberIsPatient", "patientAge",
+    # Patient details: "No contact info" (phone and email left blank).
+    "noContact",
+    # PMRF: the member's mother's and spouse's name suffix.
+    "motherNameExt", "spouseNameExt",
+    # The APGAR score at 1 minute (the 5-minute score is claims.apgar_score).
+    "apgarScore1",
     # CSF: who signs Parts I and III and for whom, the employer's certification,
     # the health care professionals, the clinic's representative, case rates.
     "csfFirstCaseRate", "csfSecondCaseRate", "employerCapacity", "employerRepName",

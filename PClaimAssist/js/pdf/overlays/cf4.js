@@ -45,8 +45,8 @@ window.PDF_OVERLAY_CF4 = [
   { id:'cf4ChiefComplaint', key:'cf4ChiefComplaint', page:1, top:25.125, left:2.45, w:66.8, fs:7, wrap:true, maxLines:2, lines:2, lh:9.2 },
   { id:'cf4AdmittingDx', key:'admissionDx', page:1, top:28.895, left:2.45, w:29.2, fs:7, wrap:true, maxLines:3, lines:7, lh:9.2 },
   { id:'cf4DischargeDx', key:'cf4FinalDiagnosis', page:1, top:28.895, left:34.31, w:34.9, fs:7, wrap:true, maxLines:3, lines:7, lh:9.2 },
-  { id:'cf4CaseRate1', key:'cf4IcdCode', page:1, top:28.805, left:72.71, w:24.6, fs:7 },
-  { id:'cf4CaseRate2', key:'cf4RvsCode', page:1, top:31.905, left:72.71, w:24.6, fs:7 },
+  { id:'cf4CaseRate1', key:'cf4IcdCode', page:1, top:28.805, left:72.71, w:24.6, fs:7, center:true },
+  { id:'cf4CaseRate2', key:'cf4RvsCode', page:1, top:31.905, left:72.71, w:24.6, fs:7, center:true },
 
   // 9. Date / Time Admitted — mm dd yyyy, hh mm
   { id:'cf4AdmMM1', key:'cf4AdmMM1', page:1, top:36.609, left:19.608, w:2.451, fs:7, center:true, digit:0, digitKey:'dateAdmitted', digitOrder:'mmddyyyy' },
@@ -212,7 +212,6 @@ window.PDF_OVERLAY_CF4 = [
   { id:'cf4NeuroOthers', key:'cf4NeuroOthers', page:2, top:29.365, left:22.88, w:13.08, fs:6.5 },
 
   // IV. Course in the ward — two boxes (date + doctor's order)
-  { id:'cf4CourseExtra', key:'cf4CourseExtraSheet', page:2, top:31.175, left:61.275, w:1.634, fs:9, center:true, checkbox:true, checkValue:true },
   // The form's two boxes under Date / Doctor's order: the big one (337.6-420.4pt)
   // and the small one below it (421.6-443.6pt). Each order wraps onto the lines
   // its own box holds; each date prints month-day-year.
@@ -226,7 +225,6 @@ window.PDF_OVERLAY_CF4 = [
   // generic name | quantity over dosage / route | total cost, near the middle
   // of each 35pt row. A long name wraps onto a second line, then prints
   // smaller, inside its own cell; a long dosage / route prints smaller.
-  { id:'cf4DrugsExtra', key:'cf4DrugsExtraSheet', page:2, top:46.452, left:46.078, w:1.634, fs:9, center:true, checkbox:true, checkValue:true },
   { id:'cf4DrugName1', key:'cf4DrugName1', page:2, top:49.82, left:2.2, w:35.0, fs:7, wrap:true, lines:2, lh:9, center:true },
   { id:'cf4DrugQty1', key:'cf4DrugQty1', page:2, top:49.424, left:38.2, w:43.0, fs:7, center:true },
   { id:'cf4DrugDose1', key:'cf4DrugDose1', page:2, top:50.317, left:38.2, w:43.0, fs:7, center:true },

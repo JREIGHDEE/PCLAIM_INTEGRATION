@@ -176,6 +176,8 @@ details.more summary{ cursor:pointer; font-weight:700; color:var(--blue); min-he
 <script>/* Shown inside PClaimAssist (Read Logbook Scan / Set Up a Logbook), whose page
    already has the title: hide this page's own title and intro. */
 if (window.top !== window.self) document.documentElement.classList.add('embedded');</script>
+<link href="/css/colorblind.css?v=20261027c" rel="stylesheet">
+<script src="/js/colorblind.js?v=20261027a"></script>
 </head>
 <body>
 <main>
@@ -226,6 +228,8 @@ if (window.top !== window.self) document.documentElement.classList.add('embedded
                 <img id="pageImg" alt="The logbook page, with its columns marked">
                 <div id="overlay"></div>
             </div>
+            <button type="button" class="small" id="columnToggle" aria-expanded="false"
+                    aria-controls="columnList" style="margin-top:14px;" hidden></button>
             <ol class="columns" id="columnList" aria-label="Columns on this page"></ol>
             <div id="problems" class="notice bad" role="alert" hidden></div>
             <div class="nav">
@@ -339,12 +343,15 @@ function backToReader(){
 }
 async function openCheck(){
     $("advancedLink").hidden = true;
-    // Reading a scan, the person only moves the lines: the page's side and
-    // the column names stay as the computer found them.
+    // Reading a scan, the person mostly moves the lines: the page's side
+    // stays as the computer found it, and the column list is folded away
+    // behind a button for when a column is extra, missing or misnamed.
     $("sideChoice").hidden = true;
     $("columnList").hidden = true;
+    $("columnToggle").hidden = false;
     $("checkHelp").textContent = "Each coloured stripe should cover one column. " +
-        "If a line is in the wrong place, drag it onto the printed line.";
+        "If a line is in the wrong place, drag it onto the printed line. " +
+        "To delete an extra column, add one, or change a name, use the column list under the picture.";
     try{
         setup = await getJson(`/api/logbook-setup/${encodeURIComponent(CHECK_ID)}`);
     }catch(error){
@@ -510,9 +517,23 @@ function drawPage(){
     checkProblems();
 }
 
+function drawToggle(){
+    const page = current;
+    const open = !$("columnList").hidden;
+    const unread = page.categories.filter(c => !c).length;
+    $("columnToggle").setAttribute("aria-expanded", String(open));
+    $("columnToggle").textContent = (open ? "▲ Hide the column list" : "▼ Show the column list")
+        + ` (${page.categories.length} columns${unread ? `, ${unread} not read` : ""})`;
+}
+$("columnToggle").addEventListener("click", () => {
+    $("columnList").hidden = !$("columnList").hidden;
+    drawToggle();
+});
+
 function drawList(){
     const page = current;
     const options = SIDES[page.side];
+    drawToggle();
     $("columnList").innerHTML = page.categories.map((name, i) => {
         const color = COLORS[i % COLORS.length];
         const opts = options.map(o => `<option value="${escapeHtml(o.value)}" ${o.value === name ? "selected" : ""}>${escapeHtml(o.label)}</option>`).join("")
@@ -538,12 +559,6 @@ function drawList(){
 function checkProblems(){
     const page = current;
     const problems = [];
-    if(CHECK_ID){
-        // Names can't be changed here, so they are not asked about.
-        $("problems").hidden = true;
-        $("okBtn").disabled = false;
-        return;
-    }
     const named = page.categories.filter(Boolean);
     const twice = named.filter((c, i) => named.indexOf(c) !== i);
     document.querySelectorAll("#columnList li").forEach(li => {
@@ -552,7 +567,9 @@ function checkProblems(){
     if(twice.length){
         problems.push(`Two columns are both called “${escapeHtml(plainName(page.side, twice[0]))}”. Give each column its own name.`);
     }
-    if(page.side === "left"){
+    // Reading one scan, a missing column only means less is filled in, as
+    // before the list could be opened here: it is a setup that needs them.
+    if(page.side === "left" && !CHECK_ID){
         const missing = REQUIRED.filter(c => SIDES.left.some(o => o.value === c) && !named.includes(c));
         if(missing.length){
             problems.push(`The computer needs these columns to make a claim: ${missing.map(c => escapeHtml(plainName("left", c))).join(", ")}.`);
@@ -562,6 +579,11 @@ function checkProblems(){
     $("problems").innerHTML = problems.length ? `<strong>Please fix this first</strong><ul>${problems.map(p => `<li>${p}</li>`).join("")}</ul>` : "";
     $("problems").hidden = !problems.length;
     $("okBtn").disabled = problems.length > 0;
+    // A problem is fixed in the column list, so it is not left folded away.
+    if(problems.length && $("columnList").hidden){
+        $("columnList").hidden = false;
+        drawToggle();
+    }
 }
 
 // Names

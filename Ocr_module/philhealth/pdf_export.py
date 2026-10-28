@@ -13,6 +13,8 @@ the same "top percent of page" position is `y = (top% * height) +
 baselineOffset` here - the offset direction flips along with the axis, the
 on-page result is the same.
 """
+import re
+
 import fitz  # PyMuPDF
 
 import config
@@ -30,9 +32,14 @@ _COLOR = (0, 0, 0)
 
 
 def _draw_field(page, field, value, page_width, page_height):
-    if not value:
+    # "N/A" (or a `) in a box means left blank on purpose (PClaimAssist
+    # js/pdf/pdf-overlay.js stripNotApplicable): it is never printed.
+    text = str(value or "").replace("`", " ")
+    text = re.sub(r"(^|[\s,])N/A(?=$|[\s,])", r"\1", text, flags=re.IGNORECASE)
+    text = re.sub(r"^\s*,\s*", "", re.sub(r"\s*,\s*(,|$)", r"\1", text))
+    text = " ".join(text.split())
+    if not text:
         return
-    text = str(value)
     fontsize = field.get("fs", 8)
     x = (field["left"] / 100) * page_width
     y = (field["top"] / 100) * page_height + BASELINE_OFFSET

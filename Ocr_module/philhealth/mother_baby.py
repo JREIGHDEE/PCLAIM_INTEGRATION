@@ -22,6 +22,8 @@ import difflib
 import re
 from datetime import date
 
+from philhealth.case_bridge import newborn_of
+
 MOTHER, BABY = "mother", "baby"
 ROLES = (MOTHER, BABY, "other")
 
@@ -38,10 +40,10 @@ _MOTHER_EXACT = re.compile(r"\bG\s?\d+\s?P\s?\d+|\bAOG\b|\bPUFT\b|\bN?SVD\b|\bPP
                            re.IGNORECASE)
 _BABY_WORDS = ("NEWBORN", "IMMUNIZATION", "VACCINATION", "SCREENING")
 _BABY_EXACT = re.compile(r"\bBCG\b|\bNB\s+SCREEN", re.IGNORECASE)
-# "BABY GIRL DELA CRUZ" is how a newborn without a name yet is written.
-# "BABY" alone is also a common first name, so this only counts when the
-# diagnosis says nothing either way.
-_NEWBORN_NAME = re.compile(r"^\s*(BABY|BB\.?)\s+(GIRL|BOY)\b", re.IGNORECASE)
+# "BABY GIRL DELA CRUZ" is how a newborn without a name yet is written
+# (however OCR misread it: case_bridge.newborn_of). "BABY" alone is also a
+# common first name, so this only counts when the diagnosis says nothing
+# either way.
 
 # Younger than this at admission: a baby. Older: not one.
 _BABY_MAX_DAYS = 365
@@ -120,7 +122,7 @@ def classify_entry(entry):
     if age is not None and age < _BABY_MAX_DAYS:
         return {"role": BABY, "reason": "The birthday is less than a year before the visit"}
     name = str(entry.get("name") or "")
-    if _NEWBORN_NAME.match(name):
+    if newborn_of(name):
         return {"role": BABY, "reason": f"The logbook names the patient \"{name.strip()}\""}
     if entry.get("delivery_date") and age is not None and age >= _MOTHER_MIN_YEARS * 365:
         return {"role": MOTHER, "reason": "The logbook has a delivery date for this patient"}
@@ -232,7 +234,7 @@ _SAME_KEY_GROUPS = (
         ("deliveryDate", "Date of delivery"), ("deliveryTime", "Time of delivery"),
         ("amPmDelivery", "AM/PM of delivery"), ("mannerOfDelivery", "Manner of delivery"),
         ("fetalOutcome", "Fetal outcome"), ("babySex", "Baby's sex"), ("birthWeight", "Birth weight"),
-        ("apgarScore", "APGAR score"),
+        ("apgarScore1", "APGAR score at 1 minute"), ("apgarScore", "APGAR score at 5 minutes"),
     )),
     ("Clinic staff who attended", "staff", tuple(
         item for n in (1, 2, 3) for item in (
@@ -331,13 +333,13 @@ def values_for_baby(mother):
                           "items": baby_items})
 
     # Not copied into the baby's boxes (they are the mother's own), but its
-    # newborn diagnosis names them: "... TO A GRAVIDA 3 PARA 2 MOTHER
-    # WEIGHING 3000 GRAMS" (js/dx-templates.js).
+    # newborn diagnosis names them, with this baby added to her para: "... TO
+    # A GRAVIDA 3 PARA 3 MOTHER WEIGHING 2600 GRAMS" (js/dx-templates.js).
     facts = {key: mother[key] for key in _MOTHER_FACT_KEYS if _filled(mother.get(key))}
     return {"member_is_mother": member_is_mother, "member_name": member_name, "groups": groups,
             "mother_facts": facts}
 
 
 _MOTHER_FACT_KEYS = ("gravida", "para", "obTerm", "obPreterm", "obAbortion", "obLiving",
-                     "birthWeight", "apgarScore", "babySex", "lmp", "deliveryDate", "deliveryTime",
+                     "birthWeight", "apgarScore1", "apgarScore", "babySex", "lmp", "deliveryDate", "deliveryTime",
                      "amPmDelivery")

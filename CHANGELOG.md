@@ -11,6 +11,143 @@ Related documents:
 
 ---
 
+## 2026-10-28 23:55: UI update (reigh)
+
+- Changed: review.html, style.css, index.html, app.js, sidebar.js, validation-rules.js, login.html, ocr.html
+
+**Login page**
+
+![Login page](docs/screenshots/2026-10-28_235520_login.jpg)
+
+**Main app (dashboard)**
+
+![Main app (dashboard)](docs/screenshots/2026-10-28_235520_app.jpg)
+
+**Read Logbook Scan page**
+
+![Read Logbook Scan page](docs/screenshots/2026-10-28_235520_ocr.jpg)
+
+**Logbook Review page**
+
+![Logbook Review page](docs/screenshots/2026-10-28_235520_review.jpg)
+
+## 2026-10-28: User testing - CF1, forms by package, better OCR, staff review 3 (reigh)
+
+**After pulling:** no database migration. Restart the backend
+(`PClaimAssist.bat` or `Ocr_module/run_ocr.bat`) and press Ctrl+F5 on every
+open page. A new file, `PClaimAssist/forms/CF1.pdf`, comes with the pull.
+Scans read before this update keep their old row pictures and readings;
+upload them again to get the better reading.
+
+### New: CF1 (Claim Form 1, September 2018)
+- CF1 is a form like the others: sidebar, Home card, the checker, "Save as
+  PDF" and "Save all forms as one PDF". Every box was measured on
+  `forms/CF1.pdf` (`js/pdf/overlays/cf1.js`, 123 boxes).
+- Nothing is typed for CF1 alone - it fills itself from Patient details,
+  the CSF and the PMRF: member PIN, name, birthday, sex; mailing address
+  (the PMRF one, or the home address when none is given; country
+  PHILIPPINES); landline, mobile, email; "Patient is the member? Yes/No";
+  Part II only when the patient is a dependent; Part III is the CSF's
+  member certification (one set of boxes); Part IV the CSF employer, ticked
+  "Not needed" by itself for a member who is not employed.
+
+### Forms follow the claim's package (reason for admission)
+- Only the forms a package is filed with are shown and counted, from the
+  forms this system makes (`js/validation-rules.js` `CLAIM_FORMS`):
+  NSDBF CF1+CF2+CF4+CSF; 99460/NCP CF1+CF2+CSF+PMRF; FP001, 58300 (IUD),
+  ANV and PPC01 CF1+CF2+CSF (newborn, implant and IUD are provisional,
+  as noted by the staff). eSOA, partograph, ANCR and PPCR are not made here.
+- The others are hidden from the sidebar, Home, the checker and the "Save
+  as PDF" ticks, with a "Show all forms" link for when one is needed.
+- A rule that belongs to a form not in the claim no longer blocks printing
+  (CF4's chief complaint no longer stops a newborn claim).
+- IC-09 (CF2 vs CF4 diagnosis): CF2's short "SPONTANEOUS VERTEX DELIVERY"
+  counts as matching CF4's full final diagnosis, so a delivery can print.
+
+### Diagnosis wording
+- A delivery's admission and final diagnosis are now different sentences:
+  in labor on admission (`GRAVIDA 3 PARA 2 (2002)`), delivered at
+  discharge (`GRAVIDA 3 PARA 3 (3003), DELIVERED VIA NORMAL SPONTANEOUS
+  VAGINAL DELIVERY ON <date>, <time> TO A LIVE TERM BABY ... WITH AGA.`).
+  The para and T-P-A-L after the delivery are worked out; the baby's
+  mother, and CF4's maternal outcome, count the baby too.
+- G, P, T-P-A-L, the baby's sex and the birth weight now fill themselves
+  on the forms from the diagnosis wording, as the APGAR scores already did
+  (a value typed by hand is kept).
+- Logbook Reader: "Use the delivery message" is removed. The clinic
+  wording fills its box by itself as soon as no blank is left, and for
+  NSDBF fills both the reason for admission and the final diagnosis (the
+  delivery's date and time from its own boxes on the page). "Put back what
+  was read" undoes it.
+- The diagnosis boxes no longer stop at 255 letters (only the address
+  does: its database column does).
+
+### Logbook reading (OCR)
+- Row cropping: the right page of a spread no longer drifts down. Rows
+  were carried across by the n-th ruled line, and handwriting hides many
+  lines on the diagnosis page (40 found on one page, 22 on the other); now
+  the offset is worked out from the lines both pages show
+  (`template_engine.map_rows_between_pages`).
+- Dates: the OCR's upside-down flip is off for logbook cells - short
+  handwritten dates were turned over and read as nonsense ("04-24-94" as
+  "hb-hZ-ho"). More look-alikes are read (y/Y as 4, r as 1), times without
+  their colon ("1000AM"), dates already read upside down are turned back,
+  and a date its column can't hold (a birthday in the future, an admission
+  years ago) is left to type. On the test scan: 16 of 35 dates right
+  before, 26 of 35 after.
+- Names: no comma - 2 names are first + last, 3 are first + middle + last,
+  4 are two first names + middle + last; "DELA CRUZ" and "DE LOS SANTOS"
+  count as one name. Suffixes JR, SR, II, III, IV are found and fill the
+  suffix box.
+- BABY BOY / BABY GIRL, however misread ("BBY GRL", "8ABY B0Y",
+  "BABYGIRL"), is written properly and kept as the first name; the patient
+  is then taken as the baby, of that sex.
+- Ñ: the OCR has no Ñ, so names usually written with it (PAÑARES, DAÑO,
+  QUIÑONES...) get it back, and so do names staff have typed with Ñ.
+  Flagged for checking.
+- "-do-" (ditto) in a box ticks "Nothing is written here".
+- Addresses: misread barangays and cities are fixed even when the OCR was
+  sure of them ("CABAMTIAN DAVAB CITY" -> "CABANTIAN DAVAO CITY"), and a
+  misread city no longer stops the barangay being found.
+
+### Staff review 3 (made before the above, in the same round)
+- CF2 diagnosis is the short "SPONTANEOUS VERTEX DELIVERY"; the first case
+  rate (CSF, CF4) prints the package's RVS code; CF2's procedure is dated
+  the day of admission; case-rate codes are centred on CSF and CF4.
+- CF4: the second course-in-the-ward box is the discharge line; the
+  surgical procedure follows CF2's; history of present illness is one line
+  per pregnancy ("G1 - ... G3 - PRESENT PREGNANCY"); past medical history
+  starts "NO KNOWN MEDICAL ILLNESS".
+- Signatures: whoever signs CSF Part I also signs the consent and the
+  PMRF, with the same date; the clinic and professional 1 sign on the day
+  of discharge.
+- Patient details: "No contact info"; Philippine mobile numbers (+63);
+  ZIP code from the city; thousands commas in amounts; a typed ` becomes
+  N/A; professionals 2 and 3 fold away until used.
+- A baby typed in by hand can copy from its mother's claim
+  (`/api/claims/mothers`, `/api/claims/<id>/for-baby`).
+- Logbook Reader: dates typed MM/DD/YYYY; reading a scan can start from
+  the clinic's saved logbook setup.
+- Colour-blind friendly colours, a setting per PC (`js/colorblind.js`).
+
+### Fixed
+- `index.html` had been saved in the wrong encoding: "— Select —" showed
+  as "â€” Select â€”" in the dropdowns (also ₱, …, –). All 134 put right.
+
+### Still to decide
+- The server's own CF2/CSF print check (`mapping_service`) does not know
+  the package yet: it still asks for CF4's chief complaint on any claim.
+
+- Changed: Ocr_module (case_bridge, review_fields, address_parser,
+  mother_baby, mapping_service, template_engine, ocr_engine,
+  logbook_pipeline, review_routes, case_session_store and others),
+  templates/review.html, PClaimAssist index.html, app.js, dx-templates.js,
+  validation-rules.js, pdf-overlay.js, sidebar.js, style.css. New:
+  overlays/cf1.js, forms/CF1.pdf, colorblind.js/.css,
+  test_logbook_saved_setup.py.
+
+---
+
 ## 2026-10-27 07:27: UI update (reigh)
 
 - Changed: style.css, index.html, app.js, claim-loader.js

@@ -249,8 +249,8 @@ window.PDF_OVERLAY_CSF = [
   { id:'hciProf3DateSignedD8', key:'hciProf3DateSignedD8', page:1, top:86.317, left:92.78, w:2.006, fs:7, digit:7, digitKey:'hciProf3DateSigned', digitOrder:'mmddyyyy', center:true },
 
   // ═══ Part V – Provider Information and Certification ═══
-  { id:'csfFirstCaseRate',  key:'csfFirstCaseRate',  page:1, top:91.406, left:46.1, w:16.81, fs:7 },
-  { id:'csfSecondCaseRate', key:'csfSecondCaseRate', page:1, top:91.396, left:75.83, w:20.2, fs:7 },
+  { id:'csfFirstCaseRate',  key:'csfFirstCaseRate',  page:1, top:91.406, left:46.1, w:16.81, fs:7, center:true },
+  { id:'csfSecondCaseRate', key:'csfSecondCaseRate', page:1, top:91.396, left:75.83, w:20.2, fs:7, center:true },
   { id:'providerRepName',   key:'providerRepName',   page:1, top:94.376, left:3.893,  w:38.683, fs:7, center:true },
   { id:'providerCapacity',  key:'providerCapacity',  page:1, top:94.368, left:44.071, w:22.99, fs:7, center:true },
   { id:'providerSignedDateD1', key:'providerSignedDateD1', page:1, top:94.462, left:76.392, w:2.006, fs:7, digit:0, digitKey:'providerSignedDate', digitOrder:'mmddyyyy', center:true },

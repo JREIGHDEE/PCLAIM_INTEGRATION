@@ -60,11 +60,60 @@ def preview_path(setup_id, page_index):
     return _setup_dir(setup_id) / f"page{int(page_index)}.jpg"
 
 
-def read_scan(path, ocr_fn, source_document=None):
+def saved_columns():
+    """The columns of the setup in use for each page side: {side: {"file",
+    "lines", "categories"}}, from the newest guided setup in grid_templates."""
+    parity_side = {parity: side for side, parity in logbook_layout.SIDE_PARITY.items()}
+    found = {}
+    for filename in get_template_files():
+        try:
+            with open(config.GRID_TEMPLATES_FOLDER / filename, encoding="utf-8") as handle:
+                data = json.load(handle)
+        except (OSError, ValueError):
+            continue
+        side = parity_side.get((data.get("metadata") or {}).get("pageParity"))
+        lines = data.get("gridLines") or []
+        segments = data.get("segmentInfo") or []
+        if not side or not lines or len(lines) != len(segments):
+            continue
+        if side in found and found[side]["created_at"] >= (data.get("created_at") or 0):
+            continue
+        found[side] = {
+            "file": filename,
+            "created_at": data.get("created_at") or 0,
+            "lines": [float(x) for x in lines],
+            "categories": [s.get("category") or "" for s in segments],
+        }
+    return found
+
+
+def fit_saved_columns(saved_lines, rules):
+    """The setup's column lines on a new scan of the same logbook: each one
+    moved onto the scan's nearest printed line (shares of page width) when
+    one is close, so a scan framed a little differently still fits. The
+    setup's columns and names are kept as they are: nothing is added."""
+    snap = 0.03
+    min_gap = 0.025
+    fitted = [saved_lines[0]]
+    for x in saved_lines[1:]:
+        near = [r for r in rules if abs(r - x) <= snap]
+        if near:
+            x = min(near, key=lambda r: abs(r - x))
+        fitted.append(round(min(max(x, fitted[-1] + min_gap), 0.999), 4))
+    return fitted
+
+
+def read_scan(path, ocr_fn, source_document=None, use_saved=False):
     """Find each page's layout. Returns {"setup_id", "pages": [...]} where
     each page is logbook_layout.propose_page()'s result plus "index" and
     "picture" (the preview's file name). A copy of the scan is kept with
-    the setup, so it can be read once its columns are checked."""
+    the setup, so it can be read once its columns are checked.
+
+    use_saved (reading a scan in the Logbook Reader): a page whose side has
+    a setup in use starts from that setup's columns and names instead of
+    the ones found on the page, so a stray line on one scan does not turn
+    up as an extra "not read" column."""
+    saved = saved_columns() if use_saved else {}
     pages = load_pages(path)[:2]
     setup_id = uuid.uuid4().hex
     folder = _setup_dir(setup_id)
@@ -82,6 +131,11 @@ def read_scan(path, ocr_fn, source_document=None):
         proposal = logbook_layout.propose_page(image, ocr_fn)
         if proposal["side_found"] is False and side_hint:
             proposal = logbook_layout.propose_page(image, ocr_fn, side=side_hint)
+        setup = saved.get(proposal["side"])
+        if setup:
+            proposal["lines"] = fit_saved_columns(setup["lines"], proposal["rules"])
+            proposal["categories"] = list(setup["categories"])
+            proposal["saved_setup"] = setup["file"]
         proposal["index"] = index
         proposal["ruled_lines"] = detect_ruling_lines(image)["horizontal"]
         scale = min(1.0, _PREVIEW_WIDTH / image.shape[1])

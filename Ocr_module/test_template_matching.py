@@ -1,6 +1,6 @@
 import unittest
 
-from template_engine import build_template_payload, score_template_match, match_templates
+from template_engine import build_template_payload, map_rows_between_pages, score_template_match, match_templates
 
 
 class TemplateMatchingTests(unittest.TestCase):
@@ -80,6 +80,27 @@ class TemplateMatchingTests(unittest.TestCase):
         best_template, best_score = match_templates([different_template, similar_template], current)
         self.assertEqual(best_template["name"], "Similar Layout")
         self.assertGreaterEqual(best_score, 0.75)
+
+
+class SpreadRowMappingTests(unittest.TestCase):
+    """A spread's rows carried from its left page to its right page."""
+
+    def test_rows_stay_on_their_entry_when_the_right_page_misses_lines(self):
+        # The left page finds every ruled line, 40 px apart from y=100; the
+        # right page sits 30 px higher, and handwriting hides many of its
+        # lines (as on a real scan: 40 lines found on one page, 22 on the
+        # other).
+        left = [100 + 40 * i for i in range(40)]
+        hidden = {9, 11, 13, 14, 16, 17, 19, 20, 22, 23, 25, 26, 28, 29, 31, 32, 34, 37}
+        right = [70 + 40 * i for i in range(40) if i not in hidden]
+        rows = [{"y": 105 + 40 * i, "height": 30} for i in range(35)]
+        mapped = map_rows_between_pages(rows, left, right)
+        for row, moved in zip(rows, mapped):
+            self.assertAlmostEqual(moved["y"], row["y"] - 30, delta=2)
+            self.assertAlmostEqual(moved["height"], 30, delta=2)
+
+    def test_too_few_lines_is_not_mapped(self):
+        self.assertIsNone(map_rows_between_pages([{"y": 100, "height": 30}], [100, 140], [70, 110, 150]))
 
 
 if __name__ == "__main__":

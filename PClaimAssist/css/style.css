@@ -504,6 +504,7 @@ body {
 .fs-action { font-size: .78rem; color: var(--fs-color); font-weight: 700; }
 
 .fs--csf  { --fs-color: var(--primary); }
+.fs--cf1  { --fs-color: #0891B2; }
 .fs--cf2  { --fs-color: var(--teal); }
 .fs--cf3  { --fs-color: var(--purple); }
 .fs--cf4  { --fs-color: var(--orange); }
@@ -2948,7 +2949,8 @@ textarea.from-patient-details:focus {
 .dx-title { font-weight: 700; font-size: .92rem; color: var(--text); }
 .dx-package { display: flex; align-items: center; gap: .5rem; font-size: .8rem; color: var(--text-muted); margin: 0; }
 .dx-package .form-select { max-width: 26rem; font-size: .82rem; }
-.dx-template .dx-sentence { line-height: 2.5; font-size: .9rem; }
+/* pre-line: a delivery's admission and final diagnosis, one per line. */
+.dx-template .dx-sentence { line-height: 2.5; font-size: .9rem; white-space: pre-line; }
 .dx-template .dx-sentence input,
 .dx-template .dx-sentence select {
   display: inline-block;
@@ -2972,6 +2974,7 @@ textarea.from-patient-details:focus {
   border-radius: 8px;
   font-weight: 600;
   font-size: .85rem;
+  white-space: pre-line;
 }
 .dx-template .dx-status { color: var(--text-muted); margin-bottom: 4px; }
 .dx-template .dx-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }

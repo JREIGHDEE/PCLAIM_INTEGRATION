@@ -13,6 +13,7 @@ if (typeof pdfjsLib !== 'undefined') {
 /* ── Per-form state ──────────────────────────────────────── */
 const pdfState = {
   csf:  { doc: null, page: 1, totalPages: 1, rendered: false },
+  cf1:  { doc: null, page: 1, totalPages: 1, rendered: false },
   cf2:  { doc: null, page: 1, totalPages: 2, rendered: false },
   cf4:  { doc: null, page: 1, totalPages: 2, rendered: false },
   pmrf: { doc: null, page: 1, totalPages: 2, rendered: false },
@@ -21,11 +22,11 @@ const pdfState = {
 /* Every form the PDF layer manages. CF4 is included ahead of the file
    being supplied; until forms/CF4.pdf exists its panel shows the
    standard "PDF not found" state. */
-const PDF_FORM_KEYS = ['csf', 'cf2', 'cf4', 'pmrf'];
+const PDF_FORM_KEYS = ['csf', 'cf1', 'cf2', 'cf4', 'pmrf'];
 
 /* ── Overlay field coordinate maps ──────────────────────────
    OVERLAY_MAP itself is defined in js/pdf/overlays/index.js,
-   built from the per-form maps in js/pdf/overlays/{csf,cf2,cf4,pmrf}.js.
+   built from the per-form maps in js/pdf/overlays/{csf,cf1,cf2,cf4,pmrf}.js.
    Those files must be loaded before this one (see index.html).
 ─────────────────────────────────────────────────────────── */
 
@@ -76,6 +77,7 @@ const WRAP_LINE_HEIGHT_PT = fs => fs + 1;
 
 const PDF_PATHS = {
   csf:  'forms/CSF.pdf',
+  cf1:  'forms/CF1.pdf',   // Claim Form 1, revised September 2018
   cf2:  'forms/CF2.pdf',
   cf4:  'forms/CF4.pdf?v=2020-02',   // the February 2020 edition
   pmrf: 'forms/PMRF.pdf',
@@ -268,7 +270,7 @@ function injectOverlaySpans(formKey) {
   if (!overlay) return;
   overlay.innerHTML = '';
 
-  const PAGE_H = { csf: 936, cf2: 936, cf4: 1008, pmrf: 841.5 };
+  const PAGE_H = { csf: 936, cf1: 936, cf2: 936, cf4: 1008, pmrf: 841.5 };
   const refH = PAGE_H[formKey] || 936;
 
   (OVERLAY_MAP[formKey] || []).forEach(f => {
@@ -359,15 +361,35 @@ function fitOverlayLines(formKey) {
                              as an ISO "YYYY-MM-DD" date and reordered to
                              MM+DD+YYYY (matching printed mm/dd/yyyy digit boxes)
                              before indexing.
+     unless:'<key>'        → empty while state.data[key] is true (CF1 Part II,
+                             only for a patient who is not the member)
+     checkbox + computed   → ticked when getComputedValue(computed) equals
+                             checkValue (CF1 "Patient is the member? Yes/No")
 ─────────────────────────────────────────────────────────────── */
+/* "N/A" in a box (typed, or put in by typing a `, js/app.js) means left
+   blank on purpose: the box counts as answered - no highlight, not missing
+   - and prints empty. Taken out of whatever is printed, on screen and in
+   the saved PDF; inside a longer line (a name put together from parts)
+   only the N/A part goes. */
+function stripNotApplicable(value) {
+  if (typeof value !== 'string' || !/`|N\/A/i.test(value)) return value;
+  return value.replace(/`/g, ' ').replace(/(^|[\s,])N\/A(?=$|[\s,])/gi, '$1')
+    .replace(/\s*,\s*(,|$)/g, '$1').replace(/^\s*,\s*/, '').replace(/\s+/g, ' ').trim();
+}
 function resolveOverlayFieldValue(f) {
+  return stripNotApplicable(resolveOverlayFieldValueRaw(f));
+}
+
+function resolveOverlayFieldValueRaw(f) {
   const data = window.state?.data || {};
 
   // A name to be written by hand after printing ("Leave blank", js/app.js).
   if (window.PCA_HANDWRITTEN && window.PCA_HANDWRITTEN.has(f.id)) return '';
+  if (f.unless && data[f.unless]) return '';
 
   if (f.checkbox) {
-    const raw = data[f.key];
+    const raw = f.computed && typeof window.getComputedValue === 'function'
+      ? window.getComputedValue(f.computed) : data[f.key];
     const match = f.checkValue !== undefined ? raw === f.checkValue : !!raw;
     return match ? '✓' : '';
   }
@@ -453,7 +475,9 @@ function updateOverlayForForm(formKey) {
     const raw = state.data[key];
     const answered = Array.isArray(raw) ? raw.length > 0 : !!raw;
     const skipped = typeof keyIsSkipped === 'function' && keyIsSkipped(formKey, key);
-    const missing = !val && !answered && !skipped;
+    // The one rule the checker uses too (app.js spotIsRed).
+    const missing = typeof window.spotIsRed === 'function' ? window.spotIsRed(formKey, f, val)
+      : !val && !answered && !skipped;
     span.classList.toggle('pdf-field--missing', missing);
     span.dataset.key = key;
   });

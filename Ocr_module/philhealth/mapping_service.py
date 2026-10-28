@@ -160,6 +160,12 @@ def _truthy(value):
     return value is True or str(value).strip().lower() in ("true", "1", "yes", "on")
 
 
+# A package's short CF2 diagnosis, written in place of the full final
+# diagnosis CF4 carries (PClaimAssist/js/dx-templates.js DX_PACKAGES cf2Dx):
+# CF2 and CF4 then still agree (IC-09).
+_CF2_SHORT_DIAGNOSES = {"spontaneous vertex delivery"}
+
+
 def critical_rule_problems(data):
     """[(rule id, message), ...] for every critical rule firing on `data`
     (form key -> value, as the forms hold them). [] when the claim may be
@@ -195,7 +201,7 @@ def critical_rule_problems(data):
         problems.append(("IC-04", "Date of birth cannot be after the admission date."))
     cf2_dx = str(data.get("dxADiagnosis") or "").strip().lower()
     cf4_dx = str(data.get("cf4FinalDiagnosis") or "").strip().lower()
-    if cf2_dx and cf4_dx and cf2_dx != cf4_dx:
+    if cf2_dx and cf4_dx and cf2_dx != cf4_dx and cf2_dx not in _CF2_SHORT_DIAGNOSES:
         problems.append(("IC-09", "The final diagnosis on CF2 does not match the diagnosis on CF4."))
     if discharged and delivered and discharged <= delivered:
         problems.append(("IC-08", "Discharge date must be at least one day after the delivery date."))

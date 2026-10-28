@@ -5,11 +5,16 @@
    every time, with only a few blanks changing (the clinic's template
    document - the underlined words are the blanks):
 
-     NSDBF        PREGNANCY UTERINE FULL TERM 39 1/7 WEEKS AOG, CEPHALIC IN
-                  LABOR GRAVIDA 4 PARA 3 (3003).                    O80.0
-     99460/NCP    LIVE TERM BABY GIRL DELIVERED VIA NORMAL SPONTANEOUS
-                  VAGINAL DELIVERY TO A GRAVIDA 3 PARA 2 MOTHER WEIGHING
-                  3000 GRAMS WITH AN APGAR SCORE OF 8 & 9.          Z38.0
+     NSDBF        admission: PREGNANCY UTERINE FULL TERM 39 3/7 WEEKS AOG,
+                  CEPHALIC IN LABOR GRAVIDA 3 PARA 2 (2002).        O80.0
+                  final: PREGNANCY UTERINE FULL TERM 39 3/7 WEEKS AOG
+                  GRAVIDA 3 PARA 3 (3003), DELIVERED VIA NORMAL SPONTANEOUS
+                  VAGINAL DELIVERY ON OCTOBER 22, 2026, 04:40 AM TO A LIVE
+                  TERM BABY BOY IN CEPHALIC PRESENTATION WEIGHING 2600 GMS.
+                  WITH AN APGAR SCORE OF 8 AND 9 AND WITH AGA.
+     99460/NCP    LIVE TERM BABY BOY DELIVERED VIA NORMAL SPONTANEOUS
+                  VAGINAL DELIVERY TO A GRAVIDA 3 PARA 3 MOTHER WEIGHING
+                  2600 GRAMS WITH AN APGAR SCORE OF 8 & 9.          Z38.0
      FP001        FOR INSERTION OF IMPLANTABLE SUBDERMAL CONTRACEPTIVE
                                                                     Z30.1
      58300        MULTIPARITY G2 P2 (2002) FOR INTRAUTERINE DEVICE
@@ -21,6 +26,10 @@
    plus, for a delivery, the CF4 course in the ward (one paragraph) and
    the usual medicines.
 
+   G, P and the 4 digits on the forms are the mother's before this
+   delivery (on admission). After it - the final diagnosis, the baby's
+   mother, the maternal outcome - one more para, term and living child.
+
    On Patient details (Stay at the clinic) the package is picked
    automatically - a baby's claim is newborn care, a delivery is NSDBF -
    and can be changed. Its sentence is shown with each blank already
@@ -29,7 +38,7 @@
    is left, the sentence and its codes go into the diagnosis boxes and
    keep following the blanks - until someone types something else in
    one of those boxes. Other wording already there (from the logbook) is
-   only replaced with "Use this wording", after asking.
+   only replaced with "Put it in", after asking.
 
    Needs js/app.js (state, applyFormData, updateFormPreviews,
    resetFormData, formatTime12h, showToast) and, for a baby's claim,
@@ -39,12 +48,20 @@
 const DX_PACKAGES = {
   NSDBF: {
     code: 'NSDBF', title: 'NORMAL SPONTANEOUS DELIVERY', name: 'Normal delivery (mother)', icd: 'O80.0',
+    // CF2 Discharge Diagnosis, as the clinic writes it (staff review 3).
+    rvs: 'NSDBF', cf2Dx: 'SPONTANEOUS VERTEX DELIVERY',
+    proc: 'NORMAL SPONTANEOUS DELIVERY (NSD), MANAGED IN A NON-HOSPITAL HEALTH FACILITY, INCLUDING LYING-IN AND INFIRMARY',
+    // In labor on admission; delivered by the final diagnosis.
     text: 'PREGNANCY UTERINE FULL TERM {aog} WEEKS AOG, CEPHALIC IN LABOR GRAVIDA {g} PARA {p} ({tpal}).',
+    finalText: 'PREGNANCY UTERINE FULL TERM {aog} WEEKS AOG GRAVIDA {g} PARA {p2} ({tpal2}), DELIVERED VIA ' +
+               'NORMAL SPONTANEOUS VAGINAL DELIVERY ON {ddate}, {time} {ampm} TO A LIVE TERM BABY {sex} IN ' +
+               'CEPHALIC PRESENTATION WEIGHING {weight} GMS. WITH AN APGAR SCORE OF {apgarAnd} AND WITH AGA.',
   },
   NCP: {
     code: '99460/NCP', title: 'NEWBORN CARE', name: 'Newborn care (baby)', icd: 'Z38.0', rvs: '99460', proc: 'NEWBORN CARE',
+    // The mother's para counts this baby.
     text: 'LIVE TERM BABY {sex} DELIVERED VIA NORMAL SPONTANEOUS VAGINAL DELIVERY TO A GRAVIDA {g} ' +
-          'PARA {p} MOTHER WEIGHING {weight} GRAMS WITH AN APGAR SCORE OF {apgar}.',
+          'PARA {p2} MOTHER WEIGHING {weight} GRAMS WITH AN APGAR SCORE OF {apgar}.',
   },
   FP001: {
     code: 'FP001', title: 'FOR INSERTION OF IMPLANTABLE SUBDERMAL CONTRACEPTIVE', name: 'Implant insertion', icd: 'Z30.1',
@@ -70,8 +87,8 @@ const DX_COURSE_TEXT =
   'UPON ADMISSION PATIENT IS {cm} CM CERVIX DILATED WITH {bow} BAG OF WATER @ STATION {station} AND ' +
   '{effacement} EFFACEMENT, {aog} WEEKS AOG. AT AROUND {time} {ampm} SHE DELIVERED VIA NORMAL SPONTANEOUS ' +
   'VAGINAL DELIVERY TO A LIVE TERM BABY {sex} IN CEPHALIC PRESENTATION WEIGHING {grams} GMS. WITH AN APGAR ' +
-  'SCORE OF {apgar}. THE BABY IS APPROPRIATE TO {hisher} GESTATIONAL AGE WITH MATERNAL OUTCOME OF G{g} P{p} ' +
-  '({tpal}). NO UNTOWARD EVENT NOTED DURING ADMISSION, LABOR, DELIVERY AND IMMEDIATE POSTPARTUM.';
+  'SCORE OF {apgar}. THE BABY IS APPROPRIATE TO {hisher} GESTATIONAL AGE WITH MATERNAL OUTCOME OF G{g} P{p2} ' +
+  '({tpal2}). NO UNTOWARD EVENT NOTED DURING ADMISSION, LABOR, DELIVERY AND IMMEDIATE POSTPARTUM.';
 
 /* CF4 V, for a delivery (NSDBF): [generic name, quantity, dosage / route,
    total cost]. The form's middle column has the quantity over the dosage / route. */
@@ -89,10 +106,14 @@ const DX_VARS = {
   g:          { label: 'Gravida', w: '2.4em', digits: 2 },
   p:          { label: 'Para', w: '2.4em', digits: 2 },
   tpal:       { label: 'Term, preterm, abortion, living - 4 digits', w: '3.8em', digits: 4 },
+  p2:         { label: 'Para after the delivery', w: '2.4em', digits: 2 },
+  tpal2:      { label: 'Term, preterm, abortion, living after the delivery - 4 digits', w: '3.8em', digits: 4 },
+  ddate:      { label: 'Date of delivery, e.g. OCTOBER 22, 2026', w: '10em' },
   sex:        { label: 'Baby boy or girl', options: ['BOY', 'GIRL'] },
   weight:     { label: 'Weight in grams', w: '4.4em' },
   grams:      { label: 'Weight in grams', w: '4.4em' },
   apgar:      { label: 'APGAR score', w: '4.2em', def: '8 & 9' },
+  apgarAnd:   { label: 'APGAR score', w: '5.4em', def: '8 AND 9' },
   cm:         { label: 'Cervix dilatation in cm', w: '2.6em', def: '10' },
   bow:        { label: 'Bag of water', options: ['INTACT', 'RUPTURED'], def: 'INTACT' },
   station:    { label: 'Station', w: '3.4em', def: '(-)2' },
@@ -107,6 +128,7 @@ const DX_TARGET_LABELS = {
   dxADiagnosis: 'CF2 diagnosis', cf4FinalDiagnosis: 'CF4 discharge diagnosis',
   dxAIcd10: 'CF2 ICD-10', cf4IcdCode: 'CF4 1st case rate code',
   cf4RvsCode: 'CF4 2nd case rate code (RVS)', dxARvsI: 'CF2 RVS', dxAProcI: 'CF2 procedure',
+  dxADateI: 'CF2 date of procedure',
   csfFirstCaseRate: 'CSF 1st case rate', csfSecondCaseRate: 'CSF 2nd case rate',
 };
 // The form's three printed drug rows (CF4 V).
@@ -154,6 +176,22 @@ function dxAutoValue(name, pkg, values) {
       const parts = tpal(ob).every(v => !dxBlank(v)) ? tpal(ob) : tpal(d);
       return parts.every(v => !dxBlank(v)) ? parts.join('') : '';
     }
+    // After the delivery: the para (and the term and living children) of
+    // the admission's blanks, or the forms', plus this baby.
+    case 'p2': {
+      const p = 'p' in values ? values.p : dxAutoValue('p', pkg, values);
+      return /^\d+$/.test(p) ? String(Number(p) + 1) : '';
+    }
+    case 'tpal2': {
+      const tpal = 'tpal' in values ? values.tpal : dxAutoValue('tpal', pkg, values);
+      const m = String(tpal).match(/^(\d)(\d)(\d)(\d)$/);
+      return m ? `${Number(m[1]) + 1}${m[2]}${m[3]}${Number(m[4]) + 1}` : '';
+    }
+    case 'ddate': {
+      const day = d.deliveryDate ? new Date(`${d.deliveryDate}T00:00:00`) : null;
+      return day && !isNaN(day)
+        ? day.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase() : '';
+    }
     case 'sex': return dxSexWord(baby ? dxPick(d.patientSex, d.babySex, dxMotherFacts().babySex) : d.babySex);
     case 'weight': return dxPick(ob.birthWeight, d.birthWeight);
     case 'grams': {
@@ -163,6 +201,17 @@ function dxAutoValue(name, pkg, values) {
     case 'time': return d.deliveryTime ? formatTime12h(d.deliveryTime).replace(/\s*(AM|PM)$/, '') : '';
     case 'ampm': return d.deliveryTime ? formatTime12h(d.deliveryTime).slice(-2) : (DX_VARS.ampm.def || '');
     case 'hisher': return { BOY: 'HIS', GIRL: 'HER' }[values.sex] || '';
+    // Birth details' scores, "8 & 9" (the mother's final diagnosis: "8 AND
+    // 9"); a baby's claim may only have its mother's.
+    case 'apgar':
+    case 'apgarAnd': {
+      const own = [d.apgarScore1, d.apgarScore];
+      const [one, five] = own.some(v => !dxBlank(v)) ? own
+        : [dxMotherFacts().apgarScore1, dxMotherFacts().apgarScore];
+      const and = name === 'apgar' ? ' & ' : ' AND ';
+      if (!dxBlank(one) && !dxBlank(five)) return `${String(one).trim()}${and}${String(five).trim()}`;
+      return dxPick(five, one, DX_VARS[name].def);
+    }
     default: return DX_VARS[name].def || '';
   }
 }
@@ -299,7 +348,8 @@ class DxSentence {
       if (document.activeElement !== el) el.value = values[name] || '';
       const empty = dxBlank(values[name]);
       el.classList.toggle('dx-empty', empty);
-      if (empty) missing.push(DX_VARS[name].label);
+      // A blank in both of a delivery's sentences is asked for once.
+      if (empty && !missing.includes(DX_VARS[name].label)) missing.push(DX_VARS[name].label);
     });
     const text = this.text(template, values);
     this.box.querySelector('.dx-preview').textContent = text;
@@ -422,7 +472,7 @@ function dxShell(title, extra, buttons) {
     <div class="dx-preview" aria-live="polite"></div>
     <div class="dx-status small"></div>
     <div class="dx-actions">
-      <button type="button" class="btn btn-primary btn-sm" data-dx-use hidden><i class="bi bi-plus-lg me-1"></i>${b.use || 'Use this wording'}</button>
+      <button type="button" class="btn btn-primary btn-sm" data-dx-use hidden><i class="bi bi-plus-lg me-1"></i>${b.use || 'Put it in'}</button>
       ${b.out ? `<button type="button" class="btn btn-outline-secondary btn-sm" data-dx-out hidden><i class="bi bi-dash-lg me-1"></i>${b.out}</button>` : ''}
       <button type="button" class="btn btn-link btn-sm" data-dx-auto>Fill the blanks again from the forms</button>
     </div>
@@ -444,16 +494,29 @@ const dxDiagnosis = (function setupDiagnosisWording() {
   const options = Object.entries(DX_PACKAGES).map(([key, p]) =>
     `<option value="${key}">${p.code} — ${p.name} · ${typeof p.icd === 'function' ? 'Z34.0 / Z34.8' : p.icd}</option>`).join('');
   const sentence = new DxSentence(host, {
-    template: () => DX_PACKAGES[dxCurrentPackage()].text,
+    // A delivery's two sentences are shown one under the other, sharing
+    // their blanks.
+    template: () => {
+      const p = DX_PACKAGES[dxCurrentPackage()];
+      return p.finalText ? `Admission diagnosis: ${p.text}\nFinal diagnosis: ${p.finalText}` : p.text;
+    },
     pkg: dxCurrentPackage,
     label: key => DX_TARGET_LABELS[key] || key,
     targets: (text, values) => {
       const p = DX_PACKAGES[dxCurrentPackage()];
+      const final = p.finalText ? sentence.text(p.finalText, values) : text;
+      if (p.finalText) text = sentence.text(p.text, values);
       const icd = typeof p.icd === 'function' ? p.icd(values) : p.icd;
+      // The first case rate (CSF Part V, CF4) prints the package's RVS code,
+      // not the ICD-10 code (staff review 3). The second case rate is left
+      // empty: a claim here has one package, and a second is picked by hand.
+      const rate = dxCaseRate(p);
       return {
-        admissionDx: text, dischargeDx: text, dxADiagnosis: text, cf4FinalDiagnosis: text,
-        dxAIcd10: icd, cf4IcdCode: icd, csfFirstCaseRate: icd,
-        cf4RvsCode: p.rvs || '', csfSecondCaseRate: p.rvs || '', dxARvsI: p.rvs || '', dxAProcI: p.proc || '',
+        admissionDx: text, dischargeDx: final, dxADiagnosis: p.cf2Dx || final, cf4FinalDiagnosis: final,
+        dxAIcd10: icd, cf4IcdCode: rate, csfFirstCaseRate: rate,
+        cf4RvsCode: '', csfSecondCaseRate: '', dxARvsI: p.rvs || '', dxAProcI: p.proc || '',
+        // The procedure is done on the day of admission.
+        dxADateI: p.rvs ? state.data.dateAdmitted || '' : '',
       };
     },
   });
@@ -490,7 +553,7 @@ const dxCourse = (function setupCourseWording() {
     template: () => DX_COURSE_TEXT,
     auto: () => dxCurrentPackage() === 'NSDBF',
     outLabel: true,
-    notAutoNote: 'Put in by itself only for a normal delivery (NSDBF). Press "Put it in the course in the ward" to use it anyway.',
+    notAutoNote: 'Put in by itself only for a normal delivery (NSDBF). Press "Put it in" to use it anyway.',
     putNote: 'The paragraph is now in the first box of the course in the ward below.',
     pkg: dxCurrentPackage,
     label: key => (key === 'cf4CourseDate1' ? 'the first date' : 'the first box'),
@@ -499,7 +562,7 @@ const dxCourse = (function setupCourseWording() {
     targets: text => ({ cf4CourseDate1: state.data.dateAdmitted || '', cf4CourseOrder1: text }),
   });
   sentence.box.insertAdjacentHTML('afterbegin', dxShell('The clinic\'s course in the ward (normal delivery)', '',
-    { use: 'Put it in the course in the ward', out: 'Take it out' }));
+    { out: 'Take it out' }));
   return { refresh: () => sentence.refresh(), reset: () => sentence.reset() };
 })();
 
@@ -516,8 +579,8 @@ const dxDrugs = (function setupDeliveryDrugs() {
       <tbody>${DX_DELIVERY_DRUGS.map(r => `<tr>${r.map(c => `<td>${dxEscape(c) || '—'}</td>`).join('')}</tr>`).join('')}</tbody></table>
     <div class="dx-status small"></div>
     <div class="dx-actions">
-      <button type="button" class="btn btn-primary btn-sm" data-dx-add-drugs><i class="bi bi-plus-lg me-1"></i>Add them to the list</button>
-      <button type="button" class="btn btn-outline-secondary btn-sm" data-dx-remove-drugs><i class="bi bi-dash-lg me-1"></i>Take them out of the list</button>
+      <button type="button" class="btn btn-primary btn-sm" data-dx-add-drugs><i class="bi bi-plus-lg me-1"></i>Put it in</button>
+      <button type="button" class="btn btn-outline-secondary btn-sm" data-dx-remove-drugs><i class="bi bi-dash-lg me-1"></i>Take it out</button>
     </div>`;
   host.appendChild(box);
 
@@ -616,6 +679,11 @@ const DX_ICD_OPTIONS = Object.entries(DX_PACKAGES).flatMap(([pkg, p]) => (typeof
   : [{ code: p.icd, pkg, label: p.name }]));
 const DX_RVS_OPTIONS = Object.entries(DX_PACKAGES).filter(([, p]) => p.rvs)
   .map(([pkg, p]) => ({ code: p.rvs, pkg, label: p.name, proc: p.proc }));
+/* A package's case rate code: its RVS code, or its own package code when
+   it has none (FP001, PPC01...). */
+function dxCaseRate(p) { return p.rvs || p.code; }
+const DX_CASE_RATE_OPTIONS = Object.entries(DX_PACKAGES)
+  .map(([pkg, p]) => ({ code: dxCaseRate(p), pkg, label: p.name }));
 
 /* What a picked code fills beside it, while that box is empty or still
    holds what an earlier pick put there: the diagnosis for an ICD-10 code,
@@ -631,7 +699,7 @@ function dxPickCode(key, option) {
   const put = { [key]: option.code };
   const nameKey = DX_NAME_BOX[key];
   if (nameKey) {
-    const name = option.proc || dxPackageWording(option.pkg);
+    const name = option.proc || (key === 'dxAIcd10' && DX_PACKAGES[option.pkg].cf2Dx) || dxPackageWording(option.pkg);
     const now = String(state.data[nameKey] ?? '').trim();
     if (!now || now === dxPickedNames[nameKey]) {
       put[nameKey] = name;
@@ -715,10 +783,14 @@ window.addEventListener('resize', () => {
   if (dxCodeMenu.classList.contains('show')) dxPlaceCodeMenu();
 });
 
-document.querySelectorAll('[data-autofill="dxAIcd10"], [data-autofill="dxBIcd10"], [data-autofill="cf4IcdCode"], [data-autofill="csfFirstCaseRate"]')
+document.querySelectorAll('[data-autofill="dxAIcd10"], [data-autofill="dxBIcd10"]')
   .forEach(el => dxAttachCodeMenu(el, DX_ICD_OPTIONS));
-document.querySelectorAll('[data-autofill^="dxARvs"], [data-autofill^="dxBRvs"], [data-autofill="cf4RvsCode"], [data-autofill="csfSecondCaseRate"]')
+document.querySelectorAll('[data-autofill^="dxARvs"], [data-autofill^="dxBRvs"]')
   .forEach(el => dxAttachCodeMenu(el, DX_RVS_OPTIONS));
+// Both case rate boxes (CSF Part V, CF4) take the package's RVS code.
+document.querySelectorAll('[data-autofill="cf4IcdCode"], [data-autofill="csfFirstCaseRate"], ' +
+                          '[data-autofill="cf4RvsCode"], [data-autofill="csfSecondCaseRate"]')
+  .forEach(el => dxAttachCodeMenu(el, DX_CASE_RATE_OPTIONS));
 
 /* ── CF4 2.a: "No known medical illness" ──────────────────── */
 
@@ -727,60 +799,95 @@ document.querySelectorAll('[data-autofill^="dxARvs"], [data-autofill^="dxBRvs"],
    offered only while the box is empty; with it, it is added to the end of
    what is there. "Take it out" removes only the phrase. */
 const DX_PHRASE_SEP = ', ';
-function dxPhraseCard(section, key, phrase, title, append) {
+/* opts.replace: offered over other writing too, asked first in the card
+   ("Replace it" / "Keep what is there", as the wordings above).
+   opts.missing: shown while the phrase can't be made yet. The phrase may
+   be a function, for one worked out from the forms. */
+function dxPhraseCard(section, key, phrase, title, append, opts) {
+  const o = opts || {};
   const field = document.querySelector(`#section-${section} [data-autofill="${key}"]`);
   if (!field) return null;
+  const words = () => (typeof phrase === 'function' ? phrase() : phrase) || '';
   const card = document.createElement('div');
   card.className = 'dx-template';
   card.innerHTML = `
     <div class="dx-head"><div class="dx-title"><i class="bi bi-card-text me-2"></i>${dxEscape(title)}</div></div>
-    <div class="dx-preview">${dxEscape(phrase)}</div>
+    <div class="dx-preview" style="white-space:pre-line"></div>
     <div class="dx-status small"></div>
     <div class="dx-actions">
-      <button type="button" class="btn btn-primary btn-sm" data-phrase-put><i class="bi bi-plus-lg me-1"></i><span></span></button>
+      <button type="button" class="btn btn-primary btn-sm" data-phrase-put><i class="bi bi-plus-lg me-1"></i>Put it in</button>
       <button type="button" class="btn btn-outline-secondary btn-sm" data-phrase-out hidden><i class="bi bi-dash-lg me-1"></i>Take it out</button>
+    </div>
+    <div class="dx-confirm" role="alertdialog" hidden>
+      <div class="dx-confirm-title"><i class="bi bi-exclamation-triangle-fill me-2"></i>Replace what is there?</div>
+      <div class="dx-confirm-old" style="white-space:pre-line"></div>
+      <div class="dx-actions">
+        <button type="button" class="btn btn-warning btn-sm" data-phrase-replace>Replace it</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-phrase-keep>Keep what is there</button>
+      </div>
     </div>`;
   field.insertAdjacentElement('afterend', card);
   const putBtn = card.querySelector('[data-phrase-put]');
   const outBtn = card.querySelector('[data-phrase-out]');
+  const ask = card.querySelector('.dx-confirm');
   const now = () => String(state.data[key] ?? '').trim();
-  const has = () => now() === phrase || (append && now().endsWith(DX_PHRASE_SEP + phrase));
+  // Compared without the spaces at the ends ("G3 - " ends in one).
+  const same = (a, b) => a.trim() === b.trim();
+  const has = () => { const p = words(); return !!p && (same(now(), p) || (append && now().endsWith(DX_PHRASE_SEP + p))); };
   const part = {
     refresh() {
       const text = now();
+      const p = words();
       const inBox = has();
-      putBtn.hidden = inBox || (!append && text !== '');
-      putBtn.querySelector('span').textContent = text ? 'Add it to the end' : 'Put it in';
+      card.querySelector('.dx-preview').textContent = p || '—';
+      putBtn.hidden = !p || inBox || (!append && !o.replace && text !== '');
       outBtn.hidden = !inBox;
-      card.querySelector('.dx-status').textContent = inBox ? 'It is in the box below.'
-        : (!append && text ? 'Something else is written in the box, so this is not offered.' : '');
+      card.querySelector('.dx-status').textContent = !p ? (o.missing || '')
+        : inBox ? 'It is in the box below.'
+        : (!append && !o.replace && text ? 'Something else is written in the box, so this is not offered.' : '');
     },
   };
   const put = value => {
+    ask.hidden = true;
     dxApplying = true;
     try { applyFormData({ [key]: value }); } finally { dxApplying = false; }
     part.refresh();
   };
-  putBtn.addEventListener('click', () => put(now() ? now() + DX_PHRASE_SEP + phrase : phrase));
+  putBtn.addEventListener('click', () => {
+    const text = now();
+    if (append) return put(text ? text + DX_PHRASE_SEP + words() : words());
+    if (text && o.replace) {
+      ask.querySelector('.dx-confirm-old').textContent = text;
+      ask.hidden = false;
+      ask.querySelector('[data-phrase-replace]').focus();
+      return;
+    }
+    put(words());
+  });
+  card.querySelector('[data-phrase-replace]').addEventListener('click', () => put(words()));
+  card.querySelector('[data-phrase-keep]').addEventListener('click', () => { ask.hidden = true; });
   outBtn.addEventListener('click', () => {
     const text = now();
-    put(text === phrase ? '' : text.slice(0, text.length - (DX_PHRASE_SEP + phrase).length));
+    const p = words();
+    put(same(text, p) ? '' : text.slice(0, text.length - (DX_PHRASE_SEP + p).length));
   });
+  part.refresh();
   return part;
 }
 
-// CF4 2.a: on its own only - it would contradict any other history.
-const dxPastHistory = dxPhraseCard('cf4', 'cf4PastMedicalHistory', 'NO KNOWN MEDICAL ILLNESS',
-  'The usual wording: no known medical illness', false);
-// Patient details: the brief history, added to whatever is written there.
-const dxLaborPains = dxPhraseCard('patient', 'briefHistory', 'LABOR PAINS',
+// CF4 2.a "NO KNOWN MEDICAL ILLNESS" and the history's pregnancy lines are
+// put in by themselves (app.js applyNewPatientDefaults, DERIVED_FIELDS),
+// highlighted until checked, so they have no card.
+// Patient details: labor pains is a reason for admission, not part of the
+// history of present illness - added to whatever is written there.
+const dxLaborPains = dxPhraseCard('patient', 'chiefComplaint', 'LABOR PAINS',
   'The usual wording: labor pains', true);
 
 /* ── Kept in step with the forms ─────────────────────────── */
 
 function dxRefreshAll() {
   if (dxApplying) return;
-  [dxDiagnosis, dxCourse, dxDrugs, dxPastHistory, dxLaborPains].forEach(part => { if (part) part.refresh(); });
+  [dxDiagnosis, dxCourse, dxDrugs, dxLaborPains].forEach(part => { if (part) part.refresh(); });
 }
 
 const updateFormPreviewsBeforeDx = updateFormPreviews;

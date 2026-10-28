@@ -34,6 +34,7 @@ const mb = {
   copied: null,     // {motherClaimId, values: {key: value copied}} while ticked
   picked: null,     // the mother's claim chosen in the list
   busy: false,
+  pendingRole: null, // chosen before the patient is saved (no claim yet)
 };
 
 /* Saved with the claim by js/claim-loader.js. */
@@ -72,6 +73,25 @@ async function mbApi(path, opts) {
   const body = await resp.json().catch(() => ({}));
   if (!resp.ok || !body.success) throw new Error(body.error || `Request failed (${resp.status})`);
   return body;
+}
+
+/* The server, without this patient's claim (a baby typed in by hand,
+   not saved yet): the mothers' claims, and what one of them gives a baby. */
+async function mbGet(path) {
+  const resp = await fetch(`${PCA_API_BASE}/api/claims${path}`);
+  const body = await resp.json().catch(() => ({}));
+  if (!resp.ok || !body.success) throw new Error(body.error || `Request failed (${resp.status})`);
+  return body;
+}
+
+/* Copy from a mother's claim before this baby's claim exists. */
+async function mbCopyUnsaved(motherClaimId) {
+  mb.fromMother = await mbGet(`/${motherClaimId}/for-baby`);
+  const values = mbApplyFromMother(null);
+  mb.copied = { motherClaimId, values };
+  mbTagFields();
+  updateFormPreviews();
+  return Object.keys(values).length;
 }
 
 function mbPut(body) {
@@ -200,7 +220,11 @@ function mbRender() {
       </div>
     </div>`;
 
-  if (role === 'baby') html += mbBabyHtml();
+  if (f.unsaved && role === 'mother') {
+    html += `<div class="mb-body mb-muted">Press <strong>Save patient</strong> (below) so her baby's claim can find her and copy her details.</div>`;
+  } else if (f.unsaved && role === 'baby' && !f.mothersLoaded) {
+    html += `<div class="mb-body mb-muted">Looking for the mothers' claims…</div>`;
+  } else if (role === 'baby') html += mbBabyHtml();
   else if (role === 'mother') html += mbMotherHtml();
   panel.innerHTML = html;
   // Mother or baby decides the diagnosis package (js/dx-templates.js).
@@ -321,6 +345,20 @@ function mbOnClick(e) {
   const btn = e.target.closest('[data-mb-role]');
   if (!btn) return;
   const role = btn.dataset.mbRole;
+  if (mb.family && mb.family.unsaved) {
+    if (mb.family.role === 'baby' && role !== 'baby' && mb.copied) { mbUndoCopy(); updateFormPreviews(); }
+    mb.pendingRole = mb.family.role === role ? null : role;
+    mb.family.role = mb.pendingRole || '';
+    if (mb.family.role === 'baby' && !mb.family.mothersLoaded) {
+      mbRun(async () => {
+        mb.family.mothers = (await mbGet('/mothers')).mothers;
+        mb.family.mothersLoaded = true;
+      });
+      return;
+    }
+    mbRender();
+    return;
+  }
   mbRun(async () => {
     const leavingBaby = mb.family.role === 'baby' && role !== 'baby';
     if (leavingBaby && mb.copied) {
@@ -334,6 +372,7 @@ function mbOnClick(e) {
 }
 
 function mbOnChange(e) {
+  if (mb.family && mb.family.unsaved) return mbOnChangeUnsaved(e);
   if (e.target.id === 'mbCopyTick') {
     const tick = e.target.checked;
     const select = document.getElementById('mbMotherSelect');
@@ -365,13 +404,44 @@ function mbOnChange(e) {
   }
 }
 
+/* The same for a baby not saved yet: copied now, linked on Save patient. */
+function mbOnChangeUnsaved(e) {
+  const select = document.getElementById('mbMotherSelect');
+  const motherId = Number(select && select.value);
+  if (e.target.id === 'mbCopyTick') {
+    if (e.target.checked) {
+      mbRun(async () => {
+        const n = await mbCopyUnsaved(motherId);
+        showToast('Copied from the mother', `${n} box${n === 1 ? '' : 'es'} filled from the mother's claim.`, 'success');
+      });
+    } else {
+      mbUndoCopy();
+      updateFormPreviews();
+      mbRender();
+    }
+  } else if (e.target.id === 'mbMotherSelect') {
+    mb.picked = motherId;
+    if (mb.copied) mbRun(async () => { mbUndoCopy(); await mbCopyUnsaved(motherId); });
+    else mbRender();
+  }
+}
+
 /* ── Start / stop ────────────────────────────────────────── */
 
 async function initMotherBaby(claimId, saved) {
+  const pending = mb.pendingRole;
+  const pendingCopy = mb.family && mb.family.unsaved ? mb.copied : null;
   closeMotherBaby();
   mb.claimId = claimId;
   try {
     mb.family = (await mbApi('/family'));
+    // Chosen before the patient was saved: now kept with the claim.
+    if (pending && !mb.family.role_chosen) mb.family = await mbPut({ role: pending });
+    // ...and the mother's claim it copied from, still tracked as copied.
+    if (pendingCopy && pending === 'baby') {
+      mb.family = await mbPut({ mother_claim_id: pendingCopy.motherClaimId });
+      saved = { motherClaimId: pendingCopy.motherClaimId, values: pendingCopy.values };
+    }
     // Ticked before: copy again into boxes still empty (the mother's claim
     // may have more filled in since), keeping track of what came from her.
     if (mb.family.role === 'baby' && mb.family.mother_claim_id) {
@@ -387,7 +457,7 @@ async function initMotherBaby(claimId, saved) {
 
 function closeMotherBaby() {
   mbUntagFields();
-  Object.assign(mb, { claimId: null, family: null, fromMother: null, copied: null, picked: null, busy: false });
+  Object.assign(mb, { claimId: null, family: null, fromMother: null, copied: null, picked: null, busy: false, pendingRole: null });
   const panel = document.getElementById('motherBabyPanel');
   if (panel) panel.remove();
 }
@@ -404,3 +474,21 @@ function mbRefreshSoon() {
   clearTimeout(mbRefreshTimer);
   mbRefreshTimer = setTimeout(() => { if (mb.family && !mb.busy) mbRender(); }, 400);
 }
+
+/* A patient typed in by hand, with no claim yet (not from the logbook, not
+   saved): the panel still asks mother or baby. The choice is remembered,
+   decides the diagnosis package (js/dx-templates.js dxIsBaby), and is
+   kept with the claim when it is saved (initMotherBaby). */
+function initUnsavedMotherBaby() {
+  if (mb.claimId) return;
+  mb.family = {
+    unsaved: true, role: mb.pendingRole || '', role_chosen: null, detected_role: null,
+    detected_reason: 'Not saved yet - choose who this patient is', mothers: [], babies: [],
+  };
+  mbRender();
+}
+document.addEventListener('DOMContentLoaded', () => {
+  if (!new URLSearchParams(location.search).get('claim')) initUnsavedMotherBaby();
+});
+// "Start a new patient": after the claim is let go (js/claim-loader.js).
+document.addEventListener('pca:new-patient', () => setTimeout(initUnsavedMotherBaby, 0));

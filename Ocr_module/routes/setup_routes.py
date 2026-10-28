@@ -57,7 +57,8 @@ def read_scan():
         try:
             # One OCR at a time: PaddleOCR is shared with the logbook reader.
             with review_jobs.OCR_LOCK:
-                result = logbook_setup.read_scan(path, extract_tokens_from_array, source_document)
+                result = logbook_setup.read_scan(path, extract_tokens_from_array, source_document,
+                                                 use_saved=request.form.get("use_saved") == "1")
         except ValueError as exc:
             raise InvalidRequestError(str(exc))
     return jsonify({"success": True, **result})

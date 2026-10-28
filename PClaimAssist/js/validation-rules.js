@@ -32,6 +32,14 @@ const VAL_FIELDS = {
     { key:'dateDischarge', label:'Date Discharged' },
     { key:'patientDOB',    label:'Patient Date of Birth' },
   ],
+  // CF1: everything is already asked for on Patient details and the PMRF.
+  cf1: [
+    { key:'memberPIN',     label:'Member PhilHealth PIN' },
+    { key:'memberName',    label:'Member Name' },
+    { key:'memberDOB',     label:'Member Date of Birth' },
+    { key:'memberSex',     label:'Member Sex' },
+    { key:'mailingAddress',label:'Mailing Address' },
+  ],
   cf2: [
     { key:'hciPAN',        label:'HCI Accreditation No. (PAN)' },
     { key:'hciName',       label:'Health Care Institution Name' },
@@ -69,10 +77,44 @@ const VAL_FIELDS = {
   ],
 };
 
-const VAL_FORM_KEYS = ['csf', 'cf2', 'cf4', 'pmrf'];
+const VAL_FORM_KEYS = ['csf', 'cf1', 'cf2', 'cf4', 'pmrf'];
+
+/* The forms each PhilHealth package's claim is filed with, of the ones this
+   system makes (js/dx-templates.js DX_PACKAGES keys). The other documents
+   those claims need - eSOA, partograph, ANCR, PPCR - are not made here.
+     NSDBF       normal delivery           CF1 + CF2 + CF4 + CSF (no CF3, 2026 circular)
+     NCP         newborn care              CF1 + CF2 + CSF + PMRF (the baby is registered
+                                           as the member's dependent; provisional)
+     FP001       implant insertion         CF1 + CF2 + CSF (provisional)
+     IUD (58300) interval IUD insertion    CF1 + CF2 + CSF (provisional)
+     ANV         prenatal care             CF1 + CF2 + CSF
+     PPC01       postpartum visit          CF1 + CF2 + CSF
+   Any other claim shows the PMRF only with "Show all forms". */
+const CLAIM_FORMS = {
+  NSDBF: ['csf', 'cf1', 'cf2', 'cf4'],
+  NCP:   ['csf', 'cf1', 'cf2', 'pmrf'],
+  FP001: ['csf', 'cf1', 'cf2'],
+  IUD:   ['csf', 'cf1', 'cf2'],
+  ANV:   ['csf', 'cf1', 'cf2'],
+  PPC01: ['csf', 'cf1', 'cf2'],
+};
+
+/* The claim's package: picked by staff, or worked out from the patient
+   (js/dx-templates.js dxCurrentPackage). */
+function claimPackage(data) {
+  if (typeof window.dxCurrentPackage === 'function') return window.dxCurrentPackage();
+  return (data && data.dxPackage) || '';
+}
+
+/* The forms this claim is filed with, in VAL_FORM_KEYS order - every form
+   when showAll, or when the package is not known. */
+function claimFormKeys(data, showAll) {
+  const forms = !showAll && CLAIM_FORMS[claimPackage(data)];
+  return forms ? VAL_FORM_KEYS.filter(f => forms.includes(f)) : VAL_FORM_KEYS.slice();
+}
 
 const FORM_LABELS = {
-  csf: 'CSF', cf2: 'CF2', cf4: 'CF4', pmrf: 'PMRF',
+  csf: 'CSF', cf1: 'CF1', cf2: 'CF2', cf4: 'CF4', pmrf: 'PMRF',
 };
 
 /* ── Helpers ─────────────────────────────────────────────── */
@@ -100,12 +142,12 @@ function parseDisplayDate(v) {
 
 /* ── Feature extraction (Table 3.3) ──────────────────────── */
 
-function computeFeatures(getValue, data) {
+function computeFeatures(getValue, data, forms) {
   const f = {};
 
-  // <field>_present — one per required field across all five forms
+  // <field>_present — one per required field across the claim's forms
   const requiredKeys = new Set();
-  VAL_FORM_KEYS.forEach(form => VAL_FIELDS[form].forEach(({ key }) => requiredKeys.add(key)));
+  (forms || VAL_FORM_KEYS).forEach(form => VAL_FIELDS[form].forEach(({ key }) => requiredKeys.add(key)));
   let blank = 0;
   requiredKeys.forEach(key => {
     // No PhilHealth (Patient details): that person's PIN is not asked for.
@@ -143,7 +185,12 @@ function computeFeatures(getValue, data) {
     const cf2 = String(getValue('dxADiagnosis') || '').trim().toLowerCase();
     const cf4 = String(getValue('cf4FinalDiagnosis') || '').trim().toLowerCase();
     if (!cf2 || !cf4) return 1; // can't mismatch until both are filled
-    return cf2 === cf4 ? 1 : 0;
+    // CF2 carries the package's short diagnosis ("SPONTANEOUS VERTEX
+    // DELIVERY", js/dx-templates.js cf2Dx) while CF4 has the full final
+    // diagnosis, as the clinic writes them: that is a match.
+    const short = typeof DX_PACKAGES !== 'undefined'
+      ? Object.values(DX_PACKAGES).map(p => String(p.cf2Dx || '').toLowerCase()).filter(Boolean) : [];
+    return cf2 === cf4 || short.includes(cf2) ? 1 : 0;
   })();
 
   // Date ordering
@@ -339,7 +386,7 @@ const RULES = [
   { id:'SP-02', category:'Signature', action:'block_submission',
     test: f => f._signatureCheckActive && f.attending_midwife_signature_present === 0,
     message:"Attending midwife's signature is missing on CF4.",
-    checklist:'Attending midwife / physician — CF4',
+    checklist:'Attending midwife / physician — CF4', form:'cf4',
     source:'PhilHealth Circular No. 21, s. 2014' },
 
   { id:'SP-03', category:'Signature', action:'block_submission',
@@ -365,7 +412,7 @@ const RULES = [
   { id:'SP-06', category:'Signature', action:'block_submission',
     test: f => f._signatureCheckActive && f.attending_provider_signature_cf4_present === 0,
     message:"Attending provider's signature is missing on CF4.",
-    checklist:'Attending provider — CF4',
+    checklist:'Attending provider — CF4', form:'cf4',
     source:'PhilHealth CF4 requirement' },
 ];
 
@@ -373,13 +420,19 @@ const RULES = [
 
 /**
  * Run every rule against the current data.
+ * forms: the claim's forms - by default those the page shows (app.js
+ * pcaClaimForms, which knows "Show all forms"), else claimFormKeys(); a
+ * rule that belongs to another form (its `form`) is not run, and only these
+ * forms' boxes are required.
  * @returns {{features, violations, critical, warnings, signingChecklist, canGeneratePDF}}
  */
-function runValidationRules(getValue, data) {
-  const features = computeFeatures(getValue, data);
+function runValidationRules(getValue, data, forms) {
+  forms = forms || (typeof window.pcaClaimForms === 'function' ? window.pcaClaimForms() : claimFormKeys(data));
+  const features = computeFeatures(getValue, data, forms);
   const violations = [];
+  const inClaim = rule => !rule.form || forms.includes(rule.form);
 
-  RULES.forEach(rule => {
+  RULES.filter(inClaim).forEach(rule => {
     let fired = false;
     try {
       fired = !!rule.test(features);
@@ -406,7 +459,7 @@ function runValidationRules(getValue, data) {
   // The signing checklist lists every signature block the claim needs,
   // produced before printing regardless of whether a signed form exists.
   const signingChecklist = RULES
-    .filter(r => r.category === 'Signature' && r.checklist)
+    .filter(r => r.category === 'Signature' && r.checklist && inClaim(r))
     .filter(r => r.id !== 'SP-04' || features.is_employed_member === 1)
     .filter(r => r.id !== 'SP-05' || features.thumbmark_present === 1)
     .map(r => ({ id: r.id, text: r.checklist }));
@@ -423,6 +476,8 @@ function runValidationRules(getValue, data) {
 
 window.VAL_FIELDS         = VAL_FIELDS;
 window.VAL_FORM_KEYS          = VAL_FORM_KEYS;
+window.CLAIM_FORMS        = CLAIM_FORMS;
+window.claimFormKeys      = claimFormKeys;
 window.FORM_LABELS        = FORM_LABELS;
 window.VALIDATION_RULES   = RULES;
 window.runValidationRules = runValidationRules;

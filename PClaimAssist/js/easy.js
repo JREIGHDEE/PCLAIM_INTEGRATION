@@ -83,7 +83,11 @@
       if (typeof pinNotAsked === 'function' && pinNotAsked(key)) return;
       if (typeof NO_PHILHEALTH === 'object' && Object.values(NO_PHILHEALTH).includes(key)) return;
       const box = el.closest('[class*="col"]') || el.parentElement;
-      const required = el.dataset.ocrRequired || (box && box.querySelector('label .required-dot'));
+      // Asked for: a red *, a box the scan could not read, or a box a form
+      // still shows red (the employer while the member is employed...) -
+      // the same rule as the forms and the checker (js/app.js keyRedOnAnyForm).
+      const required = el.dataset.ocrRequired || (box && box.querySelector('label .required-dot')) ||
+        (typeof keyRedOnAnyForm === 'function' && keyRedOnAnyForm(key));
       if (!required || !isEmpty(key)) return;
       seen.add(key);
       toType.push({ key, target: highlightTarget(el) });

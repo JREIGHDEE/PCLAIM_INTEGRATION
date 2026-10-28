@@ -203,7 +203,7 @@ window.PDF_OVERLAY_PMRF = [
   { id:'acrICardNo', key:'acrICardNo', page:1, top:89.048, left:40.91, w:17.65, fs:7 },
   { id:'groupEnrollmentNo', key:'groupEnrollmentNo', page:1, top:89.408, left:7.28, w:16.98, fs:7 },
   { id:'profession', key:'profession', page:1, top:94.008, left:3.363, w:28.836, fs:8 },
-  { id:'monthlyIncome', key:'monthlyIncomeDisplay', page:1, top:93.68, left:32.871, w:14.46, fs:8 },
+  { id:'monthlyIncome', key:'monthlyIncomeDisplay', computed:'monthlyIncomeDisplay', page:1, top:93.68, left:32.871, w:14.46, fs:8 },
   { id:'proofPOS', key:'proofOfIncome', page:1, top:91.812, left:65.069, w:1.324, fs:9, center:true, checkbox:true, checkValue:'Point of Service (POS)' },
   { id:'proofFinanciallyIncapable', key:'proofOfIncome', page:1, top:93.772, left:65.069, w:1.324, fs:9, center:true, checkbox:true, checkValue:'Financially Incapable' },
 

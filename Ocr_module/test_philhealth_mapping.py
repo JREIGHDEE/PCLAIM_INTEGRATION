@@ -159,6 +159,77 @@ class CaseBridgeTests(unittest.TestCase):
         self.assertEqual(patient_fields["last_name"], "Dela Cruz")
         self.assertTrue(any("no comma" in w for w in warnings))
 
+    def test_name_without_comma_is_split_by_how_many_names_it_has(self):
+        cases = {
+            "MARY MABEL": ("MABEL", "MARY", None, None),
+            "MARY MAE JONAS": ("JONAS", "MARY", "MAE", None),
+            "MARY ANN DENISE ALCANTARA": ("ALCANTARA", "MARY ANN", "DENISE", None),
+            # A surname with particles is one name.
+            "MARY ANN DELA CRUZ": ("DELA CRUZ", "MARY", "ANN", None),
+            "MARY ANN DE LOS SANTOS REYES": ("REYES", "MARY ANN", "DE LOS SANTOS", None),
+        }
+        for name, expected in cases.items():
+            self.assertEqual(case_bridge._split_name(name)[:4], expected, name)
+
+    def test_name_suffix_is_found_wherever_it_was_written(self):
+        cases = {
+            "JUAN DELA CRUZ JR.": ("DELA CRUZ", "JUAN", None, "JR"),
+            "JUAN DELA CRUZ, JR": ("DELA CRUZ", "JUAN", None, "JR"),
+            "DELA CRUZ JR., JUAN SANTOS": ("DELA CRUZ", "JUAN", "SANTOS", "JR"),
+            "DELA CRUZ, JUAN SANTOS Sr.": ("DELA CRUZ", "JUAN", "SANTOS", "SR"),
+            "PEDRO SANTOS REYES III": ("REYES", "PEDRO", "SANTOS", "III"),
+            # A single letter at the end is a middle initial, not a suffix.
+            "DELA CRUZ, MARIA V": ("DELA CRUZ", "MARIA", "V", None),
+        }
+        for name, expected in cases.items():
+            self.assertEqual(case_bridge._split_name(name)[:4], expected, name)
+
+    def test_newborn_name_is_baby_girl_or_boy_however_it_was_read(self):
+        cases = {
+            "BABY GIRL DELA CRUZ": ("DELA CRUZ", "BABY GIRL", None),
+            "BBY GRL QUIADO": ("QUIADO", "BABY GIRL", None),
+            "8ABY B0Y REYES": ("REYES", "BABY BOY", None),
+            "BABYGIRL CRUZ": ("CRUZ", "BABY GIRL", None),
+            "QUIADO, BB GIRL": ("QUIADO", "BABY GIRL", None),
+            # The words between are the middle name (the mother's maiden
+            # surname), as staff confirmed this one - checked, as they may
+            # be the mother's first name instead.
+            "BABYBOY ABARQUEZ PANARES": ("PAÑARES", "BABY BOY", "ABARQUEZ"),
+        }
+        for name, (last, first, middle) in cases.items():
+            self.assertEqual(case_bridge._split_name(name)[:3], (last, first, middle), name)
+            self.assertEqual(case_bridge.infer_patient_sex(name, [])[0],
+                             "Female" if first == "BABY GIRL" else "Male", name)
+        self.assertIn("mother's first name", case_bridge._split_name("BABY GIRL LORNA QUIADO")[4])
+        # "BABY" can be a real first name.
+        self.assertEqual(case_bridge._split_name("BABY JANE CRUZ")[:3], ("CRUZ", "BABY", "JANE"))
+        self.assertEqual(case_bridge.clean_newborn_name("BB. GRL CRUZ"), "BABY GIRL CRUZ")
+
+    def test_enye_is_put_back_in_names_ocr_reads_with_n(self):
+        cases = {
+            "MYLENE ABARQUEZ PANARES": ("PAÑARES", "MYLENE", "ABARQUEZ"),
+            "LEA MAE QUINONES": ("QUIÑONES", "LEA", "MAE"),
+            "NATHAN ALCUIZAR DANO": ("DAÑO", "NATHAN", "ALCUIZAR"),
+            # As common without Ñ: left alone.
+            "NINA SANTOS CRUZ": ("CRUZ", "NINA", "SANTOS"),
+        }
+        for name, expected in cases.items():
+            self.assertEqual(case_bridge._split_name(name)[:3], expected, name)
+        self.assertIn("Ñ was put back", case_bridge._split_name("PANARES, MYLENE")[4])
+
+    def test_enye_names_staff_typed_are_learned(self):
+        self.assertEqual(case_bridge._split_name("ANA BANOS")[0], "BANOS")
+        case_bridge.remember_enye_names(["Baños"])
+        try:
+            self.assertEqual(case_bridge._split_name("ANA BANOS")[0], "BAÑOS")
+        finally:
+            case_bridge._LEARNED_ENYE.discard("BAÑOS")
+
+    def test_name_suffix_goes_in_name_ext(self):
+        patient_fields, _, _, _ = case_bridge.draft_patient_and_encounter({"NAME": "Juan Dela Cruz Jr."})
+        self.assertEqual((patient_fields["last_name"], patient_fields["first_name"], patient_fields["name_ext"]),
+                         ("Dela Cruz", "Juan", "JR"))
+
     def test_blank_name_produces_no_fields_and_a_warning(self):
         patient_fields, _, _, warnings = case_bridge.draft_patient_and_encounter({"NAME": ""})
         self.assertNotIn("last_name", patient_fields)

@@ -220,9 +220,10 @@ def ocr_cell(image, ocr_fn, first_read=None):
 def field_status(category, confidence, flags):
     """Confidence routing for one OCR'd field, plus two safety rules:
     a reading that missed part of the writing is never auto-accepted, and
-    a cell with no writing at all is "empty" (nothing to type) - except the
-    columns every logbook entry must have, which then need typing."""
-    if flags.get("blank") and category not in field_catalog.OCR_CLAIM_REQUIRED_CATEGORIES:
+    a cell with no writing at all, or only "-do-" (ditto), is "empty"
+    (nothing to type) - except the columns every logbook entry must have,
+    which then need typing."""
+    if (flags.get("blank") or flags.get("ditto")) and category not in field_catalog.OCR_CLAIM_REQUIRED_CATEGORIES:
         return EMPTY
     status = route_confidence(confidence)
     if status == ACCEPTED and flags.get("incomplete"):
@@ -513,6 +514,7 @@ def build_review_rows(path, ocr_fn, templates, upload_id=None, progress=None, co
 
             raw_text, confidence, tokens, ocr_error, flags = ocr_cell(
                 crop, ocr_fn, first_reads[cell_index % _BATCH_CELLS])
+            flags["ditto"] = review_fields.is_ditto(raw_text)
             status = field_status(category, confidence, flags)
             key = (spread, cell.row)
             row = rows_by_key.setdefault(key, {"spread": spread, "row": cell.row, "pages": [], "fields": []})
@@ -538,7 +540,7 @@ def build_review_rows(path, ocr_fn, templates, upload_id=None, progress=None, co
                 "routed_status": status,
                 # Manual-encoding fields start empty here; fill_best_guesses()
                 # (or the AI) fills in the best reading once OCR is done.
-                "value": "" if status == MANUAL else raw_text,
+                "value": "" if status in (MANUAL, EMPTY) else raw_text,
                 "crop": _save_crop(crop, upload_id, page_number, cell.row, cell.column),
                 "target_fields": case_bridge.target_fields(category),
                 # The offline AI's reading, when it re-read this cell (paddle_assist.py).
@@ -661,7 +663,7 @@ def _unreadable_required_date(field):
     if field.get("parts_reviewed"):
         return not (field.get("parts") or {}).get("date")
     text = str(field.get("value") or "").strip()
-    return bool(text) and case_bridge._parse_date_flexible(text) is None
+    return bool(text) and case_bridge._parse_date_flexible(text, case_bridge.date_kind(category)) is None
 
 
 def apply_review(ocr_data, submitted_values, defer_manual=False, submitted_parts=None):

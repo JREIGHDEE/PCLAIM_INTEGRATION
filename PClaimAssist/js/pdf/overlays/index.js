@@ -1,11 +1,12 @@
 /* ═══════════════════════════════════════════════════════════
-   Combines the per-form overlay coordinate maps (csf.js, cf2.js,
-   cf4.js, pmrf.js) into the single OVERLAY_MAP used by
+   Combines the per-form overlay coordinate maps (csf.js, cf1.js,
+   cf2.js, cf4.js, pmrf.js) into the single OVERLAY_MAP used by
    js/pdf/pdf-overlay.js. Must load after those files and before
    pdf-overlay.js.
 ═══════════════════════════════════════════════════════════ */
 const OVERLAY_MAP = {
   csf:  window.PDF_OVERLAY_CSF,
+  cf1:  window.PDF_OVERLAY_CF1,
   cf2:  window.PDF_OVERLAY_CF2,
   cf4:  window.PDF_OVERLAY_CF4,
   pmrf: window.PDF_OVERLAY_PMRF,

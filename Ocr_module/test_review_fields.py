@@ -55,6 +55,29 @@ class SuggestPartsTests(unittest.TestCase):
         self.assertTrue(parts["guessed"])
         self.assertFalse(review_fields.suggest_parts(NAME, "Dela Cruz, Maria Santos")["guessed"])
 
+    def test_only_the_address_has_a_length_limit(self):
+        final = ("PREGNANCY UTERINE FULL TERM 40 1/7 WEEKS AOG GRAVIDA 2 PARA 2 (2002), DELIVERED VIA NORMAL "
+                 "SPONTANEOUS VAGINAL DELIVERY ON SEPTEMBER 12, 2026, 03:20 AM TO A LIVE TERM BABY BOY IN CEPHALIC "
+                 "PRESENTATION WEIGHING 3100 GMS. WITH AN APGAR SCORE OF 8 AND 9 AND WITH AGA.")
+        self.assertGreater(len(final), 255)
+        self.assertEqual(review_fields._field_problems(FINAL_DX, {"text": final}, date(2026, 10, 1)), [])
+        self.assertTrue(review_fields._field_problems(ADDRESS, {"text": "X" * 256}, date(2026, 10, 1)))
+
+    def test_ditto_is_recognised_however_it_was_read(self):
+        for text in ("-do-", "- DO -", "do.", "-d0-", "~do~", "DITTO", '"', "〃"):
+            self.assertTrue(review_fields.is_ditto(text), text)
+        for text in ("DONA", "DOLORES", "DO 5", "", "D"):
+            self.assertFalse(review_fields.is_ditto(text), text)
+
+    def test_newborn_name_suggestion(self):
+        parts = review_fields.suggest_parts(NAME, "BBY GRL Dela Cruz")
+        self.assertEqual((parts["last"], parts["first"], parts["middle"]), ("DELA CRUZ", "BABY GIRL", ""))
+
+    def test_name_suggestion_fills_the_suffix_box(self):
+        parts = review_fields.suggest_parts(NAME, "Mary Ann Denise Alcantara Jr.")
+        self.assertEqual((parts["last"], parts["first"], parts["middle"], parts["suffix"]),
+                         ("ALCANTARA", "MARY ANN", "DENISE", "JR"))
+
     def test_unreadable_date_suggests_nothing(self):
         self.assertEqual(review_fields.suggest_parts(BDAY, "05-O4-?9"), {"date": ""})
 

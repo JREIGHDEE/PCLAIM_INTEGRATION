@@ -4,7 +4,7 @@ patient's sex, and the "please check" tags they get (no database)."""
 import unittest
 
 from philhealth import case_bridge, form_prefill
-from philhealth.address_parser import is_ditto, split_address
+from philhealth.address_parser import fix_place_names, is_ditto, split_address
 
 
 class SplitAddressTests(unittest.TestCase):
@@ -45,6 +45,26 @@ class SplitAddressTests(unittest.TestCase):
             self.assertTrue(is_ditto(text), text)
             self.assertEqual(split_address(text), {})
         self.assertFalse(is_ditto("DOMINGA"))
+
+    def test_misread_barangay_and_city_are_still_found(self):
+        # Readings the OCR was sure of, from a clinic logbook scan.
+        cases = {
+            "RAMONAVILLE CABAMTIAN DAVAB CITY": "RAMONAVILLE CABANTIAN DAVAO CITY",
+            "EMILY HOMES CARANTIAN DAVAD CIT": "EMILY HOMES CABANTIAN DAVAO CITY",
+            "PUROK 7 INDANGAM, DAAO CITY": "PUROK 7 INDANGAN, DAVAO CITY",
+            "PUROK 3 CAnAnNAn DAVAO CiM": "PUROK 3 CABANTIAN DAVAO CITY",
+        }
+        for text, fixed in cases.items():
+            self.assertEqual(fix_place_names(text), fixed, text)
+            parts = split_address(text)
+            self.assertEqual((parts.get("addr_city"), parts.get("addr_province")),
+                             ("DAVAO CITY", "DAVAO DEL SUR"), text)
+            self.assertIn(parts.get("addr_barangay"), ("CABANTIAN", "INDANGAN"), text)
+
+    def test_only_place_names_are_fixed(self):
+        for text in ("RAMONAVILLE", "EMILY HOMES", "JERSA HOMES CABANTIAN DAVAO CITY",
+                     "PUROK 19 CABANTIAN DAVAO CITY", "123 RIZAL ST., QUEZON CITY"):
+            self.assertEqual(fix_place_names(text), text, text)
 
 
 class InferSexTests(unittest.TestCase):
@@ -125,6 +145,32 @@ class DateReadingTests(unittest.TestCase):
     def test_unreadable_or_impossible_dates_are_not_guessed(self):
         for text in ("08-21-2u 11:00 Am", "0F-2-20 16.C0A", "13-40-26 10:00", "-23- f101PM"):
             self.assertIsNone(case_bridge._parse_date_flexible(text), text)
+
+    def test_more_handwriting_look_alikes(self):
+        # Real readings from a clinic logbook scan.
+        self.assertEqual(case_bridge._parse_date_flexible("Oq-l3-Zb 01:45 PM"), "2026-09-13")
+        self.assertEqual(case_bridge._parse_date_flexible("09-rZ-26 09.00AM"), "2026-09-12")
+        self.assertEqual(case_bridge._parse_date_flexible("09-1y-26"), "2026-09-14")
+        self.assertEqual(case_bridge._parse_date_flexible("I2-lZ-qq", "birth"), "1999-12-12")
+        self.assertEqual(case_bridge._parse_time_flexible("09-13-26 O1:y5 PM"), ("13:45", "PM"))
+
+    def test_date_read_upside_down_is_turned_over(self):
+        self.assertEqual(case_bridge._parse_date_flexible("hb-hZ-ho", "birth"), "1994-04-24")
+        self.assertEqual(case_bridge._parse_date_flexible("92-h1-b0 10DDAM"), "2026-09-14")
+        # Right way up, "h" is no 4: this is not guessed as 09-04-26.
+        self.assertIsNone(case_bridge._parse_date_flexible("09-h-2b 09:40 AM"))
+
+    def test_time_without_its_colon(self):
+        self.assertEqual(case_bridge._parse_time_flexible("09-14-26 1000AM"), ("10:00", "AM"))
+        self.assertEqual(case_bridge._parse_time_flexible("10DDAM"), ("10:00", "AM"))
+        # An hour that lost a digit is not read as midnight.
+        self.assertEqual(case_bridge._parse_time_flexible("09-14-26 0:00AM"), (None, None))
+
+    def test_a_date_the_column_cannot_hold_is_not_believed(self):
+        # A birthday in the future, an admission years ago.
+        self.assertIsNone(case_bridge._parse_date_flexible("12-12-30", "birth"))
+        self.assertIsNone(case_bridge._parse_date_flexible("05-21-20", "event"))
+        self.assertEqual(case_bridge._parse_date_flexible("05-21-20", "birth"), "2020-05-21")
 
     def test_usual_formats_still_work(self):
         self.assertEqual(case_bridge._parse_date_flexible("06/23/2026 11:15 AM"), "2026-06-23")

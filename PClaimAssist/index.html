@@ -7,8 +7,10 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" rel="stylesheet">
-  <link href="css/style.css?v=20261027a" rel="stylesheet">
+  <link href="css/style.css?v=20261028cf1" rel="stylesheet">
   <link href="css/easy.css?v=20261025q" rel="stylesheet">
+  <link href="css/colorblind.css?v=20261027c" rel="stylesheet">
+  <script src="js/colorblind.js?v=20261027a"></script>
 </head>
 <body class="easy">
 
@@ -103,6 +105,7 @@
   <!-- ── Form Readiness — the main panel: what staff check first ── -->
   <div class="pca-card mb-4 readiness-card" data-aos="fade-up">
     <div class="pca-card-header">Your forms &mdash; press a form to open it</div>
+    <p class="claim-forms-note small text-muted px-3 pt-2 mb-0" style="display:none"></p>
     <div class="p-3">
       <div class="readiness-grid">
 
@@ -111,6 +114,14 @@
           <div class="fs-name">Signatures</div>
           <div class="fs-status" id="status-csf"><span class="badge badge-pending">Not started</span></div>
           <div class="fs-bar"><div class="fs-bar-fill" id="prog-csf-bar" style="width:0%"></div></div>
+          <div class="fs-action">Open this form &rarr;</div>
+        </div>
+
+        <div class="form-status-card fs--cf1" onclick="navigateTo('cf1')">
+          <div class="fs-abbr">CF1</div>
+          <div class="fs-name">Member details</div>
+          <div class="fs-status" id="status-cf1"><span class="badge badge-pending">Not started</span></div>
+          <div class="fs-bar"><div class="fs-bar-fill" id="prog-cf1-bar" style="width:0%"></div></div>
           <div class="fs-action">Open this form &rarr;</div>
         </div>
 
@@ -413,10 +424,16 @@
         </div>
 
         <p class="pca-tab-section-label mt-4">Contact Information</p>
+        <!-- No contact info: the phone and email boxes are emptied, locked and not asked for (app.js applyNoContact). -->
+        <div class="form-check pca-check mb-2">
+          <input class="form-check-input" type="checkbox" id="noContact" data-autofill="noContact">
+          <label class="form-check-label fw-semibold" for="noContact">No contact info
+            <span class="text-muted fw-normal">- no phone or email; those boxes are left blank on the forms</span></label>
+        </div>
         <div class="row g-3">
           <div class="col-md-4">
             <label class="pca-label">Mobile Number</label>
-            <input type="tel" class="form-control pca-input" data-autofill="mobile" placeholder="0917-123-4567">
+            <input type="tel" class="form-control pca-input" data-autofill="mobile" data-mobile-ph inputmode="numeric" maxlength="16" placeholder="+63 917 123 4567" title="Philippine mobile number: +63 and 10 digits">
           </div>
           <div class="col-md-4">
             <label class="pca-label">Home / Landline Phone</label>
@@ -558,7 +575,7 @@
               <input class="form-check-input" type="checkbox" id="finalDxSameAsAdmission">
               <label class="form-check-label" for="finalDxSameAsAdmission">Same as the admission diagnosis</label>
             </div>
-            <textarea class="form-control pca-input" data-autofill="dischargeDx" rows="3" placeholder="e.g., Normal Spontaneous Delivery, Full Term, Live Birth"></textarea>
+            <textarea class="form-control pca-input" data-autofill="dischargeDx" rows="3" placeholder="e.g., ... GRAVIDA 3 PARA 3 (3003), DELIVERED VIA NORMAL SPONTANEOUS VAGINAL DELIVERY ON ..."></textarea>
           </div>
         </div>
       </div><!-- /pane-confinement -->
@@ -566,16 +583,7 @@
       <!-- ── TAB 4: MATERNITY & DELIVERY ───────────────────────── -->
       <div class="tab-pane fade" id="pane-maternity" role="tabpanel">
 
-        <p class="pca-tab-section-label">Clinical History</p>
-        <div class="row g-3">
-          <div class="col-12">
-            <label class="pca-label">Brief History of Present Illness / Pertinent History</label>
-            <textarea class="form-control pca-input" data-autofill="briefHistory" rows="3"
-              placeholder="e.g., G2P1 (1001), 39 weeks AOG by LMP. Admitted for active labor…"></textarea>
-          </div>
-        </div>
-
-        <p class="pca-tab-section-label mt-4">Obstetrical History</p>
+        <p class="pca-tab-section-label">Obstetrical History</p>
         <div class="row g-3">
           <div class="col-md-4">
             <label class="pca-label">Last Menstrual Period (LMP) <span class="required-dot">*</span></label>
@@ -606,6 +614,17 @@
               <label><input type="text" inputmode="numeric" maxlength="1" data-one-digit class="form-control pca-input text-center" data-autofill="obAbortion" placeholder="0" aria-label="Abortion"><span>Abortion</span></label>
               <label><input type="text" inputmode="numeric" maxlength="1" data-one-digit class="form-control pca-input text-center" data-autofill="obLiving" placeholder="1" aria-label="Living"><span>Living</span></label>
             </div>
+          </div>
+        </div>
+
+        <!-- After the obstetrical history: its lines come from Gravida (app.js pregnancyLines). -->
+        <p class="pca-tab-section-label mt-4">History of Present Illness</p>
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="pca-label">Brief History of Present Illness / Pertinent History
+              <span class="text-muted fw-normal">- one line per pregnancy, from Gravida (G) above</span></label>
+            <textarea class="form-control pca-input" data-autofill="briefHistory" rows="4"
+              placeholder="G1 - 2018 - HOSPITAL&#10;G2 - PRESENT PREGNANCY"></textarea>
           </div>
         </div>
 
@@ -659,8 +678,12 @@
             <input type="number" class="form-control pca-input" data-autofill="birthWeight" placeholder="3200">
           </div>
           <div class="col-md-3">
-            <label class="pca-label">APGAR Score</label>
-            <input type="number" min="0" max="10" class="form-control pca-input" data-autofill="apgarScore" placeholder="9">
+            <label class="pca-label">APGAR Score (1 min &amp; 5 min)</label>
+            <div class="d-flex align-items-center gap-2">
+              <input type="number" min="0" max="10" class="form-control pca-input" data-autofill="apgarScore1" placeholder="8" aria-label="APGAR score at 1 minute">
+              <span aria-hidden="true">&amp;</span>
+              <input type="number" min="0" max="10" class="form-control pca-input" data-autofill="apgarScore" placeholder="9" aria-label="APGAR score at 5 minutes">
+            </div>
           </div>
         </div>
       </div><!-- /pane-maternity -->
@@ -736,12 +759,33 @@
             <label class="pca-label">Member Type <span class="required-dot">*</span></label>
             <select class="form-select pca-input" data-autofill="memberType">
               <option value="">— Select —</option>
-              <option value="Employed Private">Employed Private</option>
-              <option value="Employed Government">Employed Government</option>
-              <option value="Self-Earning / Individual Paying Member">Self-Earning / Individual Paying</option>
-              <option value="OFW">OFW (Overseas Filipino Worker)</option>
-              <option value="Indigent">Indigent / Sponsored</option>
-              <option value="Lifetime Member">Lifetime Member</option>
+              <optgroup label="Direct Contributor">
+                <option value="Employed Private">Employed Private</option>
+                <option value="Employed Government">Employed Government</option>
+                <option value="Professional Practitioner">Professional Practitioner</option>
+                <option value="Self-Earning Individual">Self-Earning Individual</option>
+                <option value="Self-Earning Individual — Individual">Self-Earning Individual — Individual</option>
+                <option value="Self-Earning Individual — Sole Proprietor">Self-Earning Individual — Sole Proprietor</option>
+                <option value="Self-Earning Individual — Group Enrollment Scheme">Self-Earning Individual — Group Enrollment Scheme</option>
+                <option value="Kasambahay/Family Driver">Kasambahay/Family Driver</option>
+                <option value="Migrant Worker — Land-Based">Migrant Worker (Land-Based)</option>
+                <option value="Migrant Worker — Sea-Based">Migrant Worker (Sea-Based)</option>
+                <option value="Lifetime Member">Lifetime Member</option>
+                <option value="Filipinos with Dual Citizenship/Living Abroad">Filipinos with Dual Citizenship / Living Abroad</option>
+                <option value="Foreign National">Foreign National</option>
+              </optgroup>
+              <optgroup label="Indirect Contributor">
+                <option value="Listahanan">Listahanan</option>
+                <option value="4Ps/MCCT">4Ps/MCCT</option>
+                <option value="Senior Citizen">Senior Citizen</option>
+                <option value="Person with Disability">Person with Disability</option>
+                <option value="KIA/KIPO">KIA/KIPO</option>
+                <option value="Bangsamoro/Normalization">Bangsamoro/Normalization</option>
+                <option value="LGU-sponsored">LGU-sponsored</option>
+                <option value="NGA-sponsored">NGA-sponsored</option>
+                <option value="Private-sponsored">Private-sponsored</option>
+                <option value="PAMANA">PAMANA</option>
+              </optgroup>
             </select>
           </div>
           <div class="col-md-4">
@@ -752,7 +796,7 @@
             <label class="pca-label">Monthly Income (PHP)</label>
             <div class="input-group">
               <span class="input-group-text">&#8369;</span>
-              <input type="text" class="form-control pca-input" data-autofill="monthlyIncome" placeholder="25,000">
+              <input type="text" class="form-control pca-input" data-autofill="monthlyIncome" data-money inputmode="decimal" placeholder="25,000">
             </div>
           </div>
         </div>
@@ -760,10 +804,6 @@
 
       <!-- ── TAB 6: EMPLOYER INFO ───────────────────────────────── -->
       <div class="tab-pane fade" id="pane-employer" role="tabpanel">
-        <div class="alert-info-soft mb-3">
-          <i class="bi bi-info-circle me-2"></i>
-          Required for CSF Part II. Leave blank if patient / member is self-employed or non-employed.
-        </div>
         <p class="pca-tab-section-label">Employer Information (CSF Part II)</p>
         <div class="row g-3">
           <div class="col-md-4">
@@ -1141,7 +1181,7 @@
             </div>
           </div>
         </div>
-        <div class="dx-group-card mt-2" data-own-part>
+        <div class="dx-group-card mt-2" data-own-part data-optional-prof="2">
           <div class="dx-group-label">Professional 2</div>
           <div class="row g-2">
             <div class="col-12">
@@ -1161,7 +1201,7 @@
             </div>
           </div>
         </div>
-        <div class="dx-group-card mt-2" data-own-part>
+        <div class="dx-group-card mt-2" data-own-part data-optional-prof="3">
           <div class="dx-group-label">Professional 3</div>
           <div class="row g-2">
             <div class="col-12">
@@ -1205,6 +1245,301 @@
             <label class="pca-label">Date Signed</label>
             <input type="date" class="d-none" id="csf-providerSignedDate-real" data-autofill="providerSignedDate">
             <div class="box-input-date" data-target="#csf-providerSignedDate-real"></div>
+          </div>
+        </div>
+
+      </div><!-- /entry-panel-body -->
+    </div><!-- /form-entry-panel -->
+
+  </div><!-- /form-split-layout -->
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SECTION: CF1 (Claim Form 1, revised September 2018)
+     Every box here is already asked for on Patient details, the CSF or
+     the PMRF: the boxes below are the same keys, so CF1 fills itself.
+     Boxes typed on Patient details are greyed here (markPatientOwnedFields).
+═══════════════════════════════════════════════════════════════ -->
+<section id="section-cf1" class="content-section">
+  <div class="section-header">
+    <div>
+      <h1 class="section-title">CF1</h1>
+    </div>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <span id="val-cf1-score" class="val-score">0/5 Fields</span>
+      <button class="btn-export" id="export-cf1-btn" onclick="exportFilledPDF('cf1')">
+        <i class="bi bi-printer me-2"></i>Save as PDF to print
+      </button>
+      <div id="status-cf1-2"><span class="badge badge-pending">Not started</span></div>
+    </div>
+  </div>
+
+  <div class="form-split-layout" data-aos="fade-up">
+
+    <!-- LEFT: Live PDF Preview -->
+    <div class="pdf-preview-panel">
+      <div class="pdf-panel-toolbar">
+        <div class="pdf-panel-label">
+          <i class="bi bi-file-earmark-pdf-fill me-1 text-danger"></i>
+          Form preview
+        </div>
+      </div>
+      <div class="pdf-canvas-scroller">
+        <div class="pdf-loading" id="pdf-loading-cf1">
+          <div class="spinner-border spinner-border-sm text-light me-2"></div>Loading PDF&hellip;
+        </div>
+        <div class="pdf-canvas-wrap" id="pdf-wrap-cf1" style="display:none;">
+          <canvas id="canvas-cf1"></canvas>
+          <div class="pdf-overlay" id="overlay-cf1"></div>
+        </div>
+        <div class="pdf-no-file" id="pdf-nofile-cf1" style="display:none;">
+          <i class="bi bi-file-earmark-pdf fs-1"></i>
+          <p class="mb-0">PDF not found</p>
+          <small>Place <code>CF1.pdf</code> inside the <code>forms/</code> folder</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Data Entry Panel -->
+    <div class="form-entry-panel">
+      <div class="entry-panel-header">
+        <i class="bi bi-pencil-square me-2 text-success"></i>Type the details here
+        <span class="live-badge"><i class="bi bi-lightning-fill me-1"></i>Live Sync</span>
+      </div>
+      <div class="entry-panel-body">
+
+        <div class="entry-section-title">Part I &mdash; Member Information</div>
+        <div class="form-check pca-checkbox member-is-patient mb-2">
+          <input type="checkbox" class="form-check-input" data-autofill="memberIsPatient" id="cf1-memberIsPatient">
+          <label class="form-check-label" for="cf1-memberIsPatient">
+            <strong>The patient is the member</strong> (same person) &mdash; ticks &ldquo;Yes&rdquo; in item 7 and leaves Part II empty
+          </label>
+        </div>
+        <div class="row g-2">
+          <div class="col-12">
+            <label class="pca-label">Member PhilHealth PIN</label>
+            <input type="hidden" id="cf1-memberPIN-real" class="pca-input" data-autofill="memberPIN">
+            <div class="box-input" data-groups="2,9,1" data-target="#cf1-memberPIN-real"></div>
+          </div>
+          <div class="col-6">
+            <label class="pca-label">Last Name</label>
+            <input type="text" class="form-control pca-input" data-autofill="memberLastName" placeholder="DELA CRUZ">
+          </div>
+          <div class="col-6">
+            <label class="pca-label">First Name</label>
+            <input type="text" class="form-control pca-input" data-autofill="memberFirstName" placeholder="PEDRO">
+          </div>
+          <div class="col-6">
+            <label class="pca-label">Middle Name</label>
+            <input type="text" class="form-control pca-input" data-autofill="memberMiddleName" placeholder="REYES">
+          </div>
+          <div class="col-6">
+            <label class="pca-label">Suffix</label>
+            <input type="text" class="form-control pca-input" data-autofill="memberNameExt" placeholder="Jr.">
+          </div>
+          <div class="col-8">
+            <label class="pca-label">Date of Birth</label>
+            <input type="date" class="d-none" id="cf1-memberDOB-real" data-autofill="memberDOB">
+            <div class="box-input-date" data-target="#cf1-memberDOB-real"></div>
+          </div>
+          <div class="col-4">
+            <label class="pca-label">Sex</label>
+            <select class="form-select pca-input" data-autofill="memberSex">
+              <option value="">&mdash; Select &mdash;</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="entry-section-title mt-1">Mailing Address</div>
+        <!-- Left empty, the home address from Patient details is printed
+             (app.js getComputedValue cf1MailingAddr...). -->
+        <p class="small text-muted mb-2">Leave these empty to print the home address from Patient details. The country prints as PHILIPPINES.</p>
+        <div class="row g-2">
+          <div class="col-12">
+            <div class="form-check pca-checkbox"><input type="checkbox" class="form-check-input" data-autofill="mailingSameAsAbove" id="cf1-mailingSameAsAbove"><label class="form-check-label" for="cf1-mailingSameAsAbove">Same as the home address</label></div>
+          </div>
+          <div class="col-6">
+            <label class="pca-label">Unit/Room No./Floor</label>
+            <input type="text" class="form-control pca-input" data-autofill="mailingAddrUnit" placeholder="">
+          </div>
+          <div class="col-6">
+            <label class="pca-label">Building Name</label>
+            <input type="text" class="form-control pca-input" data-autofill="mailingAddrBuilding" placeholder="">
+          </div>
+          <div class="col-6">
+            <label class="pca-label">Lot/Blk/House/Bldg. No.</label>
+            <input type="text" class="form-control pca-input" data-autofill="mailingAddrLot" placeholder="">
+          </div>
+          <div class="col-6">
+            <label class="pca-label">Street</label>
+            <input type="text" class="form-control pca-input" data-autofill="mailingAddrStreet" placeholder="">
+          </div>
+          <div class="col-6">
+            <label class="pca-label">Subdivision/Village</label>
+            <input type="text" class="form-control pca-input" data-autofill="mailingAddrSubdivision" placeholder="">
+          </div>
+          <div class="col-6">
+            <label class="pca-label">Barangay</label>
+            <input type="text" class="form-control pca-input" data-autofill="mailingAddrBarangay" placeholder="">
+          </div>
+          <div class="col-4">
+            <label class="pca-label">City / Municipality</label>
+            <input type="text" class="form-control pca-input" data-autofill="mailingAddrCity" placeholder="">
+          </div>
+          <div class="col-4">
+            <label class="pca-label">Province</label>
+            <input type="text" class="form-control pca-input" data-autofill="mailingAddrProvince" placeholder="">
+          </div>
+          <div class="col-4">
+            <label class="pca-label">ZIP Code</label>
+            <input type="text" class="form-control pca-input" data-autofill="mailingAddrZip" placeholder="">
+          </div>
+        </div>
+
+        <div class="entry-section-title mt-1">Contact Information</div>
+        <div class="row g-2">
+          <div class="col-6">
+            <label class="pca-label">Landline No.</label>
+            <input type="tel" class="form-control pca-input" data-autofill="homePhone" placeholder="02-8123-4567">
+          </div>
+          <div class="col-6">
+            <label class="pca-label">Mobile No.</label>
+            <input type="tel" class="form-control pca-input" data-autofill="mobile" data-mobile-ph inputmode="numeric" maxlength="16" placeholder="+63 917 123 4567" title="Philippine mobile number: +63 and 10 digits">
+          </div>
+          <div class="col-12">
+            <label class="pca-label">Email Address</label>
+            <input type="email" class="form-control pca-input" data-autofill="email" placeholder="email@example.com">
+          </div>
+        </div>
+
+        <div class="entry-section-title mt-1">Part II &mdash; Patient Information (if the patient is a dependent)</div>
+        <div class="row g-2">
+          <div class="col-12">
+            <label class="pca-label">Dependent PhilHealth PIN</label>
+            <input type="hidden" id="cf1-patientPIN-real" class="pca-input" data-autofill="patientPIN">
+            <div class="box-input" data-groups="2,9,1" data-target="#cf1-patientPIN-real"></div>
+          </div>
+          <div class="col-6">
+            <label class="pca-label">Last Name</label>
+            <input type="text" class="form-control pca-input" data-autofill="patientLastName" placeholder="DELA CRUZ">
+          </div>
+          <div class="col-6">
+            <label class="pca-label">First Name</label>
+            <input type="text" class="form-control pca-input" data-autofill="patientFirstName" placeholder="MARIA">
+          </div>
+          <div class="col-6">
+            <label class="pca-label">Middle Name</label>
+            <input type="text" class="form-control pca-input" data-autofill="patientMiddleName" placeholder="SANTOS">
+          </div>
+          <div class="col-6">
+            <label class="pca-label">Suffix</label>
+            <input type="text" class="form-control pca-input" data-autofill="patientNameExt" placeholder="Jr.">
+          </div>
+          <div class="col-12">
+            <label class="pca-label">Relationship to Member</label>
+            <div class="btn-check-group" data-autofill="relationship">
+              <button type="button" class="btn-check-option" data-value="Child"><i class="bi bi-check-lg"></i>Child</button>
+              <button type="button" class="btn-check-option" data-value="Parent"><i class="bi bi-check-lg"></i>Parent</button>
+              <button type="button" class="btn-check-option" data-value="Spouse"><i class="bi bi-check-lg"></i>Spouse</button>
+            </div>
+          </div>
+          <div class="col-8">
+            <label class="pca-label">Date of Birth</label>
+            <input type="date" class="d-none" id="cf1-patientDOB-real" data-autofill="patientDOB">
+            <div class="box-input-date" data-target="#cf1-patientDOB-real"></div>
+          </div>
+          <div class="col-4">
+            <label class="pca-label">Sex</label>
+            <select class="form-select pca-input" data-autofill="patientSex">
+              <option value="">&mdash; Select &mdash;</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="entry-section-title mt-1">Part III &mdash; Member Certification</div>
+        <!-- The same boxes as CSF Part I's certification: filled once, on either form. -->
+        <div class="row g-2">
+          <div class="col-12">
+            <label class="pca-label">Signed By</label>
+            <div class="btn-check-group" data-autofill="memberSignerType">
+              <button type="button" class="btn-check-option" data-value="Member"><i class="bi bi-check-lg"></i>Member</button>
+              <button type="button" class="btn-check-option" data-value="Representative"><i class="bi bi-check-lg"></i>Representative</button>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="handwritten-check" data-handwritten="cf1MemberSignName,cf1RepSignName"
+                 data-handwritten-label="Leave the names on both signature lines blank - they are written by hand after printing"></div>
+          </div>
+          <div class="col-12" data-signer="memberSignerType:Member">
+            <label class="pca-label">Date Signed (Member)</label>
+            <input type="date" class="d-none" id="cf1-memberSignedDate-real" data-autofill="memberSignedDate">
+            <div class="box-input-date" data-target="#cf1-memberSignedDate-real"></div>
+          </div>
+          <div class="col-12" data-signer="memberSignerType:Representative">
+            <label class="pca-label">Date Signed (Representative)</label>
+            <input type="date" class="d-none" id="cf1-repSignedDate-real" data-autofill="repSignedDate">
+            <div class="box-input-date" data-target="#cf1-repSignedDate-real"></div>
+          </div>
+          <div class="col-12" data-signer="memberSignerType:Representative">
+            <label class="pca-label">Relationship of Representative to Member</label>
+            <div class="btn-check-group" data-autofill="repRelationship">
+              <button type="button" class="btn-check-option btn-check-option--sm" data-value="Spouse"><i class="bi bi-check-lg"></i>Spouse</button>
+              <button type="button" class="btn-check-option btn-check-option--sm" data-value="Child"><i class="bi bi-check-lg"></i>Child</button>
+              <button type="button" class="btn-check-option btn-check-option--sm" data-value="Parent"><i class="bi bi-check-lg"></i>Parent</button>
+              <button type="button" class="btn-check-option btn-check-option--sm" data-value="Sibling"><i class="bi bi-check-lg"></i>Sibling</button>
+              <button type="button" class="btn-check-option btn-check-option--sm" data-value="Others"><i class="bi bi-check-lg"></i>Others</button>
+            </div>
+          </div>
+          <div class="col-12" data-signer="memberSignerType:Representative">
+            <label class="pca-label">Others, Specify</label>
+            <input type="text" class="form-control pca-input" data-autofill="repRelationshipOther" placeholder="">
+          </div>
+          <div class="col-12" data-signer="memberSignerType:Representative">
+            <label class="pca-label">Reason for Signing on Behalf of the Member</label>
+            <div class="btn-check-group" data-autofill="repReason">
+              <button type="button" class="btn-check-option btn-check-option--sm" data-value="Incapacitated"><i class="bi bi-check-lg"></i>Member is Incapacitated</button>
+              <button type="button" class="btn-check-option btn-check-option--sm" data-value="Other"><i class="bi bi-check-lg"></i>Other Reasons</button>
+            </div>
+          </div>
+          <div class="col-12" data-signer="memberSignerType:Representative">
+            <label class="pca-label">Other Reasons, Specify</label>
+            <input type="text" class="form-control pca-input" data-autofill="repReasonOther" placeholder="">
+          </div>
+        </div>
+
+        <div class="entry-section-title mt-1">Part IV &mdash; Employer&rsquo;s Certification (employed members only)</div>
+        <div class="row g-2">
+          <div class="col-12">
+            <label class="pca-label">Employer PEN</label>
+            <input type="hidden" id="cf1-employerPEN-real" class="pca-input" data-autofill="employerPEN">
+            <div class="box-input" data-groups="2,9,1" data-target="#cf1-employerPEN-real"></div>
+          </div>
+          <div class="col-12">
+            <label class="pca-label">Contact No.</label>
+            <input type="tel" class="form-control pca-input" data-autofill="employerPhone" placeholder="02-8000-0000">
+          </div>
+          <div class="col-12">
+            <label class="pca-label">Business Name of Employer</label>
+            <input type="text" class="form-control pca-input" data-autofill="employerName" placeholder="ABC Company Inc.">
+          </div>
+          <div class="col-12">
+            <label class="pca-label">Signature Over Printed Name of Employer/Authorized Representative</label>
+            <input type="text" class="form-control pca-input" data-autofill="employerRepName" placeholder="Juan Dela Cruz">
+            <div class="handwritten-check" data-handwritten="employerRepName" data-handwritten-input="employerRepName"></div>
+          </div>
+          <div class="col-12">
+            <label class="pca-label">Official Capacity/Designation</label>
+            <input type="text" class="form-control pca-input" data-autofill="employerCapacity" placeholder="HR Manager">
+          </div>
+          <div class="col-12">
+            <label class="pca-label">Date Signed</label>
+            <input type="date" class="d-none" id="cf1-employerSignedDate-real" data-autofill="employerSignedDate">
+            <div class="box-input-date" data-target="#cf1-employerSignedDate-real"></div>
           </div>
         </div>
 
@@ -1452,7 +1787,7 @@
           </div>
         </div>
 
-        <div class="dx-group-card mt-2">
+        <div class="dx-group-card mt-2" data-own-part>
           <div class="dx-group-label">Diagnosis B</div>
           <div class="row g-2">
             <div class="col-7">
@@ -1651,7 +1986,7 @@
             </div>
           </div>
         </div>
-        <div class="dx-group-card mt-2" data-own-part>
+        <div class="dx-group-card mt-2" data-own-part data-optional-prof="2">
           <div class="dx-group-label">Professional 2</div>
           <div class="row g-2">
             <div class="col-12">
@@ -1681,7 +2016,7 @@
             </div>
           </div>
         </div>
-        <div class="dx-group-card mt-2" data-own-part>
+        <div class="dx-group-card mt-2" data-own-part data-optional-prof="3">
           <div class="dx-group-label">Professional 3</div>
           <div class="row g-2">
             <div class="col-12">
@@ -1807,12 +2142,6 @@
     </div>
   </div>
 
-  <div class="alert-info-soft mb-3">
-    <i class="bi bi-info-circle me-2"></i>
-    The admission logbook does not record clinical details, so these are encoded by hand.
-    Patient identifiers, confinement dates and the HCI details carry over automatically.
-    The entry fields below follow the page shown in the preview.
-  </div>
 
   <div class="form-split-layout" data-aos="fade-up">
 
@@ -1930,7 +2259,7 @@
         <div class="entry-section-title">III. Reason for Admission</div>
         <div class="row g-2">
           <div class="col-12"><label class="pca-label">1. History of Present Illness <span class="text-danger">*</span></label>
-            <textarea class="form-control pca-input" rows="5" data-autofill="cf4HistoryPresentIllness" placeholder="Onset, duration and course of symptoms"></textarea></div>
+            <textarea class="form-control pca-input" rows="5" data-autofill="cf4HistoryPresentIllness" placeholder="G1 - 2018 - HOSPITAL&#10;G2 - 2024 - LYING-IN&#10;G3 - PRESENT PREGNANCY"></textarea></div>
           <div class="col-12"><label class="pca-label">2.a Pertinent Past Medical History</label>
             <textarea class="form-control pca-input" rows="3" data-autofill="cf4PastMedicalHistory" placeholder="Previous illnesses, surgeries, allergies"></textarea></div>
         </div>
@@ -2420,10 +2749,6 @@
         <div class="entry-section-title">IV. Course in the Ward</div>
         <!-- The clinic's course-in-the-ward paragraph for a delivery (js/dx-templates.js) -->
         <div id="courseWardTemplate"></div>
-        <div class="form-check pca-check mb-2">
-          <input class="form-check-input" type="checkbox" id="cf4CourseExtraSheet" data-autofill="cf4CourseExtraSheet">
-          <label class="form-check-label" for="cf4CourseExtraSheet">There is/are additional sheet(s)</label>
-        </div>
         <!-- The form has two boxes under Date / Doctor's order: a big one and
              a small one below it. One date and one order each; the order wraps
              onto as many printed lines as its box holds. -->
@@ -2439,7 +2764,9 @@
             <div class="col-8 col-md-9"><textarea class="form-control pca-input" rows="2" data-autofill="cf4CourseOrder2" placeholder="Doctor's order / action"></textarea></div>
           </div>
         </div>
-        <div class="course-row-controls mb-1">
+        <!-- The second box is filled in by itself (the discharge line, app.js
+             DERIVED_FIELDS), so it is always shown: no add / hide buttons. -->
+        <div class="course-row-controls mb-1" style="display:none">
           <button type="button" class="btn btn-sm course-row-btn" id="cf4CourseAddRow"
                   aria-controls="cf4CourseExtraRows" aria-expanded="false">
             <i class="bi bi-plus-lg"></i> Use the second box
@@ -2451,23 +2778,19 @@
         </div>
         <div class="row g-2 mt-1">
           <div class="col-12"><label class="pca-label">Surgical Procedure / RVS Code</label>
-            <input type="text" class="form-control pca-input" data-autofill="cf4SurgicalProcedure" placeholder="Procedure and RVS code"></div>
+            <textarea class="form-control pca-input" rows="3" data-autofill="cf4SurgicalProcedure" placeholder="Procedure and RVS code"></textarea></div>
         </div>
 
         <div class="entry-section-title">V. Drugs / Medicines</div>
         <!-- The usual delivery medicines (js/dx-templates.js) -->
         <div id="drugsTemplate"></div>
-        <div class="form-check pca-check mb-2">
-          <input class="form-check-input" type="checkbox" id="cf4DrugsExtraSheet" data-autofill="cf4DrugsExtraSheet">
-          <label class="form-check-label" for="cf4DrugsExtraSheet">There is/are additional sheet(s)</label>
-        </div>
         <div class="row g-2 mb-1">
           <div class="col-5"><input type="text" class="form-control pca-input" data-autofill="cf4DrugName1" placeholder="Generic name"></div>
           <div class="col-4"><input type="text" class="form-control pca-input" data-autofill="cf4DrugQty1" placeholder="Quantity" aria-label="Quantity, medicine 1"><input type="text" class="form-control pca-input mt-1" data-autofill="cf4DrugDose1" placeholder="Dosage / route" aria-label="Dosage / route, medicine 1"></div>
           <div class="col-3"><input type="text" class="form-control pca-input" data-autofill="cf4DrugCost1" placeholder="Total cost"></div>
         </div>
         <!-- One row per medicine, as the form prints three rows. More than
-             three go on an additional sheet (the tick above). -->
+             three go on an additional sheet. -->
         <div id="cf4DrugExtraRows" hidden>
           <div class="row g-2 mb-1 drug-row" data-drug-row="2">
             <div class="col-5"><input type="text" class="form-control pca-input" data-autofill="cf4DrugName2" placeholder="Generic name"></div>
@@ -2814,7 +3137,7 @@
           </div>
           <div class="col-5">
             <label class="pca-label">Mobile Number</label>
-            <input type="tel" class="form-control pca-input" data-autofill="mobile" placeholder="0917-123-4567">
+            <input type="tel" class="form-control pca-input" data-autofill="mobile" data-mobile-ph inputmode="numeric" maxlength="16" placeholder="+63 917 123 4567" title="Philippine mobile number: +63 and 10 digits">
           </div>
         </div>
 
@@ -3078,7 +3401,8 @@
               <optgroup label="Indirect Contributor">
                 <option value="Listahanan">Listahanan</option>
                 <option value="4Ps/MCCT">4Ps/MCCT</option>
-                  <option value="Person with Disability">Person with Disability</option>
+                <option value="Senior Citizen">Senior Citizen</option>
+                <option value="Person with Disability">Person with Disability</option>
                 <option value="KIA/KIPO">KIA/KIPO</option>
                 <option value="Bangsamoro/Normalization">Bangsamoro/Normalization</option>
                 <option value="LGU-sponsored">LGU-sponsored</option>
@@ -3112,7 +3436,7 @@
             <label class="pca-label">Monthly Income (PHP)</label>
             <div class="input-group">
               <span class="input-group-text">&#8369;</span>
-              <input type="text" class="form-control pca-input" data-autofill="monthlyIncome" placeholder="25,000">
+              <input type="text" class="form-control pca-input" data-autofill="monthlyIncome" data-money inputmode="decimal" placeholder="25,000">
             </div>
           </div>
           <div class="col-12">
@@ -3231,6 +3555,8 @@
     <ul class="export-form-list" aria-label="Forms to save">
       <li><label class="export-chip"><input type="checkbox" data-export-form="csf" data-label="CSF" checked>
         <i class="bi bi-check-lg" aria-hidden="true"></i>CSF</label></li>
+      <li><label class="export-chip"><input type="checkbox" data-export-form="cf1" data-label="CF1" checked>
+        <i class="bi bi-check-lg" aria-hidden="true"></i>CF1</label></li>
       <li><label class="export-chip"><input type="checkbox" data-export-form="cf2" data-label="CF2" checked>
         <i class="bi bi-check-lg" aria-hidden="true"></i>CF2</label></li>
       <li><label class="export-chip"><input type="checkbox" data-export-form="cf4" data-label="CF4" checked>
@@ -3312,6 +3638,7 @@
 
   <!-- Per-form field checklist, generated from VAL_FIELDS. One form opens
        at a time so staff work through them one by one. -->
+  <p class="claim-forms-note small text-muted mb-2" style="display:none"></p>
   <div class="pca-accordion mb-4" id="valAccordion"></div>
 
   <!-- Rule-based validation results (deterministic IF-THEN rules).
@@ -3411,6 +3738,12 @@
             Your name, email and role are managed by your clinic administrator.
             Ask them if any of these need to change.
           </div>
+          <!-- The same switch as in Clinic Details, for staff who are not the administrator. -->
+          <div class="form-check form-switch mt-3" style="font-size:1.05rem;">
+            <input class="form-check-input" type="checkbox" role="switch" id="colorBlindToggleProfile" data-colorblind-toggle>
+            <label class="form-check-label fw-semibold" for="colorBlindToggleProfile">Colour-blind friendly colours</label>
+          </div>
+          <div class="form-text" style="font-size:.8rem;">Red and green become blue and orange, on this computer only.</div>
         </div>
       </div>
     </div>
@@ -3605,6 +3938,20 @@
                 </div>
               </div>
             </div>
+
+            <!-- How this computer shows colours (js/colorblind.js): kept on this PC, not with the clinic's details. -->
+            <div class="patient-part part-tone-0">
+              <p class="pca-tab-section-label"><i class="bi bi-eye me-2"></i>Colours on this computer</p>
+              <div class="form-check form-switch" style="font-size:1.05rem;">
+                <input class="form-check-input" type="checkbox" role="switch" id="colorBlindToggle" data-colorblind-toggle>
+                <label class="form-check-label fw-semibold" for="colorBlindToggle">Colour-blind friendly colours</label>
+              </div>
+              <div class="form-text" style="font-size:.8rem;">
+                Red and green become blue and orange, and boxes still missing get a thick dashed edge,
+                so they can be told apart without seeing red. Changes at once, on this computer only -
+                no need to press Save.
+              </div>
+            </div>
           </div>
 
           <div class="clinic-save d-flex align-items-center gap-2 flex-wrap">
@@ -3639,31 +3986,32 @@
 <!-- pdf-lib: write filled text onto PDF for export -->
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <!-- Shared sidebar (must load before app.js, which binds to .sidebar-item) -->
-<script src="js/sidebar.js?v=20261024a"></script>
+<script src="js/sidebar.js?v=20261028cf1"></script>
 <script>PCASidebar.render({ page: 'app', active: 'dashboard' });</script>
 <!-- Authentication client (must load before app.js) -->
 <script src="js/auth-client.js?v=20261022d"></script>
 <!-- PDF overlay coordinate maps (must load before pdf-overlay.js) -->
-<script src="js/pdf/overlays/csf.js?v=20261024g"></script>
-<script src="js/pdf/overlays/cf2.js?v=20261025f"></script>
-<script src="js/pdf/overlays/cf4.js?v=20261026e"></script>
-<script src="js/pdf/overlays/pmrf.js?v=20261024e"></script>
-<script src="js/pdf/overlays/index.js?v=20261024a"></script>
+<script src="js/pdf/overlays/csf.js?v=20261027d"></script>
+<script src="js/pdf/overlays/cf1.js?v=20261028a"></script>
+<script src="js/pdf/overlays/cf2.js?v=20261028a"></script>
+<script src="js/pdf/overlays/cf4.js?v=20261027d"></script>
+<script src="js/pdf/overlays/pmrf.js?v=20261028e"></script>
+<script src="js/pdf/overlays/index.js?v=20261028cf1"></script>
 <script src="js/entry-learning.js?v=20261022d"></script>
-<script src="js/pdf/pdf-overlay.js?v=20261027a"></script>
-<script src="js/pdf/pdf-calibrate.js?v=20261024a"></script>
+<script src="js/pdf/pdf-overlay.js?v=20261028forms"></script>
+<script src="js/pdf/pdf-calibrate.js?v=20261028cf1"></script>
 <!-- Rule-based validation engine (must load before app.js) -->
-<script src="js/validation-rules.js?v=20261024a"></script>
+<script src="js/validation-rules.js?v=20261028ncp"></script>
 <script src="js/ocr-review.js?v=20261022d"></script>
 <!-- Segmented inputs: date/PAN boxes and the PhilHealth PIN (2-9-1) -->
 <script src="js/box-input.js?v=20261022g"></script>
 <script src="js/date-text.js?v=20261022g"></script>
 <script src="js/pin-input.js?v=20261023a"></script>
-<script src="js/app.js?v=20261026q"></script>
-<script src="js/easy.js?v=20261023b"></script>
+<script src="js/app.js?v=20261028dxob"></script>
+<script src="js/easy.js?v=20261028a"></script>
 <!-- Loads a claim sent from the OCR review: index.html?claim=<id> -->
-<script src="js/mother-baby.js?v=20261026c"></script>
-<script src="js/dx-templates.js?v=20261027b"></script>
+<script src="js/mother-baby.js?v=20261028b"></script>
+<script src="js/dx-templates.js?v=20261028cf1"></script>
 <script src="js/claim-loader.js?v=20261027a"></script>
 
 </body>

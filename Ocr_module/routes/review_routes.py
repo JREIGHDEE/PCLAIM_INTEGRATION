@@ -23,6 +23,7 @@ Like claims_routes, nothing here logs patient text - only ids and counts.
 import logging
 import os
 import tempfile
+import time
 
 from flask import Blueprint, jsonify, request, send_from_directory
 from werkzeug.utils import secure_filename
@@ -36,13 +37,30 @@ import paddle_assist
 import review_jobs
 from errors import InvalidRequestError, ReviewCheckError, ReviewIncompleteError, SessionNotFoundError
 from ocr_engine import extract_tokens_from_array, read_many, read_versions_many
-from philhealth import case_bridge, field_catalog, review_fields
+from philhealth import address_parser, case_bridge, field_catalog, review_fields
 from template_store import load_template_payloads
 from utils.uploads import require_file, temp_upload_path, validate_extension
 
 logger = logging.getLogger(__name__)
 
 review_bp = Blueprint("review", __name__, url_prefix="/api/review")
+
+
+_ENYE_LEARNED_AT = {"at": None}
+_ENYE_REFRESH_SECONDS = 300
+
+
+def _learn_enye_names():
+    """Names staff typed with Ñ, so the review page puts Ñ back in them
+    (case_bridge.restore_enye). Read again every few minutes."""
+    now = time.monotonic()
+    if _ENYE_LEARNED_AT["at"] is not None and now - _ENYE_LEARNED_AT["at"] < _ENYE_REFRESH_SECONDS:
+        return
+    _ENYE_LEARNED_AT["at"] = now
+    try:
+        case_bridge.remember_enye_names(case_session_store.names_with_enye())
+    except Exception:
+        logger.warning("Could not read the names typed with Ñ", exc_info=True)
 
 
 def _with_inputs(field):
@@ -54,12 +72,19 @@ def _with_inputs(field):
         # Not checked yet: an unsure reading gets the fixes added since the
         # scan was read (e.g. "CASANTANDAUAO CY" -> "CABANTIAN DAVAO CITY").
         value = paddle_assist.fix_saved_reading(category, value)
+    if not field.get("parts_reviewed") and category == case_bridge.ADDRESS:
+        # A misread barangay or city, even in a reading the OCR was sure of
+        # ("CABAMTIAN DAVAB CITY" -> "CABANTIAN DAVAO CITY").
+        value = address_parser.fix_place_names(value)
     # Scans read before values were kept in capitals get them here too.
     field = {**field, "value": review_fields.in_capitals(category, value)}
     parts = field.get("parts") if field.get("parts_reviewed") else None
-    found_blank = field.get("status") == logbook_pipeline.EMPTY
+    # Found blank by the computer, or only "-do-" written there (also on
+    # scans read before that was looked for) - start as "empty".
+    found_blank = (field.get("status") == logbook_pipeline.EMPTY or
+                   review_fields.is_ditto(field.get("value") or field.get("raw_text")))
     if parts is None and found_blank and category not in field_catalog.OCR_CLAIM_REQUIRED_CATEGORIES:
-        parts = {"empty": True}  # found blank by the computer - start as "empty"
+        parts = {"empty": True}
     return {
         **field,
         "kind": review_fields.kind_of(category),
@@ -70,6 +95,7 @@ def _with_inputs(field):
 
 
 def _session_view(session):
+    _learn_enye_names()
     ocr_data = session["ocr_data"] or {}
     return {
         "session_id": session["id"],

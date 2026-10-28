@@ -627,6 +627,28 @@ def get_family(claim_id):
     }
 
 
+def list_mothers():
+    """Every claim marked (or read) as a mother's, those who have delivered
+    first: for a baby typed in by hand, before its own claim is saved."""
+    _require_migration_010()
+    with get_db_cursor() as cursor:
+        entries = [_family_entry(r) for r in _family_rows(cursor)]
+    mothers = [e for e in entries if e["role"] == mother_baby.MOTHER]
+    mothers.sort(key=lambda m: not m["delivery_date"])
+    return [_public(m, reasons=[]) for m in mothers]
+
+
+def values_for_baby_from(mother_claim_id):
+    """What a baby's claim copies from this mother's claim
+    (philhealth/mother_baby.values_for_baby), without the baby's claim -
+    the same as values_from_mother() once the two are linked."""
+    _require_migration_010()
+    if get_claim(mother_claim_id) is None:
+        raise ClaimNotFoundError(f"No claim found with id {mother_claim_id}.")
+    return {"mother_claim_id": mother_claim_id,
+            **mother_baby.values_for_baby(claim_form_values(mother_claim_id))}
+
+
 def set_family(claim_id, role=None, mother_claim_id=None, *, set_role=False, set_mother=False):
     """Staff's choice of who the patient is, and of the mother's claim a
     baby's claim copies from (None to unlink)."""
