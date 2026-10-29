@@ -11,6 +11,33 @@ Related documents:
 
 ---
 
+## 2026-10-29: UI Improvement (Dawn)
+
+**After pulling:** no database migration and no restart. Press Ctrl+F5 on
+every open page.
+
+### Sidebar
+- Closed (icon-only), the step numbers 1, 2, 3 now stay visible and the
+  icons sit centred; before, the step numbers vanished with the wording.
+- The footer note ("310 boxes filled in...") is white, and when closed
+  only the green dot shows instead of one word per line.
+- Picking a page folds the menu shut by itself (wide screens); hovering
+  over it slides it open over the page without moving the page. It stays
+  shut on the next page (`js/sidebar.js` `fold()`, kept in localStorage).
+- The fold slides smoothly: the width, wording, step numbers and dot all
+  move together (0.35 s). `easy.css` turns every animation off on purpose;
+  the sidebar is the one agreed exception (`style.css`, just before the
+  reduced-motion block). The rest of the system stays animation-free.
+- ☰ works as before; phones are unchanged.
+
+### Mother or baby?
+- The chosen button is colour-coded and bold: Mother pink, Baby sky blue,
+  Neither purple. The others stay plain. CSS only (`data-mb-role`).
+
+### Practice data
+- "Fill with practice data" now fills the CF4 medicine quantities
+  (`cf4DrugQty1-3`), so the quantity boxes are no longer left red.
+
 ## 2026-10-28 23:55: UI update (reigh)
 
 - Changed: review.html, style.css, index.html, app.js, sidebar.js, validation-rules.js, login.html, ocr.html
