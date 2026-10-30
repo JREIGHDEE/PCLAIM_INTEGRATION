@@ -27,16 +27,21 @@ class OCRAppError(Exception):
     status_code = 500
     error_code = "internal_error"
 
-    def __init__(self, message, status_code=None, error_code=None):
+    def __init__(self, message, status_code=None, error_code=None, details=None):
         super().__init__(message)
         self.message = message
         if status_code is not None:
             self.status_code = status_code
         if error_code is not None:
             self.error_code = error_code
+        # Anything a screen can show beyond the sentence: the sign-in page
+        # uses it for the attempts left and the seconds still to wait.
+        self.details = details or {}
 
     def to_response_body(self):
-        return {"success": False, "error": self.message, "error_code": self.error_code}
+        body = {"success": False, "error": self.message, "error_code": self.error_code}
+        body.update(self.details)
+        return body
 
 
 class InvalidRequestError(OCRAppError):

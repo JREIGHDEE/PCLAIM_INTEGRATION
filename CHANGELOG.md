@@ -11,6 +11,70 @@ Related documents:
 
 ---
 
+## 2026-10-30: Professor's notes - fixed sex, address dropdowns, email and sign-in security (yutaka)
+
+**After pulling:** no database migration. Restart the backend and press
+Ctrl+F5 on every open page. Three new files come with the pull
+(`js/ph-address.js`, `js/address-select.js`, `js/email-check.js`) and two
+on the backend (`email_check.py`, `sign_in_guard.py`).
+
+**From the professor's notes**
+
+- *Sex is Female unless someone says otherwise.* The patient of a maternity
+  clinic is the mother, so Sex is set to Female and Male is out of reach. A
+  small "Not female" tick releases it for the rare case that needs it. The
+  baby's sex is a separate question and is untouched.
+- *Province, City, Barangay and Subdivision are dropdowns.* Picking a city
+  narrows the barangays. Davao del Sur and Davao City are already chosen,
+  so staff go straight to the barangay. The list is Davao City's own 177
+  barangays, the numbered Poblacion ones included and written as the form
+  writes them (1-A … 19-B … 40-D), plus 58 common subdivisions. Anything
+  else is typed into a box that appears when "Not on the list" is chosen.
+  The lists are bundled, not fetched: a list that only loads when the line
+  is up is a list that fails on the day it is needed.
+- *The email address is checked.* Written correctly, and the part after the
+  @ looked up to see that the mail provider exists - so "gmial.com" is
+  caught and the right spelling offered. Checked by this clinic's own
+  backend: nothing is sent to the address and nothing to a company
+  outside, so the patient's email never leaves the computer. With no
+  internet the format is still checked and a good address is not refused.
+
+**Sign-in security**
+
+Most of it was already sound - bcrypt with a timing guard, a signed
+HttpOnly SameSite cookie, the sign-in wall on every page and API, no SQL
+built from typed values, no secrets in git, no password ever logged. One
+gap: nothing counted wrong passwords.
+
+- Five wrong passwords close that account for a minute, five more for five
+  minutes, five more for ten, and ten is the longest it gets. The right
+  password clears the count. Counted per account, so one account being
+  guessed at cannot lock the rest of the clinic out, and held in memory,
+  so a restart never leaves the staff shut out of their own system.
+- The sign-in page counts them where the person is already looking, above
+  the email box: a dot for each try left, a deeper red on the last one,
+  and a ring that empties while the wait runs down with Sign In held until
+  it ends.
+- `SESSION_COOKIE_SECURE` is read from the environment. It stays off for
+  http://127.0.0.1, where a secure cookie would never be sent and nobody
+  could sign in; set `SESSION_COOKIE_SECURE=1` on the day the clinic is
+  served over HTTPS, with no code change.
+
+**Known gap**
+
+The Davao City barangay list holds 177 names. The city has about 182, so a
+few are missing; they fall to "Not on the list" and can still be typed.
+Names were left out rather than invented to reach the number.
+
+- New: `Ocr_module/email_check.py`, `Ocr_module/sign_in_guard.py`,
+  `Ocr_module/test_sign_in_guard.py`, `PClaimAssist/js/ph-address.js`,
+  `PClaimAssist/js/address-select.js`, `PClaimAssist/js/email-check.js`
+- Changed: app.py, config.py, errors.py, routes/auth_routes.py,
+  routes/settings_routes.py, index.html, login.html, css/style.css,
+  js/app.js, js/login.js, js/auth-client.js
+
+---
+
 ## 2026-10-29: UI Improvement (Dawn)
 
 **After pulling:** no database migration and no restart. Press Ctrl+F5 on

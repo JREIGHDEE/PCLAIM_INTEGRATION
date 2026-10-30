@@ -2,6 +2,8 @@
 
   GET  /api/settings/clinic             the clinic's name, PAN and address
   POST /api/settings/clinic   (admin)   update them
+  POST /api/settings/check-email        is an email address written and
+                                        spelled correctly (email_check.py)
 
 Table 3.1 of the research design lists clinic name, accreditation number
 and address as "System settings (entered once)", shared by CF2 and
@@ -14,6 +16,7 @@ from flask import Blueprint, jsonify, request
 
 import auth
 import clinic_settings_store
+import email_check
 
 logger = logging.getLogger(__name__)
 
@@ -33,3 +36,12 @@ def update_clinic_settings():
     settings = clinic_settings_store.update_settings(
         data.get("settings") or {}, updated_by=auth.current_user()["id"])
     return jsonify({"success": True, "settings": settings})
+
+
+@settings_bp.route("/check-email", methods=["POST"])
+@auth.login_required
+def check_email_address():
+    """Is this a real address? Checked here, not by a service elsewhere:
+    the patient's email never leaves this computer (email_check.py)."""
+    address = (request.get_json(silent=True) or {}).get("email") or ""
+    return jsonify({"success": True, **email_check.check_email(address)})

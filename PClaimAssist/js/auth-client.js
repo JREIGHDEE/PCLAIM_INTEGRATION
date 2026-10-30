@@ -89,7 +89,14 @@ const PCAAuth = (function () {
           body: JSON.stringify({ email, password }),
         });
         if (r.ok && r.body && r.body.success) return { ok: true, user: r.body.user };
-        return { ok: false, error: (r.body && r.body.error) || 'Sign-in failed.' };
+        // attemptsLeft / lockedSeconds drive the sign-in page's counter
+        // and countdown; they are absent from older backends, hence ?? .
+        return {
+          ok: false,
+          error: (r.body && r.body.error) || 'Sign-in failed.',
+          attemptsLeft: r.body && r.body.attempts_left,
+          lockedSeconds: (r.body && r.body.locked_seconds) || 0,
+        };
       } catch (err) {
         return { ok: false, error: 'Cannot reach the server. Is the OCR backend running?' };
       }

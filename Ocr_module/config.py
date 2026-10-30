@@ -104,6 +104,12 @@ DB_PASSWORD = os.environ.get("DB_PASSWORD", "")
 DB_CONNECT_TIMEOUT = _env_int("DB_CONNECT_TIMEOUT", 5)
 
 # ── Sessions / authentication ─────────────────────────────────────────────
+# A secure cookie is only ever sent over HTTPS, so it must stay off while
+# the pilot runs on plain http://127.0.0.1 - with it on, nobody could sign
+# in at all. Set SESSION_COOKIE_SECURE=1 in the environment on the day the
+# clinic is served over HTTPS; no code has to change.
+SESSION_COOKIE_SECURE = _env_bool("SESSION_COOKIE_SECURE", False)
+
 # SECRET_KEY signs the session cookie so a browser cannot forge or edit it.
 # It must stay the same across restarts, otherwise every signed-in user is
 # logged out whenever the server restarts. A random key is generated on
