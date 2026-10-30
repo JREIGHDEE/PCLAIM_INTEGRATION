@@ -1528,6 +1528,8 @@ function syncAllAutofillElements() {
   // Likewise the CF4 examination groups, whose findings are locked while
   // "Essentially normal" is ticked.
   if (window.PCAExamGroups) setTimeout(window.PCAExamGroups.refresh, 0);
+  if (window.PCASexLock) setTimeout(window.PCASexLock.refresh, 0);
+  if (window.PCAAddressSelects) setTimeout(window.PCAAddressSelects.refresh, 0);
   const seen = new Set();
   document.querySelectorAll('[data-autofill]').forEach(el => {
     const key = el.dataset.autofill;
@@ -4326,3 +4328,58 @@ document.addEventListener('visibilitychange', () => {
   window.PCAExamGroups = { refresh: () => refreshers.forEach(fn => fn()) };
 })();
 
+
+/* ═══════════════════════════════════════════════════════════
+   SEX — FEMALE UNLESS SOMEONE SAYS OTHERWISE
+
+   The patient of a maternity clinic is the mother, so Sex is set to
+   Female and Male is out of reach. "Not female" releases it for the rare
+   case that needs it; unticking it puts Female back.
+
+   The baby's sex is a different question and is left alone.
+═══════════════════════════════════════════════════════════ */
+(function setupSexLock() {
+  const unlock = document.getElementById('patientSexUnlock');
+  if (!unlock) return;
+  const male = document.getElementById('patientSexM');
+  const female = document.getElementById('patientSexF');
+  const selects = Array.from(document.querySelectorAll('select.pca-sex-select'));
+
+  function apply(fromTick) {
+    const open = unlock.checked;
+    // A ticked radio is not a value until something writes it down, so
+    // Female is put into state the first time through.
+    if (!open && !state.data.patientSex) {
+      state.data.patientSex = 'Female';
+    }
+    if (male) male.disabled = !open;
+    selects.forEach(sel => {
+      sel.disabled = !open;
+      sel.classList.toggle('is-locked', !open);
+    });
+    if (!open) {
+      // Back to Female, through the normal path so every copy follows.
+      if (female && !female.checked) {
+        female.checked = true;
+        female.dispatchEvent(new Event('change', { bubbles: true }));
+      } else if (fromTick && state.data.patientSex !== 'Female') {
+        state.data.patientSex = 'Female';
+        updateFormPreviews();
+      }
+    }
+  }
+
+  unlock.addEventListener('change', () => apply(true));
+
+  // A claim loaded from the database may already say Male; show that
+  // rather than overwrite it, with the tick on so it can be changed.
+  window.PCASexLock = {
+    refresh() {
+      if (state.data.patientSex === 'Male' && !unlock.checked) {
+        unlock.checked = true;
+      }
+      apply(false);
+    },
+  };
+  window.PCASexLock.refresh();
+})();

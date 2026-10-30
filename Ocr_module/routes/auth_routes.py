@@ -21,6 +21,7 @@ import logging
 from flask import Blueprint, jsonify, request
 
 import auth
+import sign_in_guard
 import user_store
 from errors import InvalidCredentialsError, InvalidRequestError
 
@@ -75,12 +76,32 @@ def login():
     if not password:
         raise InvalidRequestError("password is required.")
 
+    # Already closed from too many wrong passwords (sign_in_guard.py).
+    # `locked_seconds` and `attempts_left` are for the sign-in page's
+    # counter and countdown; the sentence alone cannot drive a timer.
+    waiting = sign_in_guard.seconds_locked(email)
+    if waiting:
+        raise InvalidCredentialsError(
+            "Too many wrong passwords. Please wait "
+            f"{sign_in_guard.describe_wait(waiting)} and try again.",
+            details={"locked_seconds": waiting, "attempts_left": 0})
+
     user = user_store.authenticate(email, password)
     if user is None:
+        locked = sign_in_guard.record_failure(email)
         # One message for every failure mode, so this cannot be used to
         # discover which email addresses have accounts.
-        raise InvalidCredentialsError("Incorrect email or password.")
+        if locked:
+            raise InvalidCredentialsError(
+                "Too many wrong passwords. Please wait "
+                f"{sign_in_guard.describe_wait(locked)} and try again.",
+                details={"locked_seconds": locked, "attempts_left": 0})
+        raise InvalidCredentialsError(
+            "Incorrect email or password.",
+            details={"locked_seconds": 0,
+                     "attempts_left": sign_in_guard.attempts_left(email)})
 
+    sign_in_guard.record_success(email)
     auth.start_session(user)
     return jsonify({"success": True, "user": auth.public_user(user)})
 

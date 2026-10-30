@@ -41,9 +41,9 @@ def create_app():
     app.config.update(
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
-        # Set SESSION_COOKIE_SECURE=True once the pilot runs over HTTPS;
-        # a secure cookie is never sent over plain http://127.0.0.1.
-        SESSION_COOKIE_SECURE=False,
+        # Off for http://127.0.0.1, on for HTTPS: set SESSION_COOKIE_SECURE=1
+        # in the environment rather than changing this line (config.py).
+        SESSION_COOKIE_SECURE=config.SESSION_COOKIE_SECURE,
         PERMANENT_SESSION_LIFETIME=timedelta(hours=config.SESSION_LIFETIME_HOURS),
     )
 

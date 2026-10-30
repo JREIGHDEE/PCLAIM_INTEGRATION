@@ -177,6 +177,133 @@ document.getElementById('registerForm').addEventListener('submit', async functio
 // Submit: credentials are checked by the Flask backend against the bcrypt
 // hash in the users table. The browser never decides whether the password
 // was right — it only shows the answer.
+/* ═══════════════════════════════════════════════════════════
+   WRONG PASSWORDS, SHOWN ABOVE THE BOXES
+
+   The backend counts them (Ocr_module/sign_in_guard.py) and says how
+   many tries are left, or how many seconds the account is closed for.
+   This draws that: a dot per try, and a ring that empties while the
+   wait runs down. The Sign In button is held while it does, so nobody
+   wastes a try on a closed account.
+═══════════════════════════════════════════════════════════ */
+const PCAAttempts = (function () {
+  const card   = document.getElementById('loginAttempts');
+  if (!card) return { show() {}, clear() {} };
+  const ring   = document.getElementById('loginAttemptsRing');
+  const run    = document.getElementById('loginRingRun');
+  const count  = document.getElementById('loginCountdown');
+  const title  = document.getElementById('loginAttemptsTitle');
+  const sub    = document.getElementById('loginAttemptsSub');
+  const dots   = document.getElementById('loginAttemptsDots');
+  const btn    = document.getElementById('signInBtn');
+  const CIRCUMFERENCE = 119.38;        // 2 * pi * 19, as in style.css
+  let ticker = null;
+
+  function drawDots(left, total) {
+    dots.innerHTML = '';
+    for (let i = 0; i < total; i++) {
+      const dot = document.createElement('i');
+      if (i >= left) dot.classList.add('spent');
+      dots.appendChild(dot);
+    }
+    dots.hidden = false;
+  }
+
+  function stop() {
+    clearInterval(ticker);
+    ticker = null;
+  }
+
+  function clear() {
+    stop();
+    card.hidden = true;
+    card.classList.remove('is-locked', 'is-last', 'is-shake');
+    if (btn) btn.disabled = false;
+  }
+
+  /* Count the wait down, emptying the ring as it goes. */
+  function lock(seconds) {
+    stop();
+    const total = Math.max(1, seconds);
+    let left = total;
+    card.hidden = false;
+    card.classList.add('is-locked');
+    card.classList.remove('is-last');
+    ring.hidden = false;
+    dots.hidden = true;
+    title.textContent = 'Too many wrong passwords';
+    if (btn) btn.disabled = true;
+
+    const paint = () => {
+      count.textContent = left > 60
+        ? Math.ceil(left / 60) + 'm'
+        : left;
+      run.style.strokeDashoffset = CIRCUMFERENCE * (1 - left / total);
+      // Said the way a person would say it: minutes while there are
+      // minutes to wait, seconds once it is nearly over.
+      if (left > 90) {
+        const mins = Math.ceil(left / 60);
+        sub.textContent = `Try again in about ${mins} minutes`;
+      } else if (left > 60) {
+        sub.textContent = 'Try again in about a minute';
+      } else {
+        sub.textContent = left === 1
+          ? 'Try again in 1 second'
+          : `Try again in ${left} seconds`;
+      }
+    };
+    paint();
+
+    ticker = setInterval(() => {
+      left -= 1;
+      if (left <= 0) {
+        stop();
+        clear();
+        title.textContent = '';
+        return;
+      }
+      paint();
+    }, 1000);
+  }
+
+  /* A wrong password, with tries still left. */
+  function warn(left, total) {
+    stop();
+    card.hidden = false;
+    ring.hidden = true;
+    card.classList.remove('is-locked');
+    card.classList.toggle('is-last', left === 1);
+    if (btn) btn.disabled = false;
+
+    const used = total - left;
+    title.textContent = used === 1
+      ? '1 wrong password'
+      : `${used} wrong passwords`;
+    sub.textContent = left === 1
+      ? 'One more try before this account is closed for a minute'
+      : `${left} tries left`;
+    drawDots(left, total);
+
+    // One shake, restarted each time.
+    card.classList.remove('is-shake');
+    void card.offsetWidth;
+    card.classList.add('is-shake');
+  }
+
+  return {
+    show(result) {
+      const locked = Number(result.lockedSeconds) || 0;
+      if (locked > 0) { lock(locked); return; }
+      const left = Number(result.attemptsLeft);
+      // An older backend says nothing about tries; then there is
+      // nothing to count, and the message at the foot stands alone.
+      if (!Number.isFinite(left)) { clear(); return; }
+      warn(left, 5);
+    },
+    clear,
+  };
+})();
+
 document.getElementById('loginForm').addEventListener('submit', async function (e) {
   e.preventDefault();
 
@@ -204,10 +331,12 @@ document.getElementById('loginForm').addEventListener('submit', async function (
   if (!result.ok) {
     setButtonBusy(signInBtn, false);
     document.getElementById('loginPassword').value = '';
-    showToast('Sign-in failed', result.error, 'danger');
+    document.getElementById('loginPassword').focus();
+    PCAAttempts.show(result);
     return;
   }
 
+  PCAAttempts.clear();
   showToast('Welcome back', `Signed in as ${result.user.full_name}.`, 'success');
   setTimeout(() => { window.location.href = 'index.html'; }, 600);
 });
