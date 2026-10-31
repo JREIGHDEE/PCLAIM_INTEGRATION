@@ -74,9 +74,10 @@ const PCASidebar = {
   },
 
   /** On wide screens the menu folds itself shut once a page is picked, and
-      stays shut on the next page. Hovering opens it again (style.css). Only
-      classes change here: app.js and ocr.js still handle the clicks and
-      the toggle button. */
+      stays shut on the next page. The mouse coming over it opens it again
+      (.peek, style.css), and it stays open until a click outside it - not
+      merely the mouse leaving. Only classes change here: app.js and ocr.js
+      still handle the clicks and the toggle button. */
   fold() {
     const sb = document.getElementById('sidebar');
     if (!sb || sb.dataset.fold) return;
@@ -85,13 +86,23 @@ const PCASidebar = {
     const wide = () => window.innerWidth >= 768;
     let saved = null;
     try { saved = localStorage.getItem(KEY); } catch (e) { /* private window */ }
-    if (saved === '1' && wide()) sb.classList.add('collapsed', 'no-peek');
+    if (saved === '1' && wide()) sb.classList.add('collapsed');
 
+    // Just after a page is picked the mouse is still over the menu; it only
+    // opens on hover again once the mouse has been off it.
+    let armed = false;
+    sb.addEventListener('mouseleave', () => { armed = true; });
+    sb.addEventListener('mouseenter', () => {
+      if (armed && wide() && sb.classList.contains('collapsed')) sb.classList.add('peek');
+    });
     sb.addEventListener('click', e => {
-      if (wide() && e.target.closest('.sidebar-item')) sb.classList.add('collapsed', 'no-peek');
-    });    // Held shut until the mouse is somewhere else; then hovering opens it.
-    document.addEventListener('mousemove', e => {
-      if (!sb.contains(e.target)) sb.classList.remove('no-peek');
+      if (!wide() || !e.target.closest('.sidebar-item')) return;
+      sb.classList.add('collapsed');
+      sb.classList.remove('peek');
+      armed = false;
+    });
+    document.addEventListener('click', e => {
+      if (!sb.contains(e.target)) sb.classList.remove('peek');
     });
     new MutationObserver(() => {
       if (!wide()) return;

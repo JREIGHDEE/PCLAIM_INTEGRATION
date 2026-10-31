@@ -229,6 +229,10 @@ function mbRender() {
   panel.innerHTML = html;
   // Mother or baby decides the diagnosis package (js/dx-templates.js).
   if (typeof dxRefreshAll === 'function') dxRefreshAll();
+  // ...and the package decides the forms. The wording above only re-checks
+  // them when it changes a box, which a baby's wording with blanks left
+  // never does, so the forms' list is re-checked here as well.
+  if (typeof updateValidationSoon === 'function') updateValidationSoon();
 }
 
 function mbBabyHtml() {
