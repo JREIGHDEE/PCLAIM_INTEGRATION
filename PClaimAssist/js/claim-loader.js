@@ -278,6 +278,12 @@ async function savePatient() {
       body: `{"claim_id":${openClaimId || 'null'},"values":${json}}`,
     });
     const body = await resp.json().catch(() => ({}));
+    if (body.field === 'email') {
+      // A wrong email address is not saved: said on the card and under the box.
+      renderSavePatient(`Not saved. ${body.error} Fix it on Patient details, then press Save patient again.`, false);
+      document.querySelectorAll('input[type="email"][data-autofill="email"]').forEach(box =>
+        box.dispatchEvent(new Event('blur')));
+    }
     if (!resp.ok || !body.success) throw new Error(body.error || `Could not save (${resp.status})`);
     const isNew = body.claim_id !== openClaimId;
     openClaimId = body.claim_id;
@@ -295,6 +301,8 @@ async function savePatient() {
     renderSavePatient(`${name || 'Patient'} saved at ${time}. ${ROLE_NOTES[role] ||
       'Mark mother or baby on Patient details so a baby\'s claim can find her.'} Changes from now on save by themselves.`, true);
     showToast('Patient saved', `${name || 'The patient'} is saved and can be opened again.`, 'success');
+    // The saved patients list on Patient details picks it up (js/saved-patients.js).
+    document.dispatchEvent(new CustomEvent('pca:patient-saved', { detail: { claimId: body.claim_id } }));
     logActivity(`Patient saved (claim #${body.claim_id})`, 'success');
   } catch (err) {
     showToast('Patient not saved', err.message, 'danger');

@@ -34,3 +34,7 @@ benchmarks/test_data/**/*.pdf
 Thumbs.db
 .DS_Store
 .secret_key
+# The key that encrypts patient details in the database (field_crypto.py).
+# Never committed - and back it up with the database: without it the
+# encrypted details cannot be read.
+.data_key

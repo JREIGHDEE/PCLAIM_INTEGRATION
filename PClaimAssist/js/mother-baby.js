@@ -9,7 +9,7 @@
 
      - says whether the entry is the mother's or the baby's, as worked
        out from the logbook (Ocr_module/philhealth/mother_baby.py), and
-       lets staff change it (Mother / Baby / Neither);
+       lets staff change it (Mother / Baby / Regular);
      - for a baby: picks the mother's claim (best match first) and, when
        "Copy the mother's details" is ticked, fills the baby's empty boxes
        from hers. Nothing already filled is replaced. Unticking empties
@@ -24,7 +24,9 @@
    logActivity, MEMBER_LOCKED_KEYS).
 ═══════════════════════════════════════════════════════════ */
 
-const MB_ROLE_LABELS = { mother: 'Mother', baby: 'Baby', other: 'Neither' };
+// 'other' is shown as "Regular": a patient who is neither the mother nor
+// the baby of a delivery (user testing #4; it read "Neither").
+const MB_ROLE_LABELS = { mother: 'Mother', baby: 'Baby', other: 'Regular' };
 const MB_AMPM_TIME = { amPmAdmitted: 'timeAdmitted', amPmDischarge: 'timeDischarge', amPmDelivery: 'deliveryTime' };
 
 const mb = {
@@ -182,7 +184,9 @@ function mbPanel() {
     panel.className = 'pca-card mb-panel mb-3';
     panel.setAttribute('aria-live', 'polite');
     const section = document.getElementById('section-patient');
-    const anchor = document.getElementById('claimLoadBanner') || section.querySelector('.section-header');
+    // Under the saved patients list (js/saved-patients.js), when there is one.
+    const anchor = document.getElementById('savedPatientsPanel') ||
+      document.getElementById('claimLoadBanner') || section.querySelector('.section-header');
     anchor.insertAdjacentElement('afterend', panel);
     panel.addEventListener('click', mbOnClick);
     panel.addEventListener('change', mbOnChange);
@@ -201,8 +205,10 @@ function mbRender() {
   const panel = mbPanel();
   const f = mb.family;
   const role = f.role;
+  const whose = f.detected_role === 'other' ? 'a regular patient\'s'
+    : `the ${MB_ROLE_LABELS[f.detected_role] ? MB_ROLE_LABELS[f.detected_role].toLowerCase() : ''}'s`;
   const detected = f.detected_role
-    ? `The logbook entry looks like the <strong>${MB_ROLE_LABELS[f.detected_role].toLowerCase()}'s</strong>: ${mbEscape(f.detected_reason)}.`
+    ? `The logbook entry looks like <strong>${whose}</strong>: ${mbEscape(f.detected_reason)}.`
     : `${mbEscape(f.detected_reason)}.`;
   const chosenNote = f.role_chosen && f.role_chosen !== f.detected_role
     ? ' <span class="mb-muted">(changed by staff)</span>' : '';
@@ -229,6 +235,8 @@ function mbRender() {
   panel.innerHTML = html;
   // Mother or baby decides the diagnosis package (js/dx-templates.js).
   if (typeof dxRefreshAll === 'function') dxRefreshAll();
+  // ...and Sex: Female for the mother, either for a baby (js/app.js setupSexLock).
+  if (window.PCASexLock) window.PCASexLock.refresh();
   // ...and the package decides the forms. The wording above only re-checks
   // them when it changes a box, which a baby's wording with blanks left
   // never does, so the forms' list is re-checked here as well.

@@ -7,17 +7,31 @@ Two questions, in order:
 
 The second is what catches the real mistake - "gmial.com" for
 "gmail.com" - and it is answered by asking DNS whether the domain
-resolves, which is a lookup, not a message. Nothing is sent to the
-address and nothing is sent to a third party: the patient's address
-never leaves this computer.
+resolves, which is a lookup, not a message.
+
+  3. Is it a throw-away address? (adviser's revision S2: an email
+     validation API)
+
+The domain alone - "mailinator.com", never the whole address - is asked
+of Kickbox's free open API (open.kickbox.com), which knows the
+disposable-mail services. Nothing is sent to the address, and the part
+before the @ never leaves this computer.
+
+A full check of the mailbox itself (does maria.santos@gmail.com exist?)
+needs the whole address sent to a paid service, so it is off unless the
+clinic sets KICKBOX_API_KEY in Ocr_module/.env.
 
 A clinic with no internet gets "unknown" rather than "wrong": an
 address cannot be called invalid just because the line is down.
 """
+import json
 import logging
+import os
 import re
 import socket
 import subprocess
+import urllib.parse
+import urllib.request
 from functools import lru_cache
 
 logger = logging.getLogger(__name__)
@@ -35,6 +49,9 @@ _ADDRESS = re.compile(
 
 _MAX_LENGTH = 254          # RFC 3696 erratum 1690
 _LOOKUP_TIMEOUT = 3.0      # seconds; a clinic should never wait longer
+
+_DISPOSABLE_API = "https://open.kickbox.com/v1/disposable/{domain}"
+_VERIFY_API = "https://api.kickbox.com/v2/verify?{query}"
 
 # The usual slips, so the message can say what was probably meant.
 _COMMON_TYPOS = {
@@ -122,6 +139,37 @@ def _domain_resolves(domain):
         socket.setdefaulttimeout(previous)
 
 
+def _get_json(url):
+    """The API's JSON answer, or None when it cannot be reached."""
+    try:
+        request = urllib.request.Request(url, headers={"User-Agent": "PClaimAssist"})
+        with urllib.request.urlopen(request, timeout=_LOOKUP_TIMEOUT) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
+@lru_cache(maxsize=512)
+def _is_disposable(domain):
+    """True / False / None (could not ask). Only the domain is sent."""
+    answer = _get_json(_DISPOSABLE_API.format(domain=urllib.parse.quote(domain, safe="")))
+    if not isinstance(answer, dict) or "disposable" not in answer:
+        return None
+    return bool(answer["disposable"])
+
+
+def _mailbox_problem(address):
+    """With KICKBOX_API_KEY set: the paid check of the mailbox itself.
+    A reason when Kickbox says it cannot receive mail, else None."""
+    key = os.environ.get("KICKBOX_API_KEY", "").strip()
+    if not key:
+        return None
+    answer = _get_json(_VERIFY_API.format(query=urllib.parse.urlencode({"email": address, "apikey": key})))
+    if isinstance(answer, dict) and answer.get("result") == "undeliverable":
+        return "That mailbox does not exist. Please check the address with the patient."
+    return None
+
+
 def check_email(address):
     """{'ok', 'reason', 'suggestion', 'checked_domain'}.
 
@@ -155,5 +203,25 @@ def check_email(address):
         return {"ok": True, "reason": None, "suggestion": None,
                 "checked_domain": False}
 
+    if _is_disposable(domain):
+        return {"ok": False,
+                "reason": f"“{domain}” gives out throw-away addresses. Please ask for the patient's own email.",
+                "suggestion": None, "checked_domain": True}
+
+    problem = _mailbox_problem(address)
+    if problem:
+        return {"ok": False, "reason": problem, "suggestion": None, "checked_domain": True}
+
     return {"ok": True, "reason": None, "suggestion": None,
             "checked_domain": True}
+
+
+def save_problem(values):
+    """Why "Save patient" must not save these form values, or None: an
+    email address typed that is wrong. An empty one is fine (not every
+    patient has one) and so is one that could not be checked offline."""
+    address = str((values or {}).get("email") or "").strip()
+    if not address:
+        return None
+    result = check_email(address)
+    return None if result["ok"] else f"Email address: {result['reason']}"

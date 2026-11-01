@@ -390,7 +390,10 @@ function resolveOverlayFieldValueRaw(f) {
   if (f.checkbox) {
     const raw = f.computed && typeof window.getComputedValue === 'function'
       ? window.getComputedValue(f.computed) : data[f.key];
-    const match = f.checkValue !== undefined ? raw === f.checkValue : !!raw;
+    // A list: a heading box ticked for any of its options (PMRF IV
+    // "Self-Earning Individual" for each of its three kinds).
+    const match = Array.isArray(f.checkValue) ? f.checkValue.includes(raw)
+      : f.checkValue !== undefined ? raw === f.checkValue : !!raw;
     return match ? '✓' : '';
   }
 
@@ -668,9 +671,14 @@ async function buildFilledPdf(formKey) {
          Only a box that holds words: a digit cell, a tick box, a date part
          or a time would read as nonsense with "N/A" in it, and a field the
          staff marked to sign by hand is meant to be empty. */
-      let val = resolveOverlayFieldValue(f);
+      // A box staff marked N/A themselves (typed, or a `) prints empty, as
+      // on screen: before user testing #4 its N/A was taken out and then put
+      // straight back by the blank-box rule above, so it still printed.
+      const raw = resolveOverlayFieldValueRaw(f);
+      let val = stripNotApplicable(raw);
       if (!val) {
         if (!isFreeTextField(f) || isHandwrittenField(f)) return;
+        if (typeof raw === 'string' && /`|N\/A/i.test(raw)) return;
         val = 'N/A';
       }
       // pdf-lib's standard Helvetica uses WinAnsi encoding, which can't

@@ -41,7 +41,8 @@ def update_clinic_settings():
 @settings_bp.route("/check-email", methods=["POST"])
 @auth.login_required
 def check_email_address():
-    """Is this a real address? Checked here, not by a service elsewhere:
-    the patient's email never leaves this computer (email_check.py)."""
+    """Is this a real address? Format and mail servers are checked here;
+    only the domain is asked of Kickbox's open API, so the patient's full
+    address never leaves this computer (email_check.py)."""
     address = (request.get_json(silent=True) or {}).get("email") or ""
     return jsonify({"success": True, **email_check.check_email(address)})

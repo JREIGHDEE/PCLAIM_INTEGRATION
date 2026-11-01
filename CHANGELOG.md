@@ -11,6 +11,298 @@ Related documents:
 
 ---
 
+## 2026-11-01: Changes from user testing #3 and #4
+
+**After pulling:**
+1. From `Ocr_module/`: `venv\Scripts\python.exe -m pip install -r requirements.txt`
+   (adds `cryptography`, for the encrypted patient details).
+2. Run `database/migrations/011_encrypt_patient_details.sql` (phpMyAdmin,
+   SQL tab, as root; safe to run twice). Back up the database first
+   (`backup_db.bat`).
+3. Restart the backend and press Ctrl+F5 on every open page.
+4. The first start makes `Ocr_module/.data_key`, the key to the encrypted
+   details (never committed). **Copy it to a USB stick with every database
+   backup:** without it, PINs, addresses and contact details in the
+   database cannot be read. Optional: `KICKBOX_API_KEY` in `.env`
+   (`.env.example`).
+
+**From the clinic staff's user testing #3 and #4**
+
+- *Sex follows "Mother or baby?".* The mother is Female, ticked by itself
+  with Male out of reach. A baby can be either, so both are open - and a
+  Female put in by itself (not chosen by staff) is taken out again, so the
+  baby's real sex is asked for. "Neither" is open too. Before anyone
+  chooses, the patient counts as the mother unless the birth date says
+  baby. This replaces the professor's-notes "Not female" tick
+  (`js/app.js` `setupSexLock`, re-checked from `js/mother-baby.js` `mbRender`).
+- *Newborn Care Package and TB-DOTS follow the package.* For a baby's
+  claim (NCP) every Newborn Care item is ticked, and so are the nine
+  essential newborn care steps, which would otherwise turn red. For any
+  other package the Newborn Care part is ticked "Not needed" and its ticks
+  come off. TB-DOTS is always "Not needed". Only when the package changes,
+  so a part ticked by hand stays (`js/app.js` `applyPackageParts`).
+- *CF2 Part I is not typed twice.* Diagnosis A starts as the diagnosis
+  already given (the final one, else the admission one), and the clinic's
+  wording now puts in what its package fixes - Diagnosis A (NSDBF:
+  SPONTANEOUS VERTEX DELIVERY), the ICD-10 code and row i.'s procedure,
+  RVS code and date - straight away, instead of only once every blank of
+  the sentence is filled. Anything typed there is kept
+  (`js/dx-templates.js` `earlyTargets`, `js/app.js` `DERIVED_FIELDS.dxADiagnosis`).
+- *The weeks AOG in the NSDBF wording fill in.* They came only from the
+  LMP, which the logbook does not have, so for logbook claims the blank
+  stayed empty and the wording never went in. They are now read from the
+  diagnosis too ("PUFT 40 2/7 WKS AOG" -> 40 2/7, 20 to 45 weeks only;
+  `js/app.js` `aogFromDx`). Weeks typed in the diagnosis wording show in
+  the CF4 course in the ward too, and emptying a blank puts it back to
+  filling in by itself instead of leaving it empty for good.
+- *PMRF IV. Membership Type prints right.*
+  - Proof of Income is written in the form's own PROOF OF INCOME box. It
+    used to tick two boxes inside "For PhilHealth Use only".
+  - The "Self-Earning Individual" and "Migrant Worker" heading boxes are
+    ticked with the kind chosen under them; "Migrant Worker" could never
+    be ticked before (a list in `checkValue`, `js/pdf/pdf-overlay.js`).
+  - Member Type and Profession / Occupation can be changed on the PMRF
+    itself, not only on Patient details (`EDITABLE_ON_FORMS`).
+- *Occupation from the member type.* Self-Earning Individual (any kind)
+  puts SELF EMPLOYED in Profession / Occupation; every other type puts
+  EMPLOYED. Only into an empty box or one still holding either word, so
+  an occupation staff typed is kept (`js/app.js` `applyOccupationFromMemberType`).
+- *Obstetrical History is outlined red where it is needed.* Gravida, Para
+  and T-P-A-L are outlined while empty whenever the package's wording uses
+  them - delivery, prenatal care, IUD - not only when CF4 is printed. A
+  baby's claim uses the mother's, so they are not asked for there
+  (`data-needed-for`, `js/easy.js` `partStatus`).
+- *Logbook Reader: the clinic wording's buttons say what they do.* Staff
+  pressed "Put back what was read" to add the wording; it undoes it. There
+  is now a "Put in the text (template)" button (or it points at the blank
+  still missing), and the undo reads "Undo - go back to what was read"
+  (`Ocr_module/templates/review.html` `putPkg`).
+- *CF4 5. Physical Examination: "Fix this" goes somewhere.* The checker's
+  "Physical Examination Findings" has no box of its own, so "Fix this" did
+  nothing. It now lands on the first examination group still red - General
+  Survey, then the findings, page 2 included (`js/app.js` `fixTargetKey`).
+- *N/A typed in a box prints empty.* A box staff mark N/A (typed, or a
+  `) was cleared and then filled straight back with "N/A" by the rule
+  that prints N/A in a box left blank. It now prints empty, as the preview
+  shows it; a box simply left blank still prints N/A
+  (`js/pdf/pdf-overlay.js` `buildFilledPdf`).
+- *Prenatal and postpartum wordings in the Logbook Reader.* "Use a clinic
+  wording" opened every entry on the delivery wording, and a prenatal or
+  postpartum sentence never reached the final diagnosis box, where the
+  delivery sentence stayed. The panel now opens on the package the entry's
+  words say (PRENATAL, POSTPARTUM, PSI / IMPLANT, IUD, WELL BABY /
+  NEWBORN), and a one-sentence wording goes into the final diagnosis too -
+  while that box is empty or holds what the panel put in; "Put in the text
+  (template)" replaces it, "Undo" puts back what was read
+  (`Ocr_module/templates/review.html` `guessPkg`, `refreshPkg`). Patient
+  details now also reads "PSI" and "SUBDERMAL" as the implant
+  (`js/dx-templates.js` `dxGuessPackage`).
+- *CF2 diagnosis follows a change of package.* Picking Prenatal care after
+  a delivery left the delivery's CF2 Diagnosis A - SPONTANEOUS VERTEX
+  DELIVERY, O80.0, the NSD procedure, RVS code and date - until every
+  prenatal blank was filled; going back to a delivery left the prenatal
+  sentence in CF2 6. Admission Diagnosis. What an earlier package put in
+  now comes out at once (only where it is still as put in), and the new
+  package's wording goes in once complete (`js/dx-templates.js`
+  `earlyTargets`, `completeFor`). G, P and T-P-A-L stay when the sentence
+  they were read from comes out (`js/app.js` `DERIVED_KEPT_WHEN_SOURCE_GOES`).
+- *A "FOR ..." admission diagnosis loses its FOR at discharge.* An
+  admission diagnosis said as what the patient came for - "FOR INSERTION OF
+  IMPLANTABLE SUBDERMAL CONTRACEPTIVE", "FOR WELL BABY CARE" - is copied
+  into the discharge / final diagnosis as what was done, without the
+  leading "FOR": by "Same as admission", CF2 Diagnosis A, the clinic's
+  wording (final diagnosis, CF2, CF4) and the Logbook Reader's "Same as the
+  reason for admission" and wording panel. The admission diagnosis keeps
+  it; a "FOR" further in, or a word like FORMULA, is left alone
+  (`js/app.js` `dischargeFromAdmission`, `review.html` `dropFor`).
+- *Home: the form cards' "Not finished" badge stays inside its card.* With
+  larger text (Windows text size, browser zoom) "Not finished (12 of 26)"
+  stuck out past both sides of the card, since a badge never wraps. It now
+  wraps, the count kept in one piece, and only when it would not fit
+  (`css/style.css` `.fs-status .badge`, `js/app.js` `.badge-count`).
+- *The Logbook Reader looks like the rest of PClaimAssist, with less
+  clutter.* The same blue, colours, corners and buttons as the other
+  pages; one layer of boxes instead of three (the tabs' thick blue frame is
+  gone, each card is one white panel with a soft shadow, and the box being
+  checked keeps its status colour with a thinner edge); the tabs look like
+  the site's steps; "The scan is clear" is one quiet line (a scan that is
+  not clear keeps its full warning); the keyboard tips are small and grey;
+  the "All patients" lines are slimmer. Nothing is taken away - every
+  button and step works as before (`Ocr_module/templates/review.html`,
+  one block at the end of its styles).
+- *"100%" fits in the score ring* (Check for Missing Information, "Boxes
+  filled in"). At 2.6rem four characters were wider than the ring's white
+  centre, so a finished claim read "00%", cut off at both ends. The number
+  is now sized from the ring itself (21% of its width), so it fits at any
+  ring size or text size (`css/style.css` `.score-ring span`).
+- *Each form shows how much of it is done.* Beside the title of CSF, CF1,
+  CF2, CF4 and PMRF: a percent bar - the same figure Step 3 shows for that
+  form, green at 100% - and "See all forms", which opens Step 3 (Check
+  for missing information) with every form's total (`index.html`,
+  `js/app.js` `updateValidation`, `css/style.css` `.form-progress`).
+- *The closed sidebar: wider, centred, and it closes by itself.* Closed,
+  it was 64px, too narrow for the 30px step circles and the bigger icons:
+  they sat off-centre against its right edge, and the status dot was
+  squashed into a bar. It is now 76px (`--sidebar-collapsed-w`), every
+  icon and step glides to the exact middle as it folds, and the dot stays
+  round. Opened by the mouse coming over it, it now closes again a third
+  of a second after the mouse leaves (it stayed open until a click
+  outside); picking a page or clicking outside still close it. It opens
+  over the page and the page never moves (`css/style.css`, `js/sidebar.js`).
+- *Saved patients, to open one again.* Patient details has a "Saved
+  patients" list above "Mother or baby?": every patient saved with "Save
+  patient" (or made a claim from the logbook), last saved first. Folded
+  to one line with the count until "Show list"; then a search by name and
+  one line per patient - Mother / Baby / Regular, the admission date, and
+  Draft / Ready / Exported - with "Open", which loads that patient's
+  claim. The patient open now is marked; the list is asked again after
+  every "Save patient". Filter buttons - All / Draft / Ready / Exported,
+  each with its count - show only the claims at that stage. The bin
+  deletes a patient, after "Delete NAME? This cannot be undone. Yes,
+  delete / Cancel" in the line itself; the patient on screen deleted, the
+  page starts a new one. Deleted: the claim and its prenatal / postpartum
+  rows, then its encounter and patient record when nothing else uses them,
+  in one transaction; a baby's claim linked to a deleted mother's is only
+  unlinked, and the logbook scan's case session (the OCR record) is kept.
+  Logged with who deleted it. Only an administrator sees the bin and may
+  delete (see S4 below) (`js/saved-patients.js`, new; `GET
+  /api/claims/patients`, `DELETE /api/claims/<id>`,
+  `claims_store.list_patients` / `delete_patient`; `test_saved_patients.py`).
+- *"Mother or baby?": Neither is now Regular, and the choices are bigger.*
+  The three buttons are larger (bigger text, padding and edge) so they are
+  easy to see and press; "Neither" reads "Regular" - stored as before
+  ('other'), so saved claims need nothing (`js/mother-baby.js`,
+  `css/style.css`).
+- *Patient details: the clinic's wording above the diagnoses.* The card
+  with the sentence and its blanks now comes first, then Admission
+  Diagnosis and Discharge / Final Diagnosis, the two boxes it fills - it
+  was under the admission diagnosis, between the two (`index.html`).
+- *Address boxes: type or pick, like the usual online sites.* Province,
+  City / Municipality, Barangay and Subdivision were dropdowns, and a place
+  not on the list meant choosing "Not on the list - type it in" first.
+  Each is now one search-as-you-type box: click it and the list opens,
+  type and it narrows to the places that match (the matching letters in
+  bold), click one or press Enter (arrow keys and Esc work). Only a place
+  on the list is kept (see S3 below). Picking a city still narrows the
+  barangays, and a box below that no longer fits is emptied; typed in any
+  case, a listed place takes the list's spelling. Near the bottom of the
+  screen the list opens upward (`js/address-select.js`, `css/style.css`).
+- *The delivery's time reaches the clinic's wording.* Time of Delivery on
+  Patient details was the browser's own time box, which has an AM/PM of
+  its own. Typed with the AM/PM buttons beside it instead - as staff do -
+  it held no time at all, so the NSDBF final diagnosis ("... ON {date},
+  {time} {AM/PM} ...") and the CF4 course in the ward never got one. It is
+  now an hh:mm box (03:20, the colon put in by itself) with AM / PM beside
+  it deciding the half of the day; still kept as 24h in deliveryTime, and
+  a loaded claim shows its time and ticks its AM/PM (`index.html`,
+  `js/app.js` `setupDeliveryTime`). The date itself already followed the
+  Date of Delivery box; a date typed into the wording's blank is kept, and
+  "Refill blanks" puts it back to the form's.
+- *The clinic's wording cards are simpler to look at* (Patient details,
+  CF4 course in the ward). The sentence was shown twice - with its blanks,
+  then filled in, in a dashed box - and is now shown once; a paragraph
+  listing every blank still missing is now one line ("5 red blanks left -
+  it goes in once they are filled"), and "Put in automatically: Admission
+  Diagnosis, Final Diagnosis, CF2 diagnosis..." is "Put in the boxes.".
+  "Package (picked automatically)" reads "Package", "Fill the blanks again
+  from the forms" is a small "Refill blanks" beside it, and the card is
+  white with one thin edge. A blank still to fill has the same plain red
+  edge on CF4 as on Patient details, not the forms' thick dashed one.
+  The cards work as before; the patient-details card is half as tall
+  (`js/dx-templates.js` `dxShell`, `renderStatus`; `css/style.css`).
+- *Clear outlines on every page.* Staff found some boxes and cards hard to
+  make out: their edge was #E2E8F0 (#D1D5DB in the Logbook Reader), barely
+  1.2:1 against white. Boxes to type in, tick boxes and choice buttons now
+  have a 2px #7C8798 edge (3.6:1, past WCAG's 3:1 for a box's edge), and
+  cards, panels and the grey copies of Patient details boxes a #8592A6
+  edge - on the sign-in page, every PClaimAssist page, the Logbook Reader
+  and the logbook setup. Missing / please-check highlights, locked boxes'
+  grey and the focus ring are unchanged. A new file, `css/outlines.css`,
+  loaded after the other stylesheets.
+- *Thick outlines in the normal colours too.* A box still to fill gets the
+  colour-blind mode's thick dashed edge, fill and glow in red, instead of a
+  thin red line (`css/colorblind.css`: the edge rules apply in both modes,
+  coloured by `--cb-missing`; colour-blind mode keeps its vivid blue).
+
+**From the adviser's revisions (S1-S4)**
+
+Evidence screenshots for the report are in `evidence/` (made-up patient and
+temporary accounts, deleted afterwards): `S1_sex_field.png`,
+`S2_email_error.png`, `S2_save_blocked.png`, `S3_address_dropdowns.png`,
+`S3_free_text_refused.png`, `S4_encrypted_in_database.png`,
+`S4_role_denied.png`.
+
+- *S1. Sex: Female for the mother.* Already done above ("Sex follows
+  'Mother or baby?'"); no further change.
+- *S2. Email checked with an email validation API, and a wrong one is not
+  saved.*
+  - Besides the format, the usual typos ("gmial.com") and the domain's mail
+    servers, the part after the @ - only the domain, never the whole
+    address - is asked of Kickbox's free open API
+    (open.kickbox.com/v1/disposable/<domain>), which knows the throw-away
+    address services: "maria@mailinator.com" is refused. Offline, or with
+    the API out of reach, an address is not called wrong.
+  - A full check of the mailbox itself sends the whole address to Kickbox,
+    so it is off unless `KICKBOX_API_KEY` is set in `.env`.
+  - "Save patient" refuses a wrong address with the reason ("Not saved.
+    Email address: Did you mean ...@gmail.com?") on the card and under the
+    box. An empty email is fine; typing never stops, and autosave of an
+    open claim is unchanged (`email_check.py` `_is_disposable`,
+    `save_problem`; `POST /api/claims/save`; `js/claim-loader.js`;
+    `test_email_check.py`, new).
+- *S3. Address: dropdowns for the whole country, no free text.*
+  - Province, City / Municipality and Barangay list every place in the
+    Philippines: 82 provinces, 1,634 cities and municipalities and 42,029
+    barangays from the PSA's Philippine Standard Geographic Code, kept in
+    the app (works offline). Metro Manila's cities are under "Metro
+    Manila"; "City of Tagum" reads "Tagum City" as the forms and zip codes
+    write it. Davao City keeps the clinic's spelling of its barangays
+    ("19-B", "Agdao Proper"), with the 5 the PSGC has that it lacked
+    (Gov. Paciano Bangoy, Gov. Vicente Duterte, Magtuod, Ubalde, Wilfredo
+    Aquino).
+  - Something typed that is not on the list is put back, with "... is not
+    on the list. Please choose the barangay from the list." under the box.
+    A saved claim's value that is not on the list stays until changed.
+  - Subdivision (no official list exists): the common Davao City ones and
+    those the staff added for that barangay; a new one goes in only by
+    choosing "Add ... as a new subdivision". Kept per city and barangay in
+    this browser.
+  - `js/ph-psgc.js` (new, 449 KB) is made by `tools/build_ph_address.py`
+    (new); run it again when PSA publishes a new PSGC (`js/ph-address.js`,
+    `js/address-select.js`, `css/style.css`).
+- *S4. Security for patient details and access by role.*
+  - Encrypted in the database: the patient's and member's PhilHealth PIN,
+    the address, phone numbers, email and everything typed on the forms
+    (`claims.form_values`). Fernet (AES-128-CBC with HMAC-SHA256); a value
+    changed in the database is refused, not read wrongly. Older plain
+    values are still read, and encrypted the next time they are saved. The
+    key is `Ocr_module/.data_key` (or `DATA_ENCRYPTION_KEY`), outside the
+    database and git-ignored. Not encrypted: names and birth dates
+    (searched and sorted on) and the logbook scans' OCR records
+    (`field_crypto.py`, new; `claims_store.py`; migration 011;
+    `test_field_crypto.py`, new).
+  - Deleting a saved patient is for administrators only: the server answers
+    403 to anyone else, and the bin is hidden from them
+    (`routes/claims_routes.py`, `js/saved-patients.js`; `test_sign_in.py`).
+  - Already in place: passwords hashed, sign-in on every page, admin-only
+    accounts and clinic details, and sign-in locked after repeated wrong
+    passwords.
+
+**Codes checked against PhilHealth's circulars**
+
+- *Implant (FP001):* ICD-10 Z30.8 (other contraceptive management), not
+  Z30.1, which is the IUD's code. CF2 row i. now gets what Circular 38-2015
+  asks for: related procedure "INSERTION OF SUBDERMAL IMPLANT FOR
+  CONTRACEPTION", RVS code FP001.
+- *Prenatal care:* the case rate is the trimester's own code from the weeks
+  AOG - ANV01 (1-12 weeks), ANV02 (13-26), ANV03 (27 on) - per Circular
+  2026-0004, instead of "ANV/01/02/03" (`js/dx-templates.js` `dxAnvCode`).
+- *Confirmed as they were:* NSDBF with O80.0, ANV with Z34.0 (first
+  pregnancy) / Z34.8, PPC01 with Z39.2, IUD 58300 with Z30.1 (Circular
+  2026-0004); newborn care 99460 and its nine essential steps (Circular
+  2018-0021). The CSF first case rate's hint now reads "e.g. NSDBF": it
+  takes the package code, not an ICD-10 code.
+
 ## 2026-10-31: Improved sidebar, baby's forms shown at once (Dawn)
 
 **After pulling:** no database migration and no restart. Press Ctrl+F5 on

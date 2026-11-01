@@ -78,6 +78,10 @@ class SignInWallTests(unittest.TestCase):
         self.sign_in(ENCODER)
         self.assertEqual(self.client.get("/api/auth/users").status_code, 403)
         self.assertEqual(self.client.post("/api/settings/clinic", json={}).status_code, 403)
+        # Deleting a saved patient (adviser's revision S4): never reaches the database.
+        with mock.patch("claims_store.delete_patient") as delete:
+            self.assertEqual(self.client.delete("/api/claims/1").status_code, 403)
+        delete.assert_not_called()
 
     def test_unknown_url_is_still_404_once_signed_in(self):
         # Signed out, it is a 401 like any other API (the catch-all file route).

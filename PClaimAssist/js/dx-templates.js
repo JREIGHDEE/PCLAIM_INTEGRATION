@@ -64,7 +64,12 @@ const DX_PACKAGES = {
           'PARA {p2} MOTHER WEIGHING {weight} GRAMS WITH AN APGAR SCORE OF {apgar}.',
   },
   FP001: {
-    code: 'FP001', title: 'FOR INSERTION OF IMPLANTABLE SUBDERMAL CONTRACEPTIVE', name: 'Implant insertion', icd: 'Z30.1',
+    // PhilHealth Circular 38-2015 (CF2 instructions): related procedure
+    // "insertion of subdermal implant for contraception", RVS code FP 001.
+    // Z30.1 is the IUD's code in ICD-10 ("insertion of (intrauterine)
+    // contraceptive device"); an implant is Z30.8, other contraceptive management.
+    code: 'FP001', title: 'FOR INSERTION OF IMPLANTABLE SUBDERMAL CONTRACEPTIVE', name: 'Implant insertion', icd: 'Z30.8',
+    rvs: 'FP001', proc: 'INSERTION OF SUBDERMAL IMPLANT FOR CONTRACEPTION',
     text: 'FOR INSERTION OF IMPLANTABLE SUBDERMAL CONTRACEPTIVE',
   },
   IUD: {
@@ -101,6 +106,10 @@ const DX_DELIVERY_DRUGS = [
 
 /* The blanks. `def` is the clinic's usual value, used when the forms
    don't know better; every blank can be changed. */
+/* Blanks typed once for every wording that has them (DxSentence.onEdit). */
+const DX_SHARED_VARS = ['aog'];
+let dxSharedTyped = {};
+
 const DX_VARS = {
   aog:        { label: 'Weeks AOG, e.g. 39 1/7', w: '4.8em' },
   g:          { label: 'Gravida', w: '2.4em', digits: 2 },
@@ -168,7 +177,8 @@ function dxAutoValue(name, pkg, values) {
   // A baby's claim names its mother's G, P and the birth weight.
   const ob = baby ? { ...dxMotherFacts(), ...pickFilled(d, ['birthWeight']) } : d;
   switch (name) {
-    case 'aog': return dxAog(d.lmp, d.dateAdmitted || d.deliveryDate);
+    // From the LMP; else the weeks the diagnosis already writes (app.js aogFromDx).
+    case 'aog': return dxAog(d.lmp, d.dateAdmitted || d.deliveryDate) || aogFromDx(d);
     case 'g': return dxPick(ob.gravida, d.gravida);
     case 'p': return dxPick(ob.para, d.para);
     case 'tpal': {
@@ -228,10 +238,12 @@ function dxGuessPackage() {
   const d = state.data;
   const dx = `${d.admissionDx || ''} ${d.dischargeDx || ''}`.toUpperCase();
   if (dxIsBaby() || /\bMOTHER WEIGHING\b|\bNEWBORN\b|\bWELL\s*BABY\b/.test(dx)) return 'NCP';
-  if (/\bPRE-?NATAL\b/.test(dx)) return 'ANV';
+  if (/\bPRE\s*-?\s*NATAL\b|\bANTE\s*-?\s*NATAL\b/.test(dx)) return 'ANV';
   if (/\bPOST\s*-?PARTUM\b/.test(dx) && !/DELIVER/.test(dx)) return 'PPC01';
   if (/\bINTRAUTERINE\b|\bIUD\b/.test(dx)) return 'IUD';
-  if (/\bIMPLANT/.test(dx)) return 'FP001';
+  // The logbook writes the implant as "PSI" (progestin subdermal implant):
+  // "FOR PSI INSERTION", "FAMILY PLANNING (PSI)" (user testing #4).
+  if (/\bIMPLANT|\bPSI\b|\bSUBDERMAL\b/.test(dx)) return 'FP001';
   return 'NSDBF';
 }
 
@@ -261,15 +273,24 @@ class DxSentence {
     this.box.addEventListener('click', e => this.onClick(e));
   }
 
-  reset() { this.touched = {}; this.following = {}; this.shownFor = null; this.takenOut = false; this.wasAuto = false; }
+  reset() { this.touched = {}; this.following = {}; this.shownFor = null; this.takenOut = false; this.wasAuto = false; this.completeFor = null; }
 
   onEdit(e) {
     const name = e.target.dataset && e.target.dataset.dxVar;
     if (!name) return;
     const spec = DX_VARS[name];
     if (spec.digits) e.target.value = e.target.value.replace(/\D/g, '').slice(0, spec.digits);
-    this.touched[name] = e.target.value.toUpperCase();
-    this.refresh();
+    const value = e.target.value.toUpperCase();
+    // Emptied: back to filling in by itself, instead of staying empty for good.
+    if (value.trim() === '') delete this.touched[name];
+    else this.touched[name] = value;
+    // The weeks AOG are the same in the diagnosis and the CF4 course in the
+    // ward: typed in one, they show in the other (user testing #4).
+    if (DX_SHARED_VARS.includes(name)) {
+      if (value.trim() === '') delete dxSharedTyped[name];
+      else dxSharedTyped[name] = value;
+      dxRefreshAll();
+    } else this.refresh();
   }
 
   onClick(e) {
@@ -277,7 +298,11 @@ class DxSentence {
     else if (e.target.closest('[data-dx-use]')) this.useWording(false);
     else if (e.target.closest('[data-dx-replace]')) this.useWording(true);
     else if (e.target.closest('[data-dx-keep]')) this.box.querySelector('.dx-confirm').hidden = true;
-    else if (e.target.closest('[data-dx-auto]')) { this.touched = {}; this.refresh(); }
+    else if (e.target.closest('[data-dx-auto]')) {
+      this.touched = {};
+      DX_SHARED_VARS.forEach(name => { delete dxSharedTyped[name]; });
+      dxRefreshAll();
+    }
   }
 
   build(template) {
@@ -301,7 +326,8 @@ class DxSentence {
   values(template) {
     const values = {};
     [...template.matchAll(/\{(\w+)\}/g)].forEach(([, name]) => {
-      values[name] = name in this.touched ? this.touched[name] : dxAutoValue(name, this.opts.pkg(), values);
+      values[name] = name in dxSharedTyped ? dxSharedTyped[name]
+        : name in this.touched ? this.touched[name] : dxAutoValue(name, this.opts.pkg(), values);
     });
     // "his/her" follows "boy/girl" unless changed by hand.
     if ('hisher' in values && !('hisher' in this.touched)) values.hisher = dxAutoValue('hisher', null, values);
@@ -361,7 +387,19 @@ class DxSentence {
     Object.entries(targets).forEach(([key, value]) => {
       if (String(state.data[key] ?? '') === String(value)) this.following[key] = value;
     });
-    if (this.complete && auto) this.applyFollowing(targets);
+    if (this.complete && auto) {
+      this.applyFollowing(targets);
+      this.completeFor = this.opts.pkg ? this.opts.pkg() : null;
+    }
+    // What a package fixes whatever its blanks say - CF2's Diagnosis A and
+    // its row i. (procedure, RVS code, date), the codes - goes in at once,
+    // so one blank left (the weeks AOG) no longer keeps the whole of CF2
+    // Part I empty for staff to type again (user testing #4).
+    // An empty value takes out what an earlier package put in there - only
+    // where it still is as put in (applyFollowing): picking Prenatal care
+    // after a delivery left SPONTANEOUS VERTEX DELIVERY, O80.0 and the NSD
+    // procedure in CF2 until every prenatal blank was filled.
+    else if (auto && this.opts.earlyTargets) this.applyFollowing(this.opts.earlyTargets(values));
     this.renderStatus(targets, missing, auto);
   }
 
@@ -370,6 +408,10 @@ class DxSentence {
     // An admission diagnosis that is only the reason for admission copied
     // over (app.js DERIVED_FIELDS) gives way to the wording.
     if (key === 'admissionDx' && now !== '' && now === String(state.data.chiefComplaint ?? '').trim()) return true;
+    // Likewise CF2's Diagnosis A that only repeats a diagnosis given elsewhere (app.js DERIVED_FIELDS).
+    if (key === 'dxADiagnosis' && now !== '' &&
+        [state.data.dischargeDx, state.data.admissionDx, dischargeFromAdmission(state.data.admissionDx)]
+          .some(dx => now === String(dx ?? '').trim())) return true;
     // A package's short title put in by picking its code (setupCodeOptions).
     if (now !== '' && Object.values(DX_PACKAGES).some(p => p.title === now)) return true;
     return now === '' || (key in this.following && now === String(this.following[key]));
@@ -403,19 +445,18 @@ class DxSentence {
     } else {
       useBtn.hidden = !(this.complete && others.length);
     }
+    // One short line (user testing #4: less to read). The red blanks show
+    // which are missing; each blank names itself when pointed at.
     if (missing.length) {
-      status.innerHTML = `<span class="text-danger">Fill in the red blank${missing.length === 1 ? '' : 's'}: ` +
-        `${dxEscape(missing.join(', '))}.</span> It goes in once complete.`;
+      status.innerHTML = `<span class="dx-left">${missing.length} red blank${missing.length === 1 ? '' : 's'} left</span> ` +
+        `- it goes in once ${missing.length === 1 ? 'it is' : 'they are'} filled.`;
     } else if (!auto && !inBoxes) {
       status.innerHTML = `<i class="bi bi-info-circle me-1"></i>${dxEscape(this.opts.notAutoNote || 'Not put in by itself.')}`;
-    } else if (!auto) {
-      status.innerHTML = `<i class="bi bi-check-circle-fill text-success me-1"></i>In ${dxEscape(names(keys))}.`;
-    } else if (others.length) {
-      status.innerHTML = `<i class="bi bi-info-circle me-1"></i>Put in automatically: ${dxEscape(names(keys.filter(k => !others.includes(k))) || 'none')}. ` +
-        `<strong>${dxEscape(names(others))}</strong> already ${others.length === 1 ? 'has' : 'have'} other wording, kept as it is.`;
+    } else if (!auto || !others.length) {
+      status.innerHTML = '<i class="bi bi-check-circle-fill text-success me-1"></i>Put in the boxes.';
     } else {
-      status.innerHTML = `<i class="bi bi-check-circle-fill text-success me-1"></i>Put in automatically: ${dxEscape(names(keys))}. ` +
-        'Change a blank above and they follow; type in those boxes to word it differently.';
+      status.innerHTML = '<i class="bi bi-check-circle-fill text-success me-1"></i>Put in. ' +
+        `<strong>${dxEscape(names(others))}</strong> kept ${others.length === 1 ? 'its' : 'their'} own wording.`;
     }
   }
 
@@ -467,14 +508,16 @@ function dxShell(title, extra, buttons) {
     <div class="dx-head">
       <div class="dx-title"><i class="bi bi-card-text me-2"></i>${title}</div>
       ${extra || ''}
+      <button type="button" class="dx-refill" data-dx-auto title="Fill the blanks again from the forms"><i class="bi bi-arrow-counterclockwise me-1"></i>Refill blanks</button>
     </div>
     <div class="dx-sentence"></div>
+    <!-- The sentence above, filled in: kept up to date, not shown (the blanks
+         already read as it; user testing #4 asked for less to look at). -->
     <div class="dx-preview" aria-live="polite"></div>
     <div class="dx-status small"></div>
     <div class="dx-actions">
       <button type="button" class="btn btn-primary btn-sm" data-dx-use hidden><i class="bi bi-plus-lg me-1"></i>${b.use || 'Put it in'}</button>
       ${b.out ? `<button type="button" class="btn btn-outline-secondary btn-sm" data-dx-out hidden><i class="bi bi-dash-lg me-1"></i>${b.out}</button>` : ''}
-      <button type="button" class="btn btn-link btn-sm" data-dx-auto>Fill the blanks again from the forms</button>
     </div>
     <div class="dx-confirm" role="alertdialog" hidden>
       <div class="dx-confirm-title"><i class="bi bi-exclamation-triangle-fill me-2"></i>Replace what is there?</div>
@@ -504,13 +547,16 @@ const dxDiagnosis = (function setupDiagnosisWording() {
     label: key => DX_TARGET_LABELS[key] || key,
     targets: (text, values) => {
       const p = DX_PACKAGES[dxCurrentPackage()];
-      const final = p.finalText ? sentence.text(p.finalText, values) : text;
+      // One sentence for both: at discharge without its leading "FOR"
+      // (app.js dischargeFromAdmission) - FOR INSERTION OF ... becomes
+      // INSERTION OF ... in the final diagnosis, CF2 and CF4.
+      const final = p.finalText ? sentence.text(p.finalText, values) : dischargeFromAdmission(text);
       if (p.finalText) text = sentence.text(p.text, values);
       const icd = typeof p.icd === 'function' ? p.icd(values) : p.icd;
       // The first case rate (CSF Part V, CF4) prints the package's RVS code,
       // not the ICD-10 code (staff review 3). The second case rate is left
       // empty: a claim here has one package, and a second is picked by hand.
-      const rate = dxCaseRate(p);
+      const rate = dxCaseRate(p, values);
       return {
         admissionDx: text, dischargeDx: final, dxADiagnosis: p.cf2Dx || final, cf4FinalDiagnosis: final,
         dxAIcd10: icd, cf4IcdCode: rate, csfFirstCaseRate: rate,
@@ -518,6 +564,36 @@ const dxDiagnosis = (function setupDiagnosisWording() {
         // The procedure is done on the day of admission.
         dxADateI: p.rvs ? state.data.dateAdmitted || '' : '',
       };
+    },
+    // The targets above that need no blank (DxSentence.refresh).
+    earlyTargets: values => {
+      const p = DX_PACKAGES[dxCurrentPackage()];
+      const rate = dxCaseRate(p, values);
+      const early = {
+        dxARvsI: p.rvs || '', dxAProcI: p.proc || '', dxADateI: p.rvs ? state.data.dateAdmitted || '' : '',
+        cf4IcdCode: rate, csfFirstCaseRate: rate,
+      };
+      // Prenatal care's ICD-10 code waits for the gravida (first pregnancy or not).
+      early.dxAIcd10 = typeof p.icd !== 'function' ? p.icd || '' : dxBlank(values.g) ? '' : p.icd(values);
+      // A package without a CF2 wording of its own (prenatal, postpartum...)
+      // has its diagnosis put in with the sentence, once complete. Until
+      // then only an earlier package's wording comes out - not a diagnosis
+      // repeated from Patient details (app.js DERIVED_FIELDS), which would
+      // only be put straight back.
+      if (p.cf2Dx) early.dxADiagnosis = p.cf2Dx;
+      else if (sentence.following.dxADiagnosis !== undefined &&
+               state.data.dxADiagnosis === sentence.following.dxADiagnosis) early.dxADiagnosis = '';
+      // Another package's sentence, put in when that package was complete,
+      // comes out of the admission and final diagnosis boxes (CF2 6., CF4)
+      // where it is still as put in: back to a delivery from prenatal care
+      // left the prenatal sentence on the delivery's claim until the
+      // delivery's blanks were filled.
+      if (sentence.completeFor && sentence.completeFor !== dxCurrentPackage()) {
+        ['admissionDx', 'dischargeDx', 'cf4FinalDiagnosis'].forEach(key => {
+          if (sentence.following[key] !== undefined && state.data[key] === sentence.following[key]) early[key] = '';
+        });
+      }
+      return early;
     },
   });
   sentence.box.insertAdjacentHTML('afterbegin', dxShell('The clinic\'s wording',
@@ -535,7 +611,10 @@ const dxDiagnosis = (function setupDiagnosisWording() {
     refresh() {
       select.value = dxCurrentPackage();
       const auto = !state.data.dxPackage;
-      sentence.box.querySelector('.dx-package span').textContent = auto ? 'Package (picked automatically)' : 'Package';
+      // One word either way (user testing #4); the choice shows on hover.
+      const label = sentence.box.querySelector('.dx-package span');
+      label.textContent = 'Package';
+      label.title = auto ? 'Picked automatically from the patient' : 'Picked by hand';
       sentence.refresh();
     },
     reset() { sentence.reset(); },
@@ -681,7 +760,18 @@ const DX_RVS_OPTIONS = Object.entries(DX_PACKAGES).filter(([, p]) => p.rvs)
   .map(([pkg, p]) => ({ code: p.rvs, pkg, label: p.name, proc: p.proc }));
 /* A package's case rate code: its RVS code, or its own package code when
    it has none (FP001, PPC01...). */
-function dxCaseRate(p) { return p.rvs || p.code; }
+/* Prenatal care is claimed per trimester (PhilHealth Circular 2026-0004,
+   Table: ANV01 1-12 weeks, ANV02 13-26, ANV03 28-40), so its case rate is
+   the one code the weeks AOG fall in; "ANV/01/02/03" until they are known. */
+function dxAnvCode(aog) {
+  const weeks = parseInt(String(aog || ''), 10);
+  if (!(weeks >= 1)) return '';
+  return weeks <= 12 ? 'ANV01' : weeks <= 26 ? 'ANV02' : 'ANV03';
+}
+function dxCaseRate(p, values) {
+  if (p === DX_PACKAGES.ANV && values) return dxAnvCode(values.aog) || p.code;
+  return p.rvs || p.code;
+}
 const DX_CASE_RATE_OPTIONS = Object.entries(DX_PACKAGES)
   .map(([pkg, p]) => ({ code: dxCaseRate(p), pkg, label: p.name }));
 
@@ -900,7 +990,10 @@ updateFormPreviews = function () {
 const resetFormDataBeforeDx = resetFormData;
 resetFormData = function () {
   [dxDiagnosis, dxCourse].forEach(part => { if (part) part.reset(); });
+  dxSharedTyped = {};
   resetFormDataBeforeDx.apply(this, arguments);
 };
 
-dxRefreshAll();
+// The whole refresh (which ends in dxRefreshAll): the package decides parts
+// of the forms too (app.js applyPackageParts), and that waited for this file.
+updateFormPreviews();

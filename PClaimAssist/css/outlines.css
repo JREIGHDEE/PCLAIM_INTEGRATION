@@ -1,0 +1,88 @@
+/* ═══════════════════════════════════════════════════════════
+   PClaimAssist – Clear outlines on every page (user testing #4)
+
+   Staff found some boxes and cards hard to make out: their edge was
+   #E2E8F0 (#D1D5DB in the Logbook Reader), barely 1.2:1 against white.
+   Boxes to type in, tick boxes and choice buttons now have a 2px edge in
+   #7C8798 (3.6:1 on white, past the 3:1 WCAG asks of a box's edge), and
+   cards and panels a #8592A6 edge (3.2:1).
+
+   Only the edge's colour and thickness change. A box still to fill (red,
+   or blue in colour-blind mode), "please check", a locked box and the blue
+   focus ring keep their own look: those rules are more specific or
+   !important and win over these.
+
+   Loaded after the other stylesheets by every page, the Logbook Reader and
+   logbook setup (Ocr_module/templates) included.
+═══════════════════════════════════════════════════════════ */
+
+/* :root, as the Logbook Reader's own page style sets --line there; this
+   file loads after it, so its value wins. Colour-blind mode's
+   (html.cb-mode) is more specific and still wins over both. */
+:root {
+  --pca-outline: #7C8798;
+  --pca-card-outline: #8592A6;
+  /* The Logbook Reader's and logbook setup's own edge colour. */
+  --line: #7C8798;
+}
+
+/* The sign-in page's boxes (its own, more specific rule). */
+html .login-body .form-control { border-width: 2px; border-color: var(--pca-outline); }
+html .login-body .form-control:focus { border-color: var(--primary, #2563EB); }
+
+/* Copies of Patient details boxes on the forms, and read-only boxes:
+   still grey and not to be typed in, now with an edge that can be seen. A
+   copy still missing keeps its red (a more specific rule). */
+html input.from-patient-details,
+html textarea.from-patient-details,
+html select.from-patient-details,
+html input.from-patient-details:focus,
+html textarea.from-patient-details:focus { border-color: var(--pca-card-outline) !important; }
+html .pca-box-group.from-patient-details .pca-box,
+html .pca-input[readonly],
+html .pca-input.is-locked,
+html .btn-check-group.from-patient-details .btn-check-option { border-color: var(--pca-card-outline); }
+
+/* Boxes to type in, dropdowns, one-character boxes, typed dates. */
+html .pca-input,
+html .form-control,
+html .form-select,
+html .pca-box,
+html .box-input input,
+html .pin-boxes input,
+html .pca-date-text {
+  border-width: 2px;
+  border-color: var(--pca-outline);
+}
+html .pca-input:focus,
+html .form-control:focus,
+html .form-select:focus,
+html .pca-box:focus,
+html .box-input input:focus,
+html .pin-boxes input:focus,
+html .pca-date-text:focus {
+  border-color: var(--primary, #2563EB);
+}
+
+/* Tick boxes and round choices. */
+html .form-check-input { border: 2px solid var(--pca-outline); }
+html .form-check-input:checked { border-color: var(--primary, #2563EB); }
+
+/* Choice buttons (Mother / Baby / Neither, L / R / Both...). */
+html .btn-check-option { border-color: var(--pca-outline); }
+
+/* Cards and panels; those with a coloured edge keep it on that side. */
+html .pca-card,
+html .dx-group-card,
+html .form-entry-panel { border-color: var(--pca-card-outline); }
+html .form-status-card {
+  border-left-color: var(--pca-card-outline);
+  border-right-color: var(--pca-card-outline);
+  border-bottom-color: var(--pca-card-outline);
+}
+html .stat-card,
+html .pca-accordion-item {
+  border-top-color: var(--pca-card-outline);
+  border-right-color: var(--pca-card-outline);
+  border-bottom-color: var(--pca-card-outline);
+}

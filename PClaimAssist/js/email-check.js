@@ -2,14 +2,13 @@
    PClaimAssist – Is that email address real?
 
    Asks the backend (POST /api/settings/check-email) a short moment
-   after typing stops. The backend checks how it is written and whether
-   the part after the @ exists, by looking up the domain's mail servers.
-
-   Nothing is sent to the address, and nothing is sent to a company
-   outside: the patient's email never leaves this computer.
+   after typing stops. The backend checks how it is written, whether
+   the part after the @ exists (the domain's mail servers), and asks
+   Kickbox's open API whether that domain gives out throw-away
+   addresses - the domain only, never the whole address.
 
    A wrong address is said plainly under the box and never blocks
-   typing - the staff decide, the system only points.
+   typing; "Save patient" refuses it (Ocr_module routes/claims_routes.py).
 ═══════════════════════════════════════════════════════════ */
 (function setupEmailCheck() {
   const boxes = Array.from(document.querySelectorAll('input[type="email"][data-autofill]'));

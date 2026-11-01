@@ -1085,6 +1085,32 @@ function obFromDx(d) {
   return none;
 }
 
+/* An admission diagnosis said as what the patient came for - "FOR
+   INSERTION OF IMPLANTABLE SUBDERMAL CONTRACEPTIVE", "FOR PSI INSERTION" -
+   is, at discharge, what was done: the same words without the "FOR"
+   (user testing #4). Used wherever the admission diagnosis is copied into
+   a discharge / final diagnosis (Same as admission, CF2 Diagnosis A, the
+   clinic's wording - js/dx-templates.js). */
+function dischargeFromAdmission(text) {
+  return String(text || '').replace(/^\s*FOR\s+/i, '');
+}
+
+/* The weeks AOG written in a diagnosis - "PUFT 40 2/7 WKS AOG", "39 3/7
+   WEEKS AOG" - as "40 2/7", for the clinic's wording (js/dx-templates.js
+   dxAutoValue) when no LMP gives them: the logbook has no LMP, and before
+   user testing #4 the NSDBF wording's weeks stayed blank for every
+   logbook claim. 20 to 45 weeks only, so "2 WEEKS POSTPARTUM" is not it. */
+const AOG_IN_DX = /\b(\d{1,2})(?:\s+(\d)\s*\/\s*7)?\s*(?:WEEKS?|WKS?)\b/gi;
+function aogFromDx(d) {
+  for (const text of [d.admissionDx, d.dischargeDx, d.chiefComplaint]) {
+    for (const m of String(text || '').matchAll(AOG_IN_DX)) {
+      const weeks = Number(m[1]);
+      if (weeks >= 20 && weeks <= 45) return m[2] && m[2] !== '0' ? `${weeks} ${m[2]}/7` : String(weeks);
+    }
+  }
+  return '';
+}
+
 /* The baby's sex and birth weight written in a diagnosis: "... TO A LIVE
    TERM BABY BOY ... WEIGHING 2600 GMS." */
 function babyFromDx(d) {
@@ -1114,6 +1140,11 @@ const DERIVED_FIELDS = {
   // reason for admission; the clinic's wording replaces it once complete
   // (js/dx-templates.js), and anything typed there is kept.
   admissionDx: d => d.chiefComplaint || '',
+  // CF2 7. Diagnosis A starts as the diagnosis already given - the final
+  // one, else the admission one - so the same words are not typed twice
+  // (user testing #4). The clinic's wording replaces it (NSDBF puts in
+  // SPONTANEOUS VERTEX DELIVERY), and anything typed there is kept.
+  dxADiagnosis: d => d.dischargeDx || dischargeFromAdmission(d.admissionDx),
   // Birth details (Patient details) start from the APGAR scores in the
   // diagnosis, so the newborn and CF4 wording (js/dx-templates.js) use them.
   apgarScore1: d => apgarFromDx(d)[0],
@@ -1427,11 +1458,19 @@ document.addEventListener('focusin', e => {
   markUnfinishedHistory();
 });
 
+/* The OB score stays when the diagnosis it was read from goes: it is still
+   the patient's. Taking a package's sentence out (js/dx-templates.js, a
+   package changed) emptied the G, P and T-P-A-L staff had typed, since they
+   matched what the sentence said (user testing #4). */
+const DERIVED_KEPT_WHEN_SOURCE_GOES = new Set(['gravida', 'para', 'obTerm', 'obPreterm', 'obAbortion', 'obLiving']);
+
 function applyDerivedFields() {
   Object.entries(DERIVED_FIELDS).forEach(([key, work]) => {
     const next = work(state.data);
     const cur = state.data[key] || '';
-    if (!cur || cur === derivedLast[key]) state.data[key] = next;
+    if (!cur || cur === derivedLast[key]) {
+      if (!(next === '' && cur && DERIVED_KEPT_WHEN_SOURCE_GOES.has(key))) state.data[key] = next;
+    }
     derivedLast[key] = next;
   });
 }
@@ -1475,8 +1514,10 @@ function updateFormPreviews() {
   applyMemberIsPatient();
   applySignerLink();
   applyNoEmployer();
+  applyOccupationFromMemberType();
   applyNoContact();
   applySpecialProceduresDefault();
+  applyPackageParts();
   if (typeof openUsedProfessionals === 'function') openUsedProfessionals();
   applyNoPhilhealth();
   applyMailingSameAsAbove();
@@ -1529,6 +1570,7 @@ function syncAllAutofillElements() {
   // "Essentially normal" is ticked.
   if (window.PCAExamGroups) setTimeout(window.PCAExamGroups.refresh, 0);
   if (window.PCASexLock) setTimeout(window.PCASexLock.refresh, 0);
+  if (window.PCADeliveryTime) setTimeout(window.PCADeliveryTime.refresh, 0);
   if (window.PCAAddressSelects) setTimeout(window.PCAAddressSelects.refresh, 0);
   const seen = new Set();
   document.querySelectorAll('[data-autofill]').forEach(el => {
@@ -1799,8 +1841,10 @@ const PATIENT_PANEL_CONTROLS = new Set(['memberIsPatient']);
 // OB/GYN history: G, P and T-P-A-L): left open there too. Both boxes share one key, so
 // typing in either fills the other.
 const EDITABLE_ON_FORMS = new Set(['gravida', 'para', 'obTerm', 'obPreterm', 'obAbortion', 'obLiving',
-  // PMRF V.: the monthly income is as often typed on the form itself.
-  'monthlyIncome']);
+  // PMRF IV.: the monthly income is as often typed on the form itself - and
+  // so are the member type and occupation (user testing #4: locked there,
+  // a change on the PMRF did not reach the PDF).
+  'monthlyIncome', 'memberType', 'profession']);
 
 function patientOwnedKeys() {
   const keys = new Set();
@@ -1991,6 +2035,58 @@ function applyNoEmployer() {
     applyNotNeededParts();
   }
   noEmployerWas = on;
+}
+
+/* Profession / Occupation from the member type (user testing #4):
+   Self-Earning Individual, or any of its kinds, is SELF EMPLOYED; every
+   other type is EMPLOYED. Only when the member type changes, and only
+   into a box that is empty or still holds one of these two words - an
+   occupation staff typed is theirs. */
+const AUTO_OCCUPATIONS = ['EMPLOYED', 'SELF EMPLOYED'];
+let occupationTypeWas = null;
+function occupationFor(type) {
+  return /self-earning|individual/i.test(type) ? 'SELF EMPLOYED' : 'EMPLOYED';
+}
+function applyOccupationFromMemberType() {
+  const type = state.data.memberType || '';
+  if (type === occupationTypeWas) return;
+  occupationTypeWas = type;
+  if (!type) return;
+  const now = String(state.data.profession || '').trim().toUpperCase();
+  if (now && !AUTO_OCCUPATIONS.includes(now)) return;
+  const auto = occupationFor(type);
+  if (now === auto) return;
+  state.data.profession = auto;
+  document.querySelectorAll('[data-autofill="profession"]').forEach(el => { el.value = auto; });
+}
+
+/* The CF2 package parts follow the claim's package (user testing #4).
+   TB-DOTS is never this clinic's: always "Not needed". The Newborn Care
+   Package is the baby's (NCP): every item ticked - the nine essential
+   newborn care steps too, which would otherwise turn red - and "Not
+   needed" for any other package, with its ticks taken off. Only when
+   the package changes, so a part ticked or unticked by hand stays. */
+const TB_DOTS_PART = 'cf2|tb-dots package';
+const NEWBORN_CARE_PART = 'cf2|newborn care package';
+let packagePartsWas = null;
+function applyPackageParts() {
+  // js/dx-templates.js loads after this file.
+  if (typeof dxCurrentPackage !== 'function') return;
+  const ncp = dxCurrentPackage() === 'NCP';
+  if (ncp === packagePartsWas) return;
+  packagePartsWas = ncp;
+  const allOf = key => [...document.querySelectorAll(`input[data-autofill="${key}"]`)].map(el => el.value);
+  state.notNeeded[TB_DOTS_PART] = true;
+  if (ncp) {
+    delete state.notNeeded[NEWBORN_CARE_PART];
+    state.data.cf2NewbornCare = allOf('cf2NewbornCare');
+    state.data.cf2EssentialNewbornCare = allOf('cf2EssentialNewbornCare');
+  } else {
+    state.notNeeded[NEWBORN_CARE_PART] = true;
+    state.data.cf2NewbornCare = [];
+    state.data.cf2EssentialNewbornCare = [];
+  }
+  applyNotNeededParts();
 }
 
 /* "No contact info" (Patient details, Contact Information): no phone or
@@ -2551,7 +2647,8 @@ function handwrittenKeys(form) {
 const VAL_SPOT_KEYS = {
   patientName: ['patientLastName', 'patientFirstName', 'patientMiddleName'],
   memberName: ['memberLastName', 'memberFirstName', 'memberMiddleName'],
-  cf4PhysicalExam: ['cf4Heent', 'cf4Chest', 'cf4Cvs', 'cf4Abdomen', 'cf4Gu', 'cf4Skin', 'cf4Neuro', 'cf4GeneralSurvey'],
+  // In the form's order: "Fix this" goes to the first one still red (fixTargetKey).
+  cf4PhysicalExam: ['cf4GeneralSurvey', 'cf4Heent', 'cf4Chest', 'cf4Cvs', 'cf4Abdomen', 'cf4Gu', 'cf4Skin', 'cf4Neuro'],
   cf4CourseInWard: ['cf4CourseDate1', 'cf4CourseOrder1'],
   cf4DrugsAdministered: ['cf4DrugName1', 'cf4DrugQty1', 'cf4DrugDose1', 'cf4DrugCost1'],
   fullAddress: ['addrUnit', 'addrBuilding', 'addrLot', 'addrStreet', 'addrSubdivision', 'addrBarangay', 'addrCity', 'addrProvince', 'addrZip'],
@@ -2725,7 +2822,8 @@ function updateValidation() {
     const statusHtml = formComplete === formTotal
       ? '<span class="badge badge-ready">Ready to print</span>'
       : formComplete > 0
-        ? `<span class="badge badge-pending">Not finished (${formComplete} of ${formTotal})</span>`
+        // The count kept in one piece, so a narrow card wraps it under "Not finished".
+        ? `<span class="badge badge-pending">Not finished <span class="badge-count">(${formComplete} of ${formTotal})</span></span>`
         : '<span class="badge badge-pending">Not started</span>';
     // One badge on the dashboard, one in the form's own header.
     [`status-${form}`, `status-${form}-2`].forEach(id => {
@@ -2742,6 +2840,14 @@ function updateValidation() {
     }
     const bar = document.getElementById(`prog-${form}-bar`);
     if (bar) bar.style.width = pct + '%';
+    // Beside the form's own title: the same percent as Step 3 shows for it.
+    const formProgress = document.getElementById(`form-progress-${form}`);
+    if (formProgress) {
+      document.getElementById(`form-progress-${form}-fill`).style.width = pct + '%';
+      document.getElementById(`form-progress-${form}-pct`).textContent = pct + '%';
+      formProgress.setAttribute('aria-valuenow', String(pct));
+      formProgress.classList.toggle('done', pct === 100);
+    }
   });
 
   const overall     = totalFields ? Math.round((totalComplete / totalFields) * 100) : 100;
@@ -2926,8 +3032,20 @@ const FIX_FIELD_ALIASES = {
    refuses typing - both of which made "Fix this" look broken. Prefer, in
    order: a box that takes typing, the visible box row standing in for a
    hidden input, and only then whatever carries the key. */
+/* A checker item made of several parts with no box of its own - CF4's
+   "Physical Examination Findings" is eight groups of ticks - goes to the
+   first part the form still shows red, so staff land on the group that is
+   actually empty (page 2 of the examination included). Before user
+   testing #4 it had no box and no alias, and "Fix this" did nothing. */
+function fixTargetKey(key) {
+  if (FIX_FIELD_ALIASES[key]) return FIX_FIELD_ALIASES[key];
+  const parts = VAL_SPOT_KEYS[key];
+  if (!parts || document.querySelector(`[data-autofill="${key}"], [data-box-key="${key}"]`)) return key;
+  return parts.find(k => keyRedOnAnyForm(k)) || parts[0];
+}
+
 function editableFieldFor(key) {
-  const name = FIX_FIELD_ALIASES[key] || key;
+  const name = fixTargetKey(key);
   const all = Array.from(document.querySelectorAll(
     `[data-autofill="${name}"], [data-box-key="${name}"]`));
   if (!all.length) return null;
@@ -3900,7 +4018,8 @@ function refreshFinalDxTick(values) {
     const follow = toggle.checked;
     field.readOnly = follow;
     field.classList.toggle('is-locked', follow);
-    const admission = state.data.admissionDx || '';
+    // Without a leading "FOR": the discharge says what was done.
+    const admission = dischargeFromAdmission(state.data.admissionDx);
     if (follow && field.value !== admission) {
       field.value = admission;
       field.dispatchEvent(new Event('input', { bubbles: true }));
@@ -3921,7 +4040,8 @@ function refreshFinalDxTick(values) {
   refreshFinalDxTick.run = values => {
     if (!values || 'dischargeDx' in values) {
       const admission = state.data.admissionDx, final = state.data.dischargeDx;
-      toggle.checked = !!admission && admission === final;
+      // The same, or the same but for the admission's leading "FOR".
+      toggle.checked = !!admission && (admission === final || dischargeFromAdmission(admission) === final);
     }
     apply();
   };
@@ -4330,56 +4450,140 @@ document.addEventListener('visibilitychange', () => {
 
 
 /* ═══════════════════════════════════════════════════════════
-   SEX — FEMALE UNLESS SOMEONE SAYS OTHERWISE
+   TIME OF DELIVERY — hh:mm AND AM/PM (user testing #4)
 
-   The patient of a maternity clinic is the mother, so Sex is set to
-   Female and Male is out of reach. "Not female" releases it for the rare
-   case that needs it; unticking it puts Female back.
+   Typed as the logbook writes it: hh:mm in a box, AM or PM beside it.
+   Kept in deliveryTime as 24h ("15:20"), as before, for the clinic's
+   wording (js/dx-templates.js: "... ON {ddate}, {time} {ampm} ...") and
+   the claim. It was the browser's time box, which has an AM/PM of its
+   own: typed without that one - the AM/PM beside it being the one staff
+   use - the box held no time at all, and the wording never got one.
+═══════════════════════════════════════════════════════════ */
+(function setupDeliveryTime() {
+  const text = document.getElementById('deliveryTimeText');
+  const value = document.querySelector('#section-patient input[data-autofill="deliveryTime"]');
+  if (!text || !value) return;
+  const radios = Array.from(document.querySelectorAll('#section-patient input[data-autofill="amPmDelivery"]'));
+  let writing = false;
 
-   The baby's sex is a different question and is left alone.
+  // "3:20", "0320", "320" -> [3, 20]; nothing else.
+  function parse(typed) {
+    const m = /^(\d{1,2}):?(\d{2})$/.exec(String(typed || '').trim());
+    if (!m) return null;
+    const h = Number(m[1]), min = Number(m[2]);
+    return h >= 1 && h <= 12 && min <= 59 ? [h, min] : null;
+  }
+
+  function commit(half) {
+    const t = parse(text.value);
+    const pm = (half || state.data.amPmDelivery || 'AM') === 'PM';
+    const next = t ? `${String((t[0] % 12) + (pm ? 12 : 0)).padStart(2, '0')}:${String(t[1]).padStart(2, '0')}` : '';
+    // Half-typed ("03:") leaves the time as it was until it is whole or empty.
+    if (!t && text.value.trim()) return;
+    if (value.value === next) return;
+    writing = true;
+    try {
+      value.value = next;
+      value.dispatchEvent(new Event('input', { bubbles: true }));
+    } finally { writing = false; }
+  }
+
+  text.addEventListener('input', () => {
+    // The colon goes in by itself after the hour: 0320 -> 03:20.
+    const digits = text.value.replace(/\D/g, '').slice(0, 4);
+    text.value = digits.length > 2 ? `${digits.slice(0, digits.length - 2)}:${digits.slice(-2)}` : digits;
+    commit();
+  });
+  text.addEventListener('blur', () => {
+    const t = parse(text.value);
+    if (t) text.value = `${String(t[0]).padStart(2, '0')}:${String(t[1]).padStart(2, '0')}`;
+  });
+  // AM or PM changes the half of the day of the time already typed - the
+  // one clicked, at once (state may not have it yet, and a refresh in
+  // between would tick the old half again).
+  radios.forEach(r => r.addEventListener('change', () => {
+    if (!r.checked) return;
+    state.data.amPmDelivery = r.value;
+    commit(r.value);
+  }));
+
+  // A loaded claim, or a time put in from elsewhere: shown as hh:mm, its AM/PM ticked.
+  window.PCADeliveryTime = {
+    refresh() {
+      if (writing || document.activeElement === text) return;
+      const m = /^(\d{1,2}):(\d{2})/.exec(state.data.deliveryTime || '');
+      if (!m) { if (!state.data.deliveryTime) text.value = ''; return; }
+      const h24 = Number(m[1]);
+      text.value = `${String(h24 % 12 || 12).padStart(2, '0')}:${m[2]}`;
+      const half = h24 >= 12 ? 'PM' : 'AM';
+      if (state.data.amPmDelivery !== half) state.data.amPmDelivery = half;
+      radios.forEach(r => { r.checked = r.value === half; });
+    },
+  };
+  window.PCADeliveryTime.refresh();
+})();
+
+/* ═══════════════════════════════════════════════════════════
+   SEX — FOLLOWS "MOTHER OR BABY?" (user testing #4)
+
+   The mother is Female: ticked by itself, Male out of reach. A baby can
+   be a boy or a girl, so both are open - and a Female this rule put in
+   (not one staff chose) is taken out again, so the baby's real sex is
+   asked for instead of a mother's Female being left behind. "Regular"
+   is open too. Before anyone chooses, the patient counts as the mother
+   unless the birth date says baby (js/dx-templates.js dxIsBaby).
 ═══════════════════════════════════════════════════════════ */
 (function setupSexLock() {
-  const unlock = document.getElementById('patientSexUnlock');
-  if (!unlock) return;
   const male = document.getElementById('patientSexM');
   const female = document.getElementById('patientSexF');
+  if (!male || !female) return;
   const selects = Array.from(document.querySelectorAll('select.pca-sex-select'));
+  let autoFemale = false; // Female put in by this rule, not chosen by staff
+  let applying = false;
 
-  function apply(fromTick) {
-    const open = unlock.checked;
-    // A ticked radio is not a value until something writes it down, so
-    // Female is put into state the first time through.
-    if (!open && !state.data.patientSex) {
-      state.data.patientSex = 'Female';
-    }
-    if (male) male.disabled = !open;
-    selects.forEach(sel => {
-      sel.disabled = !open;
-      sel.classList.toggle('is-locked', !open);
-    });
-    if (!open) {
-      // Back to Female, through the normal path so every copy follows.
-      if (female && !female.checked) {
+  function chosenRole() {
+    return typeof mb !== 'undefined' && mb.family ? mb.family.role || '' : '';
+  }
+  function isBaby() {
+    return typeof dxIsBaby === 'function' ? Boolean(dxIsBaby()) : false;
+  }
+  function femaleOnly() {
+    return !isBaby() && chosenRole() !== 'other';
+  }
+
+  function apply() {
+    if (applying) return;
+    applying = true;
+    try {
+      const lock = femaleOnly();
+      male.disabled = lock;
+      selects.forEach(sel => {
+        sel.disabled = lock;
+        sel.classList.toggle('is-locked', lock);
+      });
+      if (lock && state.data.patientSex !== 'Female') {
+        // Through the normal path, so every copy of Sex follows.
         female.checked = true;
         female.dispatchEvent(new Event('change', { bubbles: true }));
-      } else if (fromTick && state.data.patientSex !== 'Female') {
         state.data.patientSex = 'Female';
+        autoFemale = true;
+      } else if (!lock && autoFemale && isBaby() && state.data.patientSex === 'Female') {
+        male.checked = female.checked = false;
+        selects.forEach(sel => { sel.value = ''; });
+        state.data.patientSex = '';
+        autoFemale = false;
         updateFormPreviews();
       }
+    } finally {
+      applying = false;
     }
   }
 
-  unlock.addEventListener('change', () => apply(true));
+  // Staff picking a sex themselves: theirs, never undone by the rule.
+  [male, female, ...selects].forEach(el => el.addEventListener('change', () => {
+    if (!applying) autoFemale = false;
+  }));
 
-  // A claim loaded from the database may already say Male; show that
-  // rather than overwrite it, with the tick on so it can be changed.
-  window.PCASexLock = {
-    refresh() {
-      if (state.data.patientSex === 'Male' && !unlock.checked) {
-        unlock.checked = true;
-      }
-      apply(false);
-    },
-  };
-  window.PCASexLock.refresh();
+  window.PCASexLock = { refresh: apply };
+  apply();
 })();
