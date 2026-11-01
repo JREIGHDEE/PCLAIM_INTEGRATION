@@ -11,7 +11,7 @@ Related documents:
 
 ---
 
-## 2026-11-01: Changes from user testing #3 and #4
+## 2026-11-01: Changes from user testing #3 and #4, and the adviser's revisions S1-S4 (JRAD)
 
 **After pulling:**
 1. From `Ocr_module/`: `venv\Scripts\python.exe -m pip install -r requirements.txt`
