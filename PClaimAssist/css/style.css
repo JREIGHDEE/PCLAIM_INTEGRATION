@@ -278,11 +278,11 @@ body {
 .sidebar.collapsed {
   width: 64px;
 }
-/* Closed, it opens again under the mouse - over the page, not pushing it:
-   the negative margin keeps its place in the layout at 64px. After a page
-   is picked, .no-peek (js/sidebar.js) holds it shut until the mouse moves
-   off it, so the fold can be seen. */
-.sidebar.collapsed:hover:not(.no-peek) {
+/* Closed, it opens again when the mouse comes over it (.peek, js/sidebar.js)
+   - over the page, not pushing it: the negative margin keeps its place in
+   the layout at 64px. It stays open until a click outside it, or a page is
+   picked. */
+.sidebar.collapsed.peek {
   width: var(--sidebar-w);
   margin-right: calc(64px - var(--sidebar-w));
   z-index: 1030;
@@ -308,22 +308,22 @@ body {
 .sidebar-footer { overflow: hidden; }
 /* The step numbers (1, 2, 3) are spans too, but stand in for the icon,
    so they stay when the wording folds away. */
-.sidebar.collapsed:is(:not(:hover), .no-peek) .sidebar-section-label,
-.sidebar.collapsed:is(:not(:hover), .no-peek) .sidebar-item span:not(.sidebar-step) {
+.sidebar.collapsed:not(.peek) .sidebar-section-label,
+.sidebar.collapsed:not(.peek) .sidebar-item span:not(.sidebar-step) {
   opacity: 0;
   max-width: 0;
   pointer-events: none;
 }
-.sidebar.collapsed:is(:not(:hover), .no-peek) .sidebar-footer span {
+.sidebar.collapsed:not(.peek) .sidebar-footer span {
   opacity: 0;
   pointer-events: none;
 }
 /* The 30px step circle is wider than an icon: a nudge left centres it.
    The green dot glides to the middle the same way. */
 .sidebar-item .sidebar-step { transition: margin-left var(--sb-dur) var(--sb-ease); }
-.sidebar.collapsed:is(:not(:hover), .no-peek) .sidebar-item .sidebar-step { margin-left: -7px; }
+.sidebar.collapsed:not(.peek) .sidebar-item .sidebar-step { margin-left: -7px; }
 .sidebar-footer { transition: padding var(--sb-dur) var(--sb-ease); }
-.sidebar.collapsed:is(:not(:hover), .no-peek) .sidebar-footer { padding-left: 27px; }
+.sidebar.collapsed:not(.peek) .sidebar-footer { padding-left: 27px; }
 
 /* The footer note on the dark panel ("310 boxes filled in...") */
 .sidebar-footer .text-muted { color: #E2E8F0 !important; }
@@ -347,7 +347,7 @@ body {
 /* Someone who would rather not see motion gets the fold with none. */
 @media (prefers-reduced-motion: reduce) {
   .sidebar,
-  .sidebar.collapsed:hover,
+  .sidebar.collapsed.peek,
   .sidebar-section-label,
   .sidebar-item,
   .sidebar-item span,

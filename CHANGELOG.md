@@ -11,6 +11,21 @@ Related documents:
 
 ---
 
+## 2026-10-31: Improved sidebar, baby's forms shown at once (Dawn)
+
+**After pulling:** no database migration and no restart. Press Ctrl+F5 on
+every open page.
+
+- Sidebar: closed, it opens when the mouse comes over it and now stays open
+  until a click outside it (it no longer folds the moment the mouse leaves).
+  Picking a page still folds it, and it opens on hover again only after the
+  mouse has been off it (`js/sidebar.js` `fold()`, the `.peek` class).
+- Mother or baby?: choosing Baby now shows the newborn claim's forms
+  (CSF, CF1, CF2, PMRF) at once. The package already followed the choice,
+  but the forms' list was only re-checked when the clinic's wording changed
+  a box, which a baby's wording with blanks left never did
+  (`js/mother-baby.js` `mbRender`). A package picked by hand still wins.
+
 ## 2026-10-30: Professor's notes - fixed sex, address dropdowns, email and sign-in security (yutaka)
 
 **After pulling:** no database migration. Restart the backend and press
