@@ -175,12 +175,14 @@ window.PDF_OVERLAY_PMRF = [
   { id:'mtEmployedPrivate', key:'memberType', page:1, top:78.801, left:3.862, w:1.324, fs:8, center:true, checkbox:true, checkValue:'Employed Private' },
   { id:'mtEmployedGovernment', key:'memberType', page:1, top:80.237, left:3.862, w:1.324, fs:8, center:true, checkbox:true, checkValue:'Employed Government' },
   { id:'mtProfessionalPractitioner', key:'memberType', page:1, top:81.758, left:3.91, w:1.324, fs:8, center:true, checkbox:true, checkValue:'Professional Practitioner' },
-  { id:'mtSelfEarningIndividual', key:'memberType', page:1, top:83.362, left:3.944, w:1.324, fs:8, center:true, checkbox:true, checkValue:'Self-Earning Individual' },
+  // The heading box is ticked with whichever kind is chosen under it (user testing #4).
+  { id:'mtSelfEarningIndividual', key:'memberType', page:1, top:83.362, left:3.944, w:1.324, fs:8, center:true, checkbox:true,
+    checkValue:['Self-Earning Individual', 'Self-Earning Individual — Individual', 'Self-Earning Individual — Sole Proprietor', 'Self-Earning Individual — Group Enrollment Scheme'] },
   { id:'mtSelfEarningIndividualSub', key:'memberType', page:1, top:84.966, left:5.417, w:1.324, fs:8, center:true, checkbox:true, checkValue:'Self-Earning Individual — Individual' },
   { id:'mtSoleProprietor', key:'memberType', page:1, top:86.378, left:5.417, w:1.324, fs:8, center:true, checkbox:true, checkValue:'Self-Earning Individual — Sole Proprietor' },
   { id:'mtGroupEnrollmentScheme', key:'memberType', page:1, top:87.914, left:5.391, w:1.324, fs:8, center:true, checkbox:true, checkValue:'Self-Earning Individual — Group Enrollment Scheme' },
   { id:'mtKasambahay', key:'memberType', page:1, top:78.816, left:27.807, w:1.324, fs:8, center:true, checkbox:true, checkValue:'Kasambahay/Family Driver' },
-  { id:'mtMigrantWorker', key:'memberType', page:1, top:80.353, left:27.859, w:1.324, fs:8, center:true, checkbox:true, checkValue:'Migrant Worker' },
+  { id:'mtMigrantWorker', key:'memberType', page:1, top:80.353, left:27.859, w:1.324, fs:8, center:true, checkbox:true, checkValue:['Migrant Worker — Land-Based', 'Migrant Worker — Sea-Based'] },
   { id:'mtLandBased', key:'memberType', page:1, top:81.728, left:30.182, w:1.324, fs:8, center:true, checkbox:true, checkValue:'Migrant Worker — Land-Based' },
   { id:'mtSeaBased', key:'memberType', page:1, top:81.667, left:43.351, w:1.324, fs:8, center:true, checkbox:true, checkValue:'Migrant Worker — Sea-Based' },
   { id:'mtLifetimeMember', key:'memberType', page:1, top:83.213, left:27.807, w:1.324, fs:8, center:true, checkbox:true, checkValue:'Lifetime Member' },
@@ -204,8 +206,9 @@ window.PDF_OVERLAY_PMRF = [
   { id:'groupEnrollmentNo', key:'groupEnrollmentNo', page:1, top:89.408, left:7.28, w:16.98, fs:7 },
   { id:'profession', key:'profession', page:1, top:94.008, left:3.363, w:28.836, fs:8 },
   { id:'monthlyIncome', key:'monthlyIncomeDisplay', computed:'monthlyIncomeDisplay', page:1, top:93.68, left:32.871, w:14.46, fs:8 },
-  { id:'proofPOS', key:'proofOfIncome', page:1, top:91.812, left:65.069, w:1.324, fs:9, center:true, checkbox:true, checkValue:'Point of Service (POS)' },
-  { id:'proofFinanciallyIncapable', key:'proofOfIncome', page:1, top:93.772, left:65.069, w:1.324, fs:9, center:true, checkbox:true, checkValue:'Financially Incapable' },
+  // Written in the form's own PROOF OF INCOME box. It used to tick two boxes
+  // inside "For PhilHealth Use only", which is PhilHealth's (user testing #4).
+  { id:'proofOfIncome', key:'proofOfIncome', page:1, top:93.68, left:48.3, w:14.8, fs:7 },
 
   // PAGE 2 — V. Updating/Amendment (5 rows: checkbox + FROM/TO blanks)
   { id:'amendName', key:'amendName', page:2, top:7.43, left:4.061, w:1.324, fs:9, center:true, checkbox:true },

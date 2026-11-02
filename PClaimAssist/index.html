@@ -7,9 +7,10 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" rel="stylesheet">
-  <link href="css/style.css?v=20261030b" rel="stylesheet">
+  <link href="css/style.css?v=20261101s" rel="stylesheet">
   <link href="css/easy.css?v=20261025q" rel="stylesheet">
-  <link href="css/colorblind.css?v=20261027c" rel="stylesheet">
+  <link href="css/colorblind.css?v=20261101b" rel="stylesheet">
+  <link href="css/outlines.css?v=20261101a" rel="stylesheet">
   <script src="js/colorblind.js?v=20261027a"></script>
 </head>
 <body class="easy">
@@ -221,6 +222,32 @@
     </div>
   </div>
 
+  <!-- Every saved patient, to open one again (user testing #4): folded to
+       one line until "Show list" (js/saved-patients.js). The "Mother or
+       baby?" panel comes under it (js/mother-baby.js mbPanel). -->
+  <div class="pca-card saved-patients mb-3" id="savedPatientsPanel">
+    <div class="saved-patients-head">
+      <div class="saved-patients-title"><i class="bi bi-people me-2" aria-hidden="true"></i>Saved patients
+        <span class="saved-patients-count" id="savedPatientsCount"></span></div>
+      <button type="button" class="btn btn-outline-primary btn-sm" id="savedPatientsToggle" aria-expanded="false"
+              aria-controls="savedPatientsBody">Show list</button>
+    </div>
+    <div class="saved-patients-body" id="savedPatientsBody" hidden>
+      <div class="saved-patients-tools">
+        <input type="search" class="form-control pca-input saved-patients-search" id="savedPatientsSearch"
+               placeholder="Search by name" aria-label="Search saved patients by name" autocomplete="off">
+        <!-- Show only the claims at one stage (js/saved-patients.js). -->
+        <div class="saved-patients-filter" id="savedPatientsFilter" role="group" aria-label="Show">
+          <button type="button" class="active" data-filter="all" aria-pressed="true">All</button>
+          <button type="button" data-filter="draft" aria-pressed="false">Draft</button>
+          <button type="button" data-filter="ready" aria-pressed="false">Ready</button>
+          <button type="button" data-filter="exported" aria-pressed="false">Exported</button>
+        </div>
+      </div>
+      <div class="saved-patients-list" id="savedPatientsList" role="list"></div>
+    </div>
+  </div>
+
   <!-- The parts of the patient's details, shown as numbered steps that say
        what is left in each, under a "Next step" line (js/easy.js
        addPartProgress). Replaces a separate "How to fill this in" box. -->
@@ -299,13 +326,8 @@
                 <input class="form-check-input" type="radio" name="patientSex" id="patientSexF" data-autofill="patientSex" value="Female" checked>
                 <label class="form-check-label" for="patientSexF">Female</label>
               </div>
-              <!-- A maternity clinic's patient is the mother, so Female is
-                   set and Male is out of reach. The tick is there for the
-                   rare case that needs it (js/app.js setupSexLock). -->
-              <div class="form-check pca-sex-unlock">
-                <input class="form-check-input" type="checkbox" id="patientSexUnlock">
-                <label class="form-check-label" for="patientSexUnlock">Not female</label>
-              </div>
+              <!-- Follows "Mother or baby?": Female and Male out of reach for
+                   the mother, both open for a baby (js/app.js setupSexLock). -->
             </div>
           </div>
           <div class="col-md-4">
@@ -569,10 +591,13 @@
             <input type="text" class="form-control pca-input" data-autofill="chiefComplaint" placeholder="e.g., Labor pains, full-term pregnancy">
           </div>
           <div class="col-12">
+            <!-- The clinic's wording, above the two diagnoses it fills (user
+                 testing #4): its sentence with blanks (js/dx-templates.js). -->
+            <div id="admissionDxTemplate"></div>
+          </div>
+          <div class="col-12">
             <label class="pca-label">Admission Diagnosis <span class="required-dot">*</span></label>
             <textarea class="form-control pca-input" data-autofill="admissionDx" rows="3" placeholder="e.g., Term Pregnancy in Active Labor, 39 weeks AOG"></textarea>
-            <!-- "Use the usual wording": the doctors' usual sentence with its blanks (js/app.js) -->
-            <div id="admissionDxTemplate"></div>
           </div>
           <div class="col-12">
             <label class="pca-label">Discharge / Final Diagnosis <span class="required-dot">*</span></label>
@@ -591,6 +616,8 @@
       <div class="tab-pane fade" id="pane-maternity" role="tabpanel">
 
         <p class="pca-tab-section-label">Obstetrical History</p>
+        <!-- G, P and T-P-A-L are outlined red while the package's wording needs them
+             (data-needed-for, js/easy.js partStatus; user testing #4). -->
         <div class="row g-3">
           <div class="col-md-4">
             <label class="pca-label">Last Menstrual Period (LMP) <span class="required-dot">*</span></label>
@@ -606,20 +633,20 @@
           </div>
           <div class="col-md-3">
             <label class="pca-label">Gravida (G)</label>
-            <input type="number" min="1" class="form-control pca-input" data-autofill="gravida" placeholder="2">
+            <input type="number" min="1" class="form-control pca-input" data-autofill="gravida" data-needed-for="NSDBF ANV IUD" placeholder="2">
           </div>
           <div class="col-md-3">
             <label class="pca-label">Para (P)</label>
-            <input type="number" min="0" class="form-control pca-input" data-autofill="para" placeholder="1">
+            <input type="number" min="0" class="form-control pca-input" data-autofill="para" data-needed-for="NSDBF ANV IUD" placeholder="1">
             <div class="form-hint">Deliveries ≥20 weeks</div>
           </div>
           <div class="col-md-6">
             <span class="pca-label d-block">T-P-A-L</span>
             <div class="tpal-boxes" role="group" aria-label="Term, preterm, abortion, living">
-              <label><input type="text" inputmode="numeric" maxlength="1" data-one-digit class="form-control pca-input text-center" data-autofill="obTerm" placeholder="1" aria-label="Term"><span>Term</span></label>
-              <label><input type="text" inputmode="numeric" maxlength="1" data-one-digit class="form-control pca-input text-center" data-autofill="obPreterm" placeholder="0" aria-label="Preterm"><span>Preterm</span></label>
-              <label><input type="text" inputmode="numeric" maxlength="1" data-one-digit class="form-control pca-input text-center" data-autofill="obAbortion" placeholder="0" aria-label="Abortion"><span>Abortion</span></label>
-              <label><input type="text" inputmode="numeric" maxlength="1" data-one-digit class="form-control pca-input text-center" data-autofill="obLiving" placeholder="1" aria-label="Living"><span>Living</span></label>
+              <label><input type="text" inputmode="numeric" maxlength="1" data-one-digit class="form-control pca-input text-center" data-autofill="obTerm" data-needed-for="NSDBF ANV IUD" placeholder="1" aria-label="Term"><span>Term</span></label>
+              <label><input type="text" inputmode="numeric" maxlength="1" data-one-digit class="form-control pca-input text-center" data-autofill="obPreterm" data-needed-for="NSDBF ANV IUD" placeholder="0" aria-label="Preterm"><span>Preterm</span></label>
+              <label><input type="text" inputmode="numeric" maxlength="1" data-one-digit class="form-control pca-input text-center" data-autofill="obAbortion" data-needed-for="NSDBF ANV IUD" placeholder="0" aria-label="Abortion"><span>Abortion</span></label>
+              <label><input type="text" inputmode="numeric" maxlength="1" data-one-digit class="form-control pca-input text-center" data-autofill="obLiving" data-needed-for="NSDBF ANV IUD" placeholder="1" aria-label="Living"><span>Living</span></label>
             </div>
           </div>
         </div>
@@ -644,7 +671,13 @@
           <div class="col-md-4">
             <label class="pca-label">Time of Delivery</label>
             <div class="d-flex gap-2 align-items-center">
-              <input type="time" class="form-control pca-input" data-autofill="deliveryTime">
+              <!-- hh:mm typed here, AM or PM beside it, kept in deliveryTime as
+                   24h (js/app.js setupDeliveryTime). The browser's own time box
+                   had its own AM/PM too: typed without it, it held no time, so
+                   the clinic's wording never got one (user testing #4). -->
+              <input type="hidden" data-autofill="deliveryTime">
+              <input type="text" class="form-control pca-input" id="deliveryTimeText" data-box-key="deliveryTime"
+                     inputmode="numeric" maxlength="5" placeholder="hh:mm" aria-label="Time of delivery, hh:mm" autocomplete="off">
               <div class="d-flex gap-1 pca-radio flex-shrink-0">
                 <div class="form-check mb-0">
                   <input class="form-check-input" type="radio" name="amPmDelivery" id="delAM" data-autofill="amPmDelivery" value="AM" checked>
@@ -900,8 +933,16 @@
 ═════════════════════════════════════════════════════════════ -->
 <section id="section-csf" class="content-section">
   <div class="section-header">
-    <div>
+    <div class="form-title-row">
       <h1 class="section-title">CSF</h1>
+      <!-- How much of this form is filled in, and the way to every form's total (user testing #4, js/app.js updateValidation). -->
+      <div class="form-progress" role="progressbar" aria-label="CSF filled in" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="form-progress-csf">
+        <div class="form-progress-track"><div class="form-progress-fill" id="form-progress-csf-fill"></div></div>
+        <span class="form-progress-pct" id="form-progress-csf-pct">0%</span>
+      </div>
+      <button type="button" class="btn btn-outline-primary btn-sm form-progress-all" onclick="navigateTo('validation')" title="Step 3: Check for missing information - every form's total">
+        <i class="bi bi-list-check me-1" aria-hidden="true"></i>See all forms
+      </button>
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
       <span id="val-csf-score" class="val-score">0/9 Fields</span>
@@ -1233,7 +1274,7 @@
         <div class="row g-2">
           <div class="col-6">
             <label class="pca-label">First Case Rate (ICD-10 or RVS code)</label>
-            <input type="text" class="form-control pca-input" data-autofill="csfFirstCaseRate" placeholder="Click to choose, e.g. O80.0">
+            <input type="text" class="form-control pca-input" data-autofill="csfFirstCaseRate" placeholder="Click to choose, e.g. NSDBF">
           </div>
           <div class="col-6">
             <label class="pca-label">Second Case Rate (ICD-10 or RVS code)</label>
@@ -1270,8 +1311,16 @@
 ═══════════════════════════════════════════════════════════════ -->
 <section id="section-cf1" class="content-section">
   <div class="section-header">
-    <div>
+    <div class="form-title-row">
       <h1 class="section-title">CF1</h1>
+      <!-- How much of this form is filled in, and the way to every form's total (user testing #4, js/app.js updateValidation). -->
+      <div class="form-progress" role="progressbar" aria-label="CF1 filled in" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="form-progress-cf1">
+        <div class="form-progress-track"><div class="form-progress-fill" id="form-progress-cf1-fill"></div></div>
+        <span class="form-progress-pct" id="form-progress-cf1-pct">0%</span>
+      </div>
+      <button type="button" class="btn btn-outline-primary btn-sm form-progress-all" onclick="navigateTo('validation')" title="Step 3: Check for missing information - every form's total">
+        <i class="bi bi-list-check me-1" aria-hidden="true"></i>See all forms
+      </button>
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
       <span id="val-cf1-score" class="val-score">0/5 Fields</span>
@@ -1562,8 +1611,16 @@
 ═════════════════════════════════════════════════════════════ -->
 <section id="section-cf2" class="content-section">
   <div class="section-header">
-    <div>
+    <div class="form-title-row">
       <h1 class="section-title">CF2</h1>
+      <!-- How much of this form is filled in, and the way to every form's total (user testing #4, js/app.js updateValidation). -->
+      <div class="form-progress" role="progressbar" aria-label="CF2 filled in" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="form-progress-cf2">
+        <div class="form-progress-track"><div class="form-progress-fill" id="form-progress-cf2-fill"></div></div>
+        <span class="form-progress-pct" id="form-progress-cf2-pct">0%</span>
+      </div>
+      <button type="button" class="btn btn-outline-primary btn-sm form-progress-all" onclick="navigateTo('validation')" title="Step 3: Check for missing information - every form's total">
+        <i class="bi bi-list-check me-1" aria-hidden="true"></i>See all forms
+      </button>
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
       <span id="val-cf2-score" class="val-score">0/9 Fields</span>
@@ -2137,8 +2194,16 @@
 ═════════════════════════════════════════════════════════════ -->
 <section id="section-cf4" class="content-section">
   <div class="section-header">
-    <div>
+    <div class="form-title-row">
       <h1 class="section-title">CF4</h1>
+      <!-- How much of this form is filled in, and the way to every form's total (user testing #4, js/app.js updateValidation). -->
+      <div class="form-progress" role="progressbar" aria-label="CF4 filled in" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="form-progress-cf4">
+        <div class="form-progress-track"><div class="form-progress-fill" id="form-progress-cf4-fill"></div></div>
+        <span class="form-progress-pct" id="form-progress-cf4-pct">0%</span>
+      </div>
+      <button type="button" class="btn btn-outline-primary btn-sm form-progress-all" onclick="navigateTo('validation')" title="Step 3: Check for missing information - every form's total">
+        <i class="bi bi-list-check me-1" aria-hidden="true"></i>See all forms
+      </button>
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
       <span id="val-cf4-score" class="val-score">0/12 Fields</span>
@@ -2864,8 +2929,16 @@
 
 <section id="section-pmrf" class="content-section">
   <div class="section-header">
-    <div>
+    <div class="form-title-row">
       <h1 class="section-title">PMRF</h1>
+      <!-- How much of this form is filled in, and the way to every form's total (user testing #4, js/app.js updateValidation). -->
+      <div class="form-progress" role="progressbar" aria-label="PMRF filled in" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="form-progress-pmrf">
+        <div class="form-progress-track"><div class="form-progress-fill" id="form-progress-pmrf-fill"></div></div>
+        <span class="form-progress-pct" id="form-progress-pmrf-pct">0%</span>
+      </div>
+      <button type="button" class="btn btn-outline-primary btn-sm form-progress-all" onclick="navigateTo('validation')" title="Step 3: Check for missing information - every form's total">
+        <i class="bi bi-list-check me-1" aria-hidden="true"></i>See all forms
+      </button>
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
       <span id="val-pmrf-score" class="val-score">0/9 Fields</span>
@@ -3993,7 +4066,7 @@
 <!-- pdf-lib: write filled text onto PDF for export -->
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <!-- Shared sidebar (must load before app.js, which binds to .sidebar-item) -->
-<script src="js/sidebar.js?v=20261028m"></script>
+<script src="js/sidebar.js?v=20261101a"></script>
 <script>PCASidebar.render({ page: 'app', active: 'dashboard' });</script>
 <!-- Authentication client (must load before app.js) -->
 <script src="js/auth-client.js?v=20261027c"></script>
@@ -4002,10 +4075,10 @@
 <script src="js/pdf/overlays/cf1.js?v=20261028a"></script>
 <script src="js/pdf/overlays/cf2.js?v=20261028a"></script>
 <script src="js/pdf/overlays/cf4.js?v=20261027d"></script>
-<script src="js/pdf/overlays/pmrf.js?v=20261028e"></script>
+<script src="js/pdf/overlays/pmrf.js?v=20261101b"></script>
 <script src="js/pdf/overlays/index.js?v=20261028cf1"></script>
 <script src="js/entry-learning.js?v=20261022d"></script>
-<script src="js/pdf/pdf-overlay.js?v=20261028m"></script>
+<script src="js/pdf/pdf-overlay.js?v=20261101b"></script>
 <script src="js/pdf/pdf-calibrate.js?v=20261028cf1"></script>
 <!-- Rule-based validation engine (must load before app.js) -->
 <script src="js/validation-rules.js?v=20261028ncp"></script>
@@ -4016,15 +4089,17 @@
 <script src="js/pin-input.js?v=20261023a"></script>
 <!-- Davao Region address lists, and the cascading dropdowns built from
      them. Both after app.js: they write through its input listeners. -->
-<script src="js/app.js?v=20261030d"></script>
-<script src="js/ph-address.js?v=20261030c"></script>
-<script src="js/address-select.js?v=20261030c"></script>
-<script src="js/email-check.js?v=20261030a"></script>
-<script src="js/easy.js?v=20261028a"></script>
+<script src="js/app.js?v=20261101h"></script>
+<script src="js/ph-psgc.js?v=20261101s"></script>
+<script src="js/ph-address.js?v=20261101s"></script>
+<script src="js/address-select.js?v=20261101s"></script>
+<script src="js/email-check.js?v=20261101s"></script>
+<script src="js/easy.js?v=20261101b"></script>
 <!-- Loads a claim sent from the OCR review: index.html?claim=<id> -->
-<script src="js/mother-baby.js?v=20261028b"></script>
-<script src="js/dx-templates.js?v=20261028cf1"></script>
-<script src="js/claim-loader.js?v=20261028m"></script>
+<script src="js/mother-baby.js?v=20261101d"></script>
+<script src="js/dx-templates.js?v=20261101f"></script>
+<script src="js/claim-loader.js?v=20261101s"></script>
+<script src="js/saved-patients.js?v=20261101s"></script>
 
 <datalist id="suffixOptions">
   <option value="N/A"></option>

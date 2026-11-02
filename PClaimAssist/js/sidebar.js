@@ -75,9 +75,10 @@ const PCASidebar = {
 
   /** On wide screens the menu folds itself shut once a page is picked, and
       stays shut on the next page. The mouse coming over it opens it again
-      (.peek, style.css), and it stays open until a click outside it - not
-      merely the mouse leaving. Only classes change here: app.js and ocr.js
-      still handle the clicks and the toggle button. */
+      (.peek, style.css), and it closes again a moment after the mouse
+      leaves (user testing #4: it stayed open until a click outside), on a
+      click outside, or when a page is picked. Only classes change here:
+      app.js and ocr.js still handle the clicks and the toggle button. */
   fold() {
     const sb = document.getElementById('sidebar');
     if (!sb || sb.dataset.fold) return;
@@ -91,8 +92,17 @@ const PCASidebar = {
     // Just after a page is picked the mouse is still over the menu; it only
     // opens on hover again once the mouse has been off it.
     let armed = false;
-    sb.addEventListener('mouseleave', () => { armed = true; });
+    // The mouse leaving closes it after a short wait, so slipping off the
+    // edge for a moment does not snap it shut; coming back keeps it open.
+    const CLOSE_DELAY_MS = 350;
+    let closeTimer = null;
+    sb.addEventListener('mouseleave', () => {
+      armed = true;
+      clearTimeout(closeTimer);
+      closeTimer = setTimeout(() => sb.classList.remove('peek'), CLOSE_DELAY_MS);
+    });
     sb.addEventListener('mouseenter', () => {
+      clearTimeout(closeTimer);
       if (armed && wide() && sb.classList.contains('collapsed')) sb.classList.add('peek');
     });
     sb.addEventListener('click', e => {

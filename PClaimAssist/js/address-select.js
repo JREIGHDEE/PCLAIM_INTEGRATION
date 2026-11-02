@@ -1,30 +1,38 @@
 /* ═══════════════════════════════════════════════════════════
-   PClaimAssist – Province / City / Barangay as dropdowns
+   PClaimAssist – Province / City / Barangay / Subdivision: pick from a list
 
-   The three are a chain: picking a province narrows the cities, picking
-   a city narrows the barangays. Subdivision is offered from the ones
-   already typed for that barangay, since no official list exists.
+   Each box is the usual search-as-you-type box (user testing #4 asked for
+   one "like the usual online sites"): click it and the list opens, type
+   and the list narrows to the places that match, click one or press
+   Enter to take it (Enter alone takes the first match).
 
-   The box shows the chosen place, and clicking it opens the list again.
-   Anything not on the list - a patient from outside Davao Region - is
-   typed into the box underneath, which appears only when it is needed.
+   Only a place on the list is kept (adviser's revision S3: dropdowns, not
+   free text). The lists are the whole country (js/ph-psgc.js, from the
+   PSGC); something typed that is not on the list is put back to what was
+   there, with a note under the box. A value loaded from a saved claim or
+   the logbook that is not on the list stays until the box is changed.
+
+   The three are a chain: the province narrows the cities, the city the
+   barangays. A box below that no longer fits what was chosen above it is
+   emptied. Subdivisions have no official list: the box offers the common
+   Davao City ones and those the staff added for that barangay, and a new
+   one is added only by choosing "Add ... as a new subdivision".
 
    Matching ignores case and spacing: every text box on this form is
    stored in capitals (toFormCase in js/app.js), so a saved claim says
-   "DAVAO DEL SUR" where the list says "Davao del Sur". Comparing them
-   as typed would miss every time and send every box to "type it in".
+   "DAVAO DEL SUR" where the list says "Davao del Sur".
 
-   The original <input> stays in the page and keeps its data-autofill:
-   everything downstream - state, the forms, the PDF overlays,
-   validation - reads the same key it always did.
+   The box is the original <input>, with its data-autofill: everything
+   downstream - state, the forms, the PDF overlays, validation - reads
+   the same key it always did.
 ═══════════════════════════════════════════════════════════ */
 (function setupAddressSelects() {
   const DATA = window.PH_ADDRESS;
   if (!DATA) return;
 
-  const TYPE_IT = '__type__';
   const SUBDIVISION_STORE = 'pca_subdivisions_v1';
   const PARTS = ['Province', 'City', 'Barangay', 'Subdivision'];
+  const MAX_SHOWN = 200;
 
   /* "DAVAO DEL SUR", "Davao del Sur" and "davao  del sur" are one place. */
   const norm = v => String(v || '').trim().replace(/\s+/g, ' ').toUpperCase();
@@ -46,14 +54,21 @@
     return list.find(name => norm(name) === want) || '';
   }
 
-  /* Subdivisions are not in the PSGC, so the clinic builds its own list:
-     anything typed once is offered next time, kept per barangay. */
+  /* Subdivisions are not in the PSGC, so the clinic builds its own list,
+     kept per city and barangay ("San Isidro" is in many cities). Older
+     entries were kept per barangay alone, all in Davao City. */
+  const subdivisionKey = (city, barangay) => norm(barangay) && `${norm(city)}/${norm(barangay)}`;
   function readSubdivisions() {
     try { return JSON.parse(localStorage.getItem(SUBDIVISION_STORE)) || {}; }
     catch (e) { return {}; }
   }
-  function rememberSubdivision(barangay, value) {
-    const key = norm(barangay), text = String(value || '').trim();
+  function savedSubdivisions(city, barangay) {
+    const all = readSubdivisions();
+    const older = norm(city) === 'DAVAO CITY' ? all[norm(barangay)] || [] : [];
+    return (all[subdivisionKey(city, barangay)] || []).concat(older);
+  }
+  function rememberSubdivision(city, barangay, value) {
+    const key = subdivisionKey(city, barangay), text = String(value || '').trim();
     if (!key || !text) return;
     try {
       const all = readSubdivisions();
@@ -64,27 +79,15 @@
     } catch (e) { /* not remembered; the typed value still stands */ }
   }
 
+  const escapeHtml = s => String(s).replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  let menuSeq = 0;
+
   function wire(block) {
     const inputs = {};
     PARTS.forEach(part => { inputs[part] = block.input(part); });
     if (!inputs.Province || !inputs.City || !inputs.Barangay) return null;
-
-    const sel = {};
-    PARTS.forEach(part => {
-      const input = inputs[part];
-      if (!input) return;
-      const wrap = document.createElement('div');
-      wrap.className = 'pca-addr-pick';
-      const dropdown = document.createElement('select');
-      dropdown.className = 'form-select pca-input pca-addr-select';
-      dropdown.setAttribute('aria-label', part);
-      input.parentNode.insertBefore(wrap, input);
-      wrap.appendChild(dropdown);
-      wrap.appendChild(input);
-      input.classList.add('pca-addr-typed');
-      input.hidden = true;
-      sel[part] = dropdown;
-    });
 
     /* The list for each box, given what is chosen above it. */
     const options = {
@@ -100,52 +103,12 @@
         return c && DATA[p][c] ? DATA[p][c].slice().sort(byName) : [];
       },
       Subdivision: () => {
-        /* The common ones first, then anything this clinic has typed
-           before for that barangay. No official list exists, so the
-           box still takes whatever is typed. */
-        const common = window.PH_SUBDIVISIONS || [];
-        const mine = readSubdivisions()[norm(inputs.Barangay.value)] || [];
-        const all = common.concat(mine.filter(
-          x => !common.some(c => norm(c) === norm(x))));
-        return all.sort(byName);
+        if (!norm(inputs.Barangay.value)) return [];
+        const common = norm(inputs.City.value) === 'DAVAO CITY' ? window.PH_SUBDIVISIONS || [] : [];
+        const mine = savedSubdivisions(inputs.City.value, inputs.Barangay.value);
+        return common.concat(mine.filter(x => !common.some(c => norm(c) === norm(x)))).sort(byName);
       },
     };
-
-    function paint(part) {
-      const dropdown = sel[part];
-      const input = inputs[part];
-      if (!dropdown || !input) return;
-
-      const list = options[part]();
-      const current = String(input.value || '').trim();
-      const known = canonical(list, current);
-
-      /* A value the list does not hold is typed in: either the staff
-         chose to, or it arrived that way from a saved claim. */
-      const typing = !!current && !known;
-
-      dropdown.innerHTML = '';
-      dropdown.appendChild(new Option(
-        list.length ? 'Select…' : 'Not on the list — type it in', ''));
-      list.forEach(name => dropdown.appendChild(new Option(name, name)));
-      // The way out of the list, named for what it does.
-      dropdown.appendChild(new Option(
-        list.length ? 'Not on the list — type it in' : 'Type it in', TYPE_IT));
-
-      if (typing) {
-        // Show what was typed as the chosen line, so the box is not blank.
-        const mine = new Option(current, current, false, true);
-        dropdown.insertBefore(mine, dropdown.options[1] || null);
-        dropdown.value = current;
-      } else {
-        dropdown.value = known || '';
-      }
-
-      input.hidden = !typing;
-      if (typing) input.placeholder = 'Type the ' + part.toLowerCase();
-    }
-
-    function paintAll() { PARTS.forEach(paint); }
 
     /* Writing through the input keeps state.data and every copy in step:
        bindInputListeners() is already listening on it. */
@@ -157,60 +120,185 @@
       input.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
-    PARTS.forEach(part => {
-      const dropdown = sel[part];
-      if (!dropdown) return;
-      dropdown.addEventListener('change', () => {
-        const input = inputs[part];
-        if (dropdown.value === TYPE_IT) {
-          setValue(part, '');
-          paint(part);
-          input.hidden = false;       // the box is wanted now, before anything is typed
-          input.focus();
-          return;
-        }
-        setValue(part, dropdown.value);
-        // A narrower box can no longer hold what it held.
-        if (part === 'Province') { setValue('City', ''); setValue('Barangay', ''); }
-        if (part === 'City') setValue('Barangay', '');
-        if (part === 'Barangay') setValue('Subdivision', '');
-        paintAll();
+    /* After a box changed: each box below it that is not on the new list
+       for it is emptied, top down - a city cleared leaves no barangay
+       list, so its barangay goes too. Still-valid ones are kept. */
+    function clearBelow(part) {
+      PARTS.slice(PARTS.indexOf(part) + 1).forEach(p => {
+        const input = inputs[p];
+        if (input && input.value && !canonical(options[p](), input.value)) setValue(p, '');
       });
-    });
+    }
 
-    // Typing finished: show it as the chosen line, and remember a
-    // subdivision for next time.
     PARTS.forEach(part => {
       const input = inputs[part];
       if (!input) return;
-      input.addEventListener('change', () => {
-        if (part === 'Subdivision') {
-          rememberSubdivision(inputs.Barangay.value, input.value);
+      const wrap = document.createElement('div');
+      wrap.className = 'pca-addr-combo';
+      input.parentNode.insertBefore(wrap, input);
+      wrap.appendChild(input);
+      const menu = document.createElement('ul');
+      menu.className = 'pca-addr-menu';
+      menu.id = `pcaAddrMenu${++menuSeq}`;
+      menu.setAttribute('role', 'listbox');
+      menu.hidden = true;
+      wrap.appendChild(menu);
+      input.setAttribute('role', 'combobox');
+      input.setAttribute('aria-autocomplete', 'list');
+      input.setAttribute('aria-controls', menu.id);
+      input.setAttribute('aria-expanded', 'false');
+      input.setAttribute('autocomplete', 'off');
+      input.placeholder = part === 'Subdivision' ? 'Choose (if any)' : 'Choose or type to search…';
+      input.classList.add('pca-addr-input');
+      const note = document.createElement('div');
+      note.className = 'pca-addr-note';
+      note.setAttribute('role', 'status');
+      note.hidden = true;
+      wrap.appendChild(note);
+
+      let active = -1, shown = [], before = input.value;
+      const ABOVE = { City: 'province', Barangay: 'city', Subdivision: 'barangay' };
+      const locked = () => input.readOnly || input.disabled;
+
+      function close() {
+        menu.hidden = true;
+        input.setAttribute('aria-expanded', 'false');
+        active = -1;
+      }
+
+      /* filter: '' shows the whole list (opened by a click), else the
+         places containing what is typed, those starting with it first. */
+      function open(filter) {
+        if (locked()) return;
+        const list = options[part]();
+        const want = norm(filter);
+        shown = want
+          ? list.filter(n => norm(n).includes(want))
+              .sort((a, b) => (norm(b).startsWith(want) - norm(a).startsWith(want)) || byName(a, b))
+          : list;
+        const current = norm(input.value);
+        const mark = name => {
+          if (!want) return escapeHtml(name);
+          const i = norm(name).indexOf(want);
+          return escapeHtml(name.slice(0, i)) + '<strong>' + escapeHtml(name.slice(i, i + want.length)) + '</strong>' +
+            escapeHtml(name.slice(i + want.length));
+        };
+        let html = shown.slice(0, MAX_SHOWN).map((name, i) =>
+          `<li role="option" data-i="${i}" class="${norm(name) === current ? 'is-current' : ''}">${mark(name)}</li>`).join('');
+        // A subdivision not on the list is added only on purpose.
+        const typed = String(filter || '').trim();
+        if (part === 'Subdivision' && typed && !canonical(list, typed) && norm(inputs.Barangay.value)) {
+          html += `<li role="option" data-i="${Math.min(shown.length, MAX_SHOWN)}" class="pca-addr-add">` +
+            `<i class="bi bi-plus-lg me-1"></i>Add “${escapeHtml(typed)}” as a new subdivision</li>`;
+          shown = shown.slice(0, MAX_SHOWN).concat([{ add: typed }]);
+        } else if (!shown.length) {
+          html = `<li class="pca-addr-none">${list.length ? 'Not on the list - choose one from the list'
+            : ABOVE[part] ? `Choose the ${ABOVE[part]} first` : 'No list for this place'}</li>`;
         }
-        paint(part);
+        menu.innerHTML = html;
+        menu.hidden = false;
+        // Low on the screen: the list opens upward, as it does on most sites.
+        const box = input.getBoundingClientRect();
+        const below = window.innerHeight - box.bottom, above = box.top;
+        menu.classList.toggle('opens-up', below < 270 && above > below);
+        input.setAttribute('aria-expanded', 'true');
+        active = -1;
+        const cur = menu.querySelector('.is-current');
+        if (cur && !want) cur.scrollIntoView({ block: 'nearest' });
+      }
+
+      function highlight(i) {
+        const items = menu.querySelectorAll('li[data-i]');
+        if (!items.length) return;
+        active = (i + items.length) % items.length;
+        items.forEach((li, j) => li.classList.toggle('is-active', j === active));
+        items[active].scrollIntoView({ block: 'nearest' });
+      }
+
+      function say(text) {
+        note.textContent = text || '';
+        note.hidden = !text;
+      }
+
+      function pick(name) {
+        if (name && name.add) {
+          rememberSubdivision(inputs.City.value, inputs.Barangay.value, name.add);
+          name = name.add;
+        }
+        say('');
+        const changed = norm(name) !== norm(before);
+        setValue(part, name);
+        before = input.value;
+        close();
+        if (changed) clearBelow(part);
+      }
+
+      /* Typing finished: the list's spelling if it is a listed place
+         (typed in any case), and what is below is checked against it.
+         Anything else typed is put back: only the list is kept. An empty
+         box is fine, and so is the value it had (a saved claim's). */
+      function commit() {
+        const typed = input.value.trim();
+        const list = options[part]();
+        const known = canonical(list, typed);
+        if (known) {
+          if (known !== input.value) setValue(part, known);
+          say('');
+        } else if (typed && norm(typed) !== norm(before)) {
+          setValue(part, before);
+          say(part === 'Subdivision'
+            ? `“${typed}” is not on the list. Choose one, or choose “Add … as a new subdivision”.`
+            : list.length
+              ? `“${typed}” is not on the list. Please choose the ${part.toLowerCase()} from the list.`
+              : `Choose the ${ABOVE[part]} first, then the ${part.toLowerCase()} from its list.`);
+        } else {
+          say('');
+        }
+        if (norm(input.value) !== norm(before)) clearBelow(part);
+        before = input.value;
+      }
+
+      input.addEventListener('focus', () => { before = input.value; open(''); });
+      input.addEventListener('click', () => { if (menu.hidden) open(''); });
+      // Only for the box being typed in: a value written in by the code (a
+      // box below emptied, the list's spelling put in) opens no list.
+      input.addEventListener('input', () => { if (document.activeElement === input) open(input.value); });
+      input.addEventListener('keydown', e => {
+        if (locked()) return;
+        if (e.key === 'ArrowDown') { e.preventDefault(); if (menu.hidden) open(input.value); highlight(active + 1); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); if (menu.hidden) open(input.value); highlight(active - 1); }
+        else if (e.key === 'Enter' && !menu.hidden && active >= 0) { e.preventDefault(); pick(shown[active]); }
+        else if (e.key === 'Enter' && !menu.hidden && shown.length && input.value.trim()) { e.preventDefault(); pick(shown[0]); }
+        else if (e.key === 'Escape' && !menu.hidden) { e.preventDefault(); close(); }
+        else if (e.key === 'Tab') close();
       });
+      // mousedown, not click: it comes before the box loses focus.
+      menu.addEventListener('mousedown', e => {
+        const li = e.target.closest('li[data-i]');
+        e.preventDefault();
+        if (li) pick(shown[Number(li.dataset.i)]);
+      });
+      input.addEventListener('blur', () => { close(); commit(); });
     });
 
-    return paintAll;
+    return () => {};
   }
 
   /* Every address block on the page. Each data-autofill prefix - addr,
      mailingAddr - is one block, and a prefix can appear more than once
-     (Patient details, and a read-only copy on a form). */
-  const refreshers = [];
+     (Patient details, and a read-only copy on a form, which shows its
+     text and opens no list). */
   ['addr', 'mailingAddr'].forEach(prefix => {
     document.querySelectorAll(`[data-autofill="${prefix}Province"]`).forEach((_, i) => {
-      const refresh = wire({
+      wire({
         input(part) {
           return document.querySelectorAll(`[data-autofill="${prefix}${part}"]`)[i] || null;
         },
       });
-      if (refresh) refreshers.push(refresh);
     });
   });
 
   // A claim loaded from the database or the logbook fills these boxes
-  // directly, so redraw once they are written.
-  window.PCAAddressSelects = { refresh: () => refreshers.forEach(fn => fn()) };
-  window.PCAAddressSelects.refresh();
+  // directly; they are plain boxes now, so there is nothing to redraw.
+  window.PCAAddressSelects = { refresh() {} };
 })();

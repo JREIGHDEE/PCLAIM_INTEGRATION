@@ -15,7 +15,7 @@
 
    And never colour alone: a box still missing or wrong also gets a thick
    dashed edge, so it can be told apart from a filled one without seeing
-   its colour at all.
+   its colour at all - in the normal colours too, in red.
 
    Loaded by PClaimAssist's pages and by the Logbook Reader and logbook
    setup (Ocr_module/templates), whose own colour names are set here too.
@@ -73,57 +73,63 @@ html.cb-mode .badge-pending { background: #FDF3DC; color: #7A5400; border-color:
 /* ── Missing or wrong: a vivid blue, thick dashed edge and a glow ──
    Brighter than the palette's #0072B2 so a box still to fill stands out
    at a glance (staff asked for a more noticeable blue). */
-html.cb-mode { --cb-missing: #0050FF; --cb-missing-soft: #DCE7FF; --cb-missing-glow: rgba(0, 80, 255, .35); }
-html.cb-mode .field-missing,
-html.cb-mode .field-missing.form-control,
-html.cb-mode .field-missing.form-select,
-html.cb-mode .field-needs-typing,
-html.cb-mode .field-needs-typing.form-control,
-html.cb-mode .field-needs-typing.form-select,
-html.cb-mode .field-invalid,
-html.cb-mode .field-invalid.form-control,
-html.cb-mode .field-invalid.form-select,
-html.cb-mode .from-patient-details.field-missing {
+/* The edge, fill and glow below are drawn in both modes (user testing #4:
+   the thick outlines were wanted without colour-blind colours too) - red
+   normally, this vivid blue in colour-blind mode. */
+html { --cb-missing: #DC2626; --cb-missing-soft: #FEE2E2; --cb-missing-glow: rgba(220, 38, 38, .30);
+       --cb-missing-fill: rgba(220, 38, 38, .16); --cb-missing-fill-hover: rgba(220, 38, 38, .30); }
+html.cb-mode { --cb-missing: #0050FF; --cb-missing-soft: #DCE7FF; --cb-missing-glow: rgba(0, 80, 255, .35);
+       --cb-missing-fill: rgba(0, 80, 255, .22); --cb-missing-fill-hover: rgba(0, 80, 255, .36); }
+html .field-missing,
+html .field-missing.form-control,
+html .field-missing.form-select,
+html .field-needs-typing,
+html .field-needs-typing.form-control,
+html .field-needs-typing.form-select,
+html .field-invalid,
+html .field-invalid.form-control,
+html .field-invalid.form-select,
+html .from-patient-details.field-missing {
   border: 3px dashed var(--cb-missing) !important;
   background-color: var(--cb-missing-soft) !important;
   box-shadow: 0 0 0 3px var(--cb-missing-glow);
 }
-html.cb-mode .field-missing:focus,
-html.cb-mode .field-needs-typing:focus { box-shadow: 0 0 0 .3rem var(--cb-missing-glow); }
-html.cb-mode .pca-box-group.field-missing,
-html.cb-mode .box-input.field-missing,
-html.cb-mode .btn-check-group.field-missing,
-html.cb-mode .box-input.field-needs-typing,
-html.cb-mode .box-input-date.field-needs-typing,
-html.cb-mode .box-input-time.field-needs-typing,
-html.cb-mode .pca-box-group.field-needs-typing,
-html.cb-mode .pca-box-group.field-invalid,
-html.cb-mode .box-input.field-invalid {
+html .field-missing:focus,
+html .field-needs-typing:focus { box-shadow: 0 0 0 .3rem var(--cb-missing-glow); }
+html .pca-box-group.field-missing,
+html .box-input.field-missing,
+html .btn-check-group.field-missing,
+html .box-input.field-needs-typing,
+html .box-input-date.field-needs-typing,
+html .box-input-time.field-needs-typing,
+html .pca-box-group.field-needs-typing,
+html .pca-box-group.field-invalid,
+html .box-input.field-invalid {
   outline: 3px dashed var(--cb-missing);
   outline-offset: 3px;
   box-shadow: 0 0 0 6px var(--cb-missing-glow);
   color: var(--cb-missing);
 }
 /* "Please check": orange, dotted. */
-html.cb-mode .field-warn,
-html.cb-mode .field-warn.form-control,
-html.cb-mode .field-warn.form-select {
+html .field-warn,
+html .field-warn.form-control,
+html .field-warn.form-select {
   border: 2px dotted #E69F00 !important;
   background-color: #FDF3DC !important;
 }
-html.cb-mode .pca-box-group.field-warn,
-html.cb-mode .box-input.field-warn { outline: 3px dotted #E69F00; color: #E69F00; }
+html .pca-box-group.field-warn,
+html .box-input.field-warn { outline: 3px dotted #E69F00; color: #E69F00; }
 
 /* Red boxes on the form previews. */
-html.cb-mode .pdf-field--missing {
+html .pdf-field--missing {
   border: 2px dashed var(--cb-missing) !important;
-  background-color: rgba(0, 80, 255, .22) !important;
+  background-color: var(--cb-missing-fill) !important;
   box-shadow: 0 0 0 1px #FFFFFF, 0 0 0 3px var(--cb-missing);
 }
-html.cb-mode .pdf-field--missing:hover { background-color: rgba(0, 80, 255, .36) !important; }
+html .pdf-field--missing:hover { background-color: var(--cb-missing-fill-hover) !important; }
 
 /* Typed dates that are not finished (js/date-text.js). */
-html.cb-mode .pca-date-text.date-text--invalid { border: 3px dashed var(--cb-missing) !important; background: var(--cb-missing-soft); }
+html .pca-date-text.date-text--invalid { border: 3px dashed var(--cb-missing) !important; background: var(--cb-missing-soft); }
 html.cb-mode .date-text-msg { color: #0072B2; }
 
 /* The checker's dots. */
@@ -131,9 +137,9 @@ html.cb-mode .val-item.complete .val-dot { background: #009E73; }
 html.cb-mode .val-item.val-warning .val-dot { background: #E69F00; }
 
 /* Logbook Reader: blanks still to fill, and boxes still to type. */
-html.cb-mode .dx-blank.dx-empty,
-html.cb-mode input.big.empty-required,
-html.cb-mode input.big.date-unfinished { border: 3px dashed var(--cb-missing) !important; background: var(--cb-missing-soft) !important;
+html .dx-blank.dx-empty,
+html input.big.empty-required,
+html input.big.date-unfinished { border: 3px dashed var(--cb-missing) !important; background: var(--cb-missing-soft) !important;
   box-shadow: 0 0 0 3px var(--cb-missing-glow); }
 
 /* ── Patient details and the rest: every other red ─────────
@@ -141,25 +147,26 @@ html.cb-mode input.big.date-unfinished { border: 3px dashed var(--cb-missing) !i
    (js/easy.js "box-missing"); the checker's rows, the OCR review's
    boxes and badges, the rule list and the red asterisk each have their
    own red too. All become the same vivid blue, with the dashed edge. */
-html.cb-mode body.easy .box-missing,
-html.cb-mode body.easy .box-missing.form-control,
-html.cb-mode body.easy .box-missing.form-select,
-html.cb-mode .box-missing,
-html.cb-mode .box-missing.form-control,
-html.cb-mode .box-missing.form-select,
-html.cb-mode body.easy .box-input.box-missing input,
-html.cb-mode body.easy .pin-boxes.box-missing input,
-html.cb-mode .box-input.box-missing input,
-html.cb-mode .pin-boxes.box-missing input {
+html body.easy .box-missing,
+html body.easy .box-missing.form-control,
+html body.easy .box-missing.form-select,
+html .box-missing,
+html .box-missing.form-control,
+html .box-missing.form-select,
+html body.easy .box-input.box-missing input,
+html body.easy .pin-boxes.box-missing input,
+html .box-input.box-missing input,
+html .pin-boxes.box-missing input {
   border: 3px dashed var(--cb-missing) !important;
   background-color: var(--cb-missing-soft) !important;
   box-shadow: 0 0 0 3px var(--cb-missing-glow);
 }
-html.cb-mode body.easy .pca-radio.box-missing,
-html.cb-mode body.easy .btn-check-group.box-missing,
-html.cb-mode body.easy .box-input.box-missing { outline: 3px dashed var(--cb-missing); outline-offset: 2px; }
+html body.easy .pca-radio.box-missing,
+html body.easy .btn-check-group.box-missing,
+html body.easy .box-input.box-missing { outline: 3px dashed var(--cb-missing); outline-offset: 2px; }
 html.cb-mode body.easy .st-type { color: var(--cb-missing); }
 html.cb-mode .required-dot { color: var(--cb-missing); }
+html.cb-mode .dx-template .dx-left { color: var(--cb-missing); }
 html.cb-mode .val-item { background: var(--cb-missing-soft); border-color: var(--cb-missing); color: #0A2A6B; }
 html.cb-mode .val-item.complete { background: #E0F4EE; border-color: #009E73; color: #00513A; }
 html.cb-mode .ocr-field--missing:not(.pca-input):not(.form-check-input) {

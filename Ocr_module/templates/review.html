@@ -283,11 +283,97 @@ details.more dd{ margin:0; word-break:break-word; }
    box being checked is, so the viewer can scroll to it (scrollToMark). */
 .rv-mark{ position:absolute; pointer-events:none; }
 .embedded .page-intro{ display:none; }
+
+/* ══ The PClaimAssist look, and less to look at (user testing #4) ══════
+   The same colours, corners and buttons as the rest of the site
+   (PClaimAssist/css/style.css), and one layer of boxes instead of three:
+   the tabs' thick blue frame is gone, each card is one white panel with a
+   soft shadow, and a box being checked keeps its status colour with a
+   thinner edge. "The scan is clear" and the keyboard tips are quieter.
+   Only how things look changes - nothing is taken away. Placed last, so
+   it is read after the rules above; colourblind.css and outlines.css
+   still load after it and keep their colours and box edges. */
+:root{
+    --text:#1E293B; --muted:#64748B; --bg:#F1F5F9;
+    --blue:#2563EB; --blue-soft:#DBEAFE;
+    --soft-line:#E2E8F0;
+    --shadow:0 1px 3px rgba(15,23,42,.08), 0 1px 2px rgba(15,23,42,.04);
+}
+body{ font-family:'Segoe UI', system-ui, -apple-system, sans-serif; }
+h1{ font-weight:800; letter-spacing:-.01em; }
+h2{ font-weight:700; }
+
+/* Tabs as the site's steps: light cards in a row, the open one outlined. */
+.tabs{ border-bottom:none; gap:12px; margin:14px 0 16px; }
+.tab{
+    min-height:58px; margin-bottom:0; padding:10px 16px;
+    border:1.5px solid var(--soft-line); border-radius:12px;
+    background:#fff; color:var(--muted); font-weight:600; box-shadow:var(--shadow);
+}
+.tab .num{ background:#E2E8F0; color:var(--muted); font-weight:800; }
+.tab[aria-selected="true"]{
+    border:2px solid var(--blue); border-bottom:2px solid var(--blue);
+    background:#F8FBFF; color:var(--text); box-shadow:0 0 0 3px var(--blue-soft);
+}
+.tab .tab-count{ font-weight:600; font-size:.85rem; }
+/* The panel under the tabs is no longer a framed box: its cards are. */
+.tab-panel{ background:transparent; border:none; border-radius:0; padding:0; }
+.card, .tab-panel .card{
+    background:#fff; border:1px solid var(--soft-line); border-radius:12px;
+    box-shadow:var(--shadow); padding:18px 20px; margin-bottom:14px;
+}
+
+/* Buttons: the site's blue, corners and weight. */
+button, .file-button{ min-height:50px; padding:10px 20px; border-radius:8px; border-width:1.5px; font-weight:600; }
+button.primary, .file-button{
+    background:linear-gradient(135deg, #2563EB, #1D4ED8); border-color:#2563EB;
+    box-shadow:0 2px 8px rgba(37,99,235,.25);
+}
+button.primary:disabled{ background:#E2E8F0; border-color:#E2E8F0; color:#64748B; box-shadow:none; }
+
+/* "The scan is clear": one quiet line. A scan that is not clear keeps
+   its full warning box. */
+.notice{ border-width:1px; border-radius:10px; padding:12px 16px; margin-bottom:14px; }
+.notice.good{ display:flex; flex-wrap:wrap; align-items:baseline; gap:2px 10px; padding:8px 14px; }
+.notice.good strong{ display:inline; font-size:1rem; }
+.notice.good .tag{ display:inline; margin:0; }
+
+/* Keyboard tips: there for whoever uses them, small and grey. */
+.keys-tip{ font-size:.82rem; margin-top:6px; }
+kbd{ min-width:1.6rem; padding:0 6px; border-width:1px; border-bottom-width:2px; border-radius:5px;
+     font-size:.85em; color:var(--muted); }
+
+/* The box being checked: one edge, in its status colour. */
+.field{ border-width:1.5px; border-color:var(--soft-line); border-radius:12px; padding:16px 18px; box-shadow:none; }
+.field--needs_check{ border-color:var(--check-line); }
+.field--manual_encoding_required{ border-color:var(--type-line); }
+.field-head label, .field-title{ font-size:1.15rem; }
+.scan{ border-color:var(--soft-line); background:#F8FAFC; }
+
+/* The numbered boxes above it: smaller and lighter. */
+.box-steps{ gap:6px; }
+.box-steps button{ min-height:44px; min-width:46px; padding:4px 10px; border-width:1.5px; border-radius:8px; box-shadow:none; }
+
+/* All patients: slimmer lines, light edges. */
+.patient-list{ gap:8px; }
+.patient-row{
+    min-height:64px; padding:10px 16px; border:1px solid var(--soft-line); border-radius:12px;
+    box-shadow:var(--shadow); font-weight:400;
+}
+.patient-row:hover{ border-color:#93C5FD; }
+.patient-row .pnum{ width:2.2rem; height:2.2rem; background:#F1F5F9; }
+.patient-row .pname{ font-size:1.05rem; }
+.patient-row .pinfo{ font-size:.9rem; }
+.patient-row .pstate{ font-weight:600; color:var(--muted); }
+.patient-row.here{ border-color:var(--blue); box-shadow:0 0 0 3px var(--blue-soft); }
+.patient-row.next{ border:1.5px dashed var(--blue); }
+.patient-row.done{ border-color:#86EFAC; }
 </style>
 <script>/* Shown inside PClaimAssist (Read Logbook Scan / Set Up a Logbook), whose page
    already has the title: hide this page's own title and intro. */
 if (window.top !== window.self) document.documentElement.classList.add('embedded');</script>
-<link href="/css/colorblind.css?v=20261027c" rel="stylesheet">
+<link href="/css/colorblind.css?v=20261101b" rel="stylesheet">
+<link href="/css/outlines.css?v=20261101a" rel="stylesheet">
 <script src="/js/colorblind.js?v=20261027a"></script>
 </head>
 <body>
@@ -766,8 +852,11 @@ function textBox(category){
     return fieldEl(category)?.querySelector('[data-part="text"]');
 }
 // Opened from the reason for admission. Each sentence goes into its box by
-// itself as soon as no blank is left, and follows the blanks after that;
-// "Put back what was read" returns the boxes to what they said before.
+// itself as soon as no blank is left, and follows the blanks after that.
+// "Put in the text (template)" does the same on purpose, or points at the
+// blank still missing; "Undo - go back to what was read" returns the boxes
+// to what they said before. (User testing #4: the undo button used to be
+// called "Put back what was read", and staff pressed it to add the text.)
 function renderPkgTemplate(id){
     const options = Object.entries(PKG_WORDINGS).map(([key, p]) => `<option value="${key}">${escapeHtml(p.name)}</option>`).join("");
     return `<button type="button" class="quick dx-open" onclick="openPkg(this, '${id}')">Use a clinic wording (NSDBF, newborn care…)</button>
@@ -781,11 +870,21 @@ function renderPkgTemplate(id){
                 <p class="dx-sentence" data-sentence="final"></p>
             </div>
             <div class="dx-actions">
+                <button type="button" class="primary" onclick="putPkg(this.closest('.dx-template'))">Put in the text (template)</button>
                 <button type="button" onclick="this.closest('.dx-template').hidden = true">Close</button>
-                <button type="button" onclick="undoPkg(this.closest('.dx-template'))">Put back what was read</button>
+                <button type="button" onclick="undoPkg(this.closest('.dx-template'))">Undo - go back to what was read</button>
                 <span class="dx-note" aria-live="polite"></span>
             </div>
         </div>`;
+}
+function guessPkg(text){
+    const dx = String(text || "").toUpperCase();
+    if(/\bMOTHER WEIGHING\b|\bNEWBORN\b|\bWELL\s*BABY\b/.test(dx)) return "NCP";
+    if(/\bPRE\s*-?\s*NATAL\b|\bANTE\s*-?\s*NATAL\b/.test(dx)) return "ANV";
+    if(/\bPOST\s*-?PARTUM\b/.test(dx) && !/DELIVER/.test(dx)) return "PPC01";
+    if(/\bINTRAUTERINE\b|\bIUD\b/.test(dx)) return "IUD";
+    if(/\bIMPLANT|\bPSI\b|\bSUBDERMAL\b/.test(dx)) return "FP001";
+    return "NSDBF";
 }
 function openPkg(button, id){
     const box = button.nextElementSibling;
@@ -794,8 +893,11 @@ function openPkg(button, id){
     box._found = {...readPkg(final), ...readPkg(admitting)};
     if(!box._original) box._original = {text: admitting, final};
     const choice = box.querySelector("[data-pkg-choice]");
-    // A baby's wording names its mother; anything else starts as a delivery.
-    if(!box._picked) choice.value = /MOTHER WEIGHING|NEWBORN/i.test(admitting) ? "NCP" : "NSDBF";
+    // The package the entry is for, read from what the logbook says - the
+    // same rules as Patient details (js/dx-templates.js dxGuessPackage). A
+    // prenatal or postpartum entry used to open on the delivery wording
+    // (user testing #4).
+    if(!box._picked) choice.value = guessPkg(`${admitting} ${final}`);
     box.hidden = false;
     drawPkg(box);
 }
@@ -863,8 +965,21 @@ function refreshPkg(el){
     const blanksLeft = box.querySelectorAll(".dx-sentence .dx-blank.dx-empty").length;
     if(blanksLeft) notes.push(`Fill in the ${blanksLeft} red blank${blanksLeft === 1 ? "" : "s"} - each wording goes in by itself once complete.`);
     if(!missingIn(wording.text, v).length){
-        putInBox(document.getElementById(box.dataset.for), fillSentence(wording.text, v));
+        const text = fillSentence(wording.text, v);
+        putInBox(document.getElementById(box.dataset.for), text);
         notes.push("✓ The reason for admission is in its box.");
+        // One sentence for both (prenatal, postpartum, implant, IUD, newborn),
+        // as on Patient details: it is the final diagnosis too - into a box
+        // still empty or holding what this panel put there, so an earlier
+        // package's delivery sentence does not stay behind (user testing #4).
+        const final = textBox(FINAL);
+        if(!wording.final && final && (box._forceFinal || !final.value.trim() || final.value === box._putFinal)){
+            const same = fieldEl(FINAL)?.querySelector("[data-same-as-admitting]");
+            if(same && same.checked){ same.checked = false; final.readOnly = false; }
+            putInBox(final, dropFor(text));
+            box._putFinal = dropFor(text);
+            notes.push("✓ The final diagnosis is in its box.");
+        }
     }
     if(wording.final){
         const missing = missingIn(wording.final, v);
@@ -873,7 +988,8 @@ function refreshPkg(el){
             const same = fieldEl(FINAL)?.querySelector("[data-same-as-admitting]");
             if(same && same.checked){ same.checked = false; final.readOnly = false; }
             // The final diagnosis writes the APGAR score "8 AND 9".
-            putInBox(final, fillSentence(wording.final, {...v, apgar: v.apgar.replace(/\s*&\s*/, " AND ")}));
+            box._putFinal = fillSentence(wording.final, {...v, apgar: v.apgar.replace(/\s*&\s*/, " AND ")});
+            putInBox(final, box._putFinal);
             notes.push("✓ The final diagnosis is in its box.");
         }else{
             const needs = missing.filter(name => PKG_NEEDS[name]).map(name => PKG_NEEDS[name]);
@@ -892,10 +1008,24 @@ function pkgNext(el){
     const next = blanks.slice(blanks.indexOf(el) + 1).find(b => !b.value) || blanks.find(b => !b.value);
     if(next) next.focus();
 }
+function putPkg(box){
+    // Asked for on purpose: the final diagnosis is replaced too.
+    box._forceFinal = true;
+    try { refreshPkg(box); } finally { box._forceFinal = false; }
+    const blank = box.querySelector(".dx-sentence .dx-blank.dx-empty");
+    if(blank){
+        box.querySelector(".dx-note").textContent = "Fill in the red blank first - the text goes in once nothing is missing.";
+        blank.focus();
+        return;
+    }
+    box.hidden = true;
+}
 function undoPkg(box){
     const original = box._original || {};
     putInBox(document.getElementById(box.dataset.for), original.text || "");
-    if(PKG_WORDINGS[box.querySelector("[data-pkg-choice]").value].final) putInBox(textBox(FINAL), original.final || "");
+    // ...and the final diagnosis, if the panel wrote one (any package).
+    if(PKG_WORDINGS[box.querySelector("[data-pkg-choice]").value].final || box._putFinal) putInBox(textBox(FINAL), original.final || "");
+    box._putFinal = null;
     box.hidden = true;
 }
 // The delivery's date and time are typed in their own boxes on this page:
@@ -992,15 +1122,22 @@ function admittingText(){
     const f = (sessions[current]?.fields || []).find(x => x.category === ADMITTING);
     return caps((f?.parts || {}).text);
 }
+// The reason for admission as a final diagnosis: without a leading "FOR"
+// ("FOR PSI INSERTION" -> "PSI INSERTION"), as on the forms
+// (PClaimAssist/js/app.js dischargeFromAdmission; user testing #4).
+function dropFor(text){
+    return String(text || "").replace(/^\s*FOR\s+/i, "");
+}
 function sameAsAdmittingAtStart(p){
     const admitting = admittingText().trim();
-    return !!admitting && admitting === caps(p.text).trim();
+    const final = caps(p.text).trim();
+    return !!admitting && (admitting === final || dropFor(admitting) === final);
 }
 function sameAsAdmitting(box){
     const input = box.closest(".field").querySelector('[data-part="text"]');
     input.readOnly = box.checked;
     if(!box.checked) return;
-    const admitting = admittingText();
+    const admitting = dropFor(admittingText());
     if(!admitting.trim()) flashNote(input, "Fill in the reason for admission first - this box will follow it.");
     if(input.value !== admitting){
         input.value = admitting;

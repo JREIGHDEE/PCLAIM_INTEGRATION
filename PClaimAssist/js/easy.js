@@ -86,8 +86,12 @@
       // Asked for: a red *, a box the scan could not read, or a box a form
       // still shows red (the employer while the member is employed...) -
       // the same rule as the forms and the checker (js/app.js keyRedOnAnyForm).
+      // ...or a box the claim's package wording needs (G, P and T-P-A-L for
+      // a delivery, prenatal care or an IUD: data-needed-for, user testing #4).
+      const neededFor = el.dataset.neededFor && typeof dxCurrentPackage === 'function' &&
+        el.dataset.neededFor.split(' ').includes(dxCurrentPackage());
       const required = el.dataset.ocrRequired || (box && box.querySelector('label .required-dot')) ||
-        (typeof keyRedOnAnyForm === 'function' && keyRedOnAnyForm(key));
+        neededFor || (typeof keyRedOnAnyForm === 'function' && keyRedOnAnyForm(key));
       if (!required || !isEmpty(key)) return;
       seen.add(key);
       toType.push({ key, target: highlightTarget(el) });

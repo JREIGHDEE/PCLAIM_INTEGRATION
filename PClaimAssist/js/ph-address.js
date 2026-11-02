@@ -1,20 +1,21 @@
 /* ═══════════════════════════════════════════════════════════
-   PClaimAssist – Davao City addresses (PSGC names)
+   PClaimAssist – Addresses: the whole country (PSGC names)
 
-   The clinic is in Cabantian, Davao City, and so is almost every
-   patient, so the lists are Davao City's own: its 182 barangays, and
-   the subdivisions the staff see most. Anything else - a patient from
-   another city or province - is typed into the box that appears when
-   "Not on the list" is chosen, so nothing is shut out.
+   Province -> city/municipality -> barangays for every place in the
+   Philippines (adviser's revision S3: choose from a list, not type
+   freely). They come from js/ph-psgc.js, made by tools/build_ph_address.py
+   from the Philippine Standard Geographic Code of the Philippine
+   Statistics Authority, and must load before this file.
+
+   Davao City - where the clinic is, and almost every patient - keeps the
+   clinic's own spelling of its barangays below: the numbered Poblacion
+   ones as the form writes them ("19-B", not "Barangay 19-B (Pob.)") and
+   the familiar names ("Agdao Proper", "Fatima (Benowang)") that saved
+   claims already use. Checked against the PSGC: the same 182 barangays.
 
    Kept here rather than fetched: the clinic works without the internet,
    and a list that only loads when the line is up is a list that fails
    on the day it is needed.
-
-   Barangay names follow the Philippine Standard Geographic Code. The
-   numbered ones are the Poblacion District and are written the way the
-   form writes them - "19-B", not "Barangay 19-B" - so the box holds the
-   name and nothing else.
 ═══════════════════════════════════════════════════════════ */
 
 /* The 40 numbered Poblacion barangays, in order. */
@@ -50,19 +51,29 @@ window.PH_NAMED_BARANGAYS = [
   'Tamayong', 'Tambobong', 'Tamugan', 'Tapak', 'Tawan-Tawan', 'Tibuloy', 'Tibungco',
   'Tigatto', 'Toril Proper', 'Tugbok Proper', 'Tungakalan', 'Ula', 'Vicente Hizon Sr.',
   'Waan', 'Wangan', 'Wines',
-  'Leon Garcia Sr.', 'Lapu-Lapu'
+  'Leon Garcia Sr.', 'Lapu-Lapu',
+  'Gov. Paciano Bangoy', 'Gov. Vicente Duterte', 'Magtuod', 'Ubalde', 'Wilfredo Aquino'
 ];
 
-/* Province -> city -> barangays. One city: see the note above. */
-window.PH_ADDRESS = {
-  'Davao del Sur': {
-    'Davao City': window.PH_POBLACION.concat(window.PH_NAMED_BARANGAYS)
-  }
-};
+/* Province -> city -> barangays: each city's barangays are one "|"
+   string in ph-psgc.js, to keep the file small, and are split here. */
+window.PH_ADDRESS = (function () {
+  const all = {};
+  Object.entries(window.PH_PSGC || {}).forEach(([province, cities]) => {
+    all[province] = {};
+    Object.entries(cities).forEach(([city, names]) => {
+      all[province][city] = names ? names.split('|') : [];
+    });
+  });
+  all['Davao del Sur'] = all['Davao del Sur'] || {};
+  all['Davao del Sur']['Davao City'] = window.PH_POBLACION.concat(window.PH_NAMED_BARANGAYS);
+  return all;
+})();
 
-/* Subdivisions and villages the staff meet most, offered before anything
-   they have typed themselves. Not an official list - no such list exists
-   - so it is a starting point, and the box still takes anything typed. */
+/* Subdivisions and villages of Davao City the staff meet most. There is
+   no official list of subdivisions, so these are offered for any Davao
+   City barangay, with the ones the staff add themselves for a barangay
+   ("Add ... as a new subdivision", js/address-select.js). */
 window.PH_SUBDIVISIONS = [
   'Alsons Village', 'Amanda Homes', 'Apo Golf and Country Club',
   'Bangkal Village', 'Camella Davao', 'Camella Homes Toril',

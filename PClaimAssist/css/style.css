@@ -19,6 +19,9 @@
   --danger:         #DC2626;
 
   --sidebar-w:      260px;
+  /* Closed: room for the 30px step circles and the bigger icons with a
+     margin either side (user testing #4: at 64px they crowded the edge). */
+  --sidebar-collapsed-w: 76px;
   --navbar-h:       64px;
   --sidebar-bg:     #0F172A;
   --sidebar-text:   #94A3B8;
@@ -184,6 +187,21 @@ body {
   min-height: calc(100vh - var(--navbar-h));
 }
 
+/* ── A form's title with how much of it is filled in (user testing #4) ── */
+.form-title-row { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem 1rem; }
+.form-progress { display: flex; align-items: center; gap: .55rem; }
+.form-progress-track {
+  width: 9rem; height: 10px; border-radius: 99px; overflow: hidden;
+  background: #E2E8F0; border: 1px solid var(--pca-card-outline, #8592A6);
+}
+.form-progress-fill {
+  height: 100%; width: 0; border-radius: 99px;
+  background: var(--primary); transition: width .5s ease;
+}
+.form-progress.done .form-progress-fill { background: var(--success, #16A34A); }
+.form-progress-pct { font-weight: 800; font-size: 1rem; color: var(--primary); min-width: 3ch; }
+.form-progress.done .form-progress-pct { color: var(--success, #16A34A); }
+
 /* ── Sidebar ────────────────────────────────────────────────── */
 .sidebar {
   width: var(--sidebar-w);
@@ -276,23 +294,23 @@ body {
 
 /* Sidebar collapsed */
 .sidebar.collapsed {
-  width: 64px;
+  width: var(--sidebar-collapsed-w);
 }
 /* Closed, it opens again when the mouse comes over it (.peek, js/sidebar.js)
    - over the page, not pushing it: the negative margin keeps its place in
-   the layout at 64px. It stays open until a click outside it, or a page is
-   picked. */
+   the layout at its closed width. It closes again shortly after the mouse
+   leaves it, on a click outside it, or when a page is picked. */
 .sidebar.collapsed.peek {
   width: var(--sidebar-w);
-  margin-right: calc(64px - var(--sidebar-w));
+  margin-right: calc(var(--sidebar-collapsed-w) - var(--sidebar-w));
   z-index: 1030;
   box-shadow: 8px 0 24px rgba(15,23,42,.35);
 }
 /* The wording and badges fade and narrow in step with the width
    (max-width + opacity, never display:none, which would vanish on the
-   first frame). They never wrap, and nothing is re-centred: re-wrapping
-   and re-centring can't glide, they jump. At their usual padding the
-   icons already sit in the middle of the 64px bar. */
+   first frame). They never wrap, and nothing is re-centred by layout:
+   re-wrapping and re-centring can't glide, they jump. The icons reach the
+   middle of the closed bar by a margin that glides (below). */
 .sidebar-section-label,
 .sidebar-item span:not(.sidebar-step),
 .sidebar-footer span {
@@ -318,12 +336,23 @@ body {
   opacity: 0;
   pointer-events: none;
 }
-/* The 30px step circle is wider than an icon: a nudge left centres it.
+/* Closed, every icon and step circle glides to the exact middle of the
+   bar: the item is the bar less the menu's padding (2 x .75rem) and starts
+   its mark .75rem in, so the nudge is half the room left over, less that.
+   An icon is 1em wide (its own size, bigger in easy.css), a step 30px.
    The green dot glides to the middle the same way. */
+.sidebar-item > i,
 .sidebar-item .sidebar-step { transition: margin-left var(--sb-dur) var(--sb-ease); }
-.sidebar.collapsed:not(.peek) .sidebar-item .sidebar-step { margin-left: -7px; }
+.sidebar.collapsed:not(.peek) .sidebar-item > i {
+  margin-left: calc((var(--sidebar-collapsed-w) - 1.5rem - 1em) / 2 - .75rem);
+}
+.sidebar.collapsed:not(.peek) .sidebar-item .sidebar-step {
+  margin-left: calc((var(--sidebar-collapsed-w) - 1.5rem - 30px) / 2 - .75rem);
+}
 .sidebar-footer { transition: padding var(--sb-dur) var(--sb-ease); }
-.sidebar.collapsed:not(.peek) .sidebar-footer { padding-left: 27px; }
+.sidebar.collapsed:not(.peek) .sidebar-footer { padding-left: calc((var(--sidebar-collapsed-w) - 10px) / 2); }
+/* Round whatever the note beside it asks for (it was squashed to a bar). */
+.sidebar-footer .sync-dot { flex-shrink: 0; }
 
 /* The footer note on the dark panel ("310 boxes filled in...") */
 .sidebar-footer .text-muted { color: #E2E8F0 !important; }
@@ -560,6 +589,12 @@ body {
 }
 .fs-name { font-size: .8rem; color: var(--text-muted); font-weight: 600; margin-bottom: .6rem; min-height: 2.1em; }
 .fs-status { margin-bottom: .7rem; }
+/* A badge never wider than its card (user testing #4: "Not finished (12 of
+   26)" stuck out past the card with larger text or a zoomed page, since a
+   Bootstrap badge never wraps). It wraps instead, its count staying in one
+   piece; the cards keep their own size and layout. */
+.fs-status .badge { white-space: normal; max-width: 100%; line-height: 1.3; }
+.badge-count { white-space: nowrap; }
 
 .fs-bar {
   height: 6px;
@@ -1121,12 +1156,18 @@ body {
   border-radius: 50%;
   background: var(--card-bg);
 }
-.score-ring { position: relative; }
+.score-ring { position: relative; container-type: inline-size; }
+/* Sized from the ring itself (cqi: % of its width), so "100%" fits inside
+   the white centre at any ring size or text size - at 2.6rem it was wider
+   than the centre and was cut off at both ends (user testing #4). */
 .score-ring span {
   position: relative;
-  font-size: 2.6rem;
+  font-size: 2rem;            /* where container units are not known */
+  font-size: 21cqi;
   font-weight: 800;
   line-height: 1;
+  white-space: nowrap;
+  letter-spacing: -.02em;
   color: var(--score-color);
 }
 .score-ring.is-low  { --score-color: var(--danger); }
@@ -1149,7 +1190,6 @@ body {
   .score-hero-main { gap: 1.25rem; justify-content: center; }
   .score-ring { width: 120px; height: 120px; }
   .score-ring::before { width: 92px; height: 92px; }
-  .score-ring span { font-size: 2rem; }
 }
 
 /* ── Disclosure (collapsible card header) ───────────────────── */
@@ -1977,6 +2017,57 @@ body {
 .btn-check-option[data-mb-role="mother"].active { background: #FDF2F8; border-color: #EC4899; color: #BE185D; --mb-glow: rgba(236,72,153,.25); }
 .btn-check-option[data-mb-role="baby"].active   { background: #F0F9FF; border-color: #0EA5E9; color: #0369A1; --mb-glow: rgba(14,165,233,.25); }
 .btn-check-option[data-mb-role="other"].active  { background: #F5F3FF; border-color: #8B5CF6; color: #6D28D9; --mb-glow: rgba(139,92,246,.25); }
+/* Bigger, so the three choices are easy to see and press (user testing #4). */
+.mb-panel .btn-check-group { gap: .6rem; }
+.mb-panel .btn-check-option[data-mb-role] {
+  padding: .7rem 1.5rem;
+  min-width: 7.5rem;
+  justify-content: center;
+  font-size: 1.05rem;
+  border-width: 2px;
+}
+.mb-panel .btn-check-option[data-mb-role] i { font-size: 1.05rem; }
+
+/* ═══════════════════════════════════════════════════════════
+   SAVED PATIENTS (Patient details, js/saved-patients.js)
+═══════════════════════════════════════════════════════════ */
+.saved-patients { padding: .85rem 1.25rem; }
+.saved-patients-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; }
+.saved-patients-title { font-weight: 700; font-size: 1rem; color: var(--text); }
+.saved-patients-count { color: var(--text-muted); font-weight: 600; margin-left: .25rem; }
+.saved-patients-body { margin-top: .85rem; }
+.saved-patients-body[hidden] { display: none; }
+.saved-patients-tools { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1rem; margin-bottom: .6rem; }
+.saved-patients-search { max-width: 22rem; flex: 1 1 14rem; }
+/* All / Draft / Ready / Exported: one pressed at a time. */
+.saved-patients-filter { display: flex; flex-wrap: wrap; gap: .35rem; }
+.saved-patients-filter button {
+  border: 1.5px solid var(--pca-outline, #7C8798); background: #fff; color: var(--text);
+  border-radius: 999px; padding: .3rem .85rem; font-size: .85rem; font-weight: 600; cursor: pointer;
+}
+.saved-patients-filter button:hover { border-color: var(--primary); color: var(--primary); }
+.saved-patients-filter button.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+.saved-patient-actions { display: flex; align-items: center; gap: .4rem; flex-shrink: 0; }
+.saved-patient-delete { padding: .25rem .55rem; }
+.saved-patient-confirm {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .4rem .5rem;
+  font-size: .85rem; color: #991B1B; background: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px; padding: .35rem .6rem;
+}
+.saved-patients-list { max-height: 22rem; overflow-y: auto; border-top: 1px solid var(--border); }
+.saved-patient {
+  display: flex; align-items: center; justify-content: space-between; gap: .75rem;
+  padding: .6rem .25rem; border-bottom: 1px solid var(--border);
+}
+.saved-patient.is-open { background: #F0F7FF; }
+.saved-patient-name { font-weight: 600; color: var(--text); }
+.saved-patient-meta { display: flex; flex-wrap: wrap; gap: .35rem .75rem; font-size: .82rem; color: var(--text-muted); margin-top: .15rem; }
+.saved-patient-role, .saved-patient-status { font-weight: 600; }
+.saved-patient-role.role-mother { color: #BE185D; }
+.saved-patient-role.role-baby   { color: #0369A1; }
+.saved-patient-role.role-other  { color: #6D28D9; }
+.saved-patient-status.status-ready, .saved-patient-status.status-exported { color: #15803D; }
+.saved-patient-here { font-size: .85rem; font-weight: 700; color: var(--primary); white-space: nowrap; }
+.saved-patients-empty { padding: .75rem .25rem; color: var(--text-muted); font-size: .9rem; }
 
 /* ═══════════════════════════════════════════════════════════
    DISCHARGE DIAGNOSIS TABLE (Diagnosis A/B + procedures)
@@ -3043,32 +3134,58 @@ textarea.from-patient-details:focus {
 /* ═══════════════════════════════════════════════════════════
    THE CLINIC'S DIAGNOSIS WORDING (js/dx-templates.js)
 ═══════════════════════════════════════════════════════════ */
+/* Kept plain (user testing #4: "simpler, less to look at"): one thin edge,
+   white, the title, package and "Refill blanks" on one row, the sentence
+   with its blanks, and one short line under it. */
 .dx-template {
   margin-top: 8px;
-  padding: 12px 14px;
-  border: 2px solid #bfdbfe;
+  padding: 12px 16px;
+  border: 1.5px solid #c7d7ee;
   border-radius: 10px;
-  background: #f8fbff;
+  background: #fff;
 }
 #courseWardTemplate .dx-template, #drugsTemplate .dx-template { margin: 0 0 10px; }
-.dx-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; margin-bottom: 6px; }
-.dx-title { font-weight: 700; font-size: .92rem; color: var(--text); }
+.dx-head { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem 1rem; margin-bottom: 8px; }
+.dx-title { font-weight: 700; font-size: .92rem; color: var(--text); margin-right: auto; }
 .dx-package { display: flex; align-items: center; gap: .5rem; font-size: .8rem; color: var(--text-muted); margin: 0; }
-.dx-package .form-select { max-width: 26rem; font-size: .82rem; }
+.dx-package .form-select { max-width: 24rem; font-size: .82rem; }
+/* "Fill the blanks again from the forms": there when wanted, quiet otherwise. */
+.dx-refill {
+  border: 0; background: none; padding: 2px 4px;
+  font-size: .78rem; color: var(--text-muted); cursor: pointer;
+}
+.dx-refill:hover, .dx-refill:focus-visible { color: var(--primary); text-decoration: underline; }
 /* pre-line: a delivery's admission and final diagnosis, one per line. */
-.dx-template .dx-sentence { line-height: 2.5; font-size: .9rem; white-space: pre-line; }
+.dx-template .dx-sentence { line-height: 2.2; font-size: .9rem; white-space: pre-line; color: var(--text); }
 .dx-template .dx-sentence input,
 .dx-template .dx-sentence select {
   display: inline-block;
-  padding: 1px 4px;
+  padding: 0 4px;
   margin: 0 2px;
-  border: 1px solid #93c5fd;
-  border-bottom: 2px solid var(--primary);
-  border-radius: 6px;
+  border: 1.5px solid #9db4d4;
+  border-radius: 5px;
   text-align: center;
   font-weight: 700;
   text-transform: uppercase;
-  background: #fff;
+  background: #f8fbff;
+}
+/* The filled-in copy of the sentence repeated it word for word: not shown
+   (it is still kept up to date). The phrases card's preview, its only
+   text, stays. */
+.dx-template .dx-sentence + .dx-preview { display: none; }
+/* No button row while neither button is offered. */
+.dx-template > .dx-actions:not(:has(> button:not([hidden]))) { display: none; }
+.dx-template .dx-left { color: #b42318; font-weight: 600; }
+/* A blank still to fill looks the same on CF4 as on Patient details: a red
+   edge (blue in colour-blind mode), not the forms' thick dashed one, which
+   inside a sentence was the busiest thing in the card. */
+html .dx-template .dx-sentence .dx-empty,
+html .dx-template .dx-sentence .field-needs-typing,
+html .dx-template .dx-sentence .field-missing {
+  border: 1.5px solid var(--cb-missing, #dc2626) !important;
+  background: var(--cb-missing-soft, #fef2f2) !important;
+  box-shadow: none !important;
+  outline: none;
 }
 .dx-template .dx-sentence select { width: auto; }
 .dx-template .dx-empty { border-color: #dc2626 !important; background: #fef2f2 !important; }
@@ -3082,7 +3199,7 @@ textarea.from-patient-details:focus {
   font-size: .85rem;
   white-space: pre-line;
 }
-.dx-template .dx-status { color: var(--text-muted); margin-bottom: 4px; }
+.dx-template .dx-status { color: var(--text-muted); margin: 6px 0 2px; }
 .dx-template .dx-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .dx-template .dx-confirm { margin-top: 10px; padding: 10px 12px; border: 2px solid #f59e0b; border-radius: 10px; background: #fffbeb; }
 .dx-template .dx-confirm-title { font-weight: 700; color: #92400e; margin-bottom: 6px; }
@@ -3124,13 +3241,42 @@ textarea.from-patient-details:focus {
    The dropdown sits where the box was; choosing "Other…" shows the
    typing box underneath it, so nothing jumps about.
 ═══════════════════════════════════════════════════════════ */
-.pca-addr-pick { display: flex; flex-direction: column; gap: .35rem; }
-.pca-addr-pick .pca-addr-typed[hidden] { display: none; }
+/* Province / City / Barangay / Subdivision: type or pick (js/address-select.js). */
+.pca-addr-combo { position: relative; }
+.pca-addr-combo .pca-addr-input {
+  padding-right: 2.2rem;
+  /* The usual dropdown arrow, so the box reads as one with a list. */
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right .75rem center;
+  background-size: 14px 10px;
+}
+.pca-addr-combo .pca-addr-input[readonly],
+.pca-addr-combo .pca-addr-input:disabled { background-image: none; padding-right: .85rem; }
+.pca-addr-menu {
+  position: absolute; left: 0; right: 0; top: calc(100% + 3px); z-index: 1060;
+  max-height: 260px; overflow-y: auto;
+  margin: 0; padding: 4px 0; list-style: none;
+  background: #fff;
+  border: 1.5px solid var(--pca-outline, #7C8798);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, .14);
+}
+.pca-addr-menu[hidden] { display: none; }
+.pca-addr-menu.opens-up { top: auto; bottom: calc(100% + 3px); }
+.pca-addr-menu li { padding: .45rem .8rem; cursor: pointer; font-size: .95rem; }
+.pca-addr-menu li.is-active,
+.pca-addr-menu li[data-i]:hover { background: #EFF6FF; color: #1D4ED8; }
+.pca-addr-menu li.is-current { font-weight: 700; }
+.pca-addr-menu li.pca-addr-none { cursor: default; color: var(--text-muted, #64748B); font-size: .85rem; }
+/* "Add ... as a new subdivision": the one way a new subdivision gets in. */
+.pca-addr-menu li.pca-addr-add { color: #1D4ED8; font-weight: 600; border-top: 1px solid var(--border-color, #E2E8F0); }
+/* Something typed that is not on the list was put back: why, under the box. */
+.pca-addr-note { margin-top: .3rem; font-size: .85rem; color: #B45309; }
+.pca-addr-note[hidden] { display: none; }
 
 /* "Not female": the rare case, so it reads as an exception, not a choice
    of equal weight (js/app.js setupSexLock). */
-.pca-sex-unlock { margin-left: .35rem; }
-.pca-sex-unlock .form-check-label { font-size: .82rem; color: var(--text-muted, #64748B); }
 
 /* A wrong email address, said under the box (js/email-check.js). */
 .pca-email-note {

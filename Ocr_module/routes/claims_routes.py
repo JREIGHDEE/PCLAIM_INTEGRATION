@@ -14,8 +14,10 @@ import logging
 
 from flask import Blueprint, jsonify, request, send_file
 
+import auth
 import claims_store
 import crop_cleanup
+import email_check
 from errors import ClaimIncompleteError, InvalidRequestError
 from philhealth import form_prefill, mapping_service, pdf_export
 
@@ -137,6 +139,10 @@ def save_patient():
             claim_id = int(claim_id)
         except (TypeError, ValueError):
             raise InvalidRequestError("'claim_id' must be an integer or null")
+    # A wrong email address is not saved (adviser's revision S2).
+    problem = email_check.save_problem(payload.get("values"))
+    if problem:
+        return jsonify({"success": False, "error": problem, "field": "email"}), 400
     claim_id = claims_store.save_patient(claim_id, payload.get("values"))
     logger.info("Saved patient on claim %s", claim_id)
     return jsonify({"success": True, "claim_id": claim_id,
@@ -172,6 +178,26 @@ def get_mothers():
     """The mothers' claims a baby typed in by hand can copy from, before
     the baby's own claim is saved (claims_store.list_mothers)."""
     return jsonify({"success": True, "mothers": claims_store.list_mothers()})
+
+
+@claims_bp.route("/patients", methods=["GET"])
+def get_patients():
+    """Every saved patient, last saved first: the "Saved patients" list on
+    Patient details, to open one again (claims_store.list_patients)."""
+    return jsonify({"success": True, "patients": claims_store.list_patients()})
+
+
+@claims_bp.route("/<int:claim_id>", methods=["DELETE"])
+@auth.role_required("admin")
+def delete_patient(claim_id):
+    """Delete a saved patient, after an administrator confirms it in the
+    "Saved patients" list (claims_store.delete_patient). Administrators
+    only (adviser's revision S4: access restricted by role); logged with
+    who did it."""
+    deleted = claims_store.delete_patient(claim_id)
+    user = auth.current_user() or {}
+    logger.info("Deleted patient on claim %s by %s (%s)", claim_id, user.get("email", "unknown"), deleted)
+    return jsonify({"success": True, **deleted})
 
 
 @claims_bp.route("/<int:claim_id>/for-baby", methods=["GET"])

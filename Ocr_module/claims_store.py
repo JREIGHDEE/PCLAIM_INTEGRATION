@@ -10,6 +10,7 @@ import json
 import re
 
 import config
+import field_crypto
 from db import get_db_cursor
 from errors import ClaimNotFoundError, InvalidRequestError, ReviewIncompleteError, SessionNotFoundError
 from philhealth import address_parser, case_bridge, field_catalog, form_prefill, mother_baby
@@ -45,7 +46,10 @@ def _whitelist(fields, allowed, label):
     return dict(fields)
 
 
+# Every write to patients/claims goes through these two, so the sensitive
+# columns are always stored encrypted (field_crypto, adviser's revision S4).
 def _insert_row(cursor, table, fields):
+    fields = field_crypto.encrypt_fields(table, fields)
     columns = list(fields.keys())
     placeholders = ", ".join(["%s"] * len(columns))
     cursor.execute(
@@ -58,6 +62,7 @@ def _insert_row(cursor, table, fields):
 def _update_row(cursor, table, row_id, fields):
     if not fields:
         return
+    fields = field_crypto.encrypt_fields(table, fields)
     set_clause = ", ".join(f"{c} = %s" for c in fields)
     cursor.execute(
         f"UPDATE {table} SET {set_clause} WHERE id = %s",
@@ -196,7 +201,7 @@ def _create_or_update_claim_from_session(session):
 
             # SELECT *: works on a database without update 010 too.
             cursor.execute("SELECT * FROM claims WHERE encounter_id = %s", (encounter_id,))
-            claim_row = cursor.fetchone()
+            claim_row = field_crypto.decrypt_row("claims", cursor.fetchone())
             if claim_row:
                 claim_id = claim_row["id"]
                 _update_row(cursor, "claims", claim_id, claims_fields)
@@ -233,7 +238,9 @@ def get_claim(claim_id):
             cursor.execute("SELECT * FROM patients WHERE id = %s", (encounter_row["patient_id"],))
             patient_row = cursor.fetchone()
 
-    return {"claim": claims_row, "encounter": encounter_row, "patient": patient_row}
+    # Read back as the forms need them: the sensitive columns decrypted.
+    return {"claim": field_crypto.decrypt_row("claims", claims_row), "encounter": encounter_row,
+            "patient": field_crypto.decrypt_row("patients", patient_row)}
 
 
 def get_claim_form_source(claim_id):
@@ -359,6 +366,7 @@ def _require_migration_010():
 
 def _parse_form_values(raw):
     try:
+        raw = field_crypto.decrypt(raw)   # stored encrypted; older rows are plain
         value = json.loads(raw) if raw else {}
     except ValueError:
         value = {}
@@ -370,7 +378,7 @@ def _drop_saved_logbook_values(cursor, claim_id, raw):
     kept = {k: v for k, v in saved.items() if k not in _LOGBOOK_KEYS}
     if kept != saved:
         cursor.execute("UPDATE claims SET form_values = %s WHERE id = %s",
-                       (json.dumps(kept), claim_id))
+                       (field_crypto.encrypt(json.dumps(kept)), claim_id))
 
 
 def _clean_form_values(values):
@@ -408,7 +416,8 @@ def save_form_values(claim_id, values):
     if get_claim(claim_id) is None:
         raise ClaimNotFoundError(f"No claim found with id {claim_id}.")
     with get_db_cursor(commit=True) as cursor:
-        cursor.execute("UPDATE claims SET form_values = %s WHERE id = %s", (raw, claim_id))
+        cursor.execute("UPDATE claims SET form_values = %s WHERE id = %s",
+                       (field_crypto.encrypt(raw), claim_id))
 
 
 # ---------------------------------------------------------------------------
@@ -450,8 +459,12 @@ def _columns():
             for row in cursor.fetchall():
                 kind = row["COLUMN_TYPE"]
                 choices = tuple(re.findall(r"'((?:[^']|'')*)'", kind)) if kind.startswith("enum(") else None
-                info[(row["TABLE_NAME"], row["COLUMN_NAME"])] = {
-                    "max": row["CHARACTER_MAXIMUM_LENGTH"], "choices": choices,
+                where = (row["TABLE_NAME"], row["COLUMN_NAME"])
+                info[where] = {
+                    # An encrypted column is TEXT for the longer stored value;
+                    # the text it holds keeps its old limit (field_crypto).
+                    "max": field_crypto.PLAINTEXT_MAX.get(where, row["CHARACTER_MAXIMUM_LENGTH"]),
+                    "choices": choices,
                     "required": row["IS_NULLABLE"] == "NO",
                 }
         _column_info = info
@@ -542,7 +555,7 @@ _FAMILY_LOOKBACK = 300
 def _family_rows(cursor, claim_id=None):
     where, params = ("WHERE c.id = %s", (claim_id,)) if claim_id else ("", ())
     cursor.execute(
-        "SELECT c.id AS claim_id, c.patient_role, c.mother_claim_id, c.delivery_date, "
+        "SELECT c.id AS claim_id, c.patient_role, c.mother_claim_id, c.delivery_date, c.status, c.updated_at, "
         "p.last_name, p.first_name, p.middle_name, p.date_of_birth AS dob, "
         "e.date_admitted, e.admission_dx, e.discharge_dx, "
         "s.id AS session_id, s.upload_id "
@@ -636,6 +649,55 @@ def list_mothers():
     mothers = [e for e in entries if e["role"] == mother_baby.MOTHER]
     mothers.sort(key=lambda m: not m["delivery_date"])
     return [_public(m, reasons=[]) for m in mothers]
+
+
+def list_patients():
+    """Every saved patient's claim, last saved first: the "Saved patients"
+    list on Patient details (user testing #4), to open one again. Each
+    with who the patient is (mother / baby / other) and the claim's
+    status (draft / ready / exported)."""
+    _require_migration_010()
+    with get_db_cursor() as cursor:
+        rows = _family_rows(cursor)
+    patients = []
+    for row in rows:
+        entry = _family_entry(row)
+        patients.append(_public(entry, role=entry["role"], status=row["status"],
+                                updated_at=_iso(row["updated_at"])))
+    patients.sort(key=lambda p: p["updated_at"] or "", reverse=True)
+    return patients
+
+
+def delete_patient(claim_id):
+    """Delete a saved patient (the "Saved patients" list, user testing #4):
+    the claim and its prenatal / postpartum rows, then its encounter and
+    the patient record when nothing else uses them. A baby's claim linked
+    to this one is only unlinked (claims.mother_claim_id ON DELETE SET
+    NULL). The logbook scan's case session is kept - it is the OCR record,
+    and the research reads it - only no longer linked to an encounter.
+    One transaction: all of it, or nothing. Returns what was deleted."""
+    with get_db_cursor(commit=True) as cursor:
+        cursor.execute(
+            "SELECT c.id, c.encounter_id, e.patient_id FROM claims c "
+            "JOIN encounters e ON e.id = c.encounter_id WHERE c.id = %s FOR UPDATE", (claim_id,))
+        row = cursor.fetchone()
+        if not row:
+            raise ClaimNotFoundError(f"No claim found with id {claim_id}.")
+        encounter_id, patient_id = row["encounter_id"], row["patient_id"]
+        cursor.execute("DELETE FROM claim_prenatal_visits WHERE claim_id = %s", (claim_id,))
+        cursor.execute("DELETE FROM claim_postpartum_care WHERE claim_id = %s", (claim_id,))
+        cursor.execute("DELETE FROM claims WHERE id = %s", (claim_id,))
+
+        deleted = {"claim_id": claim_id, "encounter_deleted": False, "patient_deleted": False}
+        cursor.execute("SELECT COUNT(*) AS n FROM claims WHERE encounter_id = %s", (encounter_id,))
+        if cursor.fetchone()["n"] == 0:
+            cursor.execute("DELETE FROM encounters WHERE id = %s", (encounter_id,))
+            deleted["encounter_deleted"] = True
+            cursor.execute("SELECT COUNT(*) AS n FROM encounters WHERE patient_id = %s", (patient_id,))
+            if cursor.fetchone()["n"] == 0:
+                cursor.execute("DELETE FROM patients WHERE id = %s", (patient_id,))
+                deleted["patient_deleted"] = True
+    return deleted
 
 
 def values_for_baby_from(mother_claim_id):

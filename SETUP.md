@@ -319,6 +319,19 @@ limits) already has a working default — you don't need to touch it.
 - Each group member has their **own** `.env` with their **own** local
   database credentials — they don't need to be identical across machines.
 
+### 5.4 The key to the encrypted patient details (`.data_key`)
+
+PINs, addresses, phone numbers, emails and the typed form details are
+stored encrypted (`Ocr_module/field_crypto.py`). The first start of the
+backend makes the key, `Ocr_module/.data_key`.
+
+- It is git-ignored: **never** commit or share it in chat.
+- **Keep a copy with every database backup** (a USB stick, not the same
+  PC). A backup without its key cannot be read; neither can the database
+  if the key is lost.
+- Moving the database to another PC? Copy `.data_key` there too (or set
+  `DATA_ENCRYPTION_KEY` in that PC's `.env` to the same key).
+
 ---
 
 ## PART 6 — Starting the System
@@ -576,6 +589,7 @@ Keep this simple and consistent so nobody overwrites each other's work.
 ### Never commit
 
 - `.env` (already gitignored — verify with `git status` anyway)
+- `Ocr_module/.data_key` and `Ocr_module/.secret_key` (gitignored keys)
 - Database passwords or personal credentials, anywhere (code, commit
   messages, issues)
 - Local database dumps/exports that contain real or sample patient
