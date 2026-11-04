@@ -158,6 +158,15 @@ OCR_TESTING_WORKBOOK = Path(
     os.environ.get("OCR_TESTING_WORKBOOK", UPLOAD_FOLDER / "ocr_testing_results.xlsx")
 )
 
+# ── OCR comparison page (testing only, ocr_compare.py) ──────────────────────
+# Each run (one scan read by both engines, with the tester's ground truth) is
+# a JSON file here; checked rows go to their own workbook, apart from the
+# one above.
+OCR_COMPARE_FOLDER = Path(os.environ.get("OCR_COMPARE_FOLDER", UPLOAD_FOLDER / "ocr_compare"))
+OCR_COMPARE_WORKBOOK = Path(
+    os.environ.get("OCR_COMPARE_WORKBOOK", UPLOAD_FOLDER / "ocr_compare_results.xlsx")
+)
+
 # ── Uploads ──────────────────────────────────────────────────────────────
 MAX_UPLOAD_MB = _env_int("OCR_MAX_UPLOAD_MB", 20)
 MAX_CONTENT_LENGTH = MAX_UPLOAD_MB * 1024 * 1024

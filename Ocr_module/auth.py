@@ -136,7 +136,7 @@ _STATIC_EXTENSIONS = {
     ".woff", ".woff2", ".ttf", ".otf", ".eot",
 }
 # Pages (not JSON): someone signed out is sent to the sign-in page instead.
-_PAGE_ENDPOINTS = {"ocr_workspace", "review", "logbook_setup.setup_page"}
+_PAGE_ENDPOINTS = {"ocr_workspace", "review", "logbook_setup.setup_page", "ocr_compare.compare_page"}
 
 
 def _requested_file():

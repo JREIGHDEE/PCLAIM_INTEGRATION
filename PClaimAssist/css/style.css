@@ -3389,3 +3389,14 @@ html .dx-template .dx-sentence .field-missing {
   .login-attempts.is-last .login-attempts-dots i:not(.spent) { animation: none; }
   .login-attempts-ring .ring-run { transition: none; }
 }
+
+/* Admission patterns (js/admission-patterns.js): the card under Reason for
+   admission, and the pattern table under Clinic. */
+.admission-card { margin-top: 8px; }
+.admission-card .admission-reading { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+.admission-table td { vertical-align: top; }
+.admission-table tr.admission-off td { opacity: .55; }
+.admission-example {
+  display: inline-block; margin: 0 4px 4px 0; padding: 1px 6px; border-radius: 6px;
+  background: var(--body-bg); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .76rem;
+}

@@ -1,0 +1,6 @@
+# pdf-lib as downloaded (README records its SHA-256): never line-ending converted.
+vendor/** -text
+# The test inputs are checked by SHA-256 (check_setup): stored and checked out byte for byte.
+inputs/** -text
+setup/reference/** -text
+setup/seed_checksums.json -text

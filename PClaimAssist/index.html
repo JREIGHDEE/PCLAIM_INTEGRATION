@@ -7,7 +7,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" rel="stylesheet">
-  <link href="css/style.css?v=20261101s" rel="stylesheet">
+  <link href="css/style.css?v=20261103a" rel="stylesheet">
   <link href="css/easy.css?v=20261025q" rel="stylesheet">
   <link href="css/colorblind.css?v=20261101b" rel="stylesheet">
   <link href="css/outlines.css?v=20261101a" rel="stylesheet">
@@ -617,15 +617,16 @@
 
         <p class="pca-tab-section-label">Obstetrical History</p>
         <!-- G, P and T-P-A-L are outlined red while the package's wording needs them
-             (data-needed-for, js/easy.js partStatus; user testing #4). -->
+             (data-needed-for, js/easy.js partStatus; user testing #4). LMP and age
+             of menarche: for the mother's packages, not a baby's (user testing #5). -->
         <div class="row g-3">
           <div class="col-md-4">
-            <label class="pca-label">Last Menstrual Period (LMP) <span class="required-dot">*</span></label>
-            <input type="date" class="form-control pca-input" data-autofill="lmp">
+            <label class="pca-label">Last Menstrual Period (LMP)</label>
+            <input type="date" class="form-control pca-input" data-autofill="lmp" data-needed-for="NSDBF ANV IUD FP001 PPC01">
           </div>
           <div class="col-md-4">
             <label class="pca-label">Age of Menarche (years)</label>
-            <input type="number" min="8" max="20" class="form-control pca-input" data-autofill="ageOfMenarche" placeholder="13">
+            <input type="number" min="8" max="20" class="form-control pca-input" data-autofill="ageOfMenarche" data-needed-for="NSDBF ANV IUD FP001 PPC01" placeholder="13">
           </div>
           <div class="col-md-4">
             <label class="pca-label">Expected Date of Delivery (EDD)</label>
@@ -662,6 +663,9 @@
           </div>
         </div>
 
+        <!-- Only for a delivery (the mother's NSDBF, the baby's NCP): out of sight in
+             an IUD, implant, prenatal or postpartum claim, like every box the claim
+             does not use (js/app.js applyPatientDetailsForClaim; user testing #5). -->
         <p class="pca-tab-section-label mt-4">Delivery Information</p>
         <div class="row g-3">
           <div class="col-md-4">
@@ -745,7 +749,7 @@
             </select>
           </div>
           <div class="col-md-4">
-            <label class="pca-label">Place of Birth</label>
+            <label class="pca-label">Place of Birth <span class="required-dot">*</span></label>
             <input type="text" class="form-control pca-input" data-autofill="placeOfBirth" placeholder="Quezon City, Metro Manila">
           </div>
           <div class="col-md-4">
@@ -4044,6 +4048,52 @@
   </div>
 </section>
 
+<!-- Admission patterns (user testing #5): how the logbook's admitting diagnosis
+     becomes the reason for admission - js/admission-patterns.js, served by
+     /api/admission-patterns (Ocr_module/routes/admission_routes.py). -->
+<section id="section-admission-patterns" class="content-section">
+  <div class="section-header">
+    <div>
+      <h1 class="section-title">Admission patterns</h1>
+    </div>
+  </div>
+  <div class="pca-card">
+    <div class="p-3">
+      <p class="text-muted mb-3" style="font-size:.86rem;">
+        When a patient comes from a logbook scan, the admitting diagnosis is matched against these
+        patterns and the closest one fills <strong>Reason for admission</strong> (and helps pick the package).
+        The scan often misreads letters, so a clue matches even with a few letters wrong. When a suggestion
+        is corrected on Patient details, the reading is remembered under the right pattern.
+      </p>
+      <div class="admission-try mb-3">
+        <label class="pca-label" for="admissionTry">Try a reading</label>
+        <input type="text" class="form-control" id="admissionTry" placeholder="e.g. FOR POJT PAKTUM UISIT" autocomplete="off">
+        <div id="admissionTryResult" class="small mt-2" aria-live="polite"></div>
+      </div>
+      <div id="admissionPatternsNote" class="alert alert-warning small" hidden>
+        These are the starting patterns. To change them, run
+        <code>database/migrations/012_admission_patterns.sql</code> (phpMyAdmin, SQL tab, as root).
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm align-top admission-table">
+          <thead>
+            <tr>
+              <th style="min-width:9rem">Name</th>
+              <th style="min-width:12rem">Clues <span class="fw-normal text-muted">(one per line)</span></th>
+              <th style="min-width:11rem">Reason for admission</th>
+              <th style="min-width:13rem">Package</th>
+              <th>In use</th>
+              <th style="min-width:12rem">Learned readings</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="admissionPatternRows"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
 </main>
 </div><!-- /layout-wrapper -->
 
@@ -4066,7 +4116,7 @@
 <!-- pdf-lib: write filled text onto PDF for export -->
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <!-- Shared sidebar (must load before app.js, which binds to .sidebar-item) -->
-<script src="js/sidebar.js?v=20261101a"></script>
+<script src="js/sidebar.js?v=20261103a"></script>
 <script>PCASidebar.render({ page: 'app', active: 'dashboard' });</script>
 <!-- Authentication client (must load before app.js) -->
 <script src="js/auth-client.js?v=20261027c"></script>
@@ -4089,16 +4139,18 @@
 <script src="js/pin-input.js?v=20261023a"></script>
 <!-- Davao Region address lists, and the cascading dropdowns built from
      them. Both after app.js: they write through its input listeners. -->
-<script src="js/app.js?v=20261101h"></script>
+<script src="js/app.js?v=20261103c"></script>
 <script src="js/ph-psgc.js?v=20261101s"></script>
 <script src="js/ph-address.js?v=20261101s"></script>
 <script src="js/address-select.js?v=20261101s"></script>
 <script src="js/email-check.js?v=20261101s"></script>
-<script src="js/easy.js?v=20261101b"></script>
+<script src="js/easy.js?v=20261103b"></script>
 <!-- Loads a claim sent from the OCR review: index.html?claim=<id> -->
-<script src="js/mother-baby.js?v=20261101d"></script>
-<script src="js/dx-templates.js?v=20261101f"></script>
-<script src="js/claim-loader.js?v=20261101s"></script>
+<script src="js/mother-baby.js?v=20261103a"></script>
+<script src="js/dx-templates.js?v=20261103a"></script>
+<!-- Reason for admission from the logbook's wording, and its pattern table -->
+<script src="js/admission-patterns.js?v=20261104a"></script>
+<script src="js/claim-loader.js?v=20261103a"></script>
 <script src="js/saved-patients.js?v=20261101s"></script>
 
 <datalist id="suffixOptions">

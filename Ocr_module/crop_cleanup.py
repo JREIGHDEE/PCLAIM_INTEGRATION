@@ -8,9 +8,12 @@ the row is being checked, so they are removed:
   delete_session_crops(session)  once the session's claim is exported - only
                                  that row's pictures; the other rows of the
                                  same upload keep theirs
-  purge_old_crops(days)          at startup, any picture older than
+  purge_old_crops(days, keep)    at startup, any picture older than
                                  config.REVIEW_CROPS_MAX_AGE_DAYS, exported
-                                 or not
+                                 or not - except the upload folders in
+                                 `keep`: the OCR comparison runs' pictures
+                                 (ocr_compare.run_ids) are test data, kept
+                                 until the run is deleted
 
 Neither ever touches anything outside the crops folder, and neither raises
 on a file that is already gone.
@@ -53,15 +56,20 @@ def delete_session_crops(session, folder=None):
     return removed
 
 
-def purge_old_crops(days, folder=None, now=None):
+def purge_old_crops(days, folder=None, now=None, keep=()):
     """Delete every crop older than `days` days, and upload folders left
-    empty. Returns how many files were deleted. days <= 0 deletes nothing."""
+    empty. Upload folders named in `keep` are left alone. Returns how many
+    files were deleted. days <= 0 deletes nothing."""
     root = folder or config.REVIEW_CROPS_FOLDER
     if not days or days <= 0 or not os.path.isdir(root):
         return 0
     cutoff = (now if now is not None else time.time()) - days * 86400
+    keep = {os.path.normcase(os.path.join(os.path.normpath(root), name)) for name in keep}
     removed = 0
     for directory, _, files in os.walk(root, topdown=False):
+        if any(os.path.normcase(directory) == k or os.path.normcase(directory).startswith(k + os.sep)
+               for k in keep):
+            continue
         for name in files:
             path = os.path.join(directory, name)
             try:

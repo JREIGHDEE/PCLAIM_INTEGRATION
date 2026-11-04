@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OCR comparison – PClaimAssist</title>
+<!--
+  OCR comparison (testing only, administrators): PaddleOCR vs TesseractOCR
+  on a logbook scan, against a ground truth typed here. Shown inside
+  PClaimAssist/ocr-compare.html; served by routes/compare_routes.py.
+  Nothing on this page writes patients, claims or the Logbook Reader's
+  sessions: a run is a file of its own, and checked rows go to
+  uploads/ocr_compare_results.xlsx (ocr_compare_store.py).
+-->
+<style>
+:root{
+    --text:#1E293B; --muted:#64748B; --bg:#F1F5F9; --line:#CBD5E1; --soft-line:#E2E8F0;
+    --blue:#2563EB; --blue-soft:#DBEAFE; --green:#15803D; --green-soft:#DCFCE7;
+    --amber:#B45309; --amber-soft:#FEF3C7; --red:#B91C1C; --red-soft:#FEE2E2;
+    --shadow:0 1px 3px rgba(15,23,42,.08), 0 1px 2px rgba(15,23,42,.04);
+}
+*{ box-sizing:border-box; }
+body{ margin:0; padding:18px 22px 110px; background:var(--bg); color:var(--text);
+      font-family:'Segoe UI', system-ui, -apple-system, sans-serif; font-size:15px; }
+h1{ font-size:1.5rem; font-weight:800; margin:0 0 4px; }
+h2{ font-size:1.1rem; font-weight:700; margin:0 0 10px; }
+.muted{ color:var(--muted); }
+.small{ font-size:.82rem; }
+.card{ background:#fff; border:1px solid var(--soft-line); border-radius:12px; box-shadow:var(--shadow);
+       padding:16px 18px; margin-bottom:14px; }
+.testing-tag{ display:inline-block; background:var(--amber-soft); color:var(--amber); border-radius:999px;
+              padding:2px 10px; font-size:.78rem; font-weight:700; margin-left:8px; vertical-align:middle; }
+.row-flex{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+button, .btn{ font:inherit; font-weight:600; border-radius:8px; border:1.5px solid var(--line); background:#fff;
+              color:var(--text); padding:8px 14px; cursor:pointer; text-decoration:none; display:inline-block; }
+button:hover, .btn:hover{ border-color:var(--blue); }
+button.primary, .btn.primary{ background:linear-gradient(135deg,#2563EB,#1D4ED8); border-color:#2563EB; color:#fff;
+                              box-shadow:0 2px 8px rgba(37,99,235,.25); }
+button.danger{ color:var(--red); }
+button:disabled{ opacity:.55; cursor:default; }
+select, input[type=file]{ font:inherit; padding:7px 10px; border:1.5px solid var(--line); border-radius:8px; background:#fff; }
+.status-chip{ display:inline-flex; gap:6px; align-items:center; padding:4px 10px; border-radius:999px;
+              font-size:.82rem; font-weight:600; background:#F1F5F9; }
+.status-chip.ok{ background:var(--green-soft); color:var(--green); }
+.status-chip.bad{ background:var(--red-soft); color:var(--red); }
+.progress{ height:10px; background:#E2E8F0; border-radius:999px; overflow:hidden; margin-top:10px; }
+.progress > div{ height:100%; width:0; background:var(--blue); transition:width .3s; }
+.notice{ border-radius:10px; padding:10px 14px; margin:8px 0; background:var(--amber-soft); color:#78350F; }
+.notice.bad{ background:var(--red-soft); color:#7F1D1D; }
+.hidden{ display:none !important; }
+
+/* Rows */
+.patient-row{ border:1.5px solid var(--soft-line); border-radius:12px; padding:12px 14px; margin-bottom:14px; background:#fff; }
+.patient-row.is-checked{ border-color:#86EFAC; background:#FBFFFC; }
+.patient-row.is-saved .row-title::after{ content:"Saved to Excel"; margin-left:8px; font-size:.75rem; font-weight:700;
+    color:var(--green); background:var(--green-soft); border-radius:999px; padding:2px 8px; }
+.row-head{ display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px; flex-wrap:wrap; }
+.row-title{ font-weight:800; font-size:1.05rem; }
+.row-preview{ position:relative; overflow-x:auto; border:1px solid var(--soft-line); border-radius:8px;
+              background:#fff; margin-bottom:10px; }
+.row-preview img{ display:block; height:84px; max-width:none; }
+.row-preview .mark{ position:absolute; border:2.5px solid var(--blue); border-radius:3px;
+                    box-shadow:0 0 0 2000px rgba(15,23,42,.06); pointer-events:none; display:none; }
+.check-btn.on{ background:var(--green); border-color:var(--green); color:#fff; }
+table.fields{ width:100%; border-collapse:collapse; table-layout:fixed; }
+table.fields th{ text-align:left; font-size:.78rem; color:var(--muted); font-weight:700; padding:4px 6px;
+                 border-bottom:1px solid var(--soft-line); }
+table.fields td{ padding:6px; border-bottom:1px solid #F1F5F9; vertical-align:top; }
+table.fields tr.focus td{ background:#F8FBFF; }
+.f-name{ font-weight:700; }
+.f-maps{ font-size:.72rem; color:var(--muted); }
+.cell-img{ max-width:100%; max-height:56px; border:1px solid var(--soft-line); border-radius:4px; background:#fff; }
+.truth{ width:100%; font:inherit; font-weight:600; padding:7px 9px; border:2px solid #7C8798; border-radius:7px; }
+.truth:focus{ outline:none; border-color:var(--blue); box-shadow:0 0 0 3px var(--blue-soft); }
+.reading{ display:block; width:100%; text-align:left; font-weight:500; padding:6px 8px; min-height:38px;
+          border:1.5px solid var(--soft-line); border-radius:7px; background:#fff; word-break:break-word; }
+.reading .conf{ display:block; font-size:.7rem; color:var(--muted); font-weight:600; margin-top:2px; }
+.reading.exact{ border-color:#86EFAC; background:var(--green-soft); }
+.reading.close{ border-color:#FCD34D; background:var(--amber-soft); }
+.reading.far{ border-color:#FCA5A5; background:var(--red-soft); }
+.reading.none{ color:var(--muted); font-style:italic; }
+.legend span{ display:inline-block; padding:1px 8px; border-radius:6px; margin-right:6px; font-size:.78rem; }
+
+/* Spreads: the left and right page scanned together - one entry runs across both. */
+.spread-head{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:18px 0 10px; padding:10px 14px;
+              border-radius:10px; background:#EEF2FF; border:1.5px solid #C7D2FE; color:#312E81; }
+.spread-head .sp-id{ font-weight:800; font-size:1.05rem; background:#4338CA; color:#fff; border-radius:7px; padding:2px 10px; }
+.side{ display:inline-block; font-size:.7rem; font-weight:800; border-radius:5px; padding:1px 6px; margin-bottom:3px; }
+.side-left{ background:#E0F2FE; color:#075985; }
+.side-right{ background:#FCE7F3; color:#9D174D; }
+table.fields tr.page-break td{ border-top:3px dashed #A5B4FC; }
+.sp-chip{ font-size:.75rem; font-weight:800; color:#4338CA; background:#EEF2FF; border-radius:999px; padding:2px 8px; margin-right:6px; }
+
+/* Cell cut: was this cell's picture cut in the right place? */
+.cut{ display:flex; gap:3px; margin-top:4px; flex-wrap:wrap; }
+.cut button{ padding:2px 7px; font-size:.72rem; font-weight:700; border-radius:6px; border-width:1px; min-height:0; }
+.cut button.on[data-cut="correct"]{ background:var(--green); border-color:var(--green); color:#fff; }
+.cut button.on[data-cut="cut_off"]{ background:var(--amber); border-color:var(--amber); color:#fff; }
+.cut button.on[data-cut="wrong"]{ background:var(--red); border-color:var(--red); color:#fff; }
+.cut-flag{ font-size:.7rem; color:var(--amber); font-weight:700; margin-top:3px; }
+.cut-count{ font-size:.8rem; font-weight:700; color:var(--amber); margin-left:6px; }
+
+/* Bottom bar */
+.bar{ position:fixed; left:0; right:0; bottom:0; background:#fff; border-top:1px solid var(--line);
+      box-shadow:0 -4px 12px rgba(15,23,42,.06); padding:10px 22px; display:flex; gap:10px; align-items:center;
+      flex-wrap:wrap; z-index:5; }
+.bar .grow{ flex:1; }
+
+/* Summary */
+table.summary{ border-collapse:collapse; width:100%; font-size:.86rem; }
+table.summary th, table.summary td{ border:1px solid var(--soft-line); padding:6px 8px; text-align:right; }
+table.summary th{ background:#F8FAFC; font-size:.76rem; text-align:center; }
+table.summary td:first-child, table.summary th:first-child{ text-align:left; }
+table.summary tr.overall td{ font-weight:800; background:#F8FBFF; }
+td.win{ color:var(--green); font-weight:800; }
+</style>
+<link href="/css/colorblind.css?v=20261101b" rel="stylesheet">
+<link href="/css/outlines.css?v=20261101a" rel="stylesheet">
+</head>
+<body>
+
+<h1>OCR comparison <span class="testing-tag">Testing only</span></h1>
+<p class="muted" style="margin:0 0 14px">PaddleOCR and TesseractOCR read the same logbook cells. Type the correct
+  text (the ground truth) for each cell and see which engine, and which correction, comes closest. Nothing here
+  is saved to patients or claims.</p>
+
+<div id="denied" class="card hidden"><strong>Administrators only.</strong> Sign in with an administrator account to use the OCR comparison.</div>
+
+<div id="app" class="hidden">
+  <div class="card">
+    <div class="row-flex" id="statusLine"></div>
+  </div>
+
+  <div class="card">
+    <h2>1. Read a scan with both engines</h2>
+    <div class="row-flex">
+      <input type="file" id="scanFile" accept=".pdf,.png,.jpg,.jpeg">
+      <button class="primary" id="readBtn" disabled>Read with PaddleOCR and TesseractOCR</button>
+      <span class="muted">or</span>
+      <select id="runSelect"><option value="">Open an earlier run…</option></select>
+      <button id="openBtn">Open</button>
+    </div>
+    <div id="jobBox" class="hidden">
+      <div class="progress"><div id="jobBar"></div></div>
+      <div class="row-flex" style="margin-top:6px">
+        <span class="small muted" id="jobMsg"></span>
+        <button type="button" class="danger" id="cancelJobBtn" style="padding:3px 10px;font-size:.8rem">Cancel this reading</button>
+      </div>
+      <div class="small muted" style="margin-top:4px">Reading takes about 1–3 seconds per cell for each engine on this computer
+        (a two-page spread: several minutes). You can leave this page and come back - it carries on.
+        While it reads, a Logbook Reader upload waits its turn.</div>
+    </div>
+    <div id="jobError" class="notice bad hidden"></div>
+  </div>
+
+  <div class="card hidden" id="runCard">
+    <h2>2. Set the ground truth, row by row</h2>
+    <div class="small muted" id="runInfo"></div>
+    <div id="runNotices"></div>
+    <div class="row-flex" style="margin:10px 0">
+      <label>Rows per screen
+        <select id="perPage"><option>1</option><option selected>3</option><option>5</option><option>10</option><option value="0">All</option></select>
+      </label>
+      <label>Show
+        <select id="filter"><option value="all">All rows</option><option value="todo">Not checked yet</option>
+          <option value="checked">Checked, not saved</option><option value="saved">Saved to Excel</option></select>
+      </label>
+      <label>Spread
+        <select id="spreadFilter"><option value="">All spreads</option></select>
+      </label>
+      <button id="prevBtn">‹ Previous</button>
+      <span id="pageInfo" class="small muted"></span>
+      <button id="nextBtn">Next ›</button>
+    </div>
+    <div class="row-flex" style="margin-bottom:10px">
+      <label>Empty ground-truth boxes start from
+        <select id="startFrom"><option value="paddle_corrected">PaddleOCR + correction</option>
+          <option value="tesseract_corrected">TesseractOCR + correction</option><option value="">Nothing (type it all)</option></select>
+      </label>
+      <button id="fillBtn" title="Copy the chosen reading into every empty ground-truth box on this screen">Fill empty boxes on this screen</button>
+      <button id="checkScreenBtn" title="Mark every row on this screen as checked">Mark this screen checked</button>
+    </div>
+    <div class="small muted legend" style="margin-bottom:10px">
+      Click a reading to copy it into the ground truth. <kbd>Enter</kbd> goes to the next box;
+      <kbd>Ctrl</kbd>+<kbd>Enter</kbd> marks the row checked and goes to the next row.
+      Under each cell picture, say how the OCR module cut it: <strong>✓</strong> cut correctly,
+      <strong>Cut off</strong> (part of the writing missing) or <strong>Wrong</strong> (another field's or
+      row's writing) - cells left unmarked count as cut correctly when the row is checked.
+      Rows are grouped by <strong>spread</strong>: the left (L) and right (R) page scanned together.
+      <span style="background:var(--green-soft)">exactly right</span>
+      <span style="background:var(--amber-soft)">close (75%+ of characters)</span>
+      <span style="background:var(--red-soft)">far off</span>
+    </div>
+    <div id="rows"></div>
+  </div>
+
+  <div class="card" id="summaryCard">
+    <h2>3. Which OCR reads best, and how well the cells are cut (all rows saved to Excel)</h2>
+    <div id="summary" class="small muted">No rows saved yet.</div>
+    <div id="spreadSummary" style="margin-top:14px"></div>
+  </div>
+</div>
+
+<div class="bar hidden" id="bar">
+  <span id="barInfo" class="small"></span>
+  <span class="grow"></span>
+  <button class="primary" id="saveBtn">Save checked rows to Excel</button>
+  <a class="btn" id="downloadLink" href="/api/ocr-compare/results.xlsx">Download Excel</a>
+  <button class="danger" id="clearBtn" title="Empty the comparison workbook (the runs are kept)">Clear Excel</button>
+</div>
+
+<script>
+const API = '/api/ocr-compare';
+const VARIANTS = {{ variants | tojson }};
+const CUTS = {{ cuts | tojson }};
+const READING_ORDER = ['paddle_raw', 'paddle_corrected', 'tesseract_raw', 'tesseract_corrected'];
+let run = null, page = 0, focusRow = null, saveTimer = null;
+const dirty = new Set();
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const cropUrl = p => `/api/review/crops/${String(p).split('/').map(encodeURIComponent).join('/')}`;
+const comparable = s => String(s ?? '').replace(/\s+/g, ' ').trim().toUpperCase();
+
+async function api(path, options = {}) {
+  const resp = await fetch(API + path, { credentials: 'same-origin', ...options });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || data.success === false) {
+    const err = new Error(data.error || `status ${resp.status}`);
+    err.status = resp.status;
+    throw err;
+  }
+  return data;
+}
+
+/* Character accuracy, as the server scores it (ocr_compare.score_reading). */
+function accuracy(truth, reading) {
+  const a = comparable(truth), b = comparable(reading);
+  if (!a) return b ? 0 : 100;
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) {
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+    prev = cur;
+  }
+  return Math.max(0, Math.min(100, (1 - prev[b.length] / a.length) * 100));
+}
+
+/* ── Status, runs ─────────────────────────────────────────── */
+async function loadStatus() {
+  const s = await api('/status');
+  const chips = [];
+  chips.push(s.tesseract_error
+    ? `<span class="status-chip bad" title="${esc(s.tesseract_error)}">TesseractOCR not installed – only PaddleOCR will be read</span>`
+    : `<span class="status-chip ok">TesseractOCR ready (page mode ${esc(s.tesseract_psm)})</span>`);
+  chips.push(`<span class="status-chip ok">PaddleOCR ready</span>`);
+  chips.push(`<span class="status-chip ${s.ai_correction ? 'ok' : ''}">AI correction ${s.ai_correction ? 'on' : 'off'}</span>`);
+  chips.push(`<span class="status-chip">${s.templates} logbook setup(s)</span>`);
+  chips.push(`<span class="status-chip">${s.total} cell(s) saved in the Excel file</span>`);
+  $('statusLine').innerHTML = chips.join('');
+  renderSummary(s.summary, s.spreads);
+}
+
+async function loadRuns(selectId) {
+  const { runs } = await api('/runs');
+  $('runSelect').innerHTML = '<option value="">Open an earlier run…</option>' + runs.map(r =>
+    `<option value="${r.run_id}">${esc(r.created_at)} · ${esc(r.source_file)} · ${r.rows} rows, ${r.saved} saved</option>`).join('');
+  if (selectId) $('runSelect').value = selectId;
+}
+
+async function openRun(runId) {
+  run = (await api(`/runs/${runId}`)).run;
+  run.truth = run.truth || {}; run.checked = run.checked || []; run.saved = run.saved || [];
+  run.cuts = run.cuts || {};
+  run.rows.forEach(r => {
+    r.spread_id = r.spread_id || `SP-${String(r.spread + 1).padStart(2, '0')}`;
+    r.spread_pages = r.spread_pages || r.pages.join('-');
+  });
+  const spreads = [...new Map(run.rows.map(r => [r.spread_id, r.spread_pages])).entries()];
+  $('spreadFilter').innerHTML = '<option value="">All spreads</option>' + spreads.map(([id, pages]) =>
+    `<option value="${esc(id)}">${esc(id)} · pages ${esc(pages)}</option>`).join('');
+  page = 0;
+  $('runCard').classList.remove('hidden');
+  $('bar').classList.remove('hidden');
+  const t = run.timings || {};
+  $('runInfo').innerHTML = `<strong>${esc(run.source_file)}</strong> · read ${esc(run.created_at)} · ${run.rows.length} rows, ${t.cells || 0} cells ·
+    PaddleOCR ${t.paddle_seconds ?? '–'} s (${t.paddle_seconds_per_cell ?? '–'} s/cell) ·
+    TesseractOCR ${t.tesseract_seconds ?? '–'} s (${t.tesseract_seconds_per_cell ?? '–'} s/cell)`;
+  const notes = [];
+  if (run.tesseract_error) notes.push(`<div class="notice bad">${esc(run.tesseract_error)} – the Tesseract columns are empty for this run.</div>`);
+  (run.pages || []).filter(p => p.error).forEach(p => notes.push(`<div class="notice">Page ${p.page}: ${esc(p.error)}</div>`));
+  (run.image_quality || []).forEach(w => notes.push(`<div class="notice">${esc(w)}</div>`));
+  $('runNotices').innerHTML = notes.join('');
+  render();
+}
+
+/* ── Rows ─────────────────────────────────────────────────── */
+function rowState(key) {
+  return run.saved.includes(key) ? 'saved' : run.checked.includes(key) ? 'checked' : 'todo';
+}
+function visibleRows() {
+  const f = $('filter').value;
+  const sp = $('spreadFilter').value;
+  const rows = run.rows.filter(r => (f === 'all' || rowState(r.key) === f) && (!sp || r.spread_id === sp));
+  const per = Number($('perPage').value);
+  const pages = per ? Math.max(1, Math.ceil(rows.length / per)) : 1;
+  page = Math.min(page, pages - 1);
+  return { rows: per ? rows.slice(page * per, page * per + per) : rows, pages, total: rows.length };
+}
+/* A row's ground truth; the first time a row is shown it starts as the
+   reading chosen in "Empty ground-truth boxes start from" - fix what is
+   wrong instead of typing it all. */
+function truthOf(row) {
+  if (!run.truth[row.key]) {
+    const from = $('startFrom').value;
+    run.truth[row.key] = row.fields.map(f => (from && f[from]) || '');
+  }
+  return run.truth[row.key];
+}
+
+function cutsOf(row) {
+  if (!run.cuts[row.key]) run.cuts[row.key] = row.fields.map(() => '');
+  return run.cuts[row.key];
+}
+function cutHtml(row, i) {
+  const cut = cutsOf(row)[i];
+  const label = { correct: '✓', cut_off: 'Cut off', wrong: 'Wrong' };
+  const tip = { correct: 'Cut correctly: this field\'s writing, whole', cut_off: 'Cut off: part of the writing is missing',
+                wrong: 'Wrong place: another field\'s or row\'s writing' };
+  return `<div class="cut">${Object.keys(CUTS).map(k =>
+    `<button type="button" class="${cut === k ? 'on' : ''}" data-cut="${k}" data-row="${esc(row.key)}" data-i="${i}"
+       title="${tip[k]}">${label[k]}</button>`).join('')}</div>`;
+}
+function cutIssues(row) {
+  return cutsOf(row).filter(c => c && c !== 'correct').length;
+}
+
+function readingHtml(field, variant, truth, rowKey, index) {
+  const text = field[variant];
+  if (text === null || text === undefined) return `<span class="reading none">not read</span>`;
+  let cls = '';
+  if (truth !== '' || text !== '') {
+    const acc = accuracy(truth, text);
+    cls = acc >= 99.999 ? 'exact' : acc >= 75 ? 'close' : 'far';
+  }
+  const conf = variant === 'paddle_raw' ? field.paddle_confidence : variant === 'tesseract_raw' ? field.tesseract_confidence : null;
+  const acc = truth !== '' || text !== '' ? `${Math.round(accuracy(truth, text))}%` : '';
+  return `<button type="button" class="reading ${cls} ${text ? '' : 'none'}" data-copy="${variant}" data-row="${esc(rowKey)}" data-i="${index}"
+            title="Use this as the ground truth">${text ? esc(text) : 'blank'}
+            <span class="conf">${acc ? `${acc} right` : ''}${conf !== null && conf !== undefined ? ` · conf ${Number(conf).toFixed(2)}` : ''}</span></button>`;
+}
+
+function rowHtml(row) {
+  const truth = truthOf(row);
+  const state = rowState(row.key);
+  const pages = row.pages.length > 1 ? `pages ${row.pages.join('–')}` : `page ${row.pages[0]}`;
+  const fields = row.fields.map((f, i) => `
+    <tr data-row="${esc(row.key)}" data-i="${i}" class="${i && f.page !== row.fields[i - 1].page ? 'page-break' : ''}">
+      <td><span class="side side-${f.side === 'right' ? 'right' : 'left'}"
+                title="${f.side === 'right' ? 'Right page (even)' : 'Left page (odd)'} of ${esc(row.spread_id)}">${f.side === 'right' ? 'R' : 'L'} · p${f.page}</span>
+        <div class="f-name">${esc(f.label)}</div><div class="f-maps">→ ${esc(f.maps_to || '–')}</div></td>
+      <td>${f.crop ? `<img class="cell-img" src="${cropUrl(f.crop)}" alt="cell picture" loading="lazy">` : ''}
+        ${cutHtml(row, i)}
+        ${f.cut_flag ? '<div class="cut-flag" title="The OCR module found writing outside this cell\'s cut">⚠ OCR: writing may run outside</div>' : ''}</td>
+      <td><input class="truth" data-row="${esc(row.key)}" data-i="${i}" value="${esc(truth[i])}" spellcheck="false" autocomplete="off"></td>
+      ${READING_ORDER.map(v => `<td data-reading="${v}">${readingHtml(f, v, truth[i], row.key, i)}</td>`).join('')}
+    </tr>`).join('');
+  return `
+    <div class="patient-row ${state !== 'todo' ? 'is-checked' : ''} ${state === 'saved' ? 'is-saved' : ''}" data-key="${esc(row.key)}">
+      <div class="row-head">
+        <span class="row-title"><span class="sp-chip">${esc(row.spread_id)}</span>Row ${row.row + 1}
+          <span class="small muted">· ${pages}</span><span class="cut-count">${cutIssues(row) ? `${cutIssues(row)} cell(s) cut badly` : ''}</span></span>
+        <button type="button" class="check-btn ${state !== 'todo' ? 'on' : ''}" data-check="${esc(row.key)}">
+          ${state !== 'todo' ? '✓ Checked' : 'Mark row checked'}</button>
+      </div>
+      ${row.row_crop ? `<div class="row-preview"><img src="${cropUrl(row.row_crop)}" alt="the whole row" loading="lazy"><div class="mark"></div></div>` : ''}
+      <table class="fields">
+        <colgroup><col style="width:13%"><col style="width:13%"><col style="width:18%">
+          <col style="width:14%"><col style="width:14%"><col style="width:14%"><col style="width:14%"></colgroup>
+        <thead><tr><th>Field</th><th>Cell</th><th>Ground truth</th>
+          ${READING_ORDER.map(v => `<th>${esc(VARIANTS[v])}</th>`).join('')}</tr></thead>
+        <tbody>${fields}</tbody>
+      </table>
+    </div>`;
+}
+
+function render() {
+  const { rows, pages, total } = visibleRows();
+  let lastSpread = null;
+  $('rows').innerHTML = rows.length ? rows.map(row => {
+    let head = '';
+    if (row.spread_id !== lastSpread) {
+      lastSpread = row.spread_id;
+      const all = run.rows.filter(r => r.spread_id === row.spread_id);
+      const done = all.filter(r => rowState(r.key) !== 'todo').length;
+      const [left, right] = String(row.spread_pages).split('-');
+      head = `<div class="spread-head"><span class="sp-id">${esc(row.spread_id)}</span>
+        <span><strong>Pages ${esc(row.spread_pages)}</strong> – left page ${esc(left || '?')}${right ? ` and right page ${esc(right)}` : ''},
+        scanned together: each row's information runs across both pages.</span>
+        <span class="small" style="margin-left:auto">${done} of ${all.length} rows checked</span></div>`;
+    }
+    return head + rowHtml(row);
+  }).join('') : '<p class="muted">No rows to show with this filter.</p>';
+  $('pageInfo').textContent = `Screen ${page + 1} of ${pages} · ${total} row(s)`;
+  $('prevBtn').disabled = page === 0;
+  $('nextBtn').disabled = page >= pages - 1;
+  updateBar();
+}
+
+function refreshRow(key) {
+  const el = document.querySelector(`.patient-row[data-key="${CSS.escape(key)}"]`);
+  const row = run.rows.find(r => r.key === key);
+  if (!el || !row) return;
+  const truth = truthOf(row);
+  el.querySelectorAll('tbody tr').forEach(tr => {
+    const i = Number(tr.dataset.i);
+    tr.querySelectorAll('td[data-reading]').forEach(td => {
+      td.innerHTML = readingHtml(row.fields[i], td.dataset.reading, truth[i], key, i);
+    });
+  });
+}
+
+function updateBar() {
+  if (!run) return;
+  const checked = run.checked.filter(k => !run.saved.includes(k)).length;
+  $('barInfo').innerHTML = `<strong>${run.checked.length}</strong> of ${run.rows.length} rows checked ·
+    <strong>${run.saved.length}</strong> saved to Excel${checked ? ` · <strong>${checked}</strong> checked rows not saved yet` : ''}`;
+  $('saveBtn').disabled = !run.checked.length;
+}
+
+/* The row picture with the field's cell outlined. */
+function markCell(key, i) {
+  document.querySelectorAll('.row-preview .mark').forEach(m => { m.style.display = 'none'; });
+  document.querySelectorAll('table.fields tr.focus').forEach(tr => tr.classList.remove('focus'));
+  const el = document.querySelector(`.patient-row[data-key="${CSS.escape(key)}"]`);
+  const row = run.rows.find(r => r.key === key);
+  if (!el || !row) return;
+  const tr = el.querySelector(`tbody tr[data-i="${i}"]`);
+  if (tr) tr.classList.add('focus');
+  const box = row.fields[i] && row.fields[i].row_box;
+  const img = el.querySelector('.row-preview img'), mark = el.querySelector('.row-preview .mark');
+  if (!box || !img || !mark || !img.naturalWidth) return;
+  const w = img.clientWidth, h = img.clientHeight;
+  Object.assign(mark.style, { display: 'block', left: `${box[0] * w}px`, top: `${box[1] * h}px`,
+                              width: `${box[2] * w}px`, height: `${box[3] * h}px` });
+  const wrap = el.querySelector('.row-preview');
+  wrap.scrollLeft = Math.max(0, box[0] * w - wrap.clientWidth / 3);
+}
+
+/* ── Keeping the ground truth ─────────────────────────────── */
+function queueSave(key) {
+  dirty.add(key);
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(flushTruth, 700);
+}
+async function flushTruth() {
+  if (!run || !dirty.size) return;
+  const truth = {}, cuts = {};
+  dirty.forEach(k => { truth[k] = run.truth[k]; if (run.cuts[k]) cuts[k] = run.cuts[k]; });
+  dirty.clear();
+  try {
+    await api(`/runs/${run.run_id}/truth`, { method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ truth, cuts, checked: run.checked }) });
+  } catch (err) {
+    Object.keys(truth).forEach(k => dirty.add(k));
+    $('barInfo').textContent = `Not kept yet (${err.message}) – will try again.`;
+  }
+}
+
+function setTruth(key, i, text) {
+  const row = run.rows.find(r => r.key === key);
+  truthOf(row)[i] = text;
+  queueSave(key);
+}
+
+function toggleChecked(key, on) {
+  const has = run.checked.includes(key);
+  on = on === undefined ? !has : on;
+  if (on && !has) {
+    run.checked.push(key);
+    // Cells not marked were looked at with the row: cut correctly.
+    const row = run.rows.find(r => r.key === key);
+    const cuts = cutsOf(row);
+    cuts.forEach((c, i) => { if (!c) cuts[i] = 'correct'; });
+    el_refreshCuts(key);
+  }
+  if (!on && has) {
+    run.checked = run.checked.filter(k => k !== key);
+    run.saved = run.saved.filter(k => k !== key);   // to be saved again once re-checked
+  }
+  queueSave(key);
+  const el = document.querySelector(`.patient-row[data-key="${CSS.escape(key)}"]`);
+  if (el) {
+    const state = rowState(key);
+    el.classList.toggle('is-checked', state !== 'todo');
+    el.classList.toggle('is-saved', state === 'saved');
+    const btn = el.querySelector('[data-check]');
+    btn.classList.toggle('on', state !== 'todo');
+    btn.textContent = state !== 'todo' ? '✓ Checked' : 'Mark row checked';
+  }
+  updateBar();
+}
+
+function el_refreshCuts(key) {
+  const el = document.querySelector(`.patient-row[data-key="${CSS.escape(key)}"]`);
+  const row = run.rows.find(r => r.key === key);
+  if (!el || !row) return;
+  el.querySelectorAll('.cut').forEach(div => {
+    const i = Number(div.querySelector('[data-i]').dataset.i);
+    div.outerHTML = cutHtml(row, i);
+  });
+  el.querySelector('.cut-count').textContent = cutIssues(row) ? `${cutIssues(row)} cell(s) cut badly` : '';
+}
+
+function fillScreen() {
+  const from = $('startFrom').value;
+  if (!from) return;
+  visibleRows().rows.forEach(row => {
+    const truth = truthOf(row);
+    let changed = false;
+    row.fields.forEach((f, i) => {
+      if (!truth[i] && f[from]) { truth[i] = f[from]; changed = true; }
+    });
+    if (changed) queueSave(row.key);
+  });
+  render();
+}
+
+/* ── Saving to Excel, summary ─────────────────────────────── */
+async function saveChecked() {
+  await flushTruth();
+  const keys = run.checked.slice();
+  if (!keys.length) return;
+  $('saveBtn').disabled = true;
+  try {
+    const res = await api(`/runs/${run.run_id}/save`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rows: keys, truth: run.truth, cuts: run.cuts, checked: run.checked }) });
+    run.saved = res.run_saved;
+    render();
+    renderSummary(res.summary, res.spreads);
+    $('barInfo').innerHTML += ` · <strong>${res.added}</strong> cells written` +
+      (res.replaced ? ` (${res.replaced} earlier lines replaced)` : '');
+    loadStatus(); loadRuns(run.run_id);
+  } catch (err) {
+    $('barInfo').textContent = `Not saved: ${err.message}`;
+  } finally {
+    updateBar();
+  }
+}
+
+function renderSummary(rows, spreads) {
+  renderSpreads(spreads);
+  if (!rows || !rows.length) { $('summary').innerHTML = 'No rows saved yet.'; return; }
+  const pct = v => v === null || v === undefined ? '–' : `${Number(v).toFixed(1)}%`;
+  const cols = [['paddle_raw_accuracy', 'PaddleOCR'], ['paddle_corrected_accuracy', 'PaddleOCR + corr.'],
+                ['tesseract_raw_accuracy', 'TesseractOCR'], ['tesseract_corrected_accuracy', 'TesseractOCR + corr.']];
+  const overall = rows.find(r => r.field === 'All fields') || rows[rows.length - 1];
+  const body = rows.map(r => {
+    const best = Math.max(...cols.map(([k]) => r[k] ?? -1));
+    return `<tr class="${r.field === 'All fields' ? 'overall' : ''}"><td>${esc(r.field)}</td><td>${r.n}</td>
+      ${cols.map(([k]) => `<td class="${r[k] === best && best >= 0 ? 'win' : ''}">${pct(r[k])}</td>`).join('')}
+      <td>${pct(r.paddle_corrected_exact)}</td><td>${pct(r.tesseract_corrected_exact)}</td>
+      <td>${pct(r.paddle_corrected_mapped)}</td><td>${pct(r.tesseract_corrected_mapped)}</td>
+      <td>${r.paddle_wins} / ${r.tesseract_wins} / ${r.ties}</td><td><strong>${esc(r.recommended || '–')}</strong></td>
+      <td>${pct(r.cut_correct)}</td><td>${r.cut_off ?? 0}</td><td>${r.cut_wrong ?? 0}</td>
+      <td>${pct(r.paddle_corrected_accuracy_cut_ok)}</td><td>${pct(r.tesseract_corrected_accuracy_cut_ok)}</td></tr>`;
+  }).join('');
+  $('summary').innerHTML = `
+    <p style="color:var(--text);margin:0 0 8px">Overall recommendation: <strong>${esc(overall.recommended || '–')}</strong>
+      (character accuracy with correction: PaddleOCR ${pct(overall.paddle_corrected_accuracy)},
+      TesseractOCR ${pct(overall.tesseract_corrected_accuracy)}).
+      Cells cut correctly by the OCR module: <strong>${pct(overall.cut_correct)}</strong>
+      (${overall.cut_off ?? 0} cut off, ${overall.cut_wrong ?? 0} in the wrong place;
+      the module itself flagged ${overall.pipeline_flagged ?? 0}, of which ${overall.flag_agreed ?? 0} were cut off).</p>
+    <div style="overflow-x:auto"><table class="summary">
+      <thead><tr><th rowspan="2">Field</th><th rowspan="2">Cells</th><th colspan="4">Character accuracy</th>
+        <th colspan="2">Whole cell exactly right</th><th colspan="2">Field mapping right</th>
+        <th rowspan="2">Better: Paddle / Tesseract / tie</th><th rowspan="2">Recommended</th>
+        <th colspan="3">Cell cut (OCR module)</th><th colspan="2">Accuracy, cut correctly only</th></tr>
+        <tr>${cols.map(([, l]) => `<th>${l}</th>`).join('')}<th>Paddle + corr.</th><th>Tesseract + corr.</th>
+        <th>Paddle + corr.</th><th>Tesseract + corr.</th>
+        <th>Cut correctly</th><th>Cut off</th><th>Wrong place</th><th>Paddle + corr.</th><th>Tesseract + corr.</th></tr></thead>
+      <tbody>${body}</tbody></table></div>
+    <p class="small muted" style="margin:8px 0 0">Character accuracy = 100 × (1 − character error rate), in capitals with
+      spaces collapsed. Field mapping = form fields (last / first / middle name, date, hour, AM/PM…) filled right from the
+      reading. Cell cut = whether each cell's picture held that field's writing, whole; "cut correctly only" leaves out
+      cells the OCR module cut badly, so a misread is told apart from a bad cut. The same tables are in the Excel file's
+      "Summary" and "Spreads" sheets.</p>`;
+}
+
+function renderSpreads(rows) {
+  if (!rows || !rows.length) { $('spreadSummary').innerHTML = ''; return; }
+  const pct = v => v === null || v === undefined ? '–' : `${Number(v).toFixed(1)}%`;
+  $('spreadSummary').innerHTML = `
+    <h2 style="font-size:1rem">Per spread (left + right page together)</h2>
+    <div style="overflow-x:auto"><table class="summary">
+      <thead><tr><th>Spread · file</th><th>Pages</th><th>Rows</th><th>Cells</th>
+        <th>PaddleOCR + corr.</th><th>TesseractOCR + corr.</th><th>Mapping: Paddle</th><th>Mapping: Tesseract</th>
+        <th>Cut correctly</th><th>Recommended</th></tr></thead>
+      <tbody>${rows.map(r => `<tr><td>${esc(r.field)}</td><td>${esc(r.pages)}</td><td>${r.rows}</td><td>${r.n}</td>
+        <td>${pct(r.paddle_corrected_accuracy)}</td><td>${pct(r.tesseract_corrected_accuracy)}</td>
+        <td>${pct(r.paddle_corrected_mapped)}</td><td>${pct(r.tesseract_corrected_mapped)}</td>
+        <td>${pct(r.cut_correct)}</td><td><strong>${esc(r.recommended || '–')}</strong></td></tr>`).join('')}</tbody>
+    </table></div>`;
+}
+
+/* ── Reading a scan ───────────────────────────────────────── */
+/* The job being followed is remembered, so a reload follows it again
+   instead of uploading the scan a second time (which used to queue a
+   second reading behind the first). */
+const JOB_KEY = 'pca_ocr_compare_job';
+const remember = id => { try { id ? localStorage.setItem(JOB_KEY, id) : localStorage.removeItem(JOB_KEY); } catch (e) { /* not kept */ } };
+const remembered = () => { try { return localStorage.getItem(JOB_KEY); } catch (e) { return null; } };
+let followingJob = null;
+
+function clock(seconds) {
+  if (seconds === null || seconds === undefined) return '';
+  const m = Math.floor(seconds / 60), s = seconds % 60;
+  return m ? `${m} min ${String(s).padStart(2, '0')} s` : `${s} s`;
+}
+
+async function follow(jobId) {
+  followingJob = jobId;
+  remember(jobId);
+  $('readBtn').disabled = true;
+  $('jobError').classList.add('hidden');
+  $('jobBox').classList.remove('hidden');
+  $('cancelJobBtn').disabled = false;
+  try {
+    for (;;) {
+      const job = await api(`/jobs/${jobId}`);
+      $('jobBar').style.width = `${Math.round((job.progress || 0) * 100)}%`;
+      const took = clock(job.seconds);
+      $('jobMsg').textContent = job.cancelling && job.state !== 'failed' ? 'Stopping…'
+        : job.state === 'waiting'
+          ? `Waiting for ${job.ahead || 'another'} other reading${job.ahead === 1 ? '' : 's'} to finish first (one reading at a time)${took ? ` · ${took}` : ''}`
+          : `${job.message || ''}${took ? ` · ${took} so far` : ''}`;
+      if (job.state === 'failed') throw new Error(job.error || job.message);
+      if (job.state === 'done') {
+        remember(null);
+        await loadRuns(job.result.run_id);
+        await openRun(job.result.run_id);
+        break;
+      }
+      await new Promise(r => setTimeout(r, 1500));
+    }
+  } catch (err) {
+    remember(null);
+    $('jobError').textContent = /cancelled/i.test(err.message) ? 'The reading was cancelled.'
+      : `Could not read the scan: ${err.message}`;
+    $('jobError').classList.remove('hidden');
+  } finally {
+    followingJob = null;
+    $('readBtn').disabled = !$('scanFile').files.length;
+    setTimeout(() => $('jobBox').classList.add('hidden'), 1500);
+  }
+}
+
+async function readScan() {
+  const file = $('scanFile').files[0];
+  if (!file || followingJob) return;
+  $('readBtn').disabled = true;
+  $('jobBox').classList.remove('hidden');
+  $('jobBar').style.width = '0';
+  $('jobMsg').textContent = 'Uploading…';
+  try {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await api('/jobs', { method: 'POST', body: form });
+    if (res.already) $('jobMsg').textContent = 'This scan is already being read - following that reading.';
+    await follow(res.job_id);
+  } catch (err) {
+    $('jobError').textContent = `Could not read the scan: ${err.message}`;
+    $('jobError').classList.remove('hidden');
+    $('readBtn').disabled = false;
+  }
+}
+
+/* ── Events ───────────────────────────────────────────────── */
+$('scanFile').addEventListener('change', () => { $('readBtn').disabled = !$('scanFile').files.length || !!followingJob; });
+$('readBtn').addEventListener('click', readScan);
+$('cancelJobBtn').addEventListener('click', async () => {
+  if (!followingJob || !confirm('Stop this reading? Nothing of it is kept; you can upload the scan again later.')) return;
+  $('cancelJobBtn').disabled = true;
+  try { await api(`/jobs/${followingJob}/cancel`, { method: 'POST' }); } catch (err) { $('cancelJobBtn').disabled = false; }
+});
+$('openBtn').addEventListener('click', () => { if ($('runSelect').value) openRun($('runSelect').value); });
+$('perPage').addEventListener('change', () => { page = 0; render(); });
+$('filter').addEventListener('change', () => { page = 0; render(); });
+$('spreadFilter').addEventListener('change', () => { page = 0; render(); });
+$('prevBtn').addEventListener('click', () => { page--; render(); window.scrollTo(0, $('runCard').offsetTop); });
+$('nextBtn').addEventListener('click', () => { page++; render(); window.scrollTo(0, $('runCard').offsetTop); });
+$('fillBtn').addEventListener('click', fillScreen);
+$('checkScreenBtn').addEventListener('click', () => visibleRows().rows.forEach(r => toggleChecked(r.key, true)));
+$('saveBtn').addEventListener('click', saveChecked);
+$('clearBtn').addEventListener('click', async () => {
+  if (!confirm('Empty the comparison Excel file? Every saved row is removed (the runs and their ground truth are kept).')) return;
+  const res = await api('/clear', { method: 'POST' });
+  renderSummary(res.summary, res.spreads);
+  loadStatus();
+});
+
+$('rows').addEventListener('input', e => {
+  if (!e.target.matches('.truth')) return;
+  setTruth(e.target.dataset.row, Number(e.target.dataset.i), e.target.value);
+  refreshRow(e.target.dataset.row);
+});
+$('rows').addEventListener('focusin', e => {
+  if (e.target.matches('.truth')) markCell(e.target.dataset.row, Number(e.target.dataset.i));
+});
+$('rows').addEventListener('click', e => {
+  const copy = e.target.closest('[data-copy]');
+  if (copy) {
+    const row = run.rows.find(r => r.key === copy.dataset.row);
+    const i = Number(copy.dataset.i);
+    const text = row.fields[i][copy.dataset.copy] || '';
+    setTruth(row.key, i, text);
+    const input = document.querySelector(`.truth[data-row="${CSS.escape(row.key)}"][data-i="${i}"]`);
+    if (input) { input.value = text; input.focus(); }
+    refreshRow(row.key);
+    return;
+  }
+  const cut = e.target.closest('[data-cut]');
+  if (cut) {
+    const row = run.rows.find(r => r.key === cut.dataset.row);
+    const cuts = cutsOf(row), i = Number(cut.dataset.i);
+    cuts[i] = cuts[i] === cut.dataset.cut ? '' : cut.dataset.cut;
+    queueSave(row.key);
+    el_refreshCuts(row.key);
+    return;
+  }
+  const check = e.target.closest('[data-check]');
+  if (check) toggleChecked(check.dataset.check);
+});
+$('rows').addEventListener('keydown', e => {
+  if (!e.target.matches('.truth') || e.key !== 'Enter') return;
+  e.preventDefault();
+  const inputs = Array.from(document.querySelectorAll('.truth'));
+  const at = inputs.indexOf(e.target);
+  if (e.ctrlKey) {
+    toggleChecked(e.target.dataset.row, true);
+    const next = inputs.slice(at).find(i => i.dataset.row !== e.target.dataset.row);
+    if (next) next.focus(); else if (!$('nextBtn').disabled) $('nextBtn').click();
+    return;
+  }
+  if (inputs[at + 1]) inputs[at + 1].focus();
+});
+window.addEventListener('beforeunload', () => { if (dirty.size) flushTruth(); });
+
+(async function start() {
+  try {
+    await loadStatus();
+  } catch (err) {
+    if (err.status === 403 || err.status === 401) { $('denied').classList.remove('hidden'); return; }
+    $('denied').innerHTML = `<strong>Could not reach the OCR backend:</strong> ${esc(err.message)}`;
+    $('denied').classList.remove('hidden');
+    return;
+  }
+  $('app').classList.remove('hidden');
+  await loadRuns();
+  const pending = remembered();
+  if (pending) follow(pending);
+})();
+</script>
+</body>
+</html>

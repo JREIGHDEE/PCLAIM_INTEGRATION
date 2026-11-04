@@ -11,6 +11,183 @@ Related documents:
 
 ---
 
+## 2026-11-03: Changes from user testing #5 (JRAD)
+
+**After pulling:**
+1. Run `database/migrations/012_admission_patterns.sql` (phpMyAdmin, SQL tab,
+   as root; safe to run twice). Until it is run, the admission patterns work
+   with their starting rows but cannot be changed or learn.
+2. Restart the backend and press Ctrl+F5 on every open page.
+
+- *Reason for admission from the logbook (admission patterns).* When a
+  claim from a logbook scan is opened, its admitting diagnosis (else the
+  final diagnosis) is matched against a table of the admissions the
+  logbook writes: labor, newborn, well baby care, postpartum visit,
+  prenatal check-up, PSI insertion / removal, IUD, DMPA, CIC, pills refill,
+  family planning, counseling, hearing test. Clues match letter by letter
+  with a few letters wrong, so a misread like "FOR POJT PAKTUM UISIT" is
+  still a postpartum visit; on the 164 rows of the comparison scans every
+  readable admission was recognised. The pattern's wording fills Chief
+  Complaint / Reason for Admission when it is empty, tagged "please check",
+  and its package helps pick the claim's package (`dxGuessPackage`).
+  On the logbook review ("Read a logbook page", each patient's "Reason for
+  admission" box) the clinic's wording is filled in by itself, with no
+  clicking, over what the scan read (never over typing, never on a patient
+  already checked). A line under it says what the scan read and what it was
+  taken for, with "Undo" and "Not right? It is..."; saving the patient with
+  the wording left in remembers the reading under that pattern, and picking
+  another pattern remembers it under that one. A labor admission ("CEPHALIC
+  IN LABOR") or a newborn ("LIVE TERM BABY BOY...") is not given a short
+  phrase: "Use a clinic wording" opens by itself on its package (NSDBF or
+  NCP), with what the scan could read already in the blanks, and the
+  sentence goes in the box once the red blanks are filled; nothing else
+  shows while it is open (its "Put it in" was "Put in the text (template)").
+  The final diagnosis takes the clinic's wording too, while it still holds
+  only what the scan read: a phrase ticks "Same as the reason for
+  admission" (FOR PILLS REFILL -> PILLS REFILL, WELL BABY CANT -> WELL BABY
+  CARE), a newborn's one sentence goes in both boxes, a labor's delivery
+  sentence goes in the final diagnosis as before; Undo puts both back
+  (`finalFollowsAdmission`). Well baby care, filed under newborn care, is a
+  phrase, not the delivery wording
+  (`isDeliveryPattern`, `openDeliveryWording`, `guessPkg`,
+  `POST /api/admission-patterns/suggest`). On Patient details, a card under
+  Reason for admission says it was filled in by itself, from what reading,
+  with "Not right? It is..." to correct it. New page Clinic →
+  Admission patterns (every account): the clues, the wording, the package,
+  what each has learned, and a box to try a reading. The starting wordings
+  are a guess from the logbook for the clinic to correct there.
+  `philhealth/admission_patterns.py` (matching), `admission_pattern_store.py`,
+  `routes/admission_routes.py` (`/api/admission-patterns`), `claims_routes`
+  form-data, `js/admission-patterns.js`, `test_admission_patterns.py`
+  (20 tests).
+
+- *History of present illness.* The last pregnancy line is written for
+  staff: G3 gives `G1 - / G2 - / G3 - PRESENT PREGNANCY`. Left as `G3 - `,
+  it kept the box highlighted after every earlier line was done. The
+  highlight is checked again on each key in the box (`pregnancyLines`).
+- *Patient details shows only what the claim uses.* A box is shown when
+  one of the claim's forms prints it, or when something the claim uses is
+  worked out from it (`applyPatientDetailsForClaim`, `PATIENT_DETAIL_USES`
+  in `app.js`): the address for CF1's mailing address, member type for the
+  employer, LMP / G / P / T-P-A-L for the prenatal and IUD wording, the
+  delivery for the NSDBF and NCP wording. So an IUD claim (CSF, CF1, CF2)
+  has no delivery, CF4 history or PMRF member profile; an implant or
+  postpartum claim has no "Pregnancy & delivery" part at all. A section
+  or part with nothing left goes too; Back / Next and the part numbers
+  step over it (`easy.js`). "Show all forms" shows everything again, and
+  what was typed in a hidden box is kept. A box with `data-needed-for` is
+  asked for by its packages alone (`easy.js partStatus`).
+- *Age of menarche and place of birth* are outlined red while empty, where
+  the claim shows them: menarche with the CF4 obstetric history (normal
+  delivery), place of birth with the PMRF (newborn care). Menarche and LMP
+  are never asked for a baby (LMP lost its `*` for that reason).
+- *Married.* The mother's maiden middle name is left empty when the civil
+  status is Married: it was filled with the patient's middle name, the same
+  as the maiden last name.
+- *Baby.* Choosing Baby under "Mother or baby?" sets the patient's PIN to
+  `00-000000000-0`, so it is no longer red. Choosing Mother or Regular puts
+  back what was there (`applyBabyPin`). A saved baby's claim opened later
+  is left as saved.
+
+
+## 2026-11-02: OCR comparison page, and logbook cells cut correctly (JRAD)
+
+**After pulling:** no database migration. Restart the backend and press
+Ctrl+F5. To compare with Tesseract, install it once on that PC
+(`Ocr_module/benchmarks/README.md`, section 1); without it the page reads
+PaddleOCR only and says so.
+
+**Logbook cells cut correctly (the Logbook Reader and the comparison page)**
+
+Two scans (part1.pdf, part2.pdf: 18 pages) were cut badly - rows across two
+entries, the first entry or two missing, columns through the middle of names.
+All 18 pages, and testing.pdf's 2, now cut one entry per row on the drawn
+columns, left and right page row for row (`template_engine.py`,
+`logbook_pipeline.py`; `test_cell_cutting.py`, new, 14 tests).
+
+- *Tilted scans straightened.* A page scanned even half a degree crooked hid
+  its printed lines (one tilted 1.3 degrees showed none of its 39), and with
+  them the rows and the columns. Every page is now straightened first
+  (`deskew`).
+- *One row per entry, counted in printed lines.* Each entry takes 3 printed
+  lines (two written and a spare one); rows are counted in lines from the
+  first entry's line instead of guessed from gaps in the writing, which
+  merged entries written close together and split long ones. How many lines
+  an entry takes is read from the page (where the blank lines fall), and the
+  right page uses the left page's count (`entry_rows_from_ruled_lines`).
+- *Each page finds where its entries start.* The right page reads its own
+  printed header instead of copying the left page's rows (the two halves of
+  a spread are scanned at different heights); it still copies them when its
+  header can't be read. A "header" found down among the entries ("DELIVERED"
+  looks like DELIVERY) is not taken for one.
+- *Which side is which.* A PDF may begin on a right-hand page (part2.pdf
+  does); the sides are decided for the whole PDF from the printed headers,
+  not by page number alone (`page_sides`).
+- *Columns.* Hand-drawn column lines are found when faint or broken, a line
+  drawn twice counts once, and the setup's columns are never squeezed or
+  stretched more than 0.8-1.25x or pushed off the page (one page's fit had
+  squeezed them to 61%, cutting NAME in half).
+
+**OCR comparison page**
+
+- *A testing page, apart from the clinic's work.* "OCR comparison" under a
+  new "Testing" heading in the sidebar, for administrators only (staff do
+  not see it; its API answers 403 to them). It writes nothing to patients,
+  claims, the Logbook Reader's sessions or what the AI learns from reviews
+  (`PClaimAssist/ocr-compare.html`, `Ocr_module/templates/ocr_compare.html`,
+  `routes/compare_routes.py`, `ocr_compare.py`; all new).
+- *Read a scan with both engines.* The production pipeline finds the rows
+  and cuts the cells once (template match, row placement); PaddleOCR and
+  TesseractOCR then read the very same cell pictures. Each cell gets four
+  readings: PaddleOCR, PaddleOCR + correction (the Logbook Reader's AI
+  second look, known fixes and place-name fixes - what staff would see),
+  TesseractOCR, and TesseractOCR + the same corrections. Time per cell is
+  shown for each engine.
+- *Ground truth, several rows at once.* 1, 3, 5, 10 or all rows per screen;
+  each row with its whole-row picture (the cell being typed is outlined)
+  and every cell's picture. The ground truth starts as the chosen engine's
+  corrected reading, to fix rather than type; clicking a reading copies
+  it. Readings turn green (exactly right), amber (75%+ of characters) or
+  red as the ground truth is typed. Enter goes to the next box, Ctrl+Enter
+  marks the row checked and goes to the next row. The ground truth is kept
+  as it is typed, and earlier runs can be opened again.
+- *Excel, like the earlier test.* "Save checked rows to Excel" writes one
+  line per field to `uploads/ocr_compare_results.xlsx` (sheet "Rows":
+  ground truth, the four readings, confidences, accuracy %, exactly right,
+  field mapping right, best engine), and a "Summary" sheet per field and
+  overall: character accuracy, exact %, field-mapping % and the
+  recommended engine - also shown on the page. Saving a row again replaces
+  its lines. The older test's `ocr_testing_results.xlsx` is untouched.
+- *Field mapping.* Each reading is split into the form fields it fills
+  (last / first / middle name, date, hour, AM/PM...) the way the review
+  does, and compared with the ground truth split the same way.
+- *Cell cut reliability: does the OCR module cut the cells right?* Under
+  every cell picture: ✓ cut correctly / Cut off (part of the writing
+  missing) / Wrong (another field's or row's writing); cells left unmarked
+  count as cut correctly when the row is checked. The pipeline's own
+  warning that writing runs outside the cut is shown on the picture and
+  kept beside the tester's judgement. Excel: "Cell Cut" and "Pipeline:
+  Writing Outside Cut" per field; the summary gives the share cut
+  correctly, cut off and wrong place, how often the pipeline's warning
+  agreed, and each engine's accuracy on correctly cut cells only - so a
+  misread is told apart from a bad cut.
+- *Spreads: the two pages of one entry together.* The left (odd) and
+  right (even) page scanned together are one spread, "SP-01" (pages 1-2),
+  "SP-02" (pages 3-4)... Rows are grouped under their spread, with a
+  "Spread" filter; each field shows L or R and its page, with a line where
+  a row crosses from the left page to the right. Excel: "Spread ID" and
+  "Spread Pages" on every line, and a "Spreads" sheet with the results per
+  spread.
+- *Test data is kept.* Runs, ground truth (saved as it is typed) and the
+  workbook stay in `Ocr_module/uploads/` until deleted by hand. The 30-day
+  clean-up of Logbook Reader pictures at startup now skips the comparison
+  runs' cell pictures (`crop_cleanup.purge_old_crops(keep=...)`,
+  `ocr_compare.run_ids()`).
+- `test_ocr_compare.py` (new, 27 tests). `auth.py`: the page redirects to
+  sign-in like the other pages. `config.py`: `OCR_COMPARE_FOLDER`,
+  `OCR_COMPARE_WORKBOOK`. Optional `.env`: `OCR_COMPARE_TESSERACT_PSM`
+  (Tesseract page mode, default 6 = one block of text).
+
 ## 2026-11-01: Changes from user testing #3 and #4, and the adviser's revisions S1-S4 (JRAD)
 
 **After pulling:**

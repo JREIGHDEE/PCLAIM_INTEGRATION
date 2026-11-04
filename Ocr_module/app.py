@@ -15,6 +15,7 @@ from flask_cors import CORS
 import auth
 import config
 import crop_cleanup
+import ocr_compare
 from db import test_connection
 from errors import register_error_handlers
 from logging_setup import configure_logging
@@ -54,9 +55,11 @@ def create_app():
          supports_credentials=True)
 
     config.ensure_directories()
-    # Review crops past their keep-by date go at startup (crop_cleanup.py).
+    # Review crops past their keep-by date go at startup (crop_cleanup.py),
+    # except the OCR comparison runs' pictures: those are kept test data.
     try:
-        removed = crop_cleanup.purge_old_crops(config.REVIEW_CROPS_MAX_AGE_DAYS)
+        removed = crop_cleanup.purge_old_crops(config.REVIEW_CROPS_MAX_AGE_DAYS,
+                                               keep=ocr_compare.run_ids())
         if removed:
             logger.info("Deleted %d review crop(s) older than %d days",
                         removed, config.REVIEW_CROPS_MAX_AGE_DAYS)
@@ -65,6 +68,17 @@ def create_app():
 
     register_error_handlers(app)
     register_routes(app)
+    # RESEARCH TESTS (removable) START - the Chapter 5 research tabs
+    # (research_tests/README.md), registered only when ENABLE_RESEARCH_TESTS
+    # is on. Safe to delete together with this END line.
+    try:
+        import sys
+        sys.path.append(str(config.BASE_DIR.parent))
+        from research_tests.web import register_if_enabled
+        register_if_enabled(app)
+    except ImportError:
+        logger.info("Research tests not available (research_tests/ not found)")
+    # RESEARCH TESTS (removable) END
     # Every page and API needs a signed-in account, except the sign-in page.
     auth.require_sign_in(app)
 

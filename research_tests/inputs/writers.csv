@@ -1,0 +1,11 @@
+Writer ID,Style,Set,Scan File,Notes
+W01,caps,main,W01_caps.pdf,SP-01; 11 patients; Slanted capitals with lowercase-style m; discharge dates use slashes. Row 2 delivery date is a deliberate error.
+W02,caps,main,W02_caps.pdf,"SP-02; 11 patients; Neat, evenly spaced capitals."
+W03,caps,main,W03_caps.pdf,"SP-03; 11 patients; Neat, upright capitals. Clearest set."
+W04,caps,main,W04_caps.pdf,"SP-04; 11 patients; Upright, wide capitals; times without leading zero (4:15 AM)."
+W05,caps,main,W05_caps.pdf,SP-05; 11 patients; Loose capitals; short dates (8-9-26).
+W06,lower,main,W06_lower.pdf,SP-06; 11 patients; Small cursive-like lowercase. Hardest to read.
+W07,lower,main,W07_lower.pdf,SP-07; 11 patients; Lowercase print; row 9 name in capitals.
+W08,lower,main,W08_lower.pdf,SP-08; 11 patients; Lowercase with looping strokes; short dates.
+W09,lower,main,W09_lower.pdf,SP-09; 12 patients; Mixed lowercase; 12 patients.
+W10,lower,main,W10_lower.pdf,SP-10; 10 patients; Neat lowercase print; 10 patients.

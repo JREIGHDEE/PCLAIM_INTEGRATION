@@ -229,6 +229,22 @@ input.big.empty-required{ border-color:var(--type-line); background:#fff7f7; }
 .dx-actions{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
 .dx-note{ color:var(--type); font-weight:600; }
 .dx-note.done{ color:var(--ok); }
+.dx-pkg > .input-label:first-child{ margin-top:0; }
+.dx-pkg .dx-actions{ margin-top:14px; gap:8px; }
+.dx-pkg .dx-actions button{ min-height:44px; padding:8px 18px; }
+.dx-pkg .dx-note{ flex-basis:100%; margin-top:2px; }
+.dx-open:has(+ .dx-pkg:not([hidden])){ display:none; }
+/* The reason for admission recognised from what the logbook says (admission patterns). */
+.adm-suggest{ margin-top:10px; padding:10px 14px; border:2px solid #fcd34d; border-radius:12px; background:#fffbeb; }
+.adm-suggest[hidden]{ display:none; }
+.adm-suggest p{ margin:0 0 8px; }
+.adm-suggest .adm-reading{ font-family:ui-monospace, Consolas, monospace; }
+.adm-suggest select{ font:inherit; min-height:40px; border-radius:8px; max-width:22rem; }
+.adm-suggest .dx-actions{ gap:8px 12px; }
+.adm-suggest .dx-actions button{ min-height:40px; padding:6px 16px; }
+.adm-suggest .input-label{ display:inline-flex; align-items:center; gap:6px; margin:0; }
+.adm-suggest .dx-actions a{ margin-left:auto; }
+.adm-done{ color:var(--ok); font-weight:600; }
 .req{ color:var(--type); }
 .field-note{ font-size:.95rem; margin:8px 0 0; }
 .field-problem{ color:var(--type); font-weight:700; margin:8px 0 0; }
@@ -853,7 +869,7 @@ function textBox(category){
 }
 // Opened from the reason for admission. Each sentence goes into its box by
 // itself as soon as no blank is left, and follows the blanks after that.
-// "Put in the text (template)" does the same on purpose, or points at the
+// "Put it in" does the same on purpose, or points at the
 // blank still missing; "Undo - go back to what was read" returns the boxes
 // to what they said before. (User testing #4: the undo button used to be
 // called "Put back what was read", and staff pressed it to add the text.)
@@ -870,14 +886,18 @@ function renderPkgTemplate(id){
                 <p class="dx-sentence" data-sentence="final"></p>
             </div>
             <div class="dx-actions">
-                <button type="button" class="primary" onclick="putPkg(this.closest('.dx-template'))">Put in the text (template)</button>
-                <button type="button" onclick="this.closest('.dx-template').hidden = true">Close</button>
+                <button type="button" class="primary" onclick="putPkg(this.closest('.dx-template'))">Put it in</button>
+                <button type="button" onclick="this.closest('.dx-template').hidden = true; drawAdmission()">Close</button>
                 <button type="button" onclick="undoPkg(this.closest('.dx-template'))">Undo - go back to what was read</button>
                 <span class="dx-note" aria-live="polite"></span>
             </div>
         </div>`;
 }
 function guessPkg(text){
+    // The admission pattern this entry was recognised as (suggestAdmission):
+    // it reads past misread letters ("FOR POJT PAKTUM UISIT").
+    const recognised = admissionPick?.chosen?.package;
+    if(PKG_WORDINGS[recognised]) return recognised;
     const dx = String(text || "").toUpperCase();
     if(/\bMOTHER WEIGHING\b|\bNEWBORN\b|\bWELL\s*BABY\b/.test(dx)) return "NCP";
     if(/\bPRE\s*-?\s*NATAL\b|\bANTE\s*-?\s*NATAL\b/.test(dx)) return "ANV";
@@ -1105,6 +1125,7 @@ function renderInputs(f, id){
         <input class="big" id="${id}" data-part="text" autocomplete="off" ${f.category === "ADDRESS" ? 'maxlength="255"' : ""} value="${attr(caps(p.text))}"
             oninput="toCaps(this)" ${sameAs ? "readonly" : ""}
             ${f.status === "manual_encoding_required" ? 'placeholder="Type what you see in the picture"' : ""}>
+        ${f.category === "ADMITTING DIAGNOSIS" ? `<div class="adm-suggest" data-for="${id}" hidden aria-live="polite"></div>` : ""}
         ${f.category === "ADMITTING DIAGNOSIS" ? renderPkgTemplate(id) : ""}
         ${f.category === "FINAL DIAGNOSIS" ? `<label class="same-as">
             <input type="checkbox" data-same-as-admitting onchange="sameAsAdmitting(this)" ${sameAs ? "checked" : ""}>
@@ -1300,6 +1321,238 @@ function renderPatient(){
     });
     updateReviewCount();
     goToField(currentField, false);
+    suggestAdmission();
+}
+
+// The reason for admission recognised from what the logbook says: the
+// entries the clinic writes again and again ("POST PARTUM VISIT", "WELL BABY
+// CARE"...), matched letter by letter so a misread like "FOR POJT PAKTUM
+// UISIT" is still found (/api/admission-patterns, Ocr_module/philhealth/
+// admission_patterns.py). The clinic's wording goes into the box by itself
+// while the box still holds what the scan read and the patient is not
+// checked yet (user testing #5: no clicking); "Undo" puts the reading back.
+// Saving the patient with the wording in the box teaches the pattern table
+// that reading; "Not right? It is..." picks another pattern and teaches that
+// (PClaimAssist: Clinic -> Admission patterns).
+let admissionPick = null;   // {pattern, reading, chosen, patterns, done, auto, before, learned}
+async function suggestAdmission(){
+    admissionPick = null;
+    const box = document.querySelector(".adm-suggest");
+    if(!box) return;
+    const input = document.getElementById(box.dataset.for);
+    // What the scan read - kept with the field, so it is still known when
+    // the box holds the wording (a draft kept in this browser) or typing.
+    const f = (sessions[current]?.fields || []).find(x => x.category === ADMITTING);
+    const scanRead = caps(f?.value ?? f?.raw_text ?? "").trim();
+    const readings = [scanRead || input?.value || "", textBox(FINAL)?.value || ""];
+    const forPatient = current;
+    try{
+        const resp = await fetch("/api/admission-patterns/suggest", {
+            method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({readings}),
+        });
+        const body = await resp.json();
+        if(forPatient !== current || !resp.ok || !body.success || !body.suggestion) return;
+        const found = body.suggestion;
+        admissionPick = {...found, chosen: found.pattern, patterns: body.patterns || [], done: "",
+                         auto: false, before: scanRead, learned: false,
+                         finalBefore: textBox(FINAL)?.value ?? "", finalFromScan: finalStillFromScan()};
+        // By itself: only over what the scan read - not over anything typed -
+        // and not on a patient already checked. Opened again, the wording
+        // put in before is still "filled in by itself", with its Undo.
+        const now = input ? input.value.trim() : "";
+        const fresh = input && now === scanRead && sessions[current]?.review_status !== "reviewed";
+        if(isDeliveryPattern(found.pattern)){
+            // A delivery (CEPHALIC IN LABOR) or a newborn (LIVE TERM BABY BOY):
+            // its details go in the clinic's wording, so that opens by itself
+            // on the right package (user testing #5).
+            admissionPick.wording = true;
+            if(fresh) openDeliveryWording(true);
+        }else if(fresh && now !== found.pattern.reason){
+            putInBox(input, found.pattern.reason);
+            admissionPick.auto = true;
+            finalFollowsAdmission();
+        }else if(now === found.pattern.reason && scanRead !== found.pattern.reason){
+            admissionPick.auto = true;
+            const fin = (sessions[current]?.fields || []).find(x => x.category === FINAL);
+            if((textBox(FINAL)?.value || "").trim() === dropFor(found.pattern.reason)){
+                admissionPick.finalFollowed = true;
+                admissionPick.finalBefore = caps(fin?.value ?? fin?.raw_text ?? "");
+            }
+        }
+        drawAdmission();
+    }catch(err){
+        // No suggestion: the box is checked as before.
+    }
+}
+function patternsPageUrl(){
+    const url = new URL(FORMS_URL, window.location.href);
+    url.hash = "admission-patterns";
+    return url.toString();
+}
+function admissionInput(){
+    const box = document.querySelector(".adm-suggest");
+    return box ? document.getElementById(box.dataset.for) : null;
+}
+function drawAdmission(){
+    const box = document.querySelector(".adm-suggest");
+    if(!box || !admissionPick) return;
+    const {reading, chosen, patterns, done, auto, before} = admissionPick;
+    const input = admissionInput();
+    const panel = input?.closest(".field")?.querySelector(".dx-pkg");
+    if(admissionPick.wording && panel && !panel.hidden){ box.hidden = true; return; }
+    // Closed again: "Open the clinic wording" below is the one button for it.
+    const opener = input?.closest(".field")?.querySelector(".dx-open");
+    if(opener) opener.style.display = admissionPick.wording ? "none" : "";
+    const others = patterns.filter(p => p.id !== chosen.id);
+    const inBox = input && input.value.trim() === chosen.reason;
+    const why = chosen.why ? ` <span class="muted">(${escapeHtml(chosen.why)})</span>` : "";
+    const read = `"<span class="adm-reading">${escapeHtml(reading)}</span>"`;
+    const head = admissionPick.wording
+        ? `<strong>${escapeHtml(chosen.name)}:</strong> the scan read ${read}.`
+        : inBox && auto
+        ? `<strong>Filled in by itself:</strong> the scan read ${read} - that is <strong>${escapeHtml(chosen.name)}</strong>${why}.`
+        : inBox
+        ? `<strong>${escapeHtml(chosen.name)}:</strong> the scan read ${read}.`
+        : `<strong>Suggestion:</strong> ${read} looks like <strong>${escapeHtml(chosen.name)}</strong>${why}.
+           The clinic writes: <strong>${escapeHtml(chosen.reason)}</strong>`;
+    box.hidden = false;
+    box.innerHTML = `<p>${head}</p>
+        ${done ? `<p class="adm-done">✓ ${escapeHtml(done)}</p>` : ""}
+        <div class="dx-actions">
+            ${admissionPick.wording
+                ? `<button type="button" class="primary" onclick="openDeliveryWording(false)">Open the clinic wording</button>`
+                : !inBox && chosen.id !== undefined
+                ? `<button type="button" class="primary" onclick="useAdmission()">Put it in</button>` : ""}
+            ${inBox && auto && before.trim() && before !== chosen.reason
+                ? `<button type="button" onclick="undoAdmission()" title="Put back what the scan read">Undo</button>` : ""}
+            ${others.length ? `<label class="input-label">Not right? It is
+                <select onchange="pickAdmission(this)"><option value="">- choose -</option>
+                    ${others.map(p => `<option value="${p.id ?? ""}">${escapeHtml(p.name)}: ${escapeHtml(p.reason)}</option>`).join("")}
+                    <option value="none">None of these</option></select></label>` : ""}
+            <a href="${attr(patternsPageUrl())}" target="_blank" rel="noopener">Edit the patterns</a>
+        </div>`;
+}
+// Teach the pattern table that the scan's reading is this pattern - quietly
+// (message null) when the patient is saved with the wording left in.
+async function learnAdmission(pattern, message){
+    if(!admissionPick || pattern.id === null || pattern.id === undefined) return;
+    const pick = admissionPick;
+    let note = message;
+    try{
+        const resp = await fetch(`/api/admission-patterns/${pattern.id}/learn`, {
+            method: "POST", headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({reading: pick.reading, suggested_id: pick.pattern.id}),
+        });
+        const body = await resp.json().catch(() => ({}));
+        if(resp.ok && body.success !== false) pick.learned = pattern.id;
+        else if(message) note = `Put in, but not remembered: ${body.error || "the server said no"}`;
+    }catch(err){
+        if(message) note = "Put in, but not remembered (the server could not be reached).";
+    }
+    if(message && pick === admissionPick){ admissionPick.done = note; drawAdmission(); }
+}
+// The final diagnosis still says only what the scan read (or nothing): the
+// clinic's wording may go there too (user testing #5). Anything typed in it
+// is left alone.
+function finalStillFromScan(){
+    const box = textBox(FINAL);
+    if(!box) return false;
+    const f = (sessions[current]?.fields || []).find(x => x.category === FINAL);
+    const scan = caps(f?.value ?? f?.raw_text ?? "").trim();
+    return !box.value.trim() || box.value.trim() === scan;
+}
+// The final diagnosis takes the reason for admission's wording: "Same as the
+// reason for admission" ticked, so it keeps following it.
+function finalFollowsAdmission(){
+    if(!admissionPick?.finalFromScan) return;
+    const same = fieldEl(FINAL)?.querySelector("[data-same-as-admitting]");
+    if(!same) return;
+    same.checked = true;
+    sameAsAdmitting(same);
+    admissionPick.finalFollowed = true;
+}
+function finalBackToScan(){
+    if(!admissionPick?.finalFollowed) return;
+    const same = fieldEl(FINAL)?.querySelector("[data-same-as-admitting]");
+    if(same){ same.checked = false; textBox(FINAL).readOnly = false; }
+    putInBox(textBox(FINAL), admissionPick.finalBefore);
+    admissionPick.finalFollowed = false;
+}
+// The packages whose clinic wording has the delivery's or the baby's details
+// in it (PKG_WORDINGS): a labor admission and a newborn.
+const DELIVERY_PACKAGES = ["NSDBF", "NCP"];
+function isDeliveryPattern(pattern){
+    return !!pattern && DELIVERY_PACKAGES.includes(pattern.package) && !!PKG_WORDINGS[pattern.package]
+        && !/WELL\s*BABY/i.test(`${pattern.name} ${pattern.reason}`);
+}
+// Open "Use a clinic wording" on the recognised package (guessPkg reads
+// admissionPick); by itself, without taking the cursor from the box staff
+// are on.
+function openDeliveryWording(quietly){
+    const input = admissionInput();
+    const button = input?.closest(".field")?.querySelector(".dx-open");
+    if(!button) return;
+    const panel = button.nextElementSibling;
+    panel._picked = false;
+    panel._putFinal = admissionPick?.finalFromScan ? textBox(FINAL)?.value || "" : panel._putFinal;
+    const focused = document.activeElement;
+    openPkg(button, input.id);
+    drawAdmission();
+    if(quietly && focused && focused !== document.activeElement && document.contains(focused)) focused.focus({preventScroll: true});
+}
+function closeDeliveryWording(){
+    const panel = admissionInput()?.closest(".field")?.querySelector(".dx-pkg");
+    if(panel) panel.hidden = true;
+}
+function useAdmission(){
+    putInBox(admissionInput(), admissionPick.chosen.reason);
+    learnAdmission(admissionPick.chosen, `Put in, and remembered: "${admissionPick.reading}" is ${admissionPick.chosen.name}.`);
+}
+function undoAdmission(){
+    putInBox(admissionInput(), admissionPick.before);
+    finalBackToScan();
+    admissionPick.auto = false;
+    admissionPick.done = "Put back what the scan read.";
+    drawAdmission();
+}
+function pickAdmission(select){
+    if(!select.value) return;
+    const input = admissionInput();
+    if(select.value === "none"){
+        // Back to what the scan read, for staff to correct by hand.
+        if(admissionPick.auto && input.value.trim() === admissionPick.chosen.reason){
+            putInBox(input, admissionPick.before);
+            finalBackToScan();
+        }
+        admissionPick.auto = false;
+        admissionPick.wording = false;
+        admissionPick.chosen = {id: undefined, name: "none of the patterns", reason: "", why: "", package: ""};
+        admissionPick.done = 'Type what the logbook says. To have it filled in next time, add it with "Edit the patterns".';
+        drawAdmission();
+        return;
+    }
+    const pattern = admissionPick.patterns.find(p => String(p.id) === select.value);
+    if(!pattern) return;
+    admissionPick.chosen = {...pattern, why: "chosen by you"};
+    admissionPick.wording = isDeliveryPattern(pattern);
+    if(admissionPick.wording){
+        openDeliveryWording(false);
+        learnAdmission(pattern, `Remembered: "${admissionPick.reading}" is ${pattern.name} - fill in the clinic wording below.`);
+        return;
+    }
+    closeDeliveryWording();
+    putInBox(input, pattern.reason);
+    finalFollowsAdmission();
+    learnAdmission(pattern, `Put in, and remembered: "${admissionPick.reading}" is ${pattern.name} - it will be filled in next time.`);
+}
+// Saved with the pattern's wording in the box: remember the reading under it.
+function rememberAdmissionOnSave(admittingText){
+    const pick = admissionPick;
+    if(!pick || pick.chosen.id === undefined || pick.learned === pick.chosen.id) return;
+    const text = String(admittingText || "").trim();
+    const panel = admissionInput()?.closest(".field")?.querySelector(".dx-pkg [data-pkg-choice]");
+    const samePackage = !panel || panel.value === pick.chosen.package;
+    if(text === pick.chosen.reason || (pick.wording && samePackage && text && text !== pick.before)) learnAdmission(pick.chosen, null);
 }
 
 // Index of the "Finish" step (after the last box).
@@ -1771,6 +2024,7 @@ function blockIfMissing(){
 }
 
 async function saveReview(confirmWarnings){
+    const admitting = admissionInput()?.value;
     const resp = await fetch(`/api/review/sessions/${sessions[current].session_id}`, {
         method: "PUT",
         headers: {"Content-Type": "application/json"},
@@ -1780,6 +2034,7 @@ async function saveReview(confirmWarnings){
     if(data.success){
         sessions[current] = data;
         forgetDraft(data.session_id);
+        rememberAdmissionOnSave(admitting);
     }
     return data;
 }

@@ -14,12 +14,13 @@ import logging
 
 from flask import Blueprint, jsonify, request, send_file
 
+import admission_pattern_store
 import auth
 import claims_store
 import crop_cleanup
 import email_check
 from errors import ClaimIncompleteError, InvalidRequestError
-from philhealth import form_prefill, mapping_service, pdf_export
+from philhealth import admission_patterns, form_prefill, mapping_service, pdf_export
 
 logger = logging.getLogger(__name__)
 
@@ -104,6 +105,9 @@ def get_claim_form_data(claim_id):
     if source is None:
         return jsonify({"success": False, "error": f"No claim found with id {claim_id}."}), 404
     prefill = form_prefill.build_form_data(source["rows"], source["session"])
+    # The reason for admission, recognised from the logbook's admitting
+    # diagnosis (philhealth/admission_patterns.py) - "please check".
+    prefill = admission_patterns.apply_suggestion(prefill, admission_pattern_store.load_active())
     session = source["session"]
     return jsonify({
         "success": True,

@@ -468,12 +468,190 @@ def detect_ruling_lines(image: np.ndarray) -> Dict[str, List[float]]:
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if image.ndim == 3 else image
     h, w = gray.shape
     ink = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 25, 10)
-    vertical = cv2.morphologyEx(ink, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_RECT, (1, max(3, h // 8))))
     horizontal = cv2.morphologyEx(ink, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_RECT, (max(3, w // 4), 1)))
+    # Column rules are often drawn by hand in pen - fainter than the
+    # printed lines, broken where writing crosses them - so they are looked
+    # for more finely: fainter ink, strokes a twentieth of the page tall
+    # (still taller than any letter), covering 15% of the page in total.
+    # (A quarter-page-tall test found only 1 of a page's 4 drawn rules.)
+    faint = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 25, 6)
+    vertical = cv2.morphologyEx(faint, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_RECT, (1, max(3, h // 20))))
     return {
-        "vertical": _rule_peaks((vertical > 0).sum(axis=0), 0.25 * h),
+        "vertical": _rule_peaks((vertical > 0).sum(axis=0), 0.15 * h),
         "horizontal": _rule_peaks((horizontal > 0).sum(axis=1), 0.3 * w),
     }
+
+
+# ── Straightening a tilted scan ────────────────────────────────────────────
+# A logbook page is rarely scanned perfectly level. detect_ruling_lines()
+# only keeps straight strokes a quarter of the page wide, so a tilt of half
+# a degree already hides the printed lines (a page tilted 1.3 degrees showed
+# none of its 39), and with them the first entry, the row grid and the
+# column fit. Pages are therefore straightened before anything is placed.
+_SKEW_MAX_DEGREES = 4.0
+_SKEW_MIN_DEGREES = 0.1   # less than this is left as scanned
+
+
+def estimate_skew(image: np.ndarray) -> float:
+    """The page's tilt in degrees (rotate by this to straighten it): the
+    angle at which its horizontal strokes - printed lines and lines of
+    writing - line up best with the pixel rows (sharpest row profile)."""
+    if image is None or image.size == 0:
+        return 0.0
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if image.ndim == 3 else image
+    scale = 1000.0 / max(1, gray.shape[1])
+    small = cv2.resize(gray, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA) if scale < 1 else gray
+    ink = cv2.adaptiveThreshold(small, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 25, 10)
+    ink = cv2.morphologyEx(ink, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_RECT, (25, 1)))
+    h, w = ink.shape
+
+    def sharpness(angle):
+        turn = cv2.getRotationMatrix2D((w / 2, h / 2), float(angle), 1.0)
+        profile = cv2.warpAffine(ink, turn, (w, h), flags=cv2.INTER_NEAREST).sum(axis=1).astype(np.float64)
+        return float((profile ** 2).sum())
+
+    best = max(np.arange(-_SKEW_MAX_DEGREES, _SKEW_MAX_DEGREES + 0.01, 0.25), key=sharpness)
+    best = max(np.arange(best - 0.25, best + 0.26, 0.05), key=sharpness)
+    return round(float(best), 2)
+
+
+def deskew(image: np.ndarray) -> Tuple[np.ndarray, float]:
+    """(straightened page, the angle it was turned by). White fills the
+    corners turned in. A page already level (under _SKEW_MIN_DEGREES) is
+    returned as it is."""
+    angle = estimate_skew(image)
+    if abs(angle) < _SKEW_MIN_DEGREES:
+        return image, 0.0
+    h, w = image.shape[:2]
+    turn = cv2.getRotationMatrix2D((w / 2, h / 2), angle, 1.0)
+    fill = (255, 255, 255) if image.ndim == 3 else 255
+    return cv2.warpAffine(image, turn, (w, h), flags=cv2.INTER_LINEAR, borderValue=fill), angle
+
+
+# ── Rows from the printed lines ────────────────────────────────────────────
+# Every entry of the clinic's logbook takes the same number of printed lines
+# (3: two written lines and a spare one, which the diagnosis page fills when
+# a diagnosis runs long). Counting printed lines finds each entry exactly,
+# where looking for gaps in the writing merges entries written close
+# together and splits a long one.
+
+def regular_ruled_lines(lines: List[float], height: float) -> Tuple[List[float], float]:
+    """(the printed lines with doubles dropped and the few hidden under
+    writing filled in, their spacing). ([], 0) when there are too few."""
+    ys = sorted(float(y) for y in lines)
+    if len(ys) < 6:
+        return [], 0.0
+    gaps = np.diff(ys)
+    pitch = float(np.median(gaps))
+    if pitch <= 0:
+        return [], 0.0
+    pitch = float(np.median([g for g in gaps if 0.6 * pitch <= g <= 1.4 * pitch] or [pitch]))
+    kept = [ys[0]]
+    for y in ys[1:]:
+        if y - kept[-1] >= 0.6 * pitch:
+            kept.append(y)
+    filled = [kept[0]]
+    for y in kept[1:]:
+        steps = int(round((y - filled[-1]) / pitch))
+        for k in range(1, steps):
+            filled.append(filled[-1] + (y - filled[-1]) / (steps - k + 1))
+        filled.append(y)
+    return [y for y in filled if 0 <= y <= height], pitch
+
+
+def _slot_ink(image: np.ndarray, lines: List[float], pitch: float) -> np.ndarray:
+    """Handwriting in each space between two printed lines (the middle of
+    it, away from the lines themselves)."""
+    mask, _ = _compute_ink_mask(image)
+    mask = mask.astype(np.uint8)
+    long_lines = cv2.morphologyEx(mask, cv2.MORPH_OPEN,
+                                  cv2.getStructuringElement(cv2.MORPH_RECT, (max(3, mask.shape[1] // 4), 1)))
+    mask[cv2.dilate(long_lines, np.ones((3, 3), np.uint8)) > 0] = 0
+    inset = 0.18 * pitch
+    return np.array([float(mask[int(top + inset):max(int(top + inset) + 1, int(bottom - inset))].sum())
+                     for top, bottom in zip(lines[:-1], lines[1:])])
+
+
+def lines_per_entry(ink: np.ndarray, start: int) -> Optional[int]:
+    """How many printed lines one entry takes, from where blank lines fall:
+    the most common distance between the starts of written blocks (2 to 6),
+    when it is seen at least twice. None when it can't be told."""
+    if len(ink) - start < 4:
+        return None
+    level = 0.12 * float(np.percentile(ink[start:], 90)) if np.any(ink[start:] > 0) else 0
+    written = ink > max(level, 1.0)
+    starts = [i for i in range(start, len(ink)) if written[i] and (i == start or not written[i - 1])]
+    steps = [b - a for a, b in zip(starts, starts[1:]) if 2 <= b - a <= 6]
+    if not steps:
+        return None
+    values, counts = np.unique(steps, return_counts=True)
+    best = int(values[np.argmax(counts)])
+    return best if counts.max() >= 2 else None
+
+
+def entry_rows_from_ruled_lines(image: np.ndarray, ruled_lines: List[float], start_y: Optional[float],
+                                per_entry: Optional[int] = None, fallback_per_entry: Optional[int] = None,
+                                ) -> Optional[Dict[str, Any]]:
+    """One row per logbook entry, counted in printed lines from the first
+    entry's line (start_y; without it, the first line with writing).
+
+    per_entry: lines per entry when already known (the other page of the
+    spread); otherwise read from the page (lines_per_entry), else
+    fallback_per_entry, else 3. Without start_y, where the blank lines fall
+    moves the start by one line when the first written line is one off.
+    Rows stop after the last one with writing. Each row reaches a quarter
+    line above its first printed line and a tenth below its last, for
+    writing that crosses them.
+
+    Returns {"rows": [{"y", "height", "spacing"}], "per_entry", "pitch"},
+    or None when the page has too few printed lines (the caller then uses
+    detect_content_rows)."""
+    h = image.shape[0]
+    lines, pitch = regular_ruled_lines(ruled_lines, h)
+    if len(lines) < 6:
+        return None
+    ink = _slot_ink(image, lines, pitch)
+    level = 0.12 * float(np.percentile(ink, 90)) if np.any(ink > 0) else 0
+    written = ink > max(level, 1.0)
+    if start_y is not None:
+        start = next((i for i, y in enumerate(lines[:-1]) if y >= start_y - 0.5 * pitch), None)
+    else:
+        start = next((i for i in range(len(written)) if written[i]), None)
+    if start is None:
+        return None
+    n = per_entry or lines_per_entry(ink, start) or fallback_per_entry or 3
+    n = int(min(6, max(2, n)))
+
+    def last_line_ink(s):
+        groups = [ink[i:i + n] for i in range(s, len(ink) - n + 1, n)]
+        groups = [g for g in groups if g.sum() > 0]
+        return float(np.mean([g[-1] for g in groups])) if groups else float("inf")
+
+    # Without a header to start from, the first line with writing may be
+    # one line off. The entry's last line is its spare one: mostly blank on
+    # the registration page. A start one line off puts writing there
+    # instead. (Not with a header: on the diagnosis page the spare line
+    # holds long diagnoses, and the header's line is right.)
+    if start_y is None:
+        best, base = start, last_line_ink(start)
+        for shift in (-1, 1):
+            s = start + shift
+            if 0 <= s < len(ink) and last_line_ink(s) < 0.6 * base:
+                best, base = s, last_line_ink(s)
+        start = best
+
+    last_written = max((i for i in range(len(written)) if written[i]), default=-1)
+    rows = []
+    for i in range(start, len(lines) - 1, n):
+        if i > last_written:
+            break
+        top = lines[i]
+        bottom = lines[min(i + n, len(lines) - 1)]
+        y = max(0.0, top - 0.25 * pitch)
+        rows.append({"y": y, "height": min(float(h), bottom + 0.1 * pitch) - y, "spacing": 0.0})
+    if not rows:
+        return None
+    return {"rows": rows, "per_entry": n, "pitch": pitch}
 
 
 def fit_lines_to_rules(template_x: List[float], rules_x: List[float], width: float,
@@ -495,7 +673,24 @@ def fit_lines_to_rules(template_x: List[float], rules_x: List[float], width: flo
     # A line hugging the page edge is the scan's border or the binding's
     # shadow, not a printed column rule.
     rules = sorted(r for r in rules_x if 0.02 * width < r < 0.98 * width)
+    # A column rule drawn twice (two pen strokes a few pixels apart) is one
+    # rule; as two, a fit could squeeze two template lines onto it.
+    merged: List[List[float]] = []
+    for r in rules:
+        if merged and r - merged[-1][-1] < 0.03 * width:
+            merged[-1].append(r)
+        else:
+            merged.append([r])
+    rules = [float(np.mean(group)) for group in merged]
     tol = tolerance * width
+    # The template is already scaled to this page's width
+    # (normalize_template_for_image), so among fits landing as many lines
+    # the one stretching least wins: with only a few rules found, some
+    # squeeze can always land two or three lines a little closer (a page
+    # whose four rules sat on the template's own lines was fitted at 0.71x,
+    # cutting NAME in half and losing ADDRESS). Stretch costs as much as
+    # being half a page width off in total.
+    stretch_cost = 0.5 * width
     best = None
     for i in range(len(template_x)):
         for k in range(i + 1, len(template_x)):
@@ -505,10 +700,15 @@ def fit_lines_to_rules(template_x: List[float], rules_x: List[float], width: flo
                     if span <= 0:
                         continue
                     a = (rules[l] - rules[j]) / span
-                    if not 0.6 <= a <= 1.6:
+                    # Already scaled to this page's width: a page differs
+                    # only by its margins and a little in size.
+                    if not 0.8 <= a <= 1.25:
                         continue
                     b = rules[j] - a * template_x[i]
-                    matched, error = 0, 0.0
+                    # No column may land off the page.
+                    if a * template_x[0] + b < -0.02 * width or a * template_x[-1] + b > 1.02 * width:
+                        continue
+                    matched, error = 0, stretch_cost * abs(a - 1.0)
                     for x in template_x:
                         d = min(abs(a * x + b - r) for r in rules)
                         if d <= tol:
@@ -1127,7 +1327,10 @@ class TemplateAutoDetector:
                            template_dict: Dict[str, Any],
                            auto_align: bool = True,
                            forced_rows: Optional[List[Dict[str, float]]] = None,
-                           rows_start_y: Optional[float] = None) -> Dict[str, Any]:
+                           rows_start_y: Optional[float] = None,
+                           ruled_rows: bool = False,
+                           per_entry: Optional[int] = None,
+                           start_from_header: bool = True) -> Dict[str, Any]:
         """
         Automatically place all template elements on image.
 
@@ -1136,7 +1339,9 @@ class TemplateAutoDetector:
             template_dict: Saved template data
             auto_align: Whether to detect and apply alignment offset
             forced_rows: If given, use these row positions verbatim instead of
-                detecting/propagating rows on this image. Used to carry the
+                detecting/propagating rows on this image (unless ruled_rows
+                with start_from_header places them from this page's own
+                header and printed lines). Used to carry the
                 row layout detected on one side of a two-page ledger spread
                 over to its paired side, since a spread's rows are one
                 physical entry split across both pages and must line up.
@@ -1144,6 +1349,15 @@ class TemplateAutoDetector:
                 ruled line under a logbook's printed header. Detected rows
                 entirely above it are dropped; a row crossing it is trimmed
                 to start there.
+            ruled_rows: Count rows in the page's printed lines, one row per
+                logbook entry (entry_rows_from_ruled_lines), starting at
+                rows_start_y; falls back to detect_content_rows() when the
+                page has too few printed lines. result["per_entry"] then
+                says how many lines an entry took ("row_method" which way).
+            per_entry: Lines per entry when already known - the other page
+                of the same spread.
+            start_from_header: rows_start_y was read from the page's printed
+                header (exact); False when it is only a guess.
 
         Returns:
             Dictionary with placed template elements
@@ -1204,7 +1418,15 @@ class TemplateAutoDetector:
         
         # Step 3: Generate rows - forced (paired-page) rows take precedence over
         # detecting/propagating fresh ones on this image.
-        if forced_rows is not None:
+        ruled = None
+        if ruled_rows and (forced_rows is None or (rows_start_y is not None and start_from_header)):
+            ruled = entry_rows_from_ruled_lines(image, detect_ruling_lines(image)["horizontal"],
+                                                rows_start_y if start_from_header else None, per_entry=per_entry)
+        result["row_method"] = "ruled_lines" if ruled else "forced" if forced_rows is not None else "ink"
+        result["per_entry"] = ruled["per_entry"] if ruled else None
+        if ruled:
+            result["rows"] = [dict(row) for row in ruled["rows"]]
+        elif forced_rows is not None:
             for row in forced_rows:
                 result["rows"].append({
                     "y": float(row.get("y", 0)),
@@ -1234,7 +1456,11 @@ class TemplateAutoDetector:
                     "spacing": row.spacing
                 })
         
-        if rows_start_y is not None and forced_rows is None:
+        # Rows counted in printed lines already start on the first entry's
+        # line - possibly a line above rows_start_y, when where the blank
+        # lines fall showed it was found one line low; trimming would cut
+        # that entry's first line off again.
+        if rows_start_y is not None and forced_rows is None and not ruled:  # (rows from the writing)
             trimmed = []
             for row in result["rows"]:
                 bottom = row["y"] + row["height"]

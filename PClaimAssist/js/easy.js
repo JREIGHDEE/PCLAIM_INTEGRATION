@@ -12,26 +12,42 @@
 ═══════════════════════════════════════════════════════════ */
 
 (function () {
+  // A part the claim does not use is hidden (js/app.js
+  // applyPatientDetailsForClaim): Back / Next step over it.
+  const tabShown = tab => !tab.closest('[hidden]');
+  const partName = tab => (tab.querySelector('.part-name') || tab).textContent.trim().replace(/^\d+\.\s*/, '');
+
   function addTabSteps() {
     const tabs = [...document.querySelectorAll('#patientTabs .nav-link')];
-    tabs.forEach((tab, i) => {
-      const pane = document.querySelector(tab.dataset.bsTarget);
-      if (!pane || pane.querySelector('.tab-step-nav')) return;
-      const nav = document.createElement('div');
-      nav.className = 'tab-step-nav';
-      const back = i > 0
-        ? `<button type="button" class="btn btn-outline-secondary" data-go="${i - 1}">
-             <i class="bi bi-arrow-left me-2"></i>Back</button>`
-        : '<span></span>';
-      const next = i < tabs.length - 1
-        ? `<button type="button" class="btn btn-primary" data-go="${i + 1}">
-             Next part: ${tabs[i + 1].textContent.trim().replace(/^\d+\.\s*/, '')}
-             <i class="bi bi-arrow-right ms-2"></i></button>`
-        : `<button type="button" class="btn btn-success" data-section-go="validation">
-             Done &mdash; check for missing information <i class="bi bi-arrow-right ms-2"></i></button>`;
-      nav.innerHTML = back + next;
-      pane.appendChild(nav);
-    });
+    const names = tabs.map(partName);
+
+    function drawSteps() {
+      tabs.forEach((tab, i) => {
+        const pane = document.querySelector(tab.dataset.bsTarget);
+        if (!pane) return;
+        let nav = pane.querySelector('.tab-step-nav');
+        if (!nav) {
+          nav = document.createElement('div');
+          nav.className = 'tab-step-nav';
+          pane.appendChild(nav);
+        }
+        const before = tabs.slice(0, i).reverse().find(tabShown);
+        const after = tabs.slice(i + 1).find(tabShown);
+        const back = before
+          ? `<button type="button" class="btn btn-outline-secondary" data-go="${tabs.indexOf(before)}">
+               <i class="bi bi-arrow-left me-2"></i>Back</button>`
+          : '<span></span>';
+        const next = after
+          ? `<button type="button" class="btn btn-primary" data-go="${tabs.indexOf(after)}">
+               Next part: ${names[tabs.indexOf(after)]}
+               <i class="bi bi-arrow-right ms-2"></i></button>`
+          : `<button type="button" class="btn btn-success" data-section-go="validation">
+               Done &mdash; check for missing information <i class="bi bi-arrow-right ms-2"></i></button>`;
+        nav.innerHTML = back + next;
+      });
+    }
+    drawSteps();
+    document.addEventListener('pca:patient-parts-changed', drawSteps);
 
     document.addEventListener('click', e => {
       const go = e.target.closest('[data-go]');
@@ -82,16 +98,21 @@
       // a choice beside the PIN, not a box to type (js/app.js).
       if (typeof pinNotAsked === 'function' && pinNotAsked(key)) return;
       if (typeof NO_PHILHEALTH === 'object' && Object.values(NO_PHILHEALTH).includes(key)) return;
+      // A part the claim's package does not need is out of sight (the
+      // delivery for an IUD insertion: js/app.js applyPackageSections).
+      if (el.closest('[hidden]')) return;
       const box = el.closest('[class*="col"]') || el.parentElement;
       // Asked for: a red *, a box the scan could not read, or a box a form
       // still shows red (the employer while the member is employed...) -
       // the same rule as the forms and the checker (js/app.js keyRedOnAnyForm).
-      // ...or a box the claim's package wording needs (G, P and T-P-A-L for
-      // a delivery, prenatal care or an IUD: data-needed-for, user testing #4).
-      const neededFor = el.dataset.neededFor && typeof dxCurrentPackage === 'function' &&
-        el.dataset.neededFor.split(' ').includes(dxCurrentPackage());
-      const required = el.dataset.ocrRequired || (box && box.querySelector('label .required-dot')) ||
-        neededFor || (typeof keyRedOnAnyForm === 'function' && keyRedOnAnyForm(key));
+      // A box the claim's package wording needs (G, P and T-P-A-L for a
+      // delivery, prenatal care or an IUD: data-needed-for, user testing #4)
+      // is asked for by its packages alone: LMP and menarche are not a
+      // baby's (user testing #5).
+      const required = el.dataset.ocrRequired || (el.dataset.neededFor
+        ? typeof dxCurrentPackage === 'function' && el.dataset.neededFor.split(' ').includes(dxCurrentPackage())
+        : (box && box.querySelector('label .required-dot')) ||
+          (typeof keyRedOnAnyForm === 'function' && keyRedOnAnyForm(key)));
       if (!required || !isEmpty(key)) return;
       seen.add(key);
       toType.push({ key, target: highlightTarget(el) });
@@ -112,10 +133,13 @@
 
     function refresh() {
       let next = null;
+      let number = 0;
       document.querySelectorAll('#patientTabContent .box-missing').forEach(el => el.classList.remove('box-missing'));
       tabs.forEach((tab, i) => {
         const pane = document.querySelector(tab.dataset.bsTarget);
-        if (!pane) return;
+        if (!pane || !tabShown(tab)) return;
+        // Numbered among the parts shown: 1, 2, 3... with none skipped.
+        tab.querySelector('.part-num').textContent = ++number;
         const { toType, toCheck } = partStatus(pane);
         toType.forEach(t => t.target && t.target.classList.add('box-missing'));
         const bits = [];
@@ -124,7 +148,7 @@
         tab.querySelector('.part-status').innerHTML = bits.length ? bits.join(' · ')
           : '<span class="st-done"><i class="bi bi-check-circle-fill"></i> Nothing missing</span>';
         tab.classList.toggle('part-done', !toType.length);
-        if (toType.length && next === null) next = { i, toType };
+        if (toType.length && next === null) next = { i, number, toType };
       });
 
       const box = document.getElementById('patientNextStep');
@@ -135,7 +159,7 @@
         // Says where to go; moving there is done with the part's own
         // next / previous buttons (no second button here).
         box.innerHTML = `<i class="bi bi-arrow-right-circle-fill"></i>
-          <div><strong>Next step:</strong> Part ${next.i + 1}, ${names[next.i]} — ${many} to fill in</div>`;
+          <div><strong>Next step:</strong> Part ${next.number}, ${names[next.i]} — ${many} to fill in</div>`;
       } else {
         box.className = 'next-step next-step--done';
         box.innerHTML = `<i class="bi bi-check-circle-fill"></i>
@@ -153,6 +177,7 @@
       };
     }
     document.addEventListener('shown.bs.tab', refresh);
+    document.addEventListener('pca:patient-parts-changed', refresh);
     refresh();
   }
 

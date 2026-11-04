@@ -1,0 +1,59 @@
+{% extends "research/base.html" %}
+{% block title %}{{ test.tab }}{% endblock %}
+{% block body %}
+<h1>{{ test.tab }} <span class="testing-tag">Research test</span></h1>
+<p class="muted" style="margin:0 0 14px">{{ test.summary }}</p>
+
+<div class="card">
+  <h2>1. Inputs</h2>
+  <p class="small muted" style="margin-top:0">Files go to <code>research_tests/inputs/</code>. All data must be fictional.</p>
+  <ul class="inputs-list" id="inputs"></ul>
+  <p class="small muted" style="margin-bottom:0">Templates:
+    <a href="{{ prefix }}/api/templates/answer_key_template.xlsx">answer key</a> ·
+    <a href="{{ prefix }}/api/templates/writers_template.csv">writers</a> ·
+    <a href="{{ prefix }}/api/templates/session_data_template.xlsx">session data</a> ·
+    <a href="{{ prefix }}/api/templates/field_mapping_expected.csv">expected box table</a>
+  </p>
+</div>
+
+<div class="card">
+  <h2>2. Run</h2>
+  <div class="row-flex" id="options">
+    {% if test.get('samples', True) %}
+    <label class="opt"><input type="checkbox" name="samples"> Use the computer-drawn sample data</label>
+    {% endif %}
+    {% for opt in test.options %}
+      {% if opt.type == 'check' %}
+        <label class="opt"><input type="checkbox" name="{{ opt.name }}"> {{ opt.label }}</label>
+      {% elif opt.type == 'select' %}
+        <label class="opt">{{ opt.label }}
+          <select name="{{ opt.name }}">{% for c in opt.choices %}<option{% if c == opt.get('default') %} selected{% endif %}>{{ c }}</option>{% endfor %}</select></label>
+      {% else %}
+        <label class="opt">{{ opt.label }}
+          <input type="{{ 'number' if opt.type == 'number' else 'text' }}" name="{{ opt.name }}"
+                 value="{{ opt.get('default', '') }}" style="width:{{ '9rem' if opt.type == 'number' else '14rem' }}"></label>
+      {% endif %}
+    {% endfor %}
+  </div>
+  <div class="row-flex" style="margin-top:12px">
+    <button class="primary" id="runBtn">Run this test</button>
+    <button class="danger hidden" id="cancelBtn">Stop</button>
+    <span class="status-chip" id="stateChip">Not run yet</span>
+    {% if test.ocr %}<span class="small muted">Reads scans with PaddleOCR in the background - this can take minutes; you can leave this tab.</span>{% endif %}
+  </div>
+  <div class="progress hidden" id="progressBar"><div></div></div>
+  <div class="small muted" id="progressText"></div>
+  <pre class="log hidden" id="log"></pre>
+</div>
+
+<div class="card">
+  <div class="row-flex" style="justify-content:space-between">
+    <h2 style="margin:0">3. Results</h2>
+    <a class="btn disabled" id="downloadBtn" href="{{ prefix }}/api/{{ test.key }}/download">Download {{ test.workbook }}</a>
+  </div>
+  <div id="results"><p class="muted">No results yet.</p></div>
+</div>
+
+<script>window.RESEARCH = {key: {{ test.key|tojson }}, prefix: {{ prefix|tojson }}};</script>
+<script src="{{ url_for('research.static', filename='research.js') }}?v=20261104a"></script>
+{% endblock %}

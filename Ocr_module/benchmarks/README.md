@@ -20,6 +20,17 @@ benchmarks/
 └── results/                    generated output (gitignored)
 ```
 
+## 0. Or use the OCR comparison page (field by field, with a ground truth)
+
+For the clinic's logbook scans, the app has a page for this: sign in as an
+administrator and open **Testing -> OCR comparison** in the sidebar. It reads a
+scan with the production pipeline, has PaddleOCR and Tesseract read the same
+cell pictures (each raw and with the Logbook Reader's corrections), lets you
+type the ground truth several rows at a time, and saves checked rows with a
+per-field summary to `uploads/ocr_compare_results.xlsx`. See
+`Ocr_module/ocr_compare.py` for how readings are scored. It needs Tesseract
+installed as in section 1. This CLI stays for whole-page benchmarks.
+
 ## 1. Install Tesseract (one-time, per machine)
 
 `pip install pytesseract` (already in `requirements.txt`) only installs the

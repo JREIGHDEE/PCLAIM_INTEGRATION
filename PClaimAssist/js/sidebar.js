@@ -35,8 +35,16 @@ const PCA_SIDEBAR = [
   ]},
   { label: 'Clinic', items: [
     { key: 'settings',   icon: 'bi-hospital',        text: 'Clinic Details', role: 'admin' },
+    // How the logbook's admitting diagnosis becomes the reason for
+    // admission (js/admission-patterns.js); every account corrects it.
+    { key: 'admission-patterns', icon: 'bi-magic', text: 'Admission patterns' },
     // No "Set up a logbook" item: every scan's columns are checked as
     // step 2 of "Read a logbook page" (Ocr_module/templates/review.html).
+  ]},
+  // PaddleOCR vs TesseractOCR with a ground truth, for the thesis - not part
+  // of the clinic's daily work, so administrators only (ocr-compare.html).
+  { label: 'Testing', role: 'admin', items: [
+    { key: 'ocr-compare', icon: 'bi-clipboard-data', text: 'OCR comparison', href: 'ocr-compare.html', role: 'admin' },
   ]},
 ];
 
@@ -49,7 +57,9 @@ const PCASidebar = {
     const active = (opts && opts.active) || '';
 
     nav.innerHTML = PCA_SIDEBAR.map((group, gi) => {
-      const label = `<div class="sidebar-section-label${gi ? ' mt-3' : ''}">${group.label}</div>`;
+      // A group for one role only hides its heading for everyone else too.
+      const groupGate = group.role ? ` data-requires-role="${group.role}" hidden` : '';
+      const label = `<div class="sidebar-section-label${gi ? ' mt-3' : ''}"${groupGate}>${group.label}</div>`;
       const items = group.items.map(it => {
         // On the OCR page every item except the OCR one is a link home;
         // on index.html they are section switches handled by app.js.

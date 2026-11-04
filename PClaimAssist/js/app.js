@@ -1156,9 +1156,11 @@ const DERIVED_FIELDS = {
   // typed or read from the logbook. A ZIP typed by hand is kept.
   addrZip: d => zipForCity(d.addrCity),
   // The mother being filed: her first and middle name go on the Member
-  // Profile tab too (staff review 3).
+  // Profile tab too (staff review 3). Married, her middle name is left
+  // empty: it is her maiden surname, the same as the last name above, not
+  // a middle name (user testing #5).
   motherFirstName: d => (motherIsFiled(d) ? d.patientFirstName || '' : ''),
-  motherMiddleName: d => (motherIsFiled(d) ? d.patientMiddleName || '' : ''),
+  motherMiddleName: d => (motherIsFiled(d) && d.civilStatus !== 'Married' ? d.patientMiddleName || '' : ''),
   spouseLastName: d => (d.relationship === 'Spouse' ? d.patientLastName || ''
     : d.civilStatus === 'Married' ? d.memberLastName || '' : ''),
   // The patient is the member's spouse (a mother filed under her husband):
@@ -1412,14 +1414,16 @@ function consentSignerName(d) {
 }
 
 /* CF4 1. History of Present Illness: one line per pregnancy, "G1 - " to
-   "G<gravida> - ", for staff to finish (e.g. "G1 - 2018 - HOSPITAL",
-   "G3 - PRESENT PREGNANCY"). Put in by itself from Gravida while the box
-   is empty (DERIVED_FIELDS), and highlighted until every line is
-   finished (markUnfinishedHistory). */
+   "G<gravida> - ", for staff to finish (e.g. "G1 - 2018 - HOSPITAL"). The
+   last one is this pregnancy and is written for them ("G3 - PRESENT
+   PREGNANCY", user testing #5): left as "G3 - " it kept the box
+   highlighted after every earlier line was done. Put in by itself from
+   Gravida while the box is empty (DERIVED_FIELDS), and highlighted until
+   every line is finished (markUnfinishedHistory). */
 function pregnancyLines(gravida) {
   const g = parseInt(gravida, 10);
   if (!(g >= 1 && g <= 15)) return '';
-  return Array.from({ length: g }, (_, i) => `G${i + 1} - `).join('\n');
+  return Array.from({ length: g }, (_, i) => `G${i + 1} - ${i + 1 === g ? 'PRESENT PREGNANCY' : ''}`).join('\n');
 }
 
 /* A pregnancy line with nothing after its dash ("G2 - ") is still to be
@@ -1456,6 +1460,13 @@ document.addEventListener('focusin', e => {
   if (!pastHistoryUnchecked || !e.target.matches || !e.target.matches('[data-autofill="cf4PastMedicalHistory"]')) return;
   pastHistoryUnchecked = false;
   markUnfinishedHistory();
+});
+// The highlight goes as the last line is finished, not when the checker
+// next catches up with the typing.
+document.addEventListener('input', e => {
+  if (e.target.matches && e.target.matches('[data-autofill="briefHistory"], [data-autofill="cf4HistoryPresentIllness"]')) {
+    setTimeout(markUnfinishedHistory, 0);
+  }
 });
 
 /* The OB score stays when the diagnosis it was read from goes: it is still
@@ -1518,6 +1529,7 @@ function updateFormPreviews() {
   applyNoContact();
   applySpecialProceduresDefault();
   applyPackageParts();
+  applyPatientDetailsForClaim();
   if (typeof openUsedProfessionals === 'function') openUsedProfessionals();
   applyNoPhilhealth();
   applyMailingSameAsAbove();
@@ -2087,6 +2099,104 @@ function applyPackageParts() {
     state.data.cf2EssentialNewbornCare = [];
   }
   applyNotNeededParts();
+}
+
+/* Patient details shows only the boxes this claim uses (user testing #5):
+   a box is shown when one of the claim's forms prints it (claimForms,
+   OVERLAY_MAP), or when it is listed below for one of those forms or for
+   the claim's package. An IUD insertion (CSF, CF1, CF2) has no delivery,
+   no CF4 obstetric history and no PMRF member profile, so those are out
+   of sight; a section or a whole part with nothing left in it goes too
+   (js/easy.js steps over a hidden part). "Show all forms" shows them all
+   again. What was typed in a hidden box is kept, and is back when the
+   claim uses it. A box marked data-needed-for is, besides, asked for only
+   for its packages (js/easy.js partStatus). */
+const PATIENT_DETAIL_USES = {
+  // Switches beside other boxes, and the diagnoses the forms' wording
+  // starts from (CF2 Diagnosis A, CF4 chief complaint and final diagnosis).
+  ...Object.fromEntries(['patientNoPhilhealth', 'memberNoPhilhealth', 'noContact', 'memberIsPatient',
+    'chiefComplaint', 'dischargeDx'].map(k => [k, '*'])),
+  // The permanent address is CF1's mailing address ("same as above").
+  ...Object.fromEntries(['addrUnit', 'addrBuilding', 'addrLot', 'addrStreet', 'addrSubdivision', 'addrBarangay',
+    'addrCity', 'addrProvince', 'addrZip'].map(k => [k, ['cf1']])),
+  // An employed member's employer goes on the CSF and CF1.
+  memberType: ['csf', 'cf1'],
+  // The wording of prenatal care (weeks AOG from the LMP) and an IUD
+  // insertion (G, P, T-P-A-L) needs them without a CF4.
+  lmp: ['cf4', 'ANV'], expectedDD: ['cf4', 'ANV'],
+  ...Object.fromEntries(['gravida', 'para', 'obTerm', 'obPreterm', 'obAbortion', 'obLiving']
+    .map(k => [k, ['cf4', 'ANV', 'IUD']])),
+  // With the CF4 obstetric history (briefHistory is CF4 1.).
+  ageOfMenarche: ['cf4'], briefHistory: ['cf4'],
+  // A delivery's wording: the mother's (NSDBF) and the baby's (NCP).
+  ...Object.fromEntries(['deliveryDate', 'deliveryTime', 'amPmDelivery', 'mannerOfDelivery', 'fetalOutcome',
+    'babySex', 'birthWeight', 'apgarScore1', 'apgarScore'].map(k => [k, ['NSDBF', 'NCP']])),
+  // Printed on the PMRF through monthlyIncomeDisplay.
+  monthlyIncome: ['pmrf'],
+};
+let patientDetailsShownFor = null;
+function applyPatientDetailsForClaim() {
+  if (typeof dxCurrentPackage !== 'function' || typeof OVERLAY_MAP === 'undefined') return;
+  const forms = claimForms();
+  const pkg = dxCurrentPackage();
+  const id = forms.join(',') + '|' + pkg;
+  if (id === patientDetailsShownFor) return;
+  patientDetailsShownFor = id;
+  const printed = new Set();
+  forms.forEach(f => (OVERLAY_MAP[f] || []).forEach(o => { printed.add(o.key); if (o.digitKey) printed.add(o.digitKey); }));
+  const uses = new Set([...forms, pkg]);
+  const used = key => {
+    const also = PATIENT_DETAIL_USES[key];
+    return also === '*' || printed.has(key) || (Array.isArray(also) && also.some(u => uses.has(u)));
+  };
+  const section = document.getElementById('section-patient');
+  if (!section) return;
+  const keysIn = el => [...el.querySelectorAll('[data-autofill], [data-box-key]')]
+    .map(e => e.dataset.autofill || e.dataset.boxKey);
+  // Boxes, a column at a time: hidden when nothing in it is used.
+  section.querySelectorAll('.tab-pane .row > [class*="col"]').forEach(col => {
+    const keys = keysIn(col);
+    if (keys.length) col.hidden = !keys.some(used);
+  });
+  // A section - its coloured block (groupPatientParts): heading and boxes -
+  // when every column in it is hidden.
+  section.querySelectorAll('.tab-pane .patient-part').forEach(part => {
+    const cols = [...part.querySelectorAll('.row > [class*="col"]')]
+      .filter(c => {
+        const outer = c.parentElement.closest('[class*="col-"]');   // a column inside a column
+        return keysIn(c).length && !(outer && part.contains(outer));
+      });
+    part.hidden = cols.length > 0 && cols.every(c => c.hidden);
+  });
+  // A whole part (tab) with nothing left to show.
+  section.querySelectorAll('#patientTabs .nav-link').forEach(tab => {
+    const pane = document.querySelector(tab.dataset.bsTarget);
+    if (!pane) return;
+    const empty = ![...pane.querySelectorAll('.row > [class*="col"]')]
+      .some(c => keysIn(c).length && !c.closest('[hidden]'));
+    (tab.closest('li') || tab).hidden = empty;
+    if (empty && tab.classList.contains('active') && window.bootstrap) {
+      const first = [...section.querySelectorAll('#patientTabs .nav-link')].find(t => !t.closest('[hidden]'));
+      if (first) bootstrap.Tab.getOrCreateInstance(first).show();
+    }
+  });
+  document.dispatchEvent(new CustomEvent('pca:patient-parts-changed'));
+}
+
+/* A newborn has no PhilHealth PIN of its own yet: chosen as the baby
+   ("Mother or baby?", js/mother-baby.js), the patient's PIN is all zeros,
+   as the clinic files it, and so no longer red (user testing #5). What
+   was there before comes back if the patient is not the baby after all. */
+const BABY_PIN = '00-000000000-0';
+let pinBeforeBaby = null;
+function applyBabyPin(isBaby) {
+  if (isBaby && state.data.patientPIN !== BABY_PIN) {
+    pinBeforeBaby = state.data.patientPIN || '';
+    applyFormData({ patientPIN: BABY_PIN });
+  } else if (!isBaby && state.data.patientPIN === BABY_PIN && pinBeforeBaby !== null) {
+    applyFormData({ patientPIN: pinBeforeBaby });
+    pinBeforeBaby = null;
+  }
 }
 
 /* "No contact info" (Patient details, Contact Information): no phone or
@@ -2723,6 +2833,7 @@ function applyClaimForms(forms) {
     }
   });
   if (changed && typeof labelExportButton === 'function') labelExportButton();
+  applyPatientDetailsForClaim();   // Patient details follows the claim's forms
 
   const pkg = typeof dxCurrentPackage === 'function' ? dxCurrentPackage() : '';
   const p = typeof DX_PACKAGES !== 'undefined' ? DX_PACKAGES[pkg] : null;
