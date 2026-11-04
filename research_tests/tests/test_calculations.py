@@ -62,7 +62,7 @@ class BlankCellRuleTests(unittest.TestCase):
 
 class HandwritingTests(unittest.TestCase):
     def line(self, page, row, detected=True, truth="X", exact=True, acc=100.0):
-        line = {"page": page, "row": row, "detected": detected, "blank": not truth, "truth": truth}
+        line = {"page": page, "row": row, "detected": detected, "blank": not truth, "truth": truth, "field": "Address"}
         if detected:
             for v in hw.VARIANTS:
                 line[v] = truth if exact else "?"
@@ -77,7 +77,7 @@ class HandwritingTests(unittest.TestCase):
         lines = [self.line(1, 1, exact=True), self.line(1, 2, exact=False, acc=50.0), self.line(1, 3, truth=""),
                  self.line(1, 4, detected=False)]
         scores = hw.variant_scores(lines)
-        self.assertEqual(scores["paddle_raw"], (50.0, 75.0))
+        self.assertEqual(scores["paddle_raw"][:2], (50.0, 75.0))
 
 
 class FieldMappingTests(unittest.TestCase):
@@ -114,8 +114,9 @@ class ValidationScoringTests(unittest.TestCase):
     def test_forty_errors_are_placed_where_they_can_be_detected(self):
         instances = val.ERRORS + [dict(val.BY_KEY[k], key=k) for k in val.SECOND_TIME]
         self.assertEqual(len(instances), 40)
-        records = [{"record": f"S{i:02d}", "has": {"csf", "cf1", "cf2"} | ({"cf4", "delivery"} if i % 3 == 0 else set())}
-                   for i in range(20)]
+        records = [{"record": f"S{i:02d}", "has": {"csf", "cf1", "cf2"}
+                    | ({"cf4", "delivery"} if i % 3 == 0 else set())
+                    | ({"cf4", "cf4_drugs_kept_blank"} if i % 5 == 1 else set())} for i in range(20)]
         slots = val.assign(instances, records, val.SEED)
         by = {r["record"]: r for r in records}
         for record, errors in slots.items():
@@ -131,14 +132,62 @@ class ValidationScoringTests(unittest.TestCase):
         self.assertFalse(seeded & {"IC-01", "IC-02", "IC-07", "MF-08"})
 
 
+class NormalizationTests(unittest.TestCase):
+    def test_what_it_does(self):
+        from research_tests.common.normalize import normalized_equal as eq
+        self.assertTrue(eq("Admitted", "09-04-26 08:20 AM", "09/04/26 08:20AM"))
+        self.assertTrue(eq("Patient name", "KIMBERLY ANN", "kimberlyann"))
+        self.assertTrue(eq("Case number", "2026-1018", "2026 1018"))
+        self.assertFalse(eq("Address", "PUROK-8", "PUROK 8"))          # hyphens only in dates and case numbers
+        self.assertFalse(eq("Birthday", "8-9-26", "08-09-26"))          # no leading zeros added
+        self.assertFalse(eq("Case number", "2026 1018", "2026 1O18"))   # no letter/digit changes
+
+
+class DetectionAndBandTests(unittest.TestCase):
+    def line(self, writer, page, row, found):
+        return {"writer": writer, "method": "phone", "page": page, "row": row, "detected": found}
+
+    def test_an_entry_counts_only_when_both_pages_are_found(self):
+        lines = [self.line("W01", 1, 1, True), self.line("W01", 2, 1, False),
+                 self.line("W02", 1, 1, True), self.line("W02", 2, 1, True)]
+        self.assertEqual(hw.detection(lines), (2, 1, 50.0))
+        self.assertEqual(hw.page_row_detection(lines), (4, 3, 75.0))
+
+    def test_confidence_bands(self):
+        self.assertEqual(hw.band_of({"paddle_confidence": 0.64, "paddle_raw": "X"}), "<0.65")
+        self.assertEqual(hw.band_of({"paddle_confidence": 0.85, "paddle_raw": "X"}), ">=0.85")
+        self.assertEqual(hw.band_of({"paddle_confidence": 0.9, "paddle_raw": " "}), "no reading")
+        self.assertEqual(hw.band_of({"paddle_confidence": None, "paddle_raw": ""}), "no reading")
+
+
 class SessionTests(unittest.TestCase):
-    def test_equations(self):
-        p = us.participant({"Participant ID": "U1", "Manual Claims": 2, "Manual Time (s)": 1200, "Manual Errors": 4,
-                            "System Claims": 2, "System Time (s)": 300, "System Errors": 1,
-                            "Suggestions Shown": 20, "Suggestions Accepted": 15})
-        self.assertEqual((p["manual_time"], p["system_time"], p["time_reduction"]), (600.0, 150.0, 75.0))
-        self.assertEqual((p["manual_errors"], p["system_errors"], p["error_reduction"]), (2.0, 0.5, 75.0))
-        self.assertEqual(p["acceptance"], 75.0)
+    def test_claim_errors_per_box_and_per_value(self):
+        rows = [{"Participant": "P1", "Condition": "manual", "Claim #": 1, "Value group": "Last name",
+                 "Form": "CSF", "Box": "patientLastName", "Field": "", "Reference value": "DALIS",
+                 "Claim value": "DALES"},
+                {"Participant": "P1", "Condition": "manual", "Claim #": 1, "Value group": "Last name",
+                 "Form": "CF2", "Box": "patientLastName", "Field": "", "Reference value": "DALIS",
+                 "Claim value": "DALES"},
+                {"Participant": "P1", "Condition": "manual", "Claim #": 1, "Value group": "Admitted date",
+                 "Form": "CF2", "Box": "dateAdmitted", "Field": "Admitted", "Reference value": "09-28-2026",
+                 "Claim value": "09/28/2026"},                          # formatting only: not an error
+                {"Participant": "P1", "Condition": "manual", "Claim #": 1, "Value group": "Member PIN",
+                 "Form": "CSF", "Box": "memberPIN", "Field": "", "Reference value": "99-123456700-1",
+                 "Claim value": ""}]                                     # required box left blank
+        c = us.error_table(rows)["P1"]["manual"]["1"]
+        self.assertEqual((c["boxes"], len(c["groups"])), (3, 2))
+
+    def test_times_acceptance_and_codes(self):
+        t = us.time_table([{"Participant": "P2", "Condition": "manual", "Seconds": 600},
+                           {"Participant": "P2", "Condition": "system", "Start": "09:00:00", "End": "09:04:00"}])
+        self.assertEqual((t["P2"]["manual"], t["P2"]["system"]), ([600.0], [240]))
+        self.assertEqual(us.reduction(600, 240), 60.0)
+        with self.assertRaises(ValueError):
+            us.check_participants([{"Participant": "Maria Santos"}], "7a")
+        us.check_participants([{"Participant": "P5"}], "7a")
+
+    def test_old_totals_layout_still_reads(self):
+        self.assertEqual(us.reduction(600.0, 150.0), 75.0)
         self.assertIsNone(us.reduction(0, 1))
 
     def test_sus(self):

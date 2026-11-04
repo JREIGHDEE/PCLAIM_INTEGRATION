@@ -62,7 +62,7 @@ def from_workbook(path):
     for r in excel.read_rows(path, "Rows", header_row=0, formulas_as_text=True):
         if not r.get("Field"):
             continue
-        cell = {"source": "OCR comparison workbook", "field": r.get("Field") or "",
+        cell = {"source": "OCR comparison workbook (SUPERSEDED)", "field": r.get("Field") or "",
                 "truth": r.get("Ground Truth") or "", "where": f"{r.get('Spread ID')} row {r.get('Row')}"}
         for variant, (column, accuracy) in _WORKBOOK_COLUMNS.items():
             value = r.get(column)
@@ -76,7 +76,9 @@ def from_handwriting(path):
     for r in excel.read_rows(path, "Raw data", header_row=0):
         if r.get("Detected") != "Yes":
             continue
-        cell = {"source": "Handwriting test", "field": r.get("Field") or "", "truth": r.get("Ground Truth") or "",
+        method = r.get("Scan Method")
+        source = f"Handwriting test ({method})" if method else "Handwriting test"
+        cell = {"source": source, "field": r.get("Field") or "", "truth": r.get("Ground Truth") or "",
                 "where": f"{r.get('Writer ID')} p{r.get('Page')} row {r.get('Row')}"}
         # An empty reading comes back from Excel as None: "" when the reading
         # was scored (the engine ran and read nothing), None if it did not run.
@@ -178,7 +180,7 @@ def variant_accuracy(cells):
     return exact + acc
 
 
-def run(progress, source="both", workbook=None):
+def run(progress, source="handwriting", workbook=None):
     cells, used = [], []
     if source in ("both", "workbook"):
         path = Path(workbook) if workbook else DEFAULT_WORKBOOK
@@ -236,7 +238,7 @@ def run(progress, source="both", workbook=None):
     # The OCR comparison workbook recomputed: per field without blank cells,
     # and the original way (blank cells included) beside it.
     workbook_rows, workbook_including = [], []
-    wb_cells = [c for c in cells if c["source"] == "OCR comparison workbook"]
+    wb_cells = [c for c in cells if c["source"] == "OCR comparison workbook (SUPERSEDED)"]
     if wb_cells:
         for field in answer_key.FIELDS:
             group = [c for c in wb_cells if c["field"] == field and not is_blank(c)]
@@ -246,7 +248,7 @@ def run(progress, source="both", workbook=None):
         workbook_rows.append(["All fields", "excluding blank cells", len(nonblank)] + variant_accuracy(nonblank))
         workbook_rows.append(["All fields", "including blank cells (original)", len(wb_cells)]
                              + variant_accuracy(wb_cells))
-        all_idx = [i for i, c in enumerate(cells) if c["source"] == "OCR comparison workbook"]
+        all_idx = [i for i, c in enumerate(cells) if c["source"] == "OCR comparison workbook (SUPERSEDED)"]
         for e, label in ENGINES.items():
             m = metrics([judged[i][e] for i in all_idx])
             if m["n"]:
@@ -265,6 +267,8 @@ def run(progress, source="both", workbook=None):
         "Handwriting test: cells in rows the pipeline detected. Readings the comparison workbook stored as Excel "
         "formulas (Tesseract readings beginning with '=') are read as text.",
         "Sources: " + "; ".join(used),
+        "The OCR comparison workbook is SUPERSEDED (ground truth partly copied from OCR output, and correction model "
+        "learned from a test-set page) - shown only when asked for (--source both/workbook), never for Chapter 5.",
     ]
     sheets = [
         {"name": "2a Correction overall", "title": "Table - Correction module metrics per engine",
@@ -312,7 +316,8 @@ def run(progress, source="both", workbook=None):
 
 
 def add_arguments(parser):
-    parser.add_argument("--source", choices=("both", "workbook", "handwriting"), default="both")
+    parser.add_argument("--source", choices=("handwriting", "both", "workbook"), default="handwriting",
+                        help="handwriting (Chapter 5); the old comparison workbook is superseded")
     parser.add_argument("--workbook", help=f"OCR comparison workbook (default {DEFAULT_WORKBOOK})")
 
 

@@ -24,8 +24,10 @@ class IsolationTests(unittest.TestCase):
         with self.assertRaises(DatabaseError) as caught:
             # Changes nothing even if it ran (WHERE 1 = 0), and is never committed.
             with get_db_cursor() as cursor:
-                cursor.execute("UPDATE users SET full_name = full_name WHERE 1 = 0")
-        self.assertIn("READ ONLY", str(caught.exception).upper())
+                cursor.execute("UPDATE ocr_known_entries SET is_active = is_active WHERE 1 = 0")
+        message = str(caught.exception).upper()
+        # refused by the read-only session, or by the account's SELECT-only grant
+        self.assertTrue("READ ONLY" in message or "DENIED" in message, message)
 
     @unittest.skipUnless(guard.database_available(), "MariaDB is not running")
     def test_reads_still_work(self):
@@ -34,13 +36,24 @@ class IsolationTests(unittest.TestCase):
             cursor.execute("SELECT 1 AS one")
             self.assertEqual(cursor.fetchone()["one"], 1)
 
-    def test_research_model_never_calls_load_model(self):
+    def test_research_model_reads_only_the_research_tables(self):
         import paddle_assist
-        with mock.patch.object(paddle_assist, "load_model", side_effect=AssertionError("load_model writes")), \
+        with mock.patch("pattern_store.has_learned_patterns", side_effect=AssertionError("load_model's fill")), \
              mock.patch("pattern_store.load_patterns", return_value=[]), \
              mock.patch("entry_store.load_entries", return_value=[]):
             model, note = guard.research_model()
         self.assertIsInstance(model, paddle_assist.CorrectionModel)
+
+    def test_one_research_model_everywhere(self):
+        import config
+        import paddle_assist
+        self.assertEqual(config.DB_NAME, os.environ.get("RESEARCH_DB_NAME", "pclaimassist_research"))
+        self.assertTrue(getattr(paddle_assist.load_model, "_research_model", False))
+
+    def test_no_silent_fallback(self):
+        with mock.patch("pattern_store.load_patterns", side_effect=RuntimeError("no table")):
+            with self.assertRaises(RuntimeError):
+                guard.research_model()
 
 
 class WebTests(unittest.TestCase):

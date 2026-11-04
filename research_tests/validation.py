@@ -57,6 +57,9 @@ NOT_SEEDED = [
     ("MF-08", "CF4 course in the ward missing",
      "CF4 course in the ward is auto-filled with a discharge line: the page writes it whenever the course is "
      "empty (app.js DERIVED_FIELDS cf4CourseOrder2), so the engine never sees it blank."),
+    ("MF-09 (delivery claims)", "CF4 drugs not indicated, on a delivery claim",
+     "Seeded only on CF4 claims whose drugs the page leaves blank: on a delivery claim the package's drugs "
+     "(oxytocin, mefenamic acid, lidocaine) are put back whenever the drugs are emptied, so MF-09 cannot fire there."),
     ("(none)", "Attachment / supporting documents",
      "No attachment rule exists: the attachment count is computed but no rule uses it."),
 ]
@@ -133,7 +136,8 @@ ERRORS = [
     _err("MF-cc", "Missing CF4 field", "CF4 chief complaint left blank", "cf4ChiefComplaint", ["MF-07"],
          needs={"cf4"}, seed=lambda d: ({"cf4ChiefComplaint": ""}, {}, {})),
     _err("MF-drugs", "Missing CF4 field", "CF4 drugs administered left blank", "cf4DrugName1-3", ["MF-09"],
-         needs={"cf4"}, seed=lambda d: ({"cf4DrugName1": "", "cf4DrugName2": "", "cf4DrugName3": ""}, {}, {})),
+         needs={"cf4", "cf4_drugs_kept_blank"},
+         seed=lambda d: ({"cf4DrugName1": "", "cf4DrugName2": "", "cf4DrugName3": ""}, {}, {})),
     _err("IF-11", "Invalid format", "PIN with 11 digits", "memberPIN", ["IF-01"], touches={"pin"}, seed=_pin_11),
     _err("IF-letter", "Invalid format", "Letter in the PIN", "memberPIN", ["IF-02"], touches={"pin"}, seed=_pin_letter),
     _err("IF-date", "Invalid format", "Birth date kept as unreadable text (OCR's letter O for a zero)", "patientDOB",
@@ -180,6 +184,13 @@ ERRORS = [
          "OCR suggestions", ["CR-02"], allowed=["CR-01"], touches={"cr"},
          seed=lambda d: ({}, {"pendingSuggestions": 5}, {})),
 ]
+# A blank seeded into a required field adds to the blank-field count, so two
+# such errors (or one with a field the forms copy, like the member's name
+# while the patient is the member) can pass MF-06's "more than 3 blank": a
+# direct consequence, never a false alarm.
+for _e in ERRORS:
+    if _e["key"].startswith("MF-") and _e["key"] != "MF-many" and "MF-06" not in _e["allowed"]:
+        _e["allowed"].append("MF-06")
 BY_KEY = {e["key"]: e for e in ERRORS}
 # The 13 errors seeded a second time to make 40 (27 kinds + 13): missing fields, formats and
 # inconsistencies are the commonest return-to-hospital reasons.
@@ -247,7 +258,11 @@ def run(progress, samples=False, seed=SEED):
     patients = answer_key.patients(key_path)
     if len(patients) < 2:
         raise ValueError("The answer key needs patients (sheet Patients).")
-    chosen = [patients[i % len(patients)] for i in range(20)]
+    # A clean record must be error-free: patients with a value missing in the
+    # logbook (e.g. no discharge date) are left out of the records.
+    usable = [p for p in patients if not answer_key._text(p.get("Missing in the logbook"))]
+    left_out = [p["Patient ID"] for p in patients if p not in usable]
+    chosen = [usable[i % len(usable)] for i in range(20)]
     instances = ERRORS + [dict(BY_KEY[k], key=k) for k in SECOND_TIME]
     assert len(instances) == 40
 
@@ -260,9 +275,15 @@ def run(progress, samples=False, seed=SEED):
             if p["Patient ID"] in has:
                 continue
             body, _ = answer_key.auto_populate(p)
+            body["saved_values"] = answer_key.claim_values(p) or fictional_details(p, chosen.index(p))
             page.open_claim(body)
             d = page.data()
             has[p["Patient ID"]] = set(page.claim_forms()) | ({"delivery"} if d.get("deliveryDate") else set())
+            # Does the page keep CF4's drugs blank? (A delivery package puts its drugs back.)
+            page.set_values({"cf4DrugName1": "", "cf4DrugName2": "", "cf4DrugName3": ""})
+            after = page.data()
+            if not any(str(after.get(f"cf4DrugName{k}") or "").strip() for k in (1, 2, 3)):
+                has[p["Patient ID"]].add("cf4_drugs_kept_blank")
         rules = {r["id"]: r for r in page.rules()}
         records = [{"record": f"C{i + 1:02d}", "patient": p, "kind": "clean", "errors": []}
                    for i, p in enumerate(chosen)]
@@ -277,7 +298,7 @@ def run(progress, samples=False, seed=SEED):
             p = rec["patient"]
             progress(0.1 + 0.85 * n / len(records), f"Record {rec['record']} ({p['Patient ID']})")
             body, _ = answer_key.auto_populate(p)
-            body["saved_values"] = fictional_details(p, chosen.index(p))
+            body["saved_values"] = answer_key.claim_values(p) or fictional_details(p, chosen.index(p))
             page.open_claim(body)
             before = page.data()
             ocr, sig, changes, details = dict(GOOD_OCR), dict(ALL_SIGNED), {}, []
@@ -298,7 +319,7 @@ def run(progress, samples=False, seed=SEED):
             results.append(rec)
         browser, page_errors = page.browser_version, list(page.errors)
 
-    return report(progress, results, rules, samples, seed, browser, page_errors)
+    return report(progress, results, rules, samples, seed, browser, page_errors, left_out)
 
 
 def score(rec):
@@ -315,7 +336,7 @@ def _prf(tp, fp, fn):
     return p, r, stats.f1(p, r)
 
 
-def report(progress, results, rules, samples, seed, browser, page_errors):
+def report(progress, results, rules, samples, seed, browser, page_errors, left_out=()):
     from research_tests.common.specs import machine_specs
     progress(0.96, "Comparing the flags with the manifest")
     scored = [(rec, score(rec)) for rec in results]
@@ -341,8 +362,8 @@ def report(progress, results, rules, samples, seed, browser, page_errors):
         if not c:
             continue
         p, r, f = _prf(c["tp"], c["fp"], c["fn"])
-        cat_rows.append([cat, c["tp"], c["fp"], c["fn"], p, r, f])
-    cat_rows.append(["All rules", tp, fp, fn, precision, recall, f1])
+        cat_rows.append([cat, c["tp"] + c["fn"], c["tp"], c["fp"], c["fn"], p, r, f])
+    cat_rows.append(["All rules", tp + fn, tp, fp, fn, precision, recall, f1])
 
     seeded_rows = []
     by_cat = {}
@@ -368,7 +389,9 @@ def report(progress, results, rules, samples, seed, browser, page_errors):
         "Engine: PClaimAssist/js/validation-rules.js runValidationRules, run in the real forms page offline "
         f"({browser}); OCR state and signature check on for every record (all passing on clean records).",
         not_seeded_note,
-        f"Seed {seed}; manifest: seeded_errors_manifest.csv.",
+        f"Seed {seed}; manifest: seeded_errors_manifest.csv."
+        + (f" Patients left out of the records because a value is missing in their logbook entry (a clean record "
+           f"must be error-free): {', '.join(left_out)}." if left_out else ""),
         "The seeded errors were designed from the rule definitions (Tables 3.4-3.8), one or more per rule the "
         "engine can detect, so the result shows that the rules work as written - not how many of all real-world "
         "claim errors they would catch.",
@@ -386,8 +409,10 @@ def report(progress, results, rules, samples, seed, browser, page_errors):
                   ["False alarm rate (Eq. 3.10)", false_alarm]],
          "notes": notes},
         {"name": "4b Validation per category", "title": "Table - Validation results per rule category",
-         "headers": ["Rule category", "TP", "FP", "FN", "Precision", "Recall", "F1"], "rows": cat_rows,
-         "bold_last": True, "notes": notes[:1]},
+         "headers": ["Rule category", "Seeded errors (expected flags)", "TP", "FP", "FN", "Precision", "Recall",
+                     "F1"], "rows": cat_rows, "bold_last": True,
+         "notes": notes[:1] + ["Seeded errors = the flags the seeded errors must raise in that category. Some "
+                               "categories have only 1-3, so one miss moves their recall a lot."]},
         {"name": "4c Seeded categories", "title": "Table - Seeded errors detected per seeded category",
          "headers": ["Seeded category", "Errors", "Detected", "Missed", "Detection rate"], "rows": seeded_rows,
          "bold_last": True, "notes": [not_seeded_note]},

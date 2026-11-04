@@ -1,0 +1,10 @@
+{
+ "ocr_correction_patterns": {
+  "rows": 121,
+  "sha256": "4118b6afe71df93dcc6607a208cbed45eae3aec2c4043a86401487232208d053"
+ },
+ "ocr_known_entries": {
+  "rows": 99,
+  "sha256": "4537a14d58cd1769679acdd5ae23dd612d978e7fb9a349d76df7647a2be8d384"
+ }
+}

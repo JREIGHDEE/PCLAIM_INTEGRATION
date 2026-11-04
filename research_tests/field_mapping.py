@@ -31,6 +31,8 @@ form, which box should hold which answer-key value, in which format:
   time        h:mm (12-hour), shown only when the AM/PM column is Position
   time_ampm   h:mm AM / h:mm PM
   tick        a tick when the AM/PM column equals Position
+  tick_value  a tick when the answer-key column equals Position (e.g.
+              Relationship = Child, Member is patient = No)
 It was drafted from the boxes' printed labels (--draft-expected); check it
 against the paper forms - that check is what makes it independent of the
 code under test.
@@ -71,6 +73,11 @@ def _time_key(column):
 def expected_value(row, patient):
     """What this box should show for this patient ('' = should be empty)."""
     column, fmt, pos = row["Answer-key value"], row["Format"], row["Position"]
+    # CF1 Part II and the relationship boxes: only for a patient who is not the member.
+    if "not the member" in (row.get("Note") or "") and str(patient.get("Member is patient") or "").lower() == "yes":
+        return ""
+    if fmt == "tick_value":             # a tick box ticked when the column holds this value
+        return TICK if str(patient.get(column) or "").strip().lower() == pos.lower() else ""
     if fmt == "text":
         return _upper(patient.get(column))
     if fmt == "date":
@@ -143,14 +150,16 @@ def printed_text(doc, spot, form=None):
 
 
 def _same(expected, got, fmt):
-    if fmt == "tick":
+    if fmt in ("tick", "tick_value"):
         return bool(expected) == bool(got.strip())
     return _upper(expected) == _upper(got)
 
 
 def _printed_same(expected, got, fmt):
-    if fmt == "tick":           # pdf-lib prints the tick as "X" (WinAnsi has no tick)
+    if fmt in ("tick", "tick_value"):   # pdf-lib prints the tick as "X" (WinAnsi has no tick)
         return bool(expected) == bool(got.strip())
+    if not expected and _upper(got) == "N/A":   # an empty text box prints N/A by design (pdf-overlay.js)
+        return True
     return _upper(expected) == _upper(got)
 
 
@@ -169,6 +178,9 @@ def run(progress, samples=False, limit=20, draft_expected=False, no_pdf=False):
     from research_tests.common.forms_page import FormsPage
 
     expected = load_expected()
+    provisional = not all((r.get("Checked") or "").strip().lower() in ("yes", "y", "checked") for r in expected)
+    banner = ("PROVISIONAL - the expected box table (field_mapping_expected.csv) has not been checked against the "
+              "paper forms yet (its Checked column).") if provisional else ""
     patients = answer_key.patients(key_path)[:limit]
     if not patients:
         raise ValueError("No patients in the answer key (sheet Patients).")
@@ -177,6 +189,7 @@ def run(progress, samples=False, limit=20, draft_expected=False, no_pdf=False):
         for n, p in enumerate(patients):
             progress(0.05 + 0.9 * n / len(patients), f"Patient {p['Patient ID']}: auto-populating the forms")
             body, warnings = answer_key.auto_populate(p)
+            body["saved_values"] = answer_key.claim_values(p) or {}     # what the task packet gives
             page.open_claim(body)
             forms = page.claim_forms()
             for form in FORMS:
@@ -228,7 +241,7 @@ def run(progress, samples=False, limit=20, draft_expected=False, no_pdf=False):
                    l["shown"] if l["shown"] is not None else "(box not on the form's map)", l["printed"],
                    "on screen" if not l["correct"] else "printed only"]
                   for l in lines if not l["correct"] or l["printed_ok"] is False]
-    notes = [
+    notes = ([banner] if banner else []) + [
         "Eq. 3.6: field mapping accuracy = boxes holding the correct value / boxes checked x 100.",
         "On screen = the value the form shows in the box (pdf-overlay.js resolveOverlayFieldValue); printed = the "
         "text PyMuPDF reads at that box on the PDF the page saves (buildFilledPdf, pdf-lib).",
@@ -243,7 +256,8 @@ def run(progress, samples=False, limit=20, draft_expected=False, no_pdf=False):
     if pdf_errors:
         notes.append("PDF errors: " + "; ".join(pdf_errors[:5]))
     sheets = [
-        {"name": "3a Field mapping per form", "title": "Table - Field mapping accuracy per form (Eq. 3.6)",
+        {"name": "3a Field mapping per form", "title": "Table - Field mapping accuracy per form (Eq. 3.6)"
+                                                     + (" - PROVISIONAL" if provisional else ""),
          "headers": ["Form", "Patients", "Boxes checked", "Correct on screen", "Field mapping accuracy %",
                      "Boxes read on the PDF", "Printed correctly %"],
          "rows": per_form, "bold_last": True, "notes": notes},
@@ -263,7 +277,7 @@ def run(progress, samples=False, limit=20, draft_expected=False, no_pdf=False):
                     for l in lines]}
     out = output_dir(TEST_KEY)
     path = excel.write_workbook(out / "field_mapping_results.xlsx", [raw] + sheets)
-    excel.save_summary(out, TEST_KEY, TITLE, sheets, {"samples": samples})
+    excel.save_summary(out, TEST_KEY, TITLE, sheets, {"samples": samples, "provisional": provisional})
     progress(1.0, "Done")
     overall = per_form[-1] if per_form else None
     return {"outputs": [path], "headline": [
@@ -310,6 +324,10 @@ def source_of(spot):
             return f"{prefix} time", "time", spot["timeComponent"], note
         if src == str_key:
             return f"{prefix} time", "time_ampm", "", note
+    if key == "relationship" and spot["checkbox"] and spot["checkValue"]:
+        return "Relationship", "tick_value", spot["checkValue"], "printed only when the patient is not the member"
+    if spot["computed"] == "cf1PatientIsMember" and spot["checkbox"] and spot["checkValue"]:
+        return "Member is patient", "tick_value", spot["checkValue"], ""
     if key == "admissionDx":
         return "Reason for admission", "text", "", note
     if key in ("cf4FinalDiagnosis", "dischargeDx"):

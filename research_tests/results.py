@@ -27,7 +27,8 @@ def run(progress, **_):
             sheets.append(sheet)
             names.append(sheet["name"])
         contents.append([n, test["tab"], record["generated_at"],
-                         "SAMPLE DATA - not for Chapter 5" if record.get("samples") else "inputs/",
+                         "SAMPLE DATA - not for Chapter 5" if record.get("samples")
+                         else "inputs/ - PROVISIONAL" if record.get("provisional") else "inputs/",
                          ", ".join(names), f"outputs/{test['key']}/{test['workbook']}"])
     first = {"name": "Contents", "title": "Chapter 5 results - PClaimAssist research tests",
              "headers": ["#", "Test", "Last run", "Data", "Sheets here", "Full results (raw data)"],

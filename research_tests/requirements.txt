@@ -1,0 +1,20 @@
+# The research tests use the backend's own packages, pinned in
+# Ocr_module/requirements.txt (Flask 3.1.3, paddleocr 2.8.1, paddlepaddle 2.6.2,
+# pytesseract 0.3.13, PyMuPDF 1.27.2.3, opencv 4.11.0.86 / contrib 4.10.0.84,
+# numpy 1.26.4, openpyxl 3.1.5, psutil 7.2.2, RapidFuzz 3.14.5, ...). Install
+# those first, then this file:
+#
+#   Ocr_module\venv\Scripts\pip.exe install -r Ocr_module\requirements.txt
+#   Ocr_module\venv\Scripts\pip.exe install -r research_tests\requirements.txt
+#
+# Playwright drives the real forms page in headless Microsoft Edge (installed
+# with Windows), so no browser download is needed.
+playwright==1.64.1
+
+# Outside pip (check with python -m research_tests.check_setup):
+#   Python 3.12.1 (64-bit)
+#   Tesseract OCR 5.4.0.20240606 (UB Mannheim Windows build) - set TESSERACT_CMD in Ocr_module/.env
+#   Microsoft Edge (any current version; the version is recorded with each result)
+#   MariaDB from XAMPP (the research database: research_tests/setup)
+#   PaddleOCR models: already in the repository (Ocr_module/ocr_models), used offline
+#   pdf-lib 1.17.1: already in the repository (research_tests/vendor), checked by hash

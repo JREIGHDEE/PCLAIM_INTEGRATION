@@ -111,9 +111,11 @@ def time_24h(hour, minute, am_pm):
 def patients(path=ANSWER_KEY):
     out = []
     for row in read_rows(path, "Patients"):
-        if not _text(row.get("Patient ID")):
+        # a patient row has more than its first cell (the sheet's notes do not)
+        if not _text(row.get("Patient ID")) or not any(_text(v) for k, v in row.items() if k != "Patient ID"):
             continue
-        p = {k: row.get(k) for k in PATIENT_COLUMNS}
+        p = dict(row)                       # the extra columns (claim-only values, case type) kept as given
+        p.update({k: row.get(k) for k in PATIENT_COLUMNS})
         p["Patient ID"] = _text(p["Patient ID"])
         for prefix in ("Admitted", "Delivered", "Went home"):
             p[f"{prefix} date"] = iso_date(p.get(f"{prefix} date"))
@@ -125,6 +127,33 @@ def patients(path=ANSWER_KEY):
             p[k] = _text(p.get(k)).upper()
         out.append(p)
     return out
+
+
+# Claim-only values of the Patients sheet (build_patients.py) -> form keys.
+CLAIM_COLUMNS = {
+    "Member PIN": "memberPIN", "Patient PIN": "patientPIN", "Member last name": "memberLastName",
+    "Member first name": "memberFirstName", "Member middle name": "memberMiddleName", "Member sex": "memberSex",
+    "Relationship": "relationship", "Civil status": "civilStatus", "Member type": "memberType",
+    "Accommodation": "accommodation", "Disposition": "disposition", "HCI accreditation no.": "hciPAN",
+    "HCI name": "hciName", "CF4 history of present illness": "cf4HistoryPresentIllness",
+    "CF4 physical exam": "cf4PhysicalExam", "CF4 drug given": "cf4DrugName1",
+}
+
+
+def claim_values(p):
+    """The claim-only values given for this patient (the participants' task
+    packet), as the forms' saved values - or None when the Patients sheet has
+    none (an older answer key: the tests then generate their own)."""
+    if not _text(p.get("Member PIN")):
+        return None
+    values = {key: _text(p.get(col)).upper() if key not in ("memberSex", "relationship", "civilStatus",
+                                                          "memberType", "accommodation", "disposition")
+              else _text(p.get(col))
+              for col, key in CLAIM_COLUMNS.items() if _text(p.get(col))}
+    values["memberIsPatient"] = _text(p.get("Member is patient")).lower() == "yes"
+    if _text(p.get("Member birthday")):
+        values["memberDOB"] = iso_date(p.get("Member birthday"))
+    return values
 
 
 def handwriting(path=ANSWER_KEY):

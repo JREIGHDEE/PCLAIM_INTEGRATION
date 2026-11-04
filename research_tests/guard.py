@@ -44,6 +44,10 @@ def isolate():
     if "config" in sys.modules and not _under(sys.modules["config"].UPLOAD_FOLDER, WORK):
         raise RuntimeError("The research tests must start in their own process, before the main app's "
                            "config is loaded (python -m research_tests.<test>).")
+    # The research database (research_tests/setup): only the reference tables
+    # the correction model reads, seeded with the system's starter rows - never
+    # the clinic's database, whose learned rows came from test-set pages.
+    os.environ["DB_NAME"] = os.environ.get("RESEARCH_DB_NAME", "pclaimassist_research")
     os.environ["OCR_UPLOAD_DIR"] = str(WORK / "uploads")
     os.environ["OCR_COMPARE_FOLDER"] = str(WORK / "ocr_compare")
     os.environ["OCR_COMPARE_WORKBOOK"] = str(WORK / "ocr_compare_results.xlsx")
@@ -70,6 +74,24 @@ def isolate():
 
         read_only_connection._research_read_only = True
         db.get_connection = read_only_connection
+
+    # One correction model in the whole research process. paddle_assist builds
+    # its own in two places - make_corrector() without a model, and
+    # fix_saved_reading() (the known fixes ocr_compare.corrected_value applies to
+    # address and diagnosis cells) - both through load_model(), which reads the
+    # clinic's review tables and falls back silently. Here it is the research
+    # model instead (research_model: the research database only, an error if it
+    # cannot be read). The file is not edited.
+    import paddle_assist
+    if not getattr(paddle_assist.load_model, "_research_model", False):
+        def research_load_model():
+            if _state.get("model") is None:
+                _state["model"], _state["model_note"] = research_model()
+            return _state["model"]
+
+        research_load_model._research_model = True
+        paddle_assist.load_model = research_load_model
+        paddle_assist._CACHED.update({"model": None, "at": 0.0})
     _state["isolated"] = True
 
 
@@ -87,22 +109,19 @@ def research_model():
     """(model, note): paddle_assist's CorrectionModel from the pattern and
     common-entry tables, SELECT only - the same knowledge the Logbook
     Reader uses, without load_model()'s first-time fill (a write)."""
+    import config
+    import entry_store
     import paddle_assist
-    note = []
+    import pattern_store
+    # No silent fallback: a run on other knowledge than the research database's
+    # would not be comparable (or reproducible on another computer).
     try:
-        import pattern_store
-        model = paddle_assist.CorrectionModel.from_patterns(pattern_store.load_patterns())
-        note.append(f"{model.examples} pattern observations (ocr_correction_patterns)")
+        patterns = pattern_store.load_patterns()
+        entries = entry_store.load_entries()
     except Exception as exc:
-        logger.warning("ocr_correction_patterns not readable (%s); starter patterns only", exc)
-        model = paddle_assist.CorrectionModel.with_starter_knowledge(())
-        note.append("built-in starter patterns only (pattern table not readable)")
-    try:
-        import entry_store
-        rows = entry_store.load_entries()
-        model.add_entries(rows)
-        note.append(f"{len(rows)} common entries (ocr_known_entries)")
-    except Exception as exc:
-        logger.warning("ocr_known_entries not readable (%s)", exc)
-        note.append("no common entries (table not readable)")
-    return model, "; ".join(note)
+        raise RuntimeError(f"The research database {config.DB_NAME} could not be read ({exc}). Set it up with "
+                           "research_tests/setup (see research_tests/SETUP.md).") from exc
+    model = paddle_assist.CorrectionModel.from_patterns(patterns)
+    model.add_entries(entries)
+    return model, (f"database {config.DB_NAME}: {len(patterns)} correction patterns ({model.examples} observations), "
+                   f"{len(entries)} common entries")

@@ -27,7 +27,7 @@
         <label class="opt"><input type="checkbox" name="{{ opt.name }}"> {{ opt.label }}</label>
       {% elif opt.type == 'select' %}
         <label class="opt">{{ opt.label }}
-          <select name="{{ opt.name }}">{% for c in opt.choices %}<option>{{ c }}</option>{% endfor %}</select></label>
+          <select name="{{ opt.name }}">{% for c in opt.choices %}<option{% if c == opt.get('default') %} selected{% endif %}>{{ c }}</option>{% endfor %}</select></label>
       {% else %}
         <label class="opt">{{ opt.label }}
           <input type="{{ 'number' if opt.type == 'number' else 'text' }}" name="{{ opt.name }}"

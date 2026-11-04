@@ -1,13 +1,33 @@
-# Everything a run produces stays on this computer.
+# Everything a run produces stays on the computer that ran it.
 outputs/
-# Computer-drawn samples: rebuilt with python -m research_tests.make_samples
+# Rebuilt any time: python -m research_tests.make_samples / iq_check --generate
 inputs/samples/
-# The real (fictional) inputs are the researcher's, not the repository's;
-# the *_template files and the expected box table are kept.
-inputs/answer_key.xlsx
-inputs/writers.csv
-inputs/session_data.xlsx
-inputs/sus.xlsx
-inputs/scans/
-inputs/iq/
+inputs/iq/generated/
+
+# The fictional test inputs ARE committed (scans, answer keys, writers.csv,
+# task packet, expected box table, templates), so every clone tests the same
+# files - check_setup compares their SHA-256.
+
+# Session data: only the workbook (participant codes P1-P5, checked by the
+# pre-commit hook) - never recordings, consent forms or anything identifying.
+inputs/sessions/*
+!inputs/sessions/
+!inputs/sessions/*.xlsx
+!inputs/sessions/README.md
+*.mp3
+*.mp4
+*.m4a
+*.wav
+*.mov
+*.avi
+*.mkv
+*.webm
+*consent*
+*Consent*
+*recording*
+*Recording*
+# Download duplicates such as "file (2).pdf"
+inputs/**/* (*)*
+inputs/* (*)*
+
 __pycache__/

@@ -63,11 +63,14 @@ files are git-ignored, so they stay on this computer.
 | `answer_key.xlsx` — sheet **Handwriting** | 1 | Writer ID, Style (caps/lower), Page (PDF page), Row (entry line, as the OCR comparison numbers it), Field (Case number, Admitted, Patient name, Birthday, Address, Reason for admission, Delivered, Final diagnosis, Went home), Ground Truth |
 | `answer_key.xlsx` — sheet **Patients** | 3, 4 | Confirmed values, about 20 patients: Patient ID, Case number, Last/First/Middle name, Suffix, Birthday, Address, Admitted/Delivered/Went home date + time + AM/PM, Reason for admission, Final diagnosis; optional Street, Barangay, City, Province |
 | `writers.csv` | 1 | Writer ID, Style, Set (`main` for W01–W10, `same_writer` for the 3 researchers' pages in both styles), Scan File, Notes |
-| `scans/handwriting/*.pdf` | 1, 5 | One scan per writer (and per style for the same-writer set), on the printed logbook layout |
+| `scans/handwriting/*.pdf` | 1, 5 | Scanner (flatbed) scan per writer, `W01_caps.pdf` … `W10_lower.pdf`, on the printed logbook layout |
+| `scans/handwriting_phone/*_phone.pdf` | 1, 5 | The same pages taken with a phone scanner app (`W01_caps_phone.pdf` …) |
+| `answer_key_fake_scan_updated_10.xlsx` | — | Your original answer key; `python -m research_tests.convert_answer_key` turns it into `answer_key.xlsx` + `writers.csv` |
+| `answer_key.xlsx` — sheet **Patients** | 3, 4, 7 | Built by `python -m research_tests.build_patients`: 20 entries R01–R20 covering every case type, names split by hand, claim-only values generated (fictional) and marked |
+| `task_packet.xlsx` | 7 | Every value a session participant is given, per patient (logbook + generated claim-only values) |
 | `scans/performance/*` | 5 | Optional; the handwriting scans are used when empty |
-| `iq/good/*`, `iq/bad/*`, `iq/expected.csv` | 6 | Pages or pictures; expected.csv: File (e.g. `bad/x.png`), Expected (pass/warn), Reason (blurry/dark/bright) — optional |
-| `session_data.xlsx` — sheet **Sessions** | 7 | Participant ID, Role, Manual Claims, Manual Time (s), Manual Errors, System Claims, System Time (s), System Errors, Suggestions Shown, Suggestions Accepted, Notes |
-| `sus.xlsx` | 7 | Optional: Participant ID, Q1…Q10 (1–5) |
+| `iq/good/*`, `iq/bad/*`, `iq/expected.csv` | 6 | REAL good and deliberately bad scans; expected.csv optional (File, Expected pass/warn, Reason). `iq_check --generate` adds blurry/dark/bright copies of the real scanner pages in `iq/generated/` (git-ignored); every result says real or generated |
+| `sessions/session_data.xlsx` | 7 | From `session_data_template.xlsx`: sheets **7a Session log** (time per claim), **7c Claim errors** (per box, with Value group; `user_sessions --prefill-errors` writes the reference rows), **7d Suggestion log** (accept / edit / reject / not acted on), **SUS** (optional). Participant codes P1–P5 only — checked by the pre-commit hook |
 | `field_mapping_expected.csv` | 3 | Which box of each form holds which answer-key value, and in which format — **check every row against the paper forms** |
 
 The expected box table was drafted from the boxes' printed labels (`python
@@ -130,7 +133,8 @@ in the correction metrics workbook, labelled "including blank cells".
 
 ## Isolation
 
-- **Database: read-only.** Every connection a research process opens starts with `SET SESSION TRANSACTION READ ONLY` (`guard.py`), so MariaDB refuses any write. The correction model is built from the pattern and known-entry tables with SELECTs only; `paddle_assist.load_model()` is not used, because it fills those tables on first use.
+- **Database: the research database, read-only.** The research processes read `pclaimassist_research` (`RESEARCH_DB_NAME`), never the clinic's database: it holds only the two reference tables the correction model reads, seeded with the system's starter rows (migrations 006–008: 121 patterns, 99 known entries; `setup/import_seed.py`, checked against `setup/seed_checksums.json`). The clinic database's learned rows were traced to a test-set page (logbook pages 34–35) and are not used. Every connection starts with `SET SESSION TRANSACTION READ ONLY` and the app account has SELECT only.
+- **One correction model.** `guard.isolate()` makes `paddle_assist.load_model()` return the research model in research processes, so the AI second look and the known fixes (`fix_saved_reading`) use the same knowledge; it stops with an error if the research database cannot be read (no silent fallback).
 - **Files.** The research processes point the main config's folders at `outputs/work/`. The clinic's `uploads/`, the Logbook Reader's crops and the OCR comparison workbook are never written.
 - **Offline.**
   - The forms page runs in headless Microsoft Edge (Playwright), and every request is answered locally.
@@ -150,6 +154,20 @@ Microsoft Edge, which is installed with Windows. Playwright is not in
 `Ocr_module/requirements.txt`. On a new PC, install it with
 `Ocr_module\venv\Scripts\pip.exe install playwright`. It uses the installed
 Edge, so no browser download is needed.
+
+## Setting up another laptop, and checking it matches
+
+See **SETUP.md** (step by step) and **TASKS.md** (who runs what). Then:
+
+```
+Ocr_module\venv\Scripts\python.exe -m research_tests.check_setup
+```
+
+PASS/FAIL for Python and packages, Tesseract, Edge, model and pdf-lib hashes,
+the research database seed, the test inputs, and a W03 smoke test against the
+reference in `setup/reference/` (recorded on the project lead's machine with
+`--record`). Superseded results are kept in `outputs/superseded/` with a note
+saying why.
 
 ## Tests of this folder
 

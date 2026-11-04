@@ -4,7 +4,7 @@ touched - only the *_template files are written).
 
   answer_key_template.xlsx    sheets Handwriting, Patients, Instructions
   writers_template.csv        the 10 writers + the 3 same-writer pairs
-  session_data_template.xlsx  sheet Sessions, Instructions
+  session_data_template.xlsx  sheets 7a, 7c, 7d, SUS, Instructions (copy to inputs/sessions/)
   sus_template.xlsx           sheet SUS (optional)
 """
 import csv
@@ -12,7 +12,38 @@ import csv
 from research_tests import INPUTS
 from research_tests.common.answer_key import FIELDS, HANDWRITING_COLUMNS, PATIENT_COLUMNS, WRITER_COLUMNS
 from research_tests.common.excel import write_workbook
-from research_tests.user_sessions import SESSION_COLUMNS
+
+
+def session_sheets(example=True):
+    """The session workbook's sheets (template, or fictional samples)."""
+    from research_tests.user_sessions import ERROR_COLUMNS, LOG_COLUMNS, SUGGESTION_COLUMNS, SUS_COLUMNS
+    log = [["P1", "manual first", "manual", 1, "R04", "09:02:10", "09:13:55", 705, "example - replace"],
+           ["P1", "manual first", "system", 1, "R09", "09:40:00", "09:44:30", 270, "example - replace"]]
+    errors = [["P1", "manual", 1, "R04", "CF2", "dateAdmittedD1-8", "Admitted date", "Admitted", "09-11-2026",
+               "09-14-2026", "wrong value", ""]]
+    suggestions = [["P1", 1, "R09", "Address", "PUROK 7 CABANTAN", "PUROK 7 CABANTIAN DAVAO CITY", "accept",
+                    "PUROK 7 CABANTIAN DAVAO CITY", "00:14:32"]]
+    sus = [["P1", 4, 2, 4, 1, 5, 2, 4, 2, 4, 2]]
+    return [
+        {"name": "7a Session log", "headers": LOG_COLUMNS, "rows": log if example else []},
+        {"name": "7c Claim errors", "headers": ERROR_COLUMNS, "rows": errors if example else []},
+        {"name": "7d Suggestion log", "headers": SUGGESTION_COLUMNS, "rows": suggestions if example else []},
+        {"name": "SUS", "headers": SUS_COLUMNS, "rows": sus if example else []},
+        {"name": "Instructions", "headers": ["Sheet / column", "What to put in it"], "rows": [
+            ["Participant", "P1 ... P5 only - never a name (the tests refuse anything else)"],
+            ["7a: one row per claim", "Condition = manual or system; Patient ID = the task packet's R01 ... R20; "
+                                       "Seconds, or Start and End (hh:mm:ss) from the recording"],
+            ["7c: one row per box", "Run python -m research_tests.user_sessions --prefill-errors after 7a: it "
+                                     "writes the reference rows; type each Claim value from the printed claim. "
+                                     "Error type = wrong value / wrong box / required blank; leave 'Error after "
+                                     "normalization' empty and the test works it out"],
+            ["7c: Value group", "the same value repeated across forms (e.g. Last name): counted once in the "
+                                "per-value error count"],
+            ["7d: one row per suggestion shown", "Choice = accept / edit / reject / not acted on"],
+            ["SUS", "optional: answers 1-5 to the ten SUS items"],
+            ["Do not store here", "recordings, consent forms, names, or anything that identifies a participant"],
+        ]},
+    ]
 
 
 def main():
@@ -55,20 +86,10 @@ def main():
         for i in range(1, 4):
             for style in ("caps", "lower"):
                 w.writerow([f"R{i}", style, "same_writer", f"R{i}_{style}.pdf", "researcher, both styles"])
-    write_workbook(INPUTS / "session_data_template.xlsx", [
-        {"name": "Sessions", "headers": SESSION_COLUMNS,
-         "rows": [["U01", "Claims encoder", 3, 2400, 5, 3, 900, 1, 26, 22, "example - replace"]]},
-        {"name": "Instructions", "headers": ["Column", "What to put in it"], "rows": [
-            ["Manual Claims / System Claims", "claims the participant prepared by hand / with PClaimAssist"],
-            ["Manual Time (s) / System Time (s)", "total seconds for those claims in that condition"],
-            ["Manual Errors / System Errors", "total errors found in those claims in that condition"],
-            ["Suggestions Shown / Accepted", "OCR/correction suggestions shown during the system condition, and "
-                                             "how many the participant accepted unchanged"],
-        ]},
-    ])
+    write_workbook(INPUTS / "session_data_template.xlsx", session_sheets())
     write_workbook(INPUTS / "sus_template.xlsx", [
-        {"name": "SUS", "headers": ["Participant ID"] + [f"Q{i}" for i in range(1, 11)],
-         "rows": [["U01", 4, 2, 4, 1, 5, 2, 4, 2, 4, 2]],
+        {"name": "SUS", "headers": ["Participant"] + [f"Q{i}" for i in range(1, 11)],
+         "rows": [["P1", 4, 2, 4, 1, 5, 2, 4, 2, 4, 2]],
          "notes": ["Optional. Answers 1-5; save as inputs/sus.xlsx to have SUS scored."]},
     ])
     print(f"Templates written to {INPUTS}")

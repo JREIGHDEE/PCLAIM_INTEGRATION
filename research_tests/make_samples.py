@@ -270,18 +270,24 @@ def main():
         out.writerow(["File", "Expected", "Reason"])
         out.writerows(expected)
 
-    from research_tests.user_sessions import SESSION_COLUMNS
-    session_rows = []
+    from research_tests.make_templates import session_sheets
+    sheets = session_sheets(example=False)
+    log, errors, sugg, sus = sheets[0]["rows"], sheets[1]["rows"], sheets[2]["rows"], sheets[3]["rows"]
     for i in range(1, 6):
-        manual, system = rng.randint(540, 900), rng.randint(180, 420)
-        claims = 3
-        suggested = rng.randint(20, 30)
-        session_rows.append([f"U{i:02d}", "Claims encoder", claims, manual * claims, rng.randint(3, 8),
-                             claims, system * claims, rng.randint(0, 3), suggested,
-                             rng.randint(15, suggested), "fictional sample"])
-    write_workbook(SAMPLES / "session_data.xlsx", [
-        {"name": "Sessions", "headers": SESSION_COLUMNS, "rows": session_rows,
-         "notes": ["Fictional sample numbers (python -m research_tests.make_samples)."]}])
+        pid = f"P{i}"
+        for cond, base in (("manual", 700), ("system", 260)):
+            for claim in (1, 2, 3):
+                log.append([pid, "manual first" if i % 2 else "system first", cond, claim, f"R{claim + i:02d}",
+                            "", "", base + rng.randint(-120, 120), "fictional sample"])
+                for box in range(8):
+                    wrong = rng.random() < (0.35 if cond == "manual" else 0.08)
+                    errors.append([pid, cond, claim, f"R{claim + i:02d}", "CF1", f"box{box}", f"value{box % 5}", "",
+                                   "REFERENCE", "WRONG" if wrong else "REFERENCE", "wrong value" if wrong else "", ""])
+        for n in range(rng.randint(18, 26)):
+            sugg.append([pid, 1 + n % 3, f"R{1 + n % 3 + i:02d}", "Address", "", "", rng.choice(
+                ["accept"] * 6 + ["edit", "reject", "not acted on"]), "", ""])
+        sus.append([pid] + [rng.choice([4, 5]) if q % 2 else rng.choice([1, 2]) for q in range(1, 11)])
+    write_workbook(SAMPLES / "session_data.xlsx", sheets[:4])
     print(f"Sample inputs written to {SAMPLES}")
 
 
