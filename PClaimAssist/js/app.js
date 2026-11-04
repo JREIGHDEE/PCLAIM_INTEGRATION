@@ -1174,6 +1174,11 @@ const DERIVED_FIELDS = {
   // A representative signing the consent: their relationship to the
   // patient and why they sign, from Part I (the same person signs both),
   // or else from how the patient is related to the member.
+  // Relationship to Member (Patient details, CSF, CF1, PMRF) and Part I's
+  // "Relationship of Representative to Member" fill in from who is filed
+  // (memberRelationship, repRelationshipFor). A choice made by hand is kept.
+  relationship: d => memberRelationship(d),
+  repRelationship: d => repRelationshipFor(d),
   patientRepRelationship: d => consentRepRelationship(d),
   cf2PatientRepRelationship: d => consentRepRelationship(d),
   patientRepRelationshipOther: d => (consentRepRelationship(d) === 'Others' ? d.repRelationshipOther || '' : ''),
@@ -1379,8 +1384,31 @@ function applySignerLink() {
    spouse, the member whose child she is is her parent). */
 function consentRepRelationship(d) {
   if (d.patientSignerType !== 'Representative') return '';
-  if (d.repRelationship) return d.repRelationship;
+  // Only one picked by hand: the one filled in from the patient's
+  // relationship is the patient's own, not the consent signer's.
+  if (d.repRelationship && d.repRelationship !== repRelationshipFor(d)) return d.repRelationship;
   return { Spouse: 'Spouse', Child: 'Parent', Parent: 'Child', Sibling: 'Sibling' }[d.relationship] || '';
+}
+
+/* How the patient is related to the member: herself ("Self"), a baby filed
+   under the mother ("Child"), or a married mother filed under her husband
+   ("Spouse"). Anything else is left for staff to pick. */
+function memberRelationship(d) {
+  if (d.memberIsPatient) return 'Self';
+  if (typeof dxIsBaby === 'function' && dxIsBaby()) return 'Child';
+  if (motherIsFiled(d) && d.civilStatus === 'Married') return 'Spouse';
+  return '';
+}
+
+/* Part I's representative is the patient signing for the member (see
+   applySignerFromMember), so her relationship to the member is the
+   patient's: a wife signing for her husband is his spouse. Not for a baby,
+   who signs nothing. */
+function repRelationshipFor(d) {
+  if (d.memberSignerType !== 'Representative' || d.memberIsPatient) return '';
+  if (typeof dxIsBaby === 'function' && dxIsBaby()) return '';
+  const r = d.relationship;
+  return ['Spouse', 'Child', 'Parent', 'Sibling'].includes(r) ? r : '';
 }
 
 /* The claim's 1st case rate code: CF4's, or CSF Part V's (the two are

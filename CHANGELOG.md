@@ -11,6 +11,21 @@ Related documents:
 
 ---
 
+## 2026-11-05: Relationship to Member fills itself in (JRAD)
+
+**After pulling:** press Ctrl+F5 on the forms (no restart needed).
+
+- *Relationship to Member* (Patient details, CSF, CF1, PMRF) now fills in
+  when it can be worked out: "Self" when the patient is the member, "Child"
+  for a baby filed under the mother, and "Spouse" for a married mother filed
+  under her husband. Anything else is still picked by hand.
+- *Relationship of Representative to Member* (CSF Part I) follows it when
+  the patient signs for the member as the representative: a wife signing
+  for her husband gets "Spouse". It is left empty for a baby's claim.
+- A relationship picked by hand is kept, and the consent's (CSF Part III,
+  CF2 III-B) representative relationship works as before
+  (app.js memberRelationship, repRelationshipFor).
+
 ## 2026-11-05: N/A in the email box (JRAD)
 
 **After pulling:** restart the backend and press Ctrl+F5 on the forms.
