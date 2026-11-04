@@ -11,6 +11,18 @@ Related documents:
 
 ---
 
+## 2026-11-04: OCR comparison workbook keeps readings that begin with "=" (JRAD, cabe9d9)
+
+**After pulling:** restart the backend. No migration.
+
+- *Readings that begin with "=" are kept as text.* Tesseract often reads a
+  ruled line as "=", and the OCR comparison page's workbook
+  (`uploads/ocr_compare_results.xlsx`, `ocr_compare_store.py`) stored such a
+  reading - or a ground truth - as an Excel formula: Excel showed an error
+  and the value read back as empty. They are now written as text, and the
+  next "Save checked rows to Excel" also repairs the cells saved before.
+  New test: `test_text_beginning_with_equals_is_kept_as_text`.
+
 ## 2026-11-03: Changes from user testing #5 (JRAD)
 
 **After pulling:**
