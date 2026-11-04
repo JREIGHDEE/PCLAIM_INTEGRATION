@@ -671,7 +671,9 @@ def run(progress, samples=False, writers=None, fresh=False, dry_check=False, met
         return {"outputs": [p for r in results for p in r["outputs"]],
                 "headline": [h for r in results for h in r["headline"]]}
 
-    out = output_dir(TEST_KEY)
+    # A supplementary run (e.g. the held-out learning run) writes to its own folder.
+    import os
+    out = output_dir(TEST_KEY + os.environ.get("RESEARCH_OUTPUT_SUFFIX", ""))
     tables, all_lines, model_note = {}, [], ""
     for n, m in enumerate(methods):
         base, width = n / len(methods), 1 / len(methods)
@@ -720,6 +722,8 @@ def run(progress, samples=False, writers=None, fresh=False, dry_check=False, met
     ]
     if model_note:
         notes.append(f"Correction model: {model_note}.")
+    if os.environ.get("RESEARCH_RUN_LABEL"):
+        notes.insert(0, os.environ["RESEARCH_RUN_LABEL"])
     if samples:
         notes.append("COMPUTER-DRAWN SAMPLE DATA (make_samples.py) - not real handwriting; for checking the test only.")
 

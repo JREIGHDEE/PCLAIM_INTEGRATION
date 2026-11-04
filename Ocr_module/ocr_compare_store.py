@@ -209,6 +209,15 @@ _SPREAD_HEADERS = [
 ]
 
 
+def _as_text(row):
+    """An OCR reading or ground truth can begin with "=" (Tesseract often
+    reads a ruled line as one): Excel would take it for a formula and show
+    an error, so such a cell is kept as text."""
+    for cell in row:
+        if isinstance(cell.value, str) and cell.value.startswith("="):
+            cell.data_type = "s"
+
+
 def _write(lines):
     workbook = Workbook()
     sheet = workbook.active
@@ -217,6 +226,7 @@ def _write(lines):
     for number, line in enumerate(lines, start=1):
         line[0] = number
         sheet.append(line)
+        _as_text(sheet[sheet.max_row])
     _style_header(sheet)
     for i, header in enumerate(HEADERS, start=1):
         sheet.column_dimensions[get_column_letter(i)].width = max(10, min(32, len(header) + 2))

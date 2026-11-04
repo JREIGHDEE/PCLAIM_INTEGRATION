@@ -192,6 +192,18 @@ class WorkbookTests(TempFolderTestCase):
         self.assertEqual(overall["n"], 2)
         self.assertEqual(overall["recommended"], "PaddleOCR")
 
+    def test_text_beginning_with_equals_is_kept_as_text(self):
+        # A reading like "=z w ah" was stored as an Excel formula (an error in
+        # Excel, and nothing when read back): it must stay the text it is.
+        ocr_compare_store.save_rows(self.items(["=Z W AH", "04-24-1994"]))
+        cell = load_workbook(config.OCR_COMPARE_WORKBOOK)["Rows"].cell(row=2, column=13)   # Ground Truth
+        self.assertEqual((cell.value, cell.data_type), ("=Z W AH", "s"))
+        values = list(load_workbook(config.OCR_COMPARE_WORKBOOK, data_only=True)["Rows"].iter_rows(values_only=True))
+        self.assertEqual(values[1][12], "=Z W AH")
+        # Saving again (lines read back from the file) keeps it as text.
+        ocr_compare_store.save_rows(self.items(["=Z W AH", "04-24-1994"]))
+        self.assertEqual(load_workbook(config.OCR_COMPARE_WORKBOOK)["Rows"].cell(row=2, column=13).data_type, "s")
+
     def test_saving_a_row_again_replaces_it(self):
         ocr_compare_store.save_rows(self.items(["WRONG", "WRONG"]))
         result = ocr_compare_store.save_rows(self.items(["DELA CRUZ MARIA", "04-24-1994"]))

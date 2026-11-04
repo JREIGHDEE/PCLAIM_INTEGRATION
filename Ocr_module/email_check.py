@@ -63,6 +63,17 @@ _COMMON_TYPOS = {
 }
 
 
+# "N/A" (or a ` - the forms' mark for a box left blank on purpose) means the
+# patient has no email: not an address to check, and never printed
+# (pdf-overlay.js stripNotApplicable, philhealth/pdf_export.py).
+# Exactly what printing leaves out, so the two can never disagree.
+_NOT_APPLICABLE = re.compile(r"^\s*(?:n/a|`+)\s*$", re.IGNORECASE)
+
+
+def is_not_applicable(address):
+    return bool(_NOT_APPLICABLE.match(str(address or "")))
+
+
 def _format_problem(address):
     """What is wrong with the way it is written, or None."""
     if not address:
@@ -177,6 +188,9 @@ def check_email(address):
     ok=False     it is wrong, and `reason` says how
     """
     address = (address or "").strip()
+    if is_not_applicable(address):
+        return {"ok": True, "reason": None, "suggestion": None,
+                "checked_domain": False, "not_applicable": True}
     problem = _format_problem(address)
     if problem:
         return {"ok": False, "reason": problem, "suggestion": None,
@@ -219,9 +233,10 @@ def check_email(address):
 def save_problem(values):
     """Why "Save patient" must not save these form values, or None: an
     email address typed that is wrong. An empty one is fine (not every
-    patient has one) and so is one that could not be checked offline."""
+    patient has one), so is "N/A" (none, on purpose) and so is one that
+    could not be checked offline."""
     address = str((values or {}).get("email") or "").strip()
-    if not address:
+    if not address or is_not_applicable(address):
         return None
     result = check_email(address)
     return None if result["ok"] else f"Email address: {result['reason']}"

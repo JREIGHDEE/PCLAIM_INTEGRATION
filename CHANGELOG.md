@@ -11,6 +11,47 @@ Related documents:
 
 ---
 
+## 2026-11-05: Relationship to Member fills itself in (JRAD)
+
+**After pulling:** press Ctrl+F5 on the forms (no restart needed).
+
+- *Relationship to Member* (Patient details, CSF, CF1, PMRF) now fills in
+  when it can be worked out: "Self" when the patient is the member, "Child"
+  for a baby filed under the mother, and "Spouse" for a married mother filed
+  under her husband. Anything else is still picked by hand.
+- *Relationship of Representative to Member* (CSF Part I) follows it when
+  the patient signs for the member as the representative: a wife signing
+  for her husband gets "Spouse". It is left empty for a baby's claim.
+- A relationship picked by hand is kept, and the consent's (CSF Part III,
+  CF2 III-B) representative relationship works as before
+  (app.js memberRelationship, repRelationshipFor).
+
+## 2026-11-05: N/A in the email box (JRAD)
+
+**After pulling:** restart the backend and press Ctrl+F5 on the forms.
+
+- *A patient with no email can have N/A.* Typing `N/A` (any case) or a ` in
+  the email box (Patient details, CF1, PMRF) means "no email, left blank on
+  purpose", as in the other boxes: no "please check that email address"
+  warning, "Save patient" accepts it, and it is left out of the printed
+  forms (pdf-overlay.js stripNotApplicable already removes N/A). An empty
+  email box still prints "N/A", as every empty text box does. `NA` or
+  `none` are still checked as addresses, since printing would keep them
+  (email_check.is_not_applicable, js/email-check.js; new test
+  `test_not_applicable_is_accepted_and_never_looked_up`).
+
+## 2026-11-04: OCR comparison workbook keeps readings that begin with "=" (JRAD, cabe9d9)
+
+**After pulling:** restart the backend. No migration.
+
+- *Readings that begin with "=" are kept as text.* Tesseract often reads a
+  ruled line as "=", and the OCR comparison page's workbook
+  (`uploads/ocr_compare_results.xlsx`, `ocr_compare_store.py`) stored such a
+  reading - or a ground truth - as an Excel formula: Excel showed an error
+  and the value read back as empty. They are now written as text, and the
+  next "Save checked rows to Excel" also repairs the cells saved before.
+  New test: `test_text_beginning_with_equals_is_kept_as_text`.
+
 ## 2026-11-03: Changes from user testing #5 (JRAD)
 
 **After pulling:**

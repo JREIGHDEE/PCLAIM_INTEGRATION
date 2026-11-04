@@ -62,6 +62,18 @@ class EmailCheckTests(unittest.TestCase):
              mock.patch("email_check._get_json", return_value={"result": "undeliverable"}):
             self.assertFalse(email_check.check_email("nobody@gmail.com")["ok"])
 
+    def test_not_applicable_is_accepted_and_never_looked_up(self):
+        for value in ("N/A", "n/a", " N/A ", "`"):
+            with self.subTest(value=value):
+                result, get_json = self.check(value)
+                self.assertTrue(result["ok"])
+                self.assertTrue(result.get("not_applicable"))
+                get_json.assert_not_called()
+                self.assertIsNone(email_check.save_problem({"email": value}))
+        self.assertFalse(self.check("na@")[0]["ok"])          # an address-like typo is still checked
+        for value in ("NA", "none"):                            # printing would keep these, so they are checked
+            self.assertFalse(email_check.is_not_applicable(value))
+
     def test_save_problem(self):
         self.assertIsNone(email_check.save_problem({"email": ""}))
         self.assertIsNone(email_check.save_problem({}))
