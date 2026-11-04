@@ -1,0 +1,30 @@
+{% extends "research/base.html" %}
+{% block title %}Results{% endblock %}
+{% block body %}
+<h1>Results <span class="testing-tag">Research test</span></h1>
+<p class="muted" style="margin:0 0 14px">One workbook for Chapter 5: a summary sheet per test, from each test's
+  latest run. Raw data stays in each test's own workbook.</p>
+
+<div class="card">
+  <h2>Tests</h2>
+  <div class="table-wrap"><table class="summary">
+    <thead><tr><th>Test</th><th>Last run</th><th>Data</th></tr></thead>
+    <tbody id="testRows"></tbody>
+  </table></div>
+</div>
+
+<div class="card">
+  <div class="row-flex">
+    <button class="primary" id="runBtn">Build chapter5_results.xlsx</button>
+    <span class="status-chip" id="stateChip">Not built yet</span>
+    <a class="btn disabled" id="downloadBtn" href="{{ prefix }}/api/results/download">Download chapter5_results.xlsx</a>
+  </div>
+  <div class="progress hidden" id="progressBar"><div></div></div>
+  <div class="small muted" id="progressText"></div>
+  <pre class="log hidden" id="log"></pre>
+  <div id="results"></div>
+</div>
+
+<script>window.RESEARCH = {key: "results", prefix: {{ prefix|tojson }}};</script>
+<script src="{{ url_for('research.static', filename='research.js') }}?v=20261104a"></script>
+{% endblock %}

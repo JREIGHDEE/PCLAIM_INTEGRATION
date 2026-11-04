@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Research tests{% endblock %} – PClaimAssist</title>
+<!--
+  Research tests (testing only, administrators) - research_tests/web.
+  Shown inside PClaimAssist/ocr-compare.html's frame, beside the OCR
+  comparison tab. Nothing here writes the main system's tables or uploads:
+  every run is a separate process with a read-only database connection,
+  and its results go to research_tests/outputs/.
+-->
+<link href="/css/colorblind.css?v=20261101b" rel="stylesheet">
+<link href="/css/outlines.css?v=20261101a" rel="stylesheet">
+<link href="{{ url_for('research.static', filename='research.css') }}?v=20261104a" rel="stylesheet">
+</head>
+<body>
+{% block body %}{% endblock %}
+</body>
+</html>

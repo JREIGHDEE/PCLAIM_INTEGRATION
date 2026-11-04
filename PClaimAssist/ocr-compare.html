@@ -91,6 +91,11 @@
        /ocr-compare (routes/compare_routes.py), shown here the same way Read
        Logbook Scan shows the Logbook Reader. It writes nothing to patients,
        claims or the Logbook Reader's sessions. -->
+  <!-- RESEARCH TESTS (removable) START - the Chapter 5 research tabs
+       (research_tests/web/static/tabs.js); shown only when ENABLE_RESEARCH_TESTS is on. -->
+  <nav id="researchTabs" hidden></nav>
+  <script src="/ocr-testing/research/static/tabs.js" defer></script>
+  <!-- RESEARCH TESTS (removable) END -->
   <div class="ocr-iframe-wrap">
     <iframe id="ocrIframe" class="ocr-native-iframe" title="OCR comparison" data-src="/ocr-compare"></iframe>
     <div id="ocrIframeOverlay" class="ocr-iframe-overlay">

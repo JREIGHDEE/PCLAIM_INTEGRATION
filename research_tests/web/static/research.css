@@ -1,0 +1,57 @@
+/* Research tabs - the OCR comparison page's look (same colours, cards,
+   buttons and chips as Ocr_module/templates/ocr_compare.html), kept here so
+   that page is not edited. Shared site styles come from /css/colorblind.css
+   and /css/outlines.css, linked by research/base.html as that page does. */
+:root{
+    --text:#1E293B; --muted:#64748B; --bg:#F1F5F9; --line:#CBD5E1; --soft-line:#E2E8F0;
+    --blue:#2563EB; --blue-soft:#DBEAFE; --green:#15803D; --green-soft:#DCFCE7;
+    --amber:#B45309; --amber-soft:#FEF3C7; --red:#B91C1C; --red-soft:#FEE2E2;
+    --shadow:0 1px 3px rgba(15,23,42,.08), 0 1px 2px rgba(15,23,42,.04);
+}
+*{ box-sizing:border-box; }
+body{ margin:0; padding:18px 22px 60px; background:var(--bg); color:var(--text);
+      font-family:'Segoe UI', system-ui, -apple-system, sans-serif; font-size:15px; }
+h1{ font-size:1.5rem; font-weight:800; margin:0 0 4px; }
+h2{ font-size:1.1rem; font-weight:700; margin:0 0 10px; }
+h3{ font-size:.98rem; font-weight:700; margin:14px 0 6px; }
+.muted{ color:var(--muted); }
+.small{ font-size:.82rem; }
+.card{ background:#fff; border:1px solid var(--soft-line); border-radius:12px; box-shadow:var(--shadow);
+       padding:16px 18px; margin-bottom:14px; }
+.testing-tag{ display:inline-block; background:var(--amber-soft); color:var(--amber); border-radius:999px;
+              padding:2px 10px; font-size:.78rem; font-weight:700; margin-left:8px; vertical-align:middle; }
+.row-flex{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+button, .btn{ font:inherit; font-weight:600; border-radius:8px; border:1.5px solid var(--line); background:#fff;
+              color:var(--text); padding:8px 14px; cursor:pointer; text-decoration:none; display:inline-block; }
+button:hover, .btn:hover{ border-color:var(--blue); }
+button.primary, .btn.primary{ background:linear-gradient(135deg,#2563EB,#1D4ED8); border-color:#2563EB; color:#fff;
+                              box-shadow:0 2px 8px rgba(37,99,235,.25); }
+button.danger{ color:var(--red); }
+button:disabled, .btn.disabled{ opacity:.55; cursor:default; pointer-events:none; }
+select, input[type=file], input[type=text], input[type=number]{ font:inherit; padding:7px 10px;
+    border:1.5px solid var(--line); border-radius:8px; background:#fff; max-width:100%; }
+label.opt{ display:inline-flex; gap:6px; align-items:center; font-weight:600; font-size:.9rem; }
+.status-chip{ display:inline-flex; gap:6px; align-items:center; padding:4px 10px; border-radius:999px;
+              font-size:.82rem; font-weight:600; background:#F1F5F9; }
+.status-chip.ok{ background:var(--green-soft); color:var(--green); }
+.status-chip.bad{ background:var(--red-soft); color:var(--red); }
+.status-chip.warn{ background:var(--amber-soft); color:var(--amber); }
+.progress{ height:10px; background:#E2E8F0; border-radius:999px; overflow:hidden; margin-top:10px; }
+.progress > div{ height:100%; width:0; background:var(--blue); transition:width .3s; }
+.notice{ border-radius:10px; padding:10px 14px; margin:8px 0; background:var(--amber-soft); color:#78350F; }
+.notice.bad{ background:var(--red-soft); color:#7F1D1D; }
+.hidden{ display:none !important; }
+.inputs-list{ list-style:none; padding:0; margin:0; }
+.inputs-list li{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:8px 0;
+                 border-bottom:1px solid #F1F5F9; }
+.inputs-list code{ background:#F8FAFC; border:1px solid var(--soft-line); border-radius:6px; padding:1px 6px; }
+.table-wrap{ overflow-x:auto; margin:6px 0 4px; }
+table.summary{ border-collapse:collapse; width:100%; font-size:.86rem; }
+table.summary th, table.summary td{ border:1px solid var(--soft-line); padding:6px 8px; text-align:right;
+                                     vertical-align:top; }
+table.summary th{ background:#F8FAFC; font-size:.76rem; text-align:center; }
+table.summary td:first-child, table.summary th:first-child{ text-align:left; }
+.sheet-notes{ margin:4px 0 12px; padding-left:18px; color:var(--muted); font-size:.8rem; }
+pre.log{ white-space:pre-wrap; background:#0F172A; color:#E2E8F0; border-radius:8px; padding:10px; font-size:.78rem;
+         max-height:240px; overflow:auto; }
+@media (max-width: 600px){ body{ padding:12px 16px 40px; } }

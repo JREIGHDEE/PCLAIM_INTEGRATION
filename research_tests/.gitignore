@@ -1,0 +1,13 @@
+# Everything a run produces stays on this computer.
+outputs/
+# Computer-drawn samples: rebuilt with python -m research_tests.make_samples
+inputs/samples/
+# The real (fictional) inputs are the researcher's, not the repository's;
+# the *_template files and the expected box table are kept.
+inputs/answer_key.xlsx
+inputs/writers.csv
+inputs/session_data.xlsx
+inputs/sus.xlsx
+inputs/scans/
+inputs/iq/
+__pycache__/

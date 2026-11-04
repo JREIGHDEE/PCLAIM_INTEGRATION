@@ -1,0 +1,17 @@
+Writer ID,Style,Set,Scan File,Notes
+W01,caps,main,W01_caps.pdf,
+W02,caps,main,W02_caps.pdf,
+W03,caps,main,W03_caps.pdf,
+W04,caps,main,W04_caps.pdf,
+W05,caps,main,W05_caps.pdf,
+W06,lower,main,W06_lower.pdf,
+W07,lower,main,W07_lower.pdf,
+W08,lower,main,W08_lower.pdf,
+W09,lower,main,W09_lower.pdf,
+W10,lower,main,W10_lower.pdf,
+R1,caps,same_writer,R1_caps.pdf,"researcher, both styles"
+R1,lower,same_writer,R1_lower.pdf,"researcher, both styles"
+R2,caps,same_writer,R2_caps.pdf,"researcher, both styles"
+R2,lower,same_writer,R2_lower.pdf,"researcher, both styles"
+R3,caps,same_writer,R3_caps.pdf,"researcher, both styles"
+R3,lower,same_writer,R3_lower.pdf,"researcher, both styles"

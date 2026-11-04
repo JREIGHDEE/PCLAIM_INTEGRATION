@@ -68,6 +68,17 @@ def create_app():
 
     register_error_handlers(app)
     register_routes(app)
+    # RESEARCH TESTS (removable) START - the Chapter 5 research tabs
+    # (research_tests/README.md), registered only when ENABLE_RESEARCH_TESTS
+    # is on. Safe to delete together with this END line.
+    try:
+        import sys
+        sys.path.append(str(config.BASE_DIR.parent))
+        from research_tests.web import register_if_enabled
+        register_if_enabled(app)
+    except ImportError:
+        logger.info("Research tests not available (research_tests/ not found)")
+    # RESEARCH TESTS (removable) END
     # Every page and API needs a signed-in account, except the sign-in page.
     auth.require_sign_in(app)
 
