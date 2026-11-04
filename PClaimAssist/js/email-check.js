@@ -50,9 +50,14 @@
     }
   }
 
+  // "N/A" (or a `) = the patient has no email, left blank on purpose: not
+  // checked, never a warning, and not printed (pdf-overlay.js).
+  // Exactly what printing leaves out (pdf-overlay.js stripNotApplicable).
+  const NOT_APPLICABLE = /^\s*(?:n\/a|`+)\s*$/i;
+
   async function check(box) {
     const address = (box.value || '').trim();
-    if (!address) { show(box, null); return; }
+    if (!address || NOT_APPLICABLE.test(address)) { show(box, null); return; }
     if (seen.has(address)) { show(box, seen.get(address)); return; }
     try {
       const resp = await fetch(API, {

@@ -11,6 +11,20 @@ Related documents:
 
 ---
 
+## 2026-11-05: N/A in the email box (JRAD)
+
+**After pulling:** restart the backend and press Ctrl+F5 on the forms.
+
+- *A patient with no email can have N/A.* Typing `N/A` (any case) or a ` in
+  the email box (Patient details, CF1, PMRF) means "no email, left blank on
+  purpose", as in the other boxes: no "please check that email address"
+  warning, "Save patient" accepts it, and it is left out of the printed
+  forms (pdf-overlay.js stripNotApplicable already removes N/A). An empty
+  email box still prints "N/A", as every empty text box does. `NA` or
+  `none` are still checked as addresses, since printing would keep them
+  (email_check.is_not_applicable, js/email-check.js; new test
+  `test_not_applicable_is_accepted_and_never_looked_up`).
+
 ## 2026-11-04: OCR comparison workbook keeps readings that begin with "=" (JRAD, cabe9d9)
 
 **After pulling:** restart the backend. No migration.
