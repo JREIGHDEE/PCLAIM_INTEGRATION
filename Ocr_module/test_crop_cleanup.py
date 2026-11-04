@@ -71,6 +71,13 @@ class CropCleanupTests(unittest.TestCase):
         self.assertFalse(os.path.exists(os.path.dirname(old)))
         self.assertTrue(os.path.exists(recent))
 
+    def test_purge_keeps_the_ocr_comparison_runs(self):
+        kept = self.make("comparison_run/p1_r1_c1.png", age_days=90)
+        old = self.make("old_upload/p1_r1_c1.png", age_days=90)
+        self.assertEqual(crop_cleanup.purge_old_crops(30, folder=self.root, keep=["comparison_run"]), 1)
+        self.assertTrue(os.path.exists(kept))
+        self.assertFalse(os.path.exists(old))
+
     def test_purge_turned_off_with_zero_days(self):
         old = self.make("old_upload/p1_r1_c1.png", age_days=400)
         self.assertEqual(crop_cleanup.purge_old_crops(0, folder=self.root), 0)

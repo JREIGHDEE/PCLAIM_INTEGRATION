@@ -238,6 +238,11 @@ function dxGuessPackage() {
   const d = state.data;
   const dx = `${d.admissionDx || ''} ${d.dischargeDx || ''}`.toUpperCase();
   if (dxIsBaby() || /\bMOTHER WEIGHING\b|\bNEWBORN\b|\bWELL\s*BABY\b/.test(dx)) return 'NCP';
+  // The admission pattern the logbook's admitting diagnosis was taken for
+  // (js/admission-patterns.js): it reads past the scan's misread letters,
+  // which the words below miss ("FOR POJT PAKTUM UISIT").
+  const fromPattern = typeof PCAAdmission !== 'undefined' ? PCAAdmission.package() : '';
+  if (DX_PACKAGES[fromPattern]) return fromPattern;
   if (/\bPRE\s*-?\s*NATAL\b|\bANTE\s*-?\s*NATAL\b/.test(dx)) return 'ANV';
   if (/\bPOST\s*-?PARTUM\b/.test(dx) && !/DELIVER/.test(dx)) return 'PPC01';
   if (/\bINTRAUTERINE\b|\bIUD\b/.test(dx)) return 'IUD';

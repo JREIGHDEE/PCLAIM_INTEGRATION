@@ -15,6 +15,7 @@ from flask_cors import CORS
 import auth
 import config
 import crop_cleanup
+import ocr_compare
 from db import test_connection
 from errors import register_error_handlers
 from logging_setup import configure_logging
@@ -54,9 +55,11 @@ def create_app():
          supports_credentials=True)
 
     config.ensure_directories()
-    # Review crops past their keep-by date go at startup (crop_cleanup.py).
+    # Review crops past their keep-by date go at startup (crop_cleanup.py),
+    # except the OCR comparison runs' pictures: those are kept test data.
     try:
-        removed = crop_cleanup.purge_old_crops(config.REVIEW_CROPS_MAX_AGE_DAYS)
+        removed = crop_cleanup.purge_old_crops(config.REVIEW_CROPS_MAX_AGE_DAYS,
+                                               keep=ocr_compare.run_ids())
         if removed:
             logger.info("Deleted %d review crop(s) older than %d days",
                         removed, config.REVIEW_CROPS_MAX_AGE_DAYS)

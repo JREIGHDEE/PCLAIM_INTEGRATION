@@ -62,7 +62,7 @@ def start(work, path):
     job_id = uuid.uuid4().hex
     with _jobs_lock:
         _jobs[job_id] = {"state": "waiting", "progress": 0.0, "message": "Waiting to start",
-                         "result": None, "error": None, "updated_at": time.time()}
+                         "result": None, "error": None, "updated_at": time.time(), "created_at": time.time()}
 
     def progress(fraction, message):
         # Leave the last bit for saving, so 100% really means finished.
@@ -97,4 +97,22 @@ def get(job_id):
     """A copy of the job's public state, or None."""
     with _jobs_lock:
         job = _jobs.get(job_id)
-        return None if job is None else {k: v for k, v in job.items() if k != "updated_at"}
+        return None if job is None else {k: v for k, v in job.items() if k not in ("updated_at", "created_at")}
+
+
+def ahead_of(job_id):
+    """How many unfinished jobs were started before this one - those it
+    waits for, since one job reads at a time. 0 for an unknown job."""
+    with _jobs_lock:
+        job = _jobs.get(job_id)
+        if job is None:
+            return 0
+        return sum(1 for other_id, other in _jobs.items()
+                   if other_id != job_id and other["state"] in ("waiting", "running")
+                   and other["created_at"] < job["created_at"])
+
+
+def seconds_since_start(job_id):
+    with _jobs_lock:
+        job = _jobs.get(job_id)
+        return None if job is None else round(time.time() - job["created_at"])

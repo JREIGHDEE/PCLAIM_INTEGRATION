@@ -1,6 +1,8 @@
 """Blueprint registration for the OCR Flask app."""
+from routes.admission_routes import admission_bp
 from routes.auth_routes import auth_bp
 from routes.claims_routes import claims_bp
+from routes.compare_routes import compare_bp
 from routes.crop_routes import crop_bp
 from routes.diagnostic_routes import diagnostic_bp
 from routes.layout_routes import layout_bp
@@ -24,7 +26,11 @@ def register_routes(app):
     app.register_blueprint(review_bp)
     app.register_blueprint(settings_bp)
     app.register_blueprint(learning_bp)
+    # Reason for admission from the logbook's wording - admission_patterns.
+    app.register_blueprint(admission_bp)
     app.register_blueprint(setup_bp)
+    # OCR comparison page (testing only, administrators) - ocr_compare.py.
+    app.register_blueprint(compare_bp)
     # TEMPORARY - Phase 1 DB integration diagnostic. Remove alongside
     # routes/diagnostic_routes.py once the patients CRUD test is done.
     app.register_blueprint(diagnostic_bp)

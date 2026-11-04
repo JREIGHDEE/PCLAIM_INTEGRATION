@@ -168,6 +168,8 @@ async function loadClaimFromUrl() {
   });
   applyFormData(values);
   tagOcrFields(body.fields);
+  // What the admitting diagnosis was taken for (js/admission-patterns.js).
+  if (typeof PCAAdmission !== 'undefined') PCAAdmission.show(body.admission_suggestion || null);
   renderClaimBanner(body);
   navigateTo('patient');
   // Once the tags are on, so Patient details' parts count "from scan to

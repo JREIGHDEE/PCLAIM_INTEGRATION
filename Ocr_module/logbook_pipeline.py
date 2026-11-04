@@ -4,25 +4,34 @@ Logbook upload -> one review session per patient row.
 The full server-side flow for one uploaded logbook scan (image or PDF):
 
   1. load pages        - images as-is; PDF pages rendered at 2x, the same
-                         as ocr_engine/batch_processor
+                         as ocr_engine/batch_processor; each page
+                         straightened (template_engine.deskew) - a tilt of
+                         half a degree hides the printed lines everything
+                         below is placed by
   2. IQ-01             - image_quality.assess_image_quality() per page.
                          Advisory only: warnings are shown at the top of
                          the review, OCR always runs.
   3. template match    - template_engine.match_templates() against the saved
-                         grid templates, by page parity for PDFs, scored
+                         grid templates, by page side for PDFs, scored
                          mainly by how the template's columns land on the
                          page's printed column rules (score_template_fit),
                          so one setup fits every scan of a logbook. A page
                          scoring below config.TEMPLATE_MATCH_THRESHOLD is
                          reported and skipped - never OCR'd against a
-                         template that doesn't fit.
+                         template that doesn't fit. Which side each page is
+                         is decided for the whole PDF from the printed
+                         headers (page_sides): a PDF may start on a
+                         right-hand page.
   4. place + crop      - TemplateAutoDetector.auto_place_template(); rows
                          start under the printed column header read off the
                          page (logbook_layout), not where they were on the
-                         setup scan. On a two-page spread the odd page's
-                         rows are carried to the even page (same as
-                         BatchProcessor) so both halves of one patient entry
-                         line up.
+                         setup scan, and are counted in printed lines - one
+                         row per entry, as many lines as an entry takes
+                         (entry_rows_from_ruled_lines). The right page of a
+                         spread finds its own header and uses the left
+                         page's lines per entry, so row k on both pages is
+                         entry k; without its header, the left page's rows
+                         are carried across by ruled line.
   5. PaddleOCR         - each cell crop OCR'd on its own.
   6. route             - each field routed by confidence (route_confidence).
   6b. AI second look   - fields Paddle was unsure about are re-read offline
@@ -56,7 +65,9 @@ from image_quality import IQ_RULE_ID, assess_image_quality
 from philhealth import case_bridge, field_catalog, review_fields
 from template_engine import (
     TemplateAutoDetector,
+    deskew,
     detect_ruling_lines,
+    regular_ruled_lines,
     map_rows_between_pages,
     analyze_document_layout,
     extract_crop_from_cell,
@@ -110,7 +121,7 @@ def load_pages(path):
                 else:
                     image = cv2.cvtColor(data, cv2.COLOR_GRAY2BGR)
                 parity = "odd" if (index + 1) % 2 else "even"
-                pages.append((index + 1, image, parity))
+                pages.append((index + 1, deskew(image)[0], parity))
         finally:
             doc.close()
         return pages
@@ -120,7 +131,38 @@ def load_pages(path):
         raise ValueError("Could not read the uploaded image.")
     # A single image could be either side of a spread - let template
     # matching decide rather than assuming a parity.
-    return [(1, image, None)]
+    return [(1, deskew(image)[0], None)]
+
+
+def header_side(header):
+    """"odd" (left page: CASE #, NAME, BDAY, ADDRESS ...) or "even" (right
+    page: ADMITTING, DELIVERY, FINAL, DISCHARGE ...) from the printed
+    header words read on a page, or None when they don't say."""
+    if not header:
+        return None
+    words = [t["category"] for t in header.get("tokens", []) if t.get("category")]
+    left = sum(1 for c in words if c in logbook_layout.LEFT_COLUMNS)
+    right = sum(1 for c in words if c in logbook_layout.RIGHT_COLUMNS)
+    if left == right:
+        return None
+    return "odd" if left > right else "even"
+
+
+def page_sides(parities, headers):
+    """Which side of the spread each PDF page is: 0 when page 1 is a left
+    page (odd pages left, as usual), 1 when page 1 is a right page - a PDF
+    cut from the middle of a logbook can start either way. Decided for the
+    whole PDF by the printed headers: how many pages' headers agree with
+    each way round (the column fit can't tell: the diagnosis page's setup
+    has fewer columns, so it fits nearly any page)."""
+    flip = {"odd": "even", "even": "odd"}
+    usual = turned = 0
+    for parity, header in zip(parities, headers):
+        side = header_side(header)
+        if side and parity in flip:
+            usual += side == parity
+            turned += side == flip[parity]
+    return 1 if turned > usual else 0
 
 
 # A cell whose handwriting covers less than this share of the crop (and
@@ -229,6 +271,19 @@ def field_status(category, confidence, flags):
     if status == ACCEPTED and flags.get("incomplete"):
         return NEEDS_CHECK
     return status
+
+
+def _header_above_entries(header, ruled_lines, height):
+    """The header read on the page, or None when it lies below the first
+    printed lines - then the "header" was words of an entry that look like
+    headings ("DELIVERED ..." for DELIVERY) and the real one was not read:
+    the printed header always sits above the first ruled line."""
+    if not header:
+        return None
+    lines, pitch = regular_ruled_lines(ruled_lines, height)
+    if lines and header["bottom"] > lines[0] + 1.5 * pitch:
+        return None
+    return header
 
 
 def _first_entry_line(template, ruled_lines, height, image=None, ocr_fn=None):
@@ -429,6 +484,17 @@ def build_review_rows(path, ocr_fn, templates, upload_id=None, progress=None, co
     report_progress(0.0, "Opening the scan")
     pages = load_pages(path)
     page_count = len(pages)
+    page_rules = [detect_ruling_lines(image) for _, image, _ in pages]
+    page_layouts = [analyze_document_layout(image) for _, image, _ in pages]
+    # Each page's printed header: where its entries start, and which side it is.
+    headers = [logbook_layout.read_header(image, ocr_fn) if ocr_fn else None for _, image, _ in pages]
+    offset = 0
+    if not page_templates and all(parity for _, _, parity in pages):
+        offset = page_sides([parity for _, _, parity in pages], headers)
+        if offset:
+            logger.info("Page 1 of this PDF is a right-hand page: sides read the other way round")
+            pages = [(n, image, {"odd": "even", "even": "odd"}[parity]) for n, image, parity in pages]
+    per_entry = None  # lines per entry on the left page, for its right page
 
     for page_index, (page_number, image, parity) in enumerate(pages):
         report_progress(read_share * page_index / page_count, f"Finding the rows on page {page_number} of {page_count}")
@@ -441,12 +507,12 @@ def build_review_rows(path, ocr_fn, templates, upload_id=None, progress=None, co
                   "match_score": None, "rows": 0, "alignment": None, "error": None}
         page_reports.append(report)
 
-        rules = detect_ruling_lines(image)
+        rules = page_rules[page_index]
         if page_templates and page_index in page_templates:
             template, score = page_templates[page_index], 1.0
         else:
             template, score = match_templates(list(page_templates.values()) if page_templates else templates,
-                                              analyze_document_layout(image), page_parity=parity,
+                                              page_layouts[page_index], page_parity=parity,
                                               vertical_rules=rules["vertical"])
         report["match_score"] = score
         if template is None or score is None or score < config.TEMPLATE_MATCH_THRESHOLD:
@@ -457,6 +523,7 @@ def build_review_rows(path, ocr_fn, templates, upload_id=None, progress=None, co
                 "this page's columns before it is read."
             )
             carried_rows = carried_rules = None
+            per_entry = None
             continue
         report["template"] = template.get("filename") or template.get("name")
 
@@ -466,19 +533,26 @@ def build_review_rows(path, ocr_fn, templates, upload_id=None, progress=None, co
         if not paired:
             spread += 1
         forced_rows = None
+        # Where this page's entries start: under its own printed header.
+        header = _header_above_entries(headers[page_index], ruled_lines, height)
+        start_y = logbook_layout.first_entry_line(ruled_lines, height, header["bottom"]) if header else None
+        from_header = start_y is not None
         if paired:
-            # Map the odd page's rows across by ruled line (the two halves
-            # of a scanned spread are often vertically offset); fall back
-            # to the same fraction of page height.
+            # The left page's rows mapped across by ruled line (the two
+            # halves of a scanned spread are often vertically offset), or
+            # failing that at the same fraction of page height: used when
+            # this page's own header and printed lines can't place its rows.
             if carried_rules:
                 forced_rows = map_rows_between_pages(carried_rules["rows"], carried_rules["lines"], ruled_lines)
             if forced_rows is None:
                 forced_rows = [{"y": r["yFrac"] * height, "height": r["heightFrac"] * height,
                                 "spacing": r["spacingFrac"] * height} for r in carried_rows]
+        if start_y is None and not paired and not ruled_lines:
+            start_y = _first_entry_line(template, ruled_lines, height)
 
         placement = detector.auto_place_template(
-            image, template, auto_align=True, forced_rows=forced_rows,
-            rows_start_y=None if paired else _first_entry_line(template, ruled_lines, height, image, ocr_fn),
+            image, template, auto_align=True, forced_rows=forced_rows, rows_start_y=start_y,
+            ruled_rows=True, per_entry=per_entry if paired else None, start_from_header=from_header,
         )
         if not placement.get("success"):
             report["error"] = "The template could not be placed on this page."
@@ -486,6 +560,9 @@ def build_review_rows(path, ocr_fn, templates, upload_id=None, progress=None, co
             continue
         report["rows"] = len(placement["rows"])
         report["alignment"] = placement.get("alignment")
+        report["row_method"] = placement.get("row_method")
+        report["lines_per_entry"] = placement.get("per_entry")
+        per_entry = placement.get("per_entry") if parity == "odd" else None
         carried_rows = [
             {"yFrac": r["y"] / height, "heightFrac": r["height"] / height,
              "spacingFrac": r.get("spacing", 0) / height}

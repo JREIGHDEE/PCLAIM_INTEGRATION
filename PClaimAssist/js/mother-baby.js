@@ -361,6 +361,7 @@ function mbOnClick(e) {
     if (mb.family.role === 'baby' && role !== 'baby' && mb.copied) { mbUndoCopy(); updateFormPreviews(); }
     mb.pendingRole = mb.family.role === role ? null : role;
     mb.family.role = mb.pendingRole || '';
+    applyBabyPin(mb.family.role === 'baby');   // a baby's PIN is all zeros (js/app.js)
     if (mb.family.role === 'baby' && !mb.family.mothersLoaded) {
       mbRun(async () => {
         mb.family.mothers = (await mbGet('/mothers')).mothers;
@@ -379,6 +380,7 @@ function mbOnClick(e) {
     } else {
       mb.family = await mbPut({ role });
     }
+    applyBabyPin(mb.family.role === 'baby');
     logActivity(`Patient marked as ${MB_ROLE_LABELS[role].toLowerCase()} (claim #${mb.claimId})`, 'info');
   });
 }
