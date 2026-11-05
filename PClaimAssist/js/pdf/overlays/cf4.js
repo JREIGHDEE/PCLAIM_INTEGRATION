@@ -61,8 +61,10 @@ window.PDF_OVERLAY_CF4 = [
   { id:'cf4AdmHH2', key:'cf4AdmHH2', page:1, top:36.411, left:67.81, w:2.451, fs:7, center:true, digit:1, digitKey:'cf4TimeAdmittedDigits' },
   { id:'cf4AdmMI1', key:'cf4AdmMI1', page:1, top:36.411, left:72.712, w:2.451, fs:7, center:true, digit:2, digitKey:'cf4TimeAdmittedDigits' },
   { id:'cf4AdmMI2', key:'cf4AdmMI2', page:1, top:36.411, left:75.163, w:2.451, fs:7, center:true, digit:3, digitKey:'cf4TimeAdmittedDigits' },
-  { id:'cf4AdmAM', key:'amPmAdmitted', page:1, top:36.234, left:78.431, w:1.634, fs:9, center:true, checkbox:true, checkValue:'AM' },
-  { id:'cf4AdmPM', key:'amPmAdmitted', page:1, top:36.234, left:84.15, w:1.634, fs:9, center:true, checkbox:true, checkValue:'PM' },
+  // AM/PM ticked from the time itself, as on CF2: no time, no tick (the AM/PM
+  // choice starts at AM, which alone ticked AM on a claim with no time).
+  { id:'cf4AdmAM', key:'timeAdmitted', page:1, top:36.234, left:78.431, w:1.634, fs:9, center:true, amPmCheck:'AM' },
+  { id:'cf4AdmPM', key:'timeAdmitted', page:1, top:36.234, left:84.15, w:1.634, fs:9, center:true, amPmCheck:'PM' },
 
   // 10. Date / Time Discharged
   { id:'cf4DisMM1', key:'cf4DisMM1', page:1, top:39.883, left:19.608, w:2.451, fs:7, center:true, digit:0, digitKey:'dateDischarge', digitOrder:'mmddyyyy' },
@@ -77,8 +79,8 @@ window.PDF_OVERLAY_CF4 = [
   { id:'cf4DisHH2', key:'cf4DisHH2', page:1, top:39.883, left:67.81, w:2.451, fs:7, center:true, digit:1, digitKey:'cf4TimeDischargeDigits' },
   { id:'cf4DisMI1', key:'cf4DisMI1', page:1, top:39.883, left:72.712, w:2.451, fs:7, center:true, digit:2, digitKey:'cf4TimeDischargeDigits' },
   { id:'cf4DisMI2', key:'cf4DisMI2', page:1, top:39.883, left:75.163, w:2.451, fs:7, center:true, digit:3, digitKey:'cf4TimeDischargeDigits' },
-  { id:'cf4DisAM', key:'amPmDischarge', page:1, top:39.706, left:78.431, w:1.634, fs:9, center:true, checkbox:true, checkValue:'AM' },
-  { id:'cf4DisPM', key:'amPmDischarge', page:1, top:39.706, left:84.15, w:1.634, fs:9, center:true, checkbox:true, checkValue:'PM' },
+  { id:'cf4DisAM', key:'timeDischarge', page:1, top:39.706, left:78.431, w:1.634, fs:9, center:true, amPmCheck:'AM' },
+  { id:'cf4DisPM', key:'timeDischarge', page:1, top:39.706, left:84.15, w:1.634, fs:9, center:true, amPmCheck:'PM' },
 
   // III. Reason for Admission
   { id:'cf4HistoryPresentIllness', key:'cf4HistoryPresentIllness', page:1, top:45.405, left:2.45, w:95.0, fs:7, wrap:true, maxLines:9, lines:8, lh:9.2 },

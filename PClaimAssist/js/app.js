@@ -762,8 +762,23 @@ function getComputedValue(key) {
 }
 
 const MAILING_PARTS = ['Unit', 'Building', 'Lot', 'Street', 'Subdivision', 'Barangay', 'City', 'Province', 'Zip'];
+/* A mailing address counts as given only when a part holds more than the
+   usual value the box starts with (data-default: DAVAO CITY, DAVAO DEL
+   SUR). Otherwise those two alone made CF1 print a half address - city and
+   province, with N/A for the street and barangay - instead of the home
+   address (field mapping test). */
+let mailingDefaults = null;
 function mailingGiven(d) {
-  return MAILING_PARTS.some(part => String(d['mailingAddr' + part] || '').trim());
+  if (!mailingDefaults) {
+    mailingDefaults = {};
+    document.querySelectorAll('[data-autofill^="mailingAddr"][data-default]').forEach(el => {
+      mailingDefaults[el.dataset.autofill] = String(el.dataset.default).trim().toUpperCase();
+    });
+  }
+  return MAILING_PARTS.some(part => {
+    const value = String(d['mailingAddr' + part] || '').trim().toUpperCase();
+    return value && value !== mailingDefaults['mailingAddr' + part];
+  });
 }
 
 function isPMTime(hhmm) {

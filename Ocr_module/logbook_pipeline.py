@@ -8,9 +8,11 @@ The full server-side flow for one uploaded logbook scan (image or PDF):
                          straightened (template_engine.deskew) - a tilt of
                          half a degree hides the printed lines everything
                          below is placed by
-  2. IQ-01             - image_quality.assess_image_quality() per page.
+  2. IQ-01             - image_quality.assess_logbook_page() per page.
                          Advisory only: warnings are shown at the top of
-                         the review, OCR always runs.
+                         the review, OCR always runs - on a dim, washed-out
+                         or too-dark page, on an evened-out copy
+                         (image_quality.enhance_for_ocr).
   3. template match    - template_engine.match_templates() against the saved
                          grid templates, by page side for PDFs, scored
                          mainly by how the template's columns land on the
@@ -61,7 +63,7 @@ import numpy as np
 import config
 import logbook_layout
 import paddle_assist
-from image_quality import IQ_RULE_ID, assess_image_quality
+from image_quality import IQ_RULE_ID, assess_logbook_page, enhance_for_ocr, needs_enhancing
 from philhealth import case_bridge, field_catalog, review_fields
 from template_engine import (
     TemplateAutoDetector,
@@ -454,7 +456,7 @@ def build_review_rows(path, ocr_fn, templates, upload_id=None, progress=None, co
     Returns {
       "upload_id", "thresholds",
       "image_quality": {"rule_id": "IQ-01", "passed", "warnings": [...],
-                        "pages": [{"page", ...assess_image_quality()}]},
+                        "pages": [{"page", "enhanced", ...assess_logbook_page()}]},
       "pages": [{"page", "parity", "template", "match_score", "rows", "error"}],
       "rows": [{"spread", "row", "pages", "fields": [field, ...]}],
     }
@@ -483,6 +485,12 @@ def build_review_rows(path, ocr_fn, templates, upload_id=None, progress=None, co
     read_share = 0.85 if corrector else 1.0
     report_progress(0.0, "Opening the scan")
     pages = load_pages(path)
+    # IQ-01 on each page as it was scanned (that is what the warning is
+    # about); a dim, washed-out or too-dark page is then evened out before its
+    # rows, columns and cells are found and read (image_quality.enhance_for_ocr).
+    page_quality = [assess_logbook_page(image) for _, image, _ in pages]
+    if config.IMAGE_QUALITY_ENHANCE:
+        pages = [(n, enhance_for_ocr(image, iq), parity) for (n, image, parity), iq in zip(pages, page_quality)]
     page_count = len(pages)
     page_rules = [detect_ruling_lines(image) for _, image, _ in pages]
     page_layouts = [analyze_document_layout(image) for _, image, _ in pages]
@@ -498,8 +506,8 @@ def build_review_rows(path, ocr_fn, templates, upload_id=None, progress=None, co
 
     for page_index, (page_number, image, parity) in enumerate(pages):
         report_progress(read_share * page_index / page_count, f"Finding the rows on page {page_number} of {page_count}")
-        iq = assess_image_quality(image)
-        iq_pages.append({"page": page_number, **iq})
+        iq = page_quality[page_index]
+        iq_pages.append({"page": page_number, "enhanced": config.IMAGE_QUALITY_ENHANCE and needs_enhancing(iq), **iq})
         for warning in iq["warnings"]:
             logger.warning("%s page %s: %s", IQ_RULE_ID, page_number, warning)
 

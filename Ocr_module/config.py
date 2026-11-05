@@ -195,6 +195,31 @@ IMAGE_QUALITY_BRIGHTNESS_HIGH = _env_float("OCR_IMAGE_QUALITY_BRIGHTNESS_HIGH", 
 # the same pages blended 65% toward white measured ~184-186.
 IMAGE_QUALITY_INK_MAX = _env_float("OCR_IMAGE_QUALITY_INK_MAX", 150.0)
 
+# ── Logbook page checks (image_quality.assess_logbook_page) ─────────────────
+# The checks above are for any picture and only trip on extreme ones. A
+# logbook page is white paper with handwriting, so these add the milder
+# problems that still cost the OCR 10-15 points of character accuracy
+# (research_tests iq_check, real dark/bright/blurred scans). Measured on the
+# 60 good logbook pages (scanner, phone, and the IQ set's untouched pages):
+# - dim page: mean brightness of good pages 230.4 or more; the darkened ones
+#   128-211.
+IMAGE_QUALITY_DIM_BELOW = _env_float("OCR_IMAGE_QUALITY_DIM_BELOW", 220.0)
+# - soft focus: sharpness (variance of the Laplacian) measured on the page
+#   scaled to 1000 px wide, so it does not depend on the scan's resolution.
+#   Good pages 346 or more; the blurred ones 58-152.
+IMAGE_QUALITY_SHARPNESS_MIN = _env_float("OCR_IMAGE_QUALITY_SHARPNESS_MIN", 200.0)
+# - washed out: the paper bleached to pure white (this share of the page at
+#   250 or above) AND the writing faint (the darkest 0.1%, as IMAGE_QUALITY_
+#   INK_MAX measures it, no darker than this). Bleached pages with dark
+#   writing - phone-app scans, a whitened scan - measured 1-86; the
+#   brightened pages 104-121.
+IMAGE_QUALITY_WASHED_WHITE_SHARE = _env_float("OCR_IMAGE_QUALITY_WASHED_WHITE_SHARE", 0.5)
+IMAGE_QUALITY_WASHED_INK_MIN = _env_float("OCR_IMAGE_QUALITY_WASHED_INK_MIN", 100.0)
+# Before reading, a page flagged dim, washed out or too dark is evened out
+# (image_quality.enhance_for_ocr); the warning still asks staff to rescan.
+# A blurred page is only warned about: sharpening it did not help the OCR.
+IMAGE_QUALITY_ENHANCE = _env_bool("OCR_IMAGE_QUALITY_ENHANCE", True)
+
 # ── OCR field confidence routing (see logbook_pipeline.route_confidence) ──
 # Per-field PaddleOCR confidence (0-1; the lowest token confidence in the
 # cell) decides how the review UI treats each field:

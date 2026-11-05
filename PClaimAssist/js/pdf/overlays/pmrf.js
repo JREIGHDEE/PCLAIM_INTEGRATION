@@ -115,19 +115,20 @@ window.PDF_OVERLAY_PMRF = [
   { id:'addrZip', key:'addrZip', page:1, top:50.712, left:59.908, w:6.717, fs:9 },
   { id:'mobile', key:'mobile', page:1, top:51.552, left:67.997, w:27.758, fs:9 },
 
-  // Mailing Address
+  // Mailing Address - as on CF1: the mailing address given, or the home
+  // address when none was (getComputedValue cf1MailingAddr...).
   { id:'mailingSameAsAbove', key:'mailingSameAsAbove', page:1, top:52.598, left:19.482, w:1.324, fs:9, center:true, checkbox:true },
   { id:'businessPhone', key:'businessPhone', page:1, top:54.853, left:68.054, w:27.701, fs:9 },
-  { id:'mailingAddrUnit', key:'mailingAddrUnit', page:1, top:55.109, left:3.329, w:12.711, fs:9 },
-  { id:'mailingAddrBuilding', key:'mailingAddrBuilding', page:1, top:55.109, left:16.377, w:9.853, fs:9 },
-  { id:'mailingAddrLot', key:'mailingAddrLot', page:1, top:55.109, left:26.566, w:22.833, fs:9 },
-  { id:'mailingAddrStreet', key:'mailingAddrStreet', page:1, top:55.109, left:49.735, w:16.889, fs:9 },
+  { id:'mailingAddrUnit', key:'mailingAddrUnit', computed:'cf1MailingAddrUnit', page:1, top:55.109, left:3.329, w:12.711, fs:9 },
+  { id:'mailingAddrBuilding', key:'mailingAddrBuilding', computed:'cf1MailingAddrBuilding', page:1, top:55.109, left:16.377, w:9.853, fs:9 },
+  { id:'mailingAddrLot', key:'mailingAddrLot', computed:'cf1MailingAddrLot', page:1, top:55.109, left:26.566, w:22.833, fs:9 },
+  { id:'mailingAddrStreet', key:'mailingAddrStreet', computed:'cf1MailingAddrStreet', page:1, top:55.109, left:49.735, w:16.889, fs:9 },
   { id:'email', key:'email', page:1, top:58.088, left:68.054, w:27.701, fs:9 },
-  { id:'mailingAddrSubdivision', key:'mailingAddrSubdivision', page:1, top:58.389, left:3.279, w:10.862, fs:9 },
-  { id:'mailingAddrBarangay', key:'mailingAddrBarangay', page:1, top:58.389, left:14.477, w:11.248, fs:9 },
-  { id:'mailingAddrCity', key:'mailingAddrCity', page:1, top:58.389, left:26.061, w:11.03, fs:9 },
-  { id:'mailingAddrProvince', key:'mailingAddrProvince', page:1, top:58.389, left:37.427, w:22.093, fs:9 },
-  { id:'mailingAddrZip', key:'mailingAddrZip', page:1, top:58.389, left:59.857, w:6.768, fs:9 },
+  { id:'mailingAddrSubdivision', key:'mailingAddrSubdivision', computed:'cf1MailingAddrSubdivision', page:1, top:58.389, left:3.279, w:10.862, fs:9 },
+  { id:'mailingAddrBarangay', key:'mailingAddrBarangay', computed:'cf1MailingAddrBarangay', page:1, top:58.389, left:14.477, w:11.248, fs:9 },
+  { id:'mailingAddrCity', key:'mailingAddrCity', computed:'cf1MailingAddrCity', page:1, top:58.389, left:26.061, w:11.03, fs:9 },
+  { id:'mailingAddrProvince', key:'mailingAddrProvince', computed:'cf1MailingAddrProvince', page:1, top:58.389, left:37.427, w:22.093, fs:9 },
+  { id:'mailingAddrZip', key:'mailingAddrZip', computed:'cf1MailingAddrZip', page:1, top:58.389, left:59.857, w:6.768, fs:9 },
 
   // Declaration of Dependents (4 rows — row 1 reuses the shared "patient" fields)
   { id:'patientLastName', key:'patientLastName', page:1, top:66.521, left:3.279, w:16.898, fs:8, center:true },

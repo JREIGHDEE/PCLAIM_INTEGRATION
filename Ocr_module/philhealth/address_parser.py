@@ -88,6 +88,7 @@ _LOT = re.compile(r"\b(?:BLK|BLOCK|BL)\.?\s*(\w+)\s*,?\s*(?:LOT|LT)\.?\s*(\w+)|\
 _SUBDIVISION = re.compile(
     r"((?:[A-Z][A-Z\-']*\s+){1,2})(HOMES|HOMESITE|VILLAGE|VILL|SUBDIVISION|SUBD|HEIGHTS|HTS|ESTATES?|"
     r"RESIDENCES|TOWNHOMES|PARK)\b\.?(\s+PHASE\s*\w+)?")
+_VILLE = re.compile(r"\b([A-Z][A-Z\-']{2,}VILLE)\b")
 # Words that say where something is, not part of its name ("BESIDE EMILY HOMES").
 _NOT_A_NAME = {"BESIDE", "BESIDES", "NEAR", "BEHIND", "INFRONT", "FRONT", "ALONG", "OF", "AT", "THE", "IN"}
 
@@ -236,6 +237,14 @@ def split_address(text):
             # "PHASE 1" belongs to the subdivision, before or after its name.
             phase_text = (found.group(3) or "").strip() or (f"PHASE {phase.group(1)}" if phase else "")
             parts["addr_subdivision"] = " ".join(words + [found.group(2)] + ([phase_text] if phase_text else []))
+            rest = _take(rest, found)
+            phase = None
+    if "addr_subdivision" not in parts:
+        # One word ending in VILLE is a subdivision too ("RAMONAVILLE",
+        # "DACOVILLE"), not a street.
+        found = _VILLE.search(rest)
+        if found:
+            parts["addr_subdivision"] = " ".join([found.group(1)] + ([f"PHASE {phase.group(1)}"] if phase else []))
             rest = _take(rest, found)
             phase = None
     if phase:  # a phase with no subdivision found: keep it in the street
