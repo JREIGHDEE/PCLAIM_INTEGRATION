@@ -8,7 +8,8 @@ import cv2
 import numpy as np
 
 import config
-from image_quality import assess_image_quality, compute_blur_score, compute_brightness_score
+from image_quality import (assess_image_quality, assess_logbook_page, compute_blur_score,
+                           compute_brightness_score, enhance_for_ocr)
 
 
 def _solid_image(value, size=200):
@@ -98,6 +99,73 @@ class AssessImageQualityTests(unittest.TestCase):
         result = assess_image_quality(None)
         self.assertEqual(result["blur_score"], 0.0)
         self.assertEqual(result["brightness_score"], 0.0)
+
+
+def _logbook_page(seed=1):
+    """A synthetic logbook page: off-white paper (~238), printed ruled lines,
+    and dark handwriting-like strokes - what a good scan looks like."""
+    rng = np.random.default_rng(seed)
+    page = np.full((1400, 1000), 238, dtype=np.uint8)
+    for y in range(80, 1400, 46):
+        page[y:y + 2, :] = 150                                  # ruled lines
+    for x in (120, 320, 560, 760):
+        page[:, x:x + 2] = 150                                  # column lines
+    for _ in range(900):                                        # pen strokes
+        x, y = int(rng.integers(20, 960)), int(rng.integers(20, 1370))
+        cv2.line(page, (x, y), (x + int(rng.integers(-14, 15)), y + int(rng.integers(4, 18))), 30, 2)
+    return cv2.cvtColor(page, cv2.COLOR_GRAY2BGR)
+
+
+class LogbookPageTests(unittest.TestCase):
+    def test_good_page_passes(self):
+        result = assess_logbook_page(_logbook_page())
+        self.assertTrue(result["passed"], result["warnings"])
+        self.assertFalse(result["is_dim"] or result["is_soft"] or result["is_washed_out"])
+
+    def test_dim_page_is_flagged_but_not_as_too_dark(self):
+        dim = (_logbook_page().astype(np.float32) * 0.8).astype(np.uint8)       # ~190, far above 60
+        result = assess_logbook_page(dim)
+        self.assertTrue(result["is_dim"])
+        self.assertFalse(result["is_too_dark"])
+        self.assertFalse(result["passed"])
+
+    def test_blurred_page_is_flagged(self):
+        # Blurred enough, the general blur rule fires first; the logbook
+        # soft-focus rule covers the milder blur it lets through (measured on
+        # real blurred scans in research_tests iq_check).
+        soft = cv2.GaussianBlur(_logbook_page(), (0, 0), 4)
+        result = assess_logbook_page(soft)
+        self.assertTrue(result["is_soft"] or result["is_blurry"])
+        self.assertFalse(result["passed"])
+
+    def test_washed_out_page_is_flagged(self):
+        page = _logbook_page().astype(np.float32)
+        washed = np.clip(page * 0.6 + 110, 0, 255).astype(np.uint8)           # paper bleached, ink ~128
+        result = assess_logbook_page(washed)
+        self.assertFalse(result["is_too_bright"])                              # too mild for the general rule
+        self.assertTrue(result["is_washed_out"])
+        self.assertFalse(result["passed"])
+
+    def test_bleached_paper_with_dark_ink_is_not_washed_out(self):
+        # A phone-app scan: the paper is pure white but the writing stays dark.
+        page = _logbook_page()
+        page[page > 200] = 255
+        result = assess_logbook_page(page)
+        self.assertFalse(result["is_washed_out"])
+        self.assertTrue(result["passed"], result["warnings"])
+
+    def test_enhancing_restores_a_dim_page_and_leaves_a_good_one_alone(self):
+        good = _logbook_page()
+        self.assertIs(enhance_for_ocr(good, assess_logbook_page(good)), good)
+        dim = (good.astype(np.float32) * 0.7).astype(np.uint8)
+        fixed = enhance_for_ocr(dim, assess_logbook_page(dim))
+        self.assertGreater(compute_brightness_score(fixed), config.IMAGE_QUALITY_DIM_BELOW)
+        self.assertLess(float(np.percentile(fixed, 0.5)), 60)                  # the ink is dark again
+
+    def test_never_raises_on_none(self):
+        result = assess_logbook_page(None)
+        self.assertFalse(result["passed"] and result["is_dim"])
+        self.assertIsNone(enhance_for_ocr(None, result))
 
 
 if __name__ == "__main__":

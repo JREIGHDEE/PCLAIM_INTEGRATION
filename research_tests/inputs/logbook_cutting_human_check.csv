@@ -1,0 +1,1981 @@
+Scan,Writer,Page,Row,Category,Tag,Suggested,Note,Tagged at
+scanner,W01,1,1,Case number,correct,correct,,2026-11-05 11:57:22
+scanner,W01,1,1,Birthday,correct,correct,,2026-11-05 11:57:00
+scanner,W01,1,2,Birthday,correct,correct,,2026-11-05 11:57:00
+scanner,W01,1,3,Birthday,correct,correct,,2026-11-05 11:57:00
+scanner,W01,1,4,Birthday,correct,correct,,2026-11-05 11:57:00
+scanner,W01,1,5,Birthday,correct,correct,,2026-11-05 11:57:00
+scanner,W01,1,6,Birthday,correct,correct,,2026-11-05 11:57:00
+scanner,W01,1,7,Birthday,correct,correct,,2026-11-05 11:57:00
+scanner,W01,1,8,Birthday,correct,correct,,2026-11-05 11:57:00
+scanner,W01,1,9,Birthday,correct,correct,,2026-11-05 11:57:00
+scanner,W01,1,10,Birthday,correct,correct,,2026-11-05 11:57:00
+scanner,W01,1,11,Birthday,correct,correct,,2026-11-05 11:57:00
+scanner,W01,1,1,Address,partly,correct,,2026-11-05 11:57:05
+scanner,W01,1,2,Address,correct,correct,,2026-11-05 11:57:01
+scanner,W01,1,3,Address,partly,correct,,2026-11-05 11:57:13
+scanner,W01,1,4,Address,partly,correct,,2026-11-05 11:57:12
+scanner,W01,1,5,Address,partly,correct,,2026-11-05 11:57:09
+scanner,W01,1,6,Address,partly,correct,,2026-11-05 11:57:15
+scanner,W01,1,7,Address,correct,correct,,2026-11-05 11:57:01
+scanner,W01,1,8,Address,partly,correct,,2026-11-05 11:57:17
+scanner,W01,1,9,Address,partly,correct,,2026-11-05 11:57:17
+scanner,W01,1,10,Address,partly,correct,,2026-11-05 11:57:20
+scanner,W01,1,11,Address,partly,correct,,2026-11-05 11:57:19
+scanner,W01,1,2,Case number,correct,correct,,2026-11-05 11:57:22
+scanner,W01,1,3,Case number,correct,correct,,2026-11-05 11:57:22
+scanner,W01,1,4,Case number,correct,correct,,2026-11-05 11:57:22
+scanner,W01,1,5,Case number,correct,correct,,2026-11-05 11:57:22
+scanner,W01,1,6,Case number,correct,correct,,2026-11-05 11:57:22
+scanner,W01,1,7,Case number,correct,correct,,2026-11-05 11:57:22
+scanner,W01,1,8,Case number,correct,correct,,2026-11-05 11:57:22
+scanner,W01,1,9,Case number,correct,correct,,2026-11-05 11:57:22
+scanner,W01,1,10,Case number,correct,correct,,2026-11-05 11:57:22
+scanner,W01,1,11,Case number,correct,correct,,2026-11-05 11:57:22
+scanner,W01,1,1,Admitted,correct,correct,,2026-11-05 11:57:23
+scanner,W01,1,2,Admitted,correct,correct,,2026-11-05 11:57:23
+scanner,W01,1,3,Admitted,correct,correct,,2026-11-05 11:57:23
+scanner,W01,1,4,Admitted,correct,correct,,2026-11-05 11:57:23
+scanner,W01,1,5,Admitted,correct,correct,,2026-11-05 11:57:23
+scanner,W01,1,6,Admitted,correct,correct,,2026-11-05 11:57:23
+scanner,W01,1,7,Admitted,correct,correct,,2026-11-05 11:57:23
+scanner,W01,1,8,Admitted,correct,correct,,2026-11-05 11:57:23
+scanner,W01,1,9,Admitted,correct,correct,,2026-11-05 11:57:23
+scanner,W01,1,10,Admitted,correct,correct,,2026-11-05 11:57:23
+scanner,W01,1,11,Admitted,correct,correct,,2026-11-05 11:57:23
+scanner,W01,1,1,Patient name,correct,correct,,2026-11-05 11:57:24
+scanner,W01,1,2,Patient name,correct,correct,,2026-11-05 11:57:24
+scanner,W01,1,3,Patient name,correct,correct,,2026-11-05 11:57:24
+scanner,W01,1,4,Patient name,correct,correct,,2026-11-05 11:57:24
+scanner,W01,1,5,Patient name,correct,correct,,2026-11-05 11:57:24
+scanner,W01,1,6,Patient name,correct,correct,,2026-11-05 11:57:24
+scanner,W01,1,7,Patient name,correct,correct,,2026-11-05 11:57:24
+scanner,W01,1,8,Patient name,correct,correct,,2026-11-05 11:57:24
+scanner,W01,1,9,Patient name,correct,correct,,2026-11-05 11:57:24
+scanner,W01,1,10,Patient name,correct,correct,,2026-11-05 11:57:24
+scanner,W01,1,11,Patient name,correct,correct,,2026-11-05 11:57:24
+scanner,W01,2,1,Went home,correct,correct,,2026-11-05 11:57:30
+scanner,W01,2,2,Went home,correct,correct,,2026-11-05 11:57:30
+scanner,W01,2,3,Went home,correct,correct,,2026-11-05 11:57:30
+scanner,W01,2,4,Went home,correct,correct,,2026-11-05 11:57:30
+scanner,W01,2,5,Went home,correct,correct,,2026-11-05 11:57:30
+scanner,W01,2,6,Went home,correct,correct,,2026-11-05 11:57:30
+scanner,W01,2,7,Went home,correct,correct,,2026-11-05 11:57:30
+scanner,W01,2,8,Went home,correct,correct,,2026-11-05 11:57:30
+scanner,W01,2,9,Went home,correct,correct,,2026-11-05 11:57:30
+scanner,W01,2,10,Went home,correct,correct,,2026-11-05 11:57:30
+scanner,W01,2,11,Went home,correct,correct,,2026-11-05 11:57:30
+scanner,W01,2,1,Final diagnosis,correct,correct,,2026-11-05 11:57:31
+scanner,W01,2,2,Final diagnosis,correct,correct,,2026-11-05 11:57:31
+scanner,W01,2,3,Final diagnosis,correct,correct,,2026-11-05 11:57:31
+scanner,W01,2,4,Final diagnosis,correct,correct,,2026-11-05 11:57:31
+scanner,W01,2,5,Final diagnosis,correct,correct,,2026-11-05 11:57:31
+scanner,W01,2,6,Final diagnosis,correct,correct,,2026-11-05 11:57:31
+scanner,W01,2,7,Final diagnosis,correct,correct,,2026-11-05 11:57:31
+scanner,W01,2,8,Final diagnosis,correct,correct,,2026-11-05 11:57:31
+scanner,W01,2,9,Final diagnosis,correct,correct,,2026-11-05 11:57:31
+scanner,W01,2,10,Final diagnosis,correct,correct,,2026-11-05 11:57:31
+scanner,W01,2,11,Final diagnosis,correct,correct,,2026-11-05 11:57:31
+scanner,W01,2,1,Delivered,correct,correct,,2026-11-05 11:57:31
+scanner,W01,2,2,Delivered,correct,correct,,2026-11-05 11:57:31
+scanner,W01,2,3,Delivered,correct,correct,,2026-11-05 11:57:31
+scanner,W01,2,4,Delivered,correct,correct,,2026-11-05 11:57:31
+scanner,W01,2,5,Delivered,correct,correct,,2026-11-05 11:57:31
+scanner,W01,2,6,Delivered,correct,correct,,2026-11-05 11:57:31
+scanner,W01,2,7,Delivered,correct,correct,,2026-11-05 11:57:31
+scanner,W01,2,8,Delivered,correct,correct,,2026-11-05 11:57:31
+scanner,W01,2,9,Delivered,correct,correct,,2026-11-05 11:57:31
+scanner,W01,2,10,Delivered,correct,correct,,2026-11-05 11:57:31
+scanner,W01,2,11,Delivered,correct,correct,,2026-11-05 11:57:31
+scanner,W01,2,1,Reason for admission,partly,correct,,2026-11-05 11:57:42
+scanner,W01,2,2,Reason for admission,partly,correct,,2026-11-05 11:57:45
+scanner,W01,2,3,Reason for admission,correct,correct,,2026-11-05 11:57:40
+scanner,W01,2,4,Reason for admission,correct,correct,,2026-11-05 11:57:40
+scanner,W01,2,5,Reason for admission,correct,correct,,2026-11-05 11:57:40
+scanner,W01,2,6,Reason for admission,correct,correct,,2026-11-05 11:57:40
+scanner,W01,2,7,Reason for admission,correct,correct,,2026-11-05 11:57:40
+scanner,W01,2,8,Reason for admission,correct,correct,,2026-11-05 11:57:40
+scanner,W01,2,9,Reason for admission,correct,correct,,2026-11-05 11:57:40
+scanner,W01,2,10,Reason for admission,correct,correct,,2026-11-05 11:57:40
+scanner,W01,2,11,Reason for admission,correct,correct,,2026-11-05 11:57:40
+scanner,W02,1,1,Address,correct,correct,,2026-11-05 11:57:59
+scanner,W02,1,2,Address,correct,correct,,2026-11-05 11:57:59
+scanner,W02,1,3,Address,correct,correct,,2026-11-05 11:57:59
+scanner,W02,1,4,Address,correct,correct,,2026-11-05 11:57:59
+scanner,W02,1,5,Address,correct,correct,,2026-11-05 11:57:59
+scanner,W02,1,6,Address,correct,correct,,2026-11-05 11:57:59
+scanner,W02,1,7,Address,correct,correct,,2026-11-05 11:57:59
+scanner,W02,1,8,Address,correct,correct,,2026-11-05 11:57:59
+scanner,W02,1,9,Address,correct,correct,,2026-11-05 11:57:59
+scanner,W02,1,10,Address,correct,correct,,2026-11-05 11:57:59
+scanner,W02,1,11,Address,correct,correct,,2026-11-05 11:57:59
+scanner,W02,1,1,Birthday,correct,correct,,2026-11-05 11:58:00
+scanner,W02,1,2,Birthday,correct,correct,,2026-11-05 11:58:00
+scanner,W02,1,3,Birthday,correct,correct,,2026-11-05 11:58:00
+scanner,W02,1,4,Birthday,correct,correct,,2026-11-05 11:58:00
+scanner,W02,1,5,Birthday,correct,correct,,2026-11-05 11:58:00
+scanner,W02,1,6,Birthday,correct,correct,,2026-11-05 11:58:00
+scanner,W02,1,7,Birthday,correct,correct,,2026-11-05 11:58:00
+scanner,W02,1,8,Birthday,correct,correct,,2026-11-05 11:58:00
+scanner,W02,1,9,Birthday,correct,correct,,2026-11-05 11:58:00
+scanner,W02,1,10,Birthday,correct,correct,,2026-11-05 11:58:00
+scanner,W02,1,11,Birthday,correct,correct,,2026-11-05 11:58:00
+scanner,W02,1,1,Patient name,partly,partly,,2026-11-05 11:58:01
+scanner,W02,1,2,Patient name,partly,partly,,2026-11-05 11:58:01
+scanner,W02,1,3,Patient name,partly,partly,,2026-11-05 11:58:01
+scanner,W02,1,4,Patient name,partly,partly,,2026-11-05 11:58:01
+scanner,W02,1,5,Patient name,partly,partly,,2026-11-05 11:58:01
+scanner,W02,1,6,Patient name,partly,partly,,2026-11-05 11:58:01
+scanner,W02,1,7,Patient name,partly,partly,,2026-11-05 11:58:01
+scanner,W02,1,8,Patient name,partly,partly,,2026-11-05 11:58:01
+scanner,W02,1,9,Patient name,partly,partly,,2026-11-05 11:58:01
+scanner,W02,1,10,Patient name,partly,partly,,2026-11-05 11:58:01
+scanner,W02,1,11,Patient name,partly,partly,,2026-11-05 11:58:01
+scanner,W02,1,1,Admitted,partly,partly,,2026-11-05 11:58:08
+scanner,W02,1,2,Admitted,partly,partly,,2026-11-05 11:58:13
+scanner,W02,1,3,Admitted,partly,partly,,2026-11-05 11:58:08
+scanner,W02,1,4,Admitted,partly,partly,,2026-11-05 11:58:08
+scanner,W02,1,5,Admitted,partly,partly,,2026-11-05 11:58:08
+scanner,W02,1,6,Admitted,partly,partly,,2026-11-05 11:58:08
+scanner,W02,1,7,Admitted,partly,partly,,2026-11-05 11:58:08
+scanner,W02,1,8,Admitted,partly,partly,,2026-11-05 11:58:08
+scanner,W02,1,9,Admitted,partly,partly,,2026-11-05 11:58:08
+scanner,W02,1,10,Admitted,partly,partly,,2026-11-05 11:58:08
+scanner,W02,1,11,Admitted,partly,partly,,2026-11-05 11:58:08
+scanner,W02,1,1,Case number,partly,partly,,2026-11-05 11:58:18
+scanner,W02,1,2,Case number,partly,partly,,2026-11-05 11:58:18
+scanner,W02,1,3,Case number,partly,partly,,2026-11-05 11:58:18
+scanner,W02,1,4,Case number,partly,partly,,2026-11-05 11:58:18
+scanner,W02,1,5,Case number,partly,partly,,2026-11-05 11:58:18
+scanner,W02,1,6,Case number,partly,partly,,2026-11-05 11:58:18
+scanner,W02,1,7,Case number,partly,partly,,2026-11-05 11:58:18
+scanner,W02,1,8,Case number,partly,partly,,2026-11-05 11:58:18
+scanner,W02,1,9,Case number,partly,partly,,2026-11-05 11:58:18
+scanner,W02,1,10,Case number,partly,partly,,2026-11-05 11:58:18
+scanner,W02,1,11,Case number,partly,partly,,2026-11-05 11:58:18
+scanner,W02,2,1,Went home,partly,correct,,2026-11-05 11:58:23
+scanner,W02,2,2,Went home,correct,correct,,2026-11-05 11:58:21
+scanner,W02,2,3,Went home,partly,correct,,2026-11-05 11:58:27
+scanner,W02,2,4,Went home,partly,correct,,2026-11-05 11:58:27
+scanner,W02,2,5,Went home,partly,correct,,2026-11-05 11:58:29
+scanner,W02,2,6,Went home,partly,correct,,2026-11-05 11:58:30
+scanner,W02,2,7,Went home,correct,correct,,2026-11-05 11:58:21
+scanner,W02,2,8,Went home,correct,correct,,2026-11-05 11:58:21
+scanner,W02,2,9,Went home,correct,correct,,2026-11-05 11:58:21
+scanner,W02,2,10,Went home,correct,correct,,2026-11-05 11:58:21
+scanner,W02,2,11,Went home,correct,correct,,2026-11-05 11:58:21
+scanner,W02,2,1,Final diagnosis,correct,correct,,2026-11-05 11:58:35
+scanner,W02,2,2,Final diagnosis,correct,correct,,2026-11-05 11:58:35
+scanner,W02,2,3,Final diagnosis,correct,correct,,2026-11-05 11:58:35
+scanner,W02,2,4,Final diagnosis,correct,correct,,2026-11-05 11:58:35
+scanner,W02,2,5,Final diagnosis,correct,correct,,2026-11-05 11:58:35
+scanner,W02,2,6,Final diagnosis,correct,correct,,2026-11-05 11:58:35
+scanner,W02,2,7,Final diagnosis,correct,correct,,2026-11-05 11:58:35
+scanner,W02,2,8,Final diagnosis,correct,correct,,2026-11-05 11:58:35
+scanner,W02,2,9,Final diagnosis,correct,correct,,2026-11-05 11:58:35
+scanner,W02,2,10,Final diagnosis,correct,correct,,2026-11-05 11:58:35
+scanner,W02,2,11,Final diagnosis,correct,correct,,2026-11-05 11:58:35
+scanner,W02,2,1,Delivered,correct,correct,,2026-11-05 11:58:36
+scanner,W02,2,2,Delivered,correct,correct,,2026-11-05 11:58:36
+scanner,W02,2,3,Delivered,correct,correct,,2026-11-05 11:58:36
+scanner,W02,2,4,Delivered,correct,correct,,2026-11-05 11:58:36
+scanner,W02,2,5,Delivered,correct,correct,,2026-11-05 11:58:36
+scanner,W02,2,6,Delivered,correct,correct,,2026-11-05 11:58:36
+scanner,W02,2,7,Delivered,correct,correct,,2026-11-05 11:58:36
+scanner,W02,2,8,Delivered,correct,correct,,2026-11-05 11:58:36
+scanner,W02,2,9,Delivered,correct,correct,,2026-11-05 11:58:36
+scanner,W02,2,10,Delivered,correct,correct,,2026-11-05 11:58:36
+scanner,W02,2,11,Delivered,correct,correct,,2026-11-05 11:58:36
+scanner,W02,2,1,Reason for admission,correct,correct,,2026-11-05 11:58:38
+scanner,W02,2,2,Reason for admission,correct,correct,,2026-11-05 11:58:38
+scanner,W02,2,3,Reason for admission,correct,correct,,2026-11-05 11:58:38
+scanner,W02,2,4,Reason for admission,partly,correct,,2026-11-05 11:58:39
+scanner,W02,2,5,Reason for admission,correct,correct,,2026-11-05 11:58:38
+scanner,W02,2,6,Reason for admission,correct,correct,,2026-11-05 11:58:38
+scanner,W02,2,7,Reason for admission,partly,correct,,2026-11-05 11:58:43
+scanner,W02,2,8,Reason for admission,partly,correct,,2026-11-05 11:58:43
+scanner,W02,2,9,Reason for admission,correct,correct,,2026-11-05 11:58:38
+scanner,W02,2,10,Reason for admission,correct,correct,,2026-11-05 11:58:38
+scanner,W02,2,11,Reason for admission,correct,correct,,2026-11-05 11:58:38
+scanner,W03,1,1,Address,correct,correct,,2026-11-05 11:59:05
+scanner,W03,1,2,Address,correct,correct,,2026-11-05 11:59:05
+scanner,W03,1,3,Address,correct,correct,,2026-11-05 11:59:05
+scanner,W03,1,4,Address,correct,correct,,2026-11-05 11:59:05
+scanner,W03,1,5,Address,correct,correct,,2026-11-05 11:59:05
+scanner,W03,1,6,Address,correct,correct,,2026-11-05 11:59:05
+scanner,W03,1,7,Address,correct,correct,,2026-11-05 11:59:05
+scanner,W03,1,8,Address,correct,correct,,2026-11-05 11:59:05
+scanner,W03,1,9,Address,correct,correct,,2026-11-05 11:59:05
+scanner,W03,1,10,Address,correct,correct,,2026-11-05 11:59:05
+scanner,W03,1,11,Address,correct,correct,,2026-11-05 11:59:05
+scanner,W03,1,1,Birthday,correct,correct,,2026-11-05 11:59:06
+scanner,W03,1,2,Birthday,correct,correct,,2026-11-05 11:59:06
+scanner,W03,1,3,Birthday,correct,correct,,2026-11-05 11:59:06
+scanner,W03,1,4,Birthday,correct,correct,,2026-11-05 11:59:06
+scanner,W03,1,5,Birthday,correct,correct,,2026-11-05 11:59:06
+scanner,W03,1,6,Birthday,correct,correct,,2026-11-05 11:59:06
+scanner,W03,1,7,Birthday,correct,correct,,2026-11-05 11:59:06
+scanner,W03,1,8,Birthday,correct,correct,,2026-11-05 11:59:06
+scanner,W03,1,9,Birthday,correct,correct,,2026-11-05 11:59:06
+scanner,W03,1,10,Birthday,correct,correct,,2026-11-05 11:59:06
+scanner,W03,1,11,Birthday,correct,correct,,2026-11-05 11:59:06
+scanner,W03,1,1,Patient name,correct,correct,,2026-11-05 11:59:07
+scanner,W03,1,2,Patient name,correct,correct,,2026-11-05 11:59:07
+scanner,W03,1,3,Patient name,correct,correct,,2026-11-05 11:59:07
+scanner,W03,1,4,Patient name,correct,correct,,2026-11-05 11:59:07
+scanner,W03,1,5,Patient name,correct,correct,,2026-11-05 11:59:07
+scanner,W03,1,6,Patient name,correct,correct,,2026-11-05 11:59:07
+scanner,W03,1,7,Patient name,correct,correct,,2026-11-05 11:59:07
+scanner,W03,1,8,Patient name,correct,correct,,2026-11-05 11:59:07
+scanner,W03,1,9,Patient name,correct,correct,,2026-11-05 11:59:07
+scanner,W03,1,10,Patient name,correct,correct,,2026-11-05 11:59:07
+scanner,W03,1,11,Patient name,correct,correct,,2026-11-05 11:59:07
+scanner,W03,1,1,Admitted,correct,correct,,2026-11-05 11:59:08
+scanner,W03,1,2,Admitted,correct,correct,,2026-11-05 11:59:08
+scanner,W03,1,3,Admitted,correct,correct,,2026-11-05 11:59:08
+scanner,W03,1,4,Admitted,correct,correct,,2026-11-05 11:59:08
+scanner,W03,1,5,Admitted,correct,correct,,2026-11-05 11:59:08
+scanner,W03,1,6,Admitted,correct,correct,,2026-11-05 11:59:08
+scanner,W03,1,7,Admitted,correct,correct,,2026-11-05 11:59:08
+scanner,W03,1,8,Admitted,correct,correct,,2026-11-05 11:59:08
+scanner,W03,1,9,Admitted,correct,correct,,2026-11-05 11:59:08
+scanner,W03,1,10,Admitted,correct,correct,,2026-11-05 11:59:08
+scanner,W03,1,11,Admitted,correct,correct,,2026-11-05 11:59:08
+scanner,W03,1,1,Case number,correct,correct,,2026-11-05 11:59:08
+scanner,W03,1,2,Case number,correct,correct,,2026-11-05 11:59:08
+scanner,W03,1,3,Case number,correct,correct,,2026-11-05 11:59:08
+scanner,W03,1,4,Case number,correct,correct,,2026-11-05 11:59:08
+scanner,W03,1,5,Case number,correct,correct,,2026-11-05 11:59:08
+scanner,W03,1,6,Case number,correct,correct,,2026-11-05 11:59:08
+scanner,W03,1,7,Case number,correct,correct,,2026-11-05 11:59:08
+scanner,W03,1,8,Case number,correct,correct,,2026-11-05 11:59:08
+scanner,W03,1,9,Case number,correct,correct,,2026-11-05 11:59:08
+scanner,W03,1,10,Case number,correct,correct,,2026-11-05 11:59:08
+scanner,W03,1,11,Case number,correct,correct,,2026-11-05 11:59:08
+scanner,W03,2,1,Went home,correct,correct,,2026-11-05 11:59:12
+scanner,W03,2,2,Went home,correct,correct,,2026-11-05 11:59:12
+scanner,W03,2,3,Went home,correct,correct,,2026-11-05 11:59:12
+scanner,W03,2,4,Went home,correct,correct,,2026-11-05 11:59:12
+scanner,W03,2,5,Went home,correct,correct,,2026-11-05 11:59:12
+scanner,W03,2,6,Went home,correct,correct,,2026-11-05 11:59:12
+scanner,W03,2,7,Went home,correct,correct,,2026-11-05 11:59:12
+scanner,W03,2,8,Went home,correct,correct,,2026-11-05 11:59:12
+scanner,W03,2,9,Went home,correct,correct,,2026-11-05 11:59:12
+scanner,W03,2,10,Went home,correct,correct,,2026-11-05 11:59:12
+scanner,W03,2,11,Went home,correct,correct,,2026-11-05 11:59:12
+scanner,W03,2,1,Final diagnosis,correct,correct,,2026-11-05 11:59:13
+scanner,W03,2,2,Final diagnosis,correct,correct,,2026-11-05 11:59:13
+scanner,W03,2,3,Final diagnosis,correct,correct,,2026-11-05 11:59:13
+scanner,W03,2,4,Final diagnosis,correct,correct,,2026-11-05 11:59:13
+scanner,W03,2,5,Final diagnosis,correct,correct,,2026-11-05 11:59:13
+scanner,W03,2,6,Final diagnosis,correct,correct,,2026-11-05 11:59:13
+scanner,W03,2,7,Final diagnosis,correct,correct,,2026-11-05 11:59:13
+scanner,W03,2,8,Final diagnosis,correct,correct,,2026-11-05 11:59:13
+scanner,W03,2,9,Final diagnosis,correct,correct,,2026-11-05 11:59:13
+scanner,W03,2,10,Final diagnosis,correct,correct,,2026-11-05 11:59:13
+scanner,W03,2,11,Final diagnosis,correct,correct,,2026-11-05 11:59:13
+scanner,W03,2,1,Delivered,correct,correct,,2026-11-05 11:59:15
+scanner,W03,2,2,Delivered,correct,correct,,2026-11-05 11:59:15
+scanner,W03,2,3,Delivered,correct,correct,,2026-11-05 11:59:15
+scanner,W03,2,4,Delivered,correct,correct,,2026-11-05 11:59:15
+scanner,W03,2,5,Delivered,correct,correct,,2026-11-05 11:59:15
+scanner,W03,2,6,Delivered,correct,correct,,2026-11-05 11:59:15
+scanner,W03,2,7,Delivered,correct,correct,,2026-11-05 11:59:15
+scanner,W03,2,8,Delivered,correct,correct,,2026-11-05 11:59:15
+scanner,W03,2,9,Delivered,correct,correct,,2026-11-05 11:59:15
+scanner,W03,2,10,Delivered,correct,correct,,2026-11-05 11:59:15
+scanner,W03,2,11,Delivered,correct,correct,,2026-11-05 11:59:15
+scanner,W03,2,1,Reason for admission,correct,correct,,2026-11-05 11:59:16
+scanner,W03,2,2,Reason for admission,correct,correct,,2026-11-05 11:59:16
+scanner,W03,2,3,Reason for admission,correct,correct,,2026-11-05 11:59:16
+scanner,W03,2,4,Reason for admission,correct,correct,,2026-11-05 11:59:16
+scanner,W03,2,5,Reason for admission,correct,correct,,2026-11-05 11:59:16
+scanner,W03,2,6,Reason for admission,correct,correct,,2026-11-05 11:59:16
+scanner,W03,2,7,Reason for admission,correct,correct,,2026-11-05 11:59:16
+scanner,W03,2,8,Reason for admission,correct,correct,,2026-11-05 11:59:16
+scanner,W03,2,9,Reason for admission,correct,correct,,2026-11-05 11:59:24
+scanner,W03,2,10,Reason for admission,correct,correct,,2026-11-05 11:59:16
+scanner,W03,2,11,Reason for admission,correct,correct,,2026-11-05 11:59:16
+scanner,W04,1,1,Address,correct,correct,,2026-11-05 11:59:34
+scanner,W04,1,2,Address,correct,correct,,2026-11-05 11:59:34
+scanner,W04,1,3,Address,correct,correct,,2026-11-05 11:59:34
+scanner,W04,1,4,Address,correct,correct,,2026-11-05 11:59:34
+scanner,W04,1,5,Address,correct,correct,,2026-11-05 11:59:34
+scanner,W04,1,6,Address,correct,correct,,2026-11-05 11:59:34
+scanner,W04,1,7,Address,correct,correct,,2026-11-05 11:59:34
+scanner,W04,1,8,Address,correct,correct,,2026-11-05 11:59:34
+scanner,W04,1,9,Address,correct,correct,,2026-11-05 11:59:34
+scanner,W04,1,10,Address,correct,correct,,2026-11-05 11:59:34
+scanner,W04,1,11,Address,correct,correct,,2026-11-05 11:59:34
+scanner,W04,1,1,Birthday,correct,correct,,2026-11-05 11:59:35
+scanner,W04,1,2,Birthday,correct,correct,,2026-11-05 11:59:35
+scanner,W04,1,3,Birthday,correct,correct,,2026-11-05 11:59:35
+scanner,W04,1,4,Birthday,correct,correct,,2026-11-05 11:59:35
+scanner,W04,1,5,Birthday,correct,correct,,2026-11-05 11:59:35
+scanner,W04,1,6,Birthday,correct,correct,,2026-11-05 11:59:35
+scanner,W04,1,7,Birthday,correct,correct,,2026-11-05 11:59:35
+scanner,W04,1,8,Birthday,correct,correct,,2026-11-05 11:59:35
+scanner,W04,1,9,Birthday,correct,correct,,2026-11-05 11:59:35
+scanner,W04,1,10,Birthday,correct,correct,,2026-11-05 11:59:35
+scanner,W04,1,11,Birthday,correct,correct,,2026-11-05 11:59:35
+scanner,W04,1,1,Patient name,correct,correct,,2026-11-05 11:59:38
+scanner,W04,1,2,Patient name,correct,correct,,2026-11-05 11:59:38
+scanner,W04,1,3,Patient name,correct,correct,,2026-11-05 11:59:38
+scanner,W04,1,4,Patient name,correct,correct,,2026-11-05 11:59:38
+scanner,W04,1,5,Patient name,correct,correct,,2026-11-05 11:59:38
+scanner,W04,1,6,Patient name,correct,correct,,2026-11-05 11:59:38
+scanner,W04,1,7,Patient name,correct,correct,,2026-11-05 11:59:38
+scanner,W04,1,8,Patient name,correct,correct,,2026-11-05 11:59:38
+scanner,W04,1,9,Patient name,correct,correct,,2026-11-05 11:59:38
+scanner,W04,1,10,Patient name,correct,correct,,2026-11-05 11:59:38
+scanner,W04,1,11,Patient name,correct,correct,,2026-11-05 11:59:38
+scanner,W04,1,1,Admitted,correct,correct,,2026-11-05 11:59:40
+scanner,W04,1,2,Admitted,correct,correct,,2026-11-05 11:59:40
+scanner,W04,1,3,Admitted,correct,correct,,2026-11-05 11:59:40
+scanner,W04,1,4,Admitted,correct,correct,,2026-11-05 11:59:40
+scanner,W04,1,5,Admitted,correct,correct,,2026-11-05 11:59:40
+scanner,W04,1,6,Admitted,correct,correct,,2026-11-05 11:59:40
+scanner,W04,1,7,Admitted,correct,correct,,2026-11-05 11:59:40
+scanner,W04,1,8,Admitted,correct,correct,,2026-11-05 11:59:40
+scanner,W04,1,9,Admitted,correct,correct,,2026-11-05 11:59:40
+scanner,W04,1,10,Admitted,correct,correct,,2026-11-05 11:59:40
+scanner,W04,1,11,Admitted,correct,correct,,2026-11-05 11:59:40
+scanner,W04,1,1,Case number,correct,correct,,2026-11-05 11:59:41
+scanner,W04,1,2,Case number,correct,correct,,2026-11-05 11:59:41
+scanner,W04,1,3,Case number,correct,correct,,2026-11-05 11:59:41
+scanner,W04,1,4,Case number,correct,correct,,2026-11-05 11:59:41
+scanner,W04,1,5,Case number,correct,correct,,2026-11-05 11:59:41
+scanner,W04,1,6,Case number,correct,correct,,2026-11-05 11:59:41
+scanner,W04,1,7,Case number,correct,correct,,2026-11-05 11:59:41
+scanner,W04,1,8,Case number,correct,correct,,2026-11-05 11:59:41
+scanner,W04,1,9,Case number,correct,correct,,2026-11-05 11:59:41
+scanner,W04,1,10,Case number,correct,correct,,2026-11-05 11:59:41
+scanner,W04,1,11,Case number,correct,correct,,2026-11-05 11:59:41
+scanner,W04,2,1,Went home,correct,correct,,2026-11-05 11:59:47
+scanner,W04,2,2,Went home,correct,correct,,2026-11-05 11:59:47
+scanner,W04,2,3,Went home,correct,correct,,2026-11-05 11:59:47
+scanner,W04,2,4,Went home,correct,correct,,2026-11-05 11:59:47
+scanner,W04,2,5,Went home,correct,correct,,2026-11-05 11:59:47
+scanner,W04,2,6,Went home,correct,correct,,2026-11-05 11:59:47
+scanner,W04,2,7,Went home,correct,correct,,2026-11-05 11:59:47
+scanner,W04,2,8,Went home,correct,correct,,2026-11-05 11:59:47
+scanner,W04,2,9,Went home,correct,correct,,2026-11-05 11:59:47
+scanner,W04,2,10,Went home,correct,correct,,2026-11-05 11:59:47
+scanner,W04,2,11,Went home,correct,correct,,2026-11-05 11:59:47
+scanner,W04,2,1,Final diagnosis,correct,correct,,2026-11-05 11:59:49
+scanner,W04,2,2,Final diagnosis,correct,correct,,2026-11-05 11:59:49
+scanner,W04,2,3,Final diagnosis,correct,correct,,2026-11-05 11:59:49
+scanner,W04,2,4,Final diagnosis,correct,correct,,2026-11-05 11:59:49
+scanner,W04,2,5,Final diagnosis,correct,correct,,2026-11-05 11:59:49
+scanner,W04,2,6,Final diagnosis,correct,correct,,2026-11-05 11:59:49
+scanner,W04,2,7,Final diagnosis,correct,correct,,2026-11-05 11:59:49
+scanner,W04,2,8,Final diagnosis,correct,correct,,2026-11-05 11:59:49
+scanner,W04,2,9,Final diagnosis,correct,correct,,2026-11-05 11:59:49
+scanner,W04,2,10,Final diagnosis,correct,correct,,2026-11-05 11:59:49
+scanner,W04,2,11,Final diagnosis,correct,correct,,2026-11-05 11:59:49
+scanner,W04,2,1,Delivered,correct,correct,,2026-11-05 11:59:51
+scanner,W04,2,2,Delivered,correct,correct,,2026-11-05 11:59:51
+scanner,W04,2,3,Delivered,correct,correct,,2026-11-05 11:59:51
+scanner,W04,2,4,Delivered,correct,correct,,2026-11-05 11:59:51
+scanner,W04,2,5,Delivered,correct,correct,,2026-11-05 11:59:51
+scanner,W04,2,6,Delivered,correct,correct,,2026-11-05 11:59:51
+scanner,W04,2,7,Delivered,correct,correct,,2026-11-05 11:59:51
+scanner,W04,2,8,Delivered,correct,correct,,2026-11-05 11:59:51
+scanner,W04,2,9,Delivered,correct,correct,,2026-11-05 11:59:51
+scanner,W04,2,10,Delivered,correct,correct,,2026-11-05 11:59:51
+scanner,W04,2,11,Delivered,correct,correct,,2026-11-05 11:59:51
+scanner,W04,2,1,Reason for admission,correct,correct,,2026-11-05 11:59:52
+scanner,W04,2,2,Reason for admission,correct,correct,,2026-11-05 11:59:52
+scanner,W04,2,3,Reason for admission,correct,correct,,2026-11-05 11:59:52
+scanner,W04,2,4,Reason for admission,correct,correct,,2026-11-05 11:59:52
+scanner,W04,2,5,Reason for admission,correct,correct,,2026-11-05 11:59:52
+scanner,W04,2,6,Reason for admission,correct,correct,,2026-11-05 11:59:52
+scanner,W04,2,7,Reason for admission,correct,correct,,2026-11-05 11:59:52
+scanner,W04,2,8,Reason for admission,correct,correct,,2026-11-05 11:59:52
+scanner,W04,2,9,Reason for admission,correct,correct,,2026-11-05 11:59:52
+scanner,W04,2,10,Reason for admission,correct,correct,,2026-11-05 11:59:52
+scanner,W04,2,11,Reason for admission,correct,correct,,2026-11-05 11:59:52
+scanner,W05,1,1,Address,correct,correct,,2026-11-05 12:00:02
+scanner,W05,1,2,Address,correct,correct,,2026-11-05 12:00:02
+scanner,W05,1,3,Address,correct,correct,,2026-11-05 12:00:02
+scanner,W05,1,4,Address,correct,correct,,2026-11-05 12:00:02
+scanner,W05,1,5,Address,correct,correct,,2026-11-05 12:00:02
+scanner,W05,1,6,Address,correct,correct,,2026-11-05 12:00:02
+scanner,W05,1,7,Address,correct,correct,,2026-11-05 12:00:02
+scanner,W05,1,8,Address,correct,correct,,2026-11-05 12:00:02
+scanner,W05,1,9,Address,correct,correct,,2026-11-05 12:00:02
+scanner,W05,1,10,Address,correct,correct,,2026-11-05 12:00:02
+scanner,W05,1,11,Address,correct,correct,,2026-11-05 12:00:02
+scanner,W05,1,1,Birthday,correct,correct,,2026-11-05 12:00:03
+scanner,W05,1,2,Birthday,correct,correct,,2026-11-05 12:00:03
+scanner,W05,1,3,Birthday,correct,correct,,2026-11-05 12:00:03
+scanner,W05,1,4,Birthday,correct,correct,,2026-11-05 12:00:03
+scanner,W05,1,5,Birthday,partly,correct,,2026-11-05 12:00:14
+scanner,W05,1,6,Birthday,partly,correct,,2026-11-05 12:00:15
+scanner,W05,1,7,Birthday,partly,correct,,2026-11-05 12:00:15
+scanner,W05,1,8,Birthday,partly,correct,,2026-11-05 12:00:16
+scanner,W05,1,9,Birthday,correct,correct,,2026-11-05 12:00:03
+scanner,W05,1,10,Birthday,correct,correct,,2026-11-05 12:00:03
+scanner,W05,1,11,Birthday,correct,correct,,2026-11-05 12:00:03
+scanner,W05,1,1,Patient name,correct,correct,,2026-11-05 12:00:04
+scanner,W05,1,2,Patient name,correct,correct,,2026-11-05 12:00:04
+scanner,W05,1,3,Patient name,correct,correct,,2026-11-05 12:00:04
+scanner,W05,1,4,Patient name,correct,correct,,2026-11-05 12:00:04
+scanner,W05,1,5,Patient name,partly,correct,,2026-11-05 12:00:21
+scanner,W05,1,6,Patient name,partly,correct,,2026-11-05 12:00:21
+scanner,W05,1,7,Patient name,partly,correct,,2026-11-05 12:00:22
+scanner,W05,1,8,Patient name,partly,correct,,2026-11-05 12:00:23
+scanner,W05,1,9,Patient name,partly,correct,,2026-11-05 12:00:26
+scanner,W05,1,10,Patient name,partly,correct,,2026-11-05 12:00:25
+scanner,W05,1,11,Patient name,correct,correct,,2026-11-05 12:00:04
+scanner,W05,1,1,Admitted,correct,correct,,2026-11-05 12:00:05
+scanner,W05,1,2,Admitted,correct,correct,,2026-11-05 12:00:05
+scanner,W05,1,3,Admitted,correct,correct,,2026-11-05 12:00:05
+scanner,W05,1,4,Admitted,correct,correct,,2026-11-05 12:00:05
+scanner,W05,1,5,Admitted,correct,correct,,2026-11-05 12:00:05
+scanner,W05,1,6,Admitted,correct,correct,,2026-11-05 12:00:05
+scanner,W05,1,7,Admitted,correct,correct,,2026-11-05 12:00:05
+scanner,W05,1,8,Admitted,correct,correct,,2026-11-05 12:00:05
+scanner,W05,1,9,Admitted,correct,correct,,2026-11-05 12:00:05
+scanner,W05,1,10,Admitted,correct,correct,,2026-11-05 12:00:05
+scanner,W05,1,11,Admitted,correct,correct,,2026-11-05 12:00:05
+scanner,W05,1,1,Case number,partly,partly,,2026-11-05 12:00:06
+scanner,W05,1,2,Case number,partly,partly,,2026-11-05 12:00:06
+scanner,W05,1,3,Case number,partly,partly,,2026-11-05 12:00:06
+scanner,W05,1,4,Case number,partly,partly,,2026-11-05 12:00:06
+scanner,W05,1,5,Case number,partly,partly,,2026-11-05 12:00:06
+scanner,W05,1,6,Case number,partly,partly,,2026-11-05 12:00:06
+scanner,W05,1,7,Case number,partly,correct,,2026-11-05 12:00:06
+scanner,W05,1,8,Case number,partly,correct,,2026-11-05 12:00:06
+scanner,W05,1,9,Case number,partly,partly,,2026-11-05 12:00:06
+scanner,W05,1,10,Case number,partly,correct,,2026-11-05 12:00:06
+scanner,W05,1,11,Case number,partly,correct,,2026-11-05 12:00:06
+scanner,W05,2,1,Went home,correct,correct,,2026-11-05 12:00:31
+scanner,W05,2,2,Went home,partly,correct,,2026-11-05 12:00:38
+scanner,W05,2,3,Went home,correct,correct,,2026-11-05 12:00:31
+scanner,W05,2,4,Went home,correct,correct,,2026-11-05 12:00:31
+scanner,W05,2,5,Went home,correct,correct,,2026-11-05 12:00:31
+scanner,W05,2,6,Went home,correct,correct,,2026-11-05 12:00:31
+scanner,W05,2,7,Went home,correct,correct,,2026-11-05 12:00:31
+scanner,W05,2,8,Went home,correct,correct,,2026-11-05 12:00:31
+scanner,W05,2,9,Went home,partly,correct,,2026-11-05 12:01:00
+scanner,W05,2,10,Went home,partly,correct,,2026-11-05 12:00:55
+scanner,W05,2,11,Went home,partly,correct,,2026-11-05 12:01:01
+scanner,W05,2,1,Final diagnosis,partly,partly,,2026-11-05 12:00:32
+scanner,W05,2,2,Final diagnosis,partly,partly,,2026-11-05 12:00:32
+scanner,W05,2,3,Final diagnosis,partly,partly,,2026-11-05 12:00:49
+scanner,W05,2,4,Final diagnosis,partly,partly,,2026-11-05 12:00:50
+scanner,W05,2,5,Final diagnosis,partly,partly,,2026-11-05 12:00:32
+scanner,W05,2,6,Final diagnosis,partly,partly,,2026-11-05 12:00:32
+scanner,W05,2,7,Final diagnosis,partly,partly,,2026-11-05 12:00:32
+scanner,W05,2,8,Final diagnosis,partly,partly,,2026-11-05 12:00:32
+scanner,W05,2,9,Final diagnosis,partly,partly,,2026-11-05 12:00:32
+scanner,W05,2,10,Final diagnosis,partly,partly,,2026-11-05 12:00:32
+scanner,W05,2,11,Final diagnosis,partly,partly,,2026-11-05 12:00:32
+scanner,W05,2,1,Delivered,wrong,wrong,,2026-11-05 12:00:33
+scanner,W05,2,2,Delivered,wrong,wrong,,2026-11-05 12:00:33
+scanner,W05,2,3,Delivered,wrong,wrong,,2026-11-05 12:00:33
+scanner,W05,2,4,Delivered,wrong,wrong,,2026-11-05 12:00:33
+scanner,W05,2,5,Delivered,wrong,wrong,,2026-11-05 12:00:33
+scanner,W05,2,6,Delivered,wrong,wrong,,2026-11-05 12:00:33
+scanner,W05,2,7,Delivered,wrong,wrong,,2026-11-05 12:00:33
+scanner,W05,2,8,Delivered,wrong,wrong,,2026-11-05 12:00:33
+scanner,W05,2,9,Delivered,wrong,wrong,,2026-11-05 12:00:33
+scanner,W05,2,10,Delivered,wrong,wrong,,2026-11-05 12:00:33
+scanner,W05,2,11,Delivered,wrong,wrong,,2026-11-05 12:00:33
+scanner,W05,2,1,Reason for admission,wrong,wrong,,2026-11-05 12:00:35
+scanner,W05,2,2,Reason for admission,wrong,wrong,,2026-11-05 12:00:35
+scanner,W05,2,3,Reason for admission,wrong,wrong,,2026-11-05 12:00:35
+scanner,W05,2,4,Reason for admission,wrong,wrong,,2026-11-05 12:00:35
+scanner,W05,2,5,Reason for admission,wrong,wrong,,2026-11-05 12:00:35
+scanner,W05,2,6,Reason for admission,wrong,wrong,,2026-11-05 12:00:35
+scanner,W05,2,7,Reason for admission,wrong,wrong,,2026-11-05 12:00:35
+scanner,W05,2,8,Reason for admission,wrong,wrong,,2026-11-05 12:00:35
+scanner,W05,2,9,Reason for admission,wrong,wrong,,2026-11-05 12:00:35
+scanner,W05,2,10,Reason for admission,wrong,wrong,,2026-11-05 12:00:35
+scanner,W05,2,11,Reason for admission,wrong,wrong,,2026-11-05 12:00:35
+scanner,W06,1,1,Address,correct,correct,,2026-11-05 12:01:06
+scanner,W06,1,2,Address,correct,correct,,2026-11-05 12:01:06
+scanner,W06,1,3,Address,correct,correct,,2026-11-05 12:01:06
+scanner,W06,1,4,Address,correct,correct,,2026-11-05 12:01:06
+scanner,W06,1,5,Address,correct,correct,,2026-11-05 12:01:06
+scanner,W06,1,6,Address,correct,correct,,2026-11-05 12:01:06
+scanner,W06,1,7,Address,correct,correct,,2026-11-05 12:01:06
+scanner,W06,1,8,Address,correct,correct,,2026-11-05 12:01:06
+scanner,W06,1,9,Address,correct,correct,,2026-11-05 12:01:06
+scanner,W06,1,10,Address,correct,correct,,2026-11-05 12:01:06
+scanner,W06,1,11,Address,correct,correct,,2026-11-05 12:01:06
+scanner,W06,1,1,Birthday,correct,correct,,2026-11-05 12:01:07
+scanner,W06,1,2,Birthday,correct,correct,,2026-11-05 12:01:07
+scanner,W06,1,3,Birthday,correct,correct,,2026-11-05 12:01:07
+scanner,W06,1,4,Birthday,correct,correct,,2026-11-05 12:01:07
+scanner,W06,1,5,Birthday,correct,correct,,2026-11-05 12:01:07
+scanner,W06,1,6,Birthday,correct,correct,,2026-11-05 12:01:07
+scanner,W06,1,7,Birthday,correct,correct,,2026-11-05 12:01:07
+scanner,W06,1,8,Birthday,correct,correct,,2026-11-05 12:01:07
+scanner,W06,1,9,Birthday,correct,correct,,2026-11-05 12:01:07
+scanner,W06,1,10,Birthday,correct,correct,,2026-11-05 12:01:07
+scanner,W06,1,11,Birthday,correct,correct,,2026-11-05 12:01:07
+scanner,W06,1,1,Patient name,correct,correct,,2026-11-05 12:01:08
+scanner,W06,1,2,Patient name,correct,correct,,2026-11-05 12:01:08
+scanner,W06,1,3,Patient name,correct,correct,,2026-11-05 12:01:08
+scanner,W06,1,4,Patient name,correct,correct,,2026-11-05 12:01:08
+scanner,W06,1,5,Patient name,correct,correct,,2026-11-05 12:01:08
+scanner,W06,1,6,Patient name,correct,correct,,2026-11-05 12:01:08
+scanner,W06,1,7,Patient name,correct,correct,,2026-11-05 12:01:08
+scanner,W06,1,8,Patient name,correct,correct,,2026-11-05 12:01:08
+scanner,W06,1,9,Patient name,correct,correct,,2026-11-05 12:01:08
+scanner,W06,1,10,Patient name,correct,correct,,2026-11-05 12:01:08
+scanner,W06,1,11,Patient name,correct,correct,,2026-11-05 12:01:08
+scanner,W06,1,1,Admitted,correct,correct,,2026-11-05 12:01:10
+scanner,W06,1,2,Admitted,correct,correct,,2026-11-05 12:01:10
+scanner,W06,1,3,Admitted,correct,correct,,2026-11-05 12:01:10
+scanner,W06,1,4,Admitted,correct,correct,,2026-11-05 12:01:10
+scanner,W06,1,5,Admitted,correct,correct,,2026-11-05 12:01:10
+scanner,W06,1,6,Admitted,correct,correct,,2026-11-05 12:01:10
+scanner,W06,1,7,Admitted,correct,correct,,2026-11-05 12:01:10
+scanner,W06,1,8,Admitted,correct,correct,,2026-11-05 12:01:10
+scanner,W06,1,9,Admitted,correct,correct,,2026-11-05 12:01:10
+scanner,W06,1,10,Admitted,correct,correct,,2026-11-05 12:01:10
+scanner,W06,1,11,Admitted,correct,correct,,2026-11-05 12:01:10
+scanner,W06,1,1,Case number,partly,partly,,2026-11-05 12:01:11
+scanner,W06,1,2,Case number,partly,correct,,2026-11-05 12:01:11
+scanner,W06,1,3,Case number,partly,partly,,2026-11-05 12:01:11
+scanner,W06,1,4,Case number,partly,partly,,2026-11-05 12:01:11
+scanner,W06,1,5,Case number,partly,partly,,2026-11-05 12:01:11
+scanner,W06,1,6,Case number,partly,partly,,2026-11-05 12:01:11
+scanner,W06,1,7,Case number,partly,partly,,2026-11-05 12:01:11
+scanner,W06,1,8,Case number,partly,partly,,2026-11-05 12:01:11
+scanner,W06,1,9,Case number,partly,partly,,2026-11-05 12:01:11
+scanner,W06,1,10,Case number,partly,partly,,2026-11-05 12:01:11
+scanner,W06,1,11,Case number,partly,correct,,2026-11-05 12:01:11
+scanner,W06,2,1,Went home,correct,correct,,2026-11-05 12:01:18
+scanner,W06,2,2,Went home,correct,correct,,2026-11-05 12:01:18
+scanner,W06,2,3,Went home,correct,correct,,2026-11-05 12:01:18
+scanner,W06,2,4,Went home,correct,correct,,2026-11-05 12:01:18
+scanner,W06,2,5,Went home,correct,correct,,2026-11-05 12:01:18
+scanner,W06,2,6,Went home,correct,correct,,2026-11-05 12:01:18
+scanner,W06,2,7,Went home,correct,correct,,2026-11-05 12:01:18
+scanner,W06,2,8,Went home,correct,correct,,2026-11-05 12:01:18
+scanner,W06,2,9,Went home,correct,correct,,2026-11-05 12:01:18
+scanner,W06,2,10,Went home,correct,correct,,2026-11-05 12:01:18
+scanner,W06,2,11,Went home,correct,correct,,2026-11-05 12:01:18
+scanner,W06,2,1,Final diagnosis,correct,correct,,2026-11-05 12:01:19
+scanner,W06,2,2,Final diagnosis,correct,correct,,2026-11-05 12:01:19
+scanner,W06,2,3,Final diagnosis,correct,correct,,2026-11-05 12:01:19
+scanner,W06,2,4,Final diagnosis,correct,correct,,2026-11-05 12:01:19
+scanner,W06,2,5,Final diagnosis,correct,correct,,2026-11-05 12:01:19
+scanner,W06,2,6,Final diagnosis,correct,correct,,2026-11-05 12:01:19
+scanner,W06,2,7,Final diagnosis,correct,correct,,2026-11-05 12:01:19
+scanner,W06,2,8,Final diagnosis,correct,correct,,2026-11-05 12:01:19
+scanner,W06,2,9,Final diagnosis,correct,correct,,2026-11-05 12:01:19
+scanner,W06,2,10,Final diagnosis,correct,correct,,2026-11-05 12:01:19
+scanner,W06,2,11,Final diagnosis,correct,correct,,2026-11-05 12:01:19
+scanner,W06,2,1,Reason for admission,correct,correct,,2026-11-05 12:01:21
+scanner,W06,2,2,Reason for admission,correct,correct,,2026-11-05 12:01:21
+scanner,W06,2,3,Reason for admission,correct,correct,,2026-11-05 12:01:21
+scanner,W06,2,4,Reason for admission,correct,correct,,2026-11-05 12:01:21
+scanner,W06,2,5,Reason for admission,correct,correct,,2026-11-05 12:01:21
+scanner,W06,2,6,Reason for admission,correct,correct,,2026-11-05 12:01:21
+scanner,W06,2,7,Reason for admission,correct,correct,,2026-11-05 12:01:21
+scanner,W06,2,8,Reason for admission,correct,correct,,2026-11-05 12:01:21
+scanner,W06,2,9,Reason for admission,correct,correct,,2026-11-05 12:01:21
+scanner,W06,2,10,Reason for admission,correct,correct,,2026-11-05 12:01:21
+scanner,W06,2,11,Reason for admission,correct,correct,,2026-11-05 12:01:21
+scanner,W06,2,1,Delivered,correct,correct,,2026-11-05 12:01:22
+scanner,W06,2,2,Delivered,correct,correct,,2026-11-05 12:01:22
+scanner,W06,2,3,Delivered,correct,correct,,2026-11-05 12:01:22
+scanner,W06,2,4,Delivered,correct,correct,,2026-11-05 12:01:22
+scanner,W06,2,5,Delivered,correct,correct,,2026-11-05 12:01:22
+scanner,W06,2,6,Delivered,correct,correct,,2026-11-05 12:01:22
+scanner,W06,2,7,Delivered,correct,correct,,2026-11-05 12:01:22
+scanner,W06,2,8,Delivered,correct,correct,,2026-11-05 12:01:22
+scanner,W06,2,9,Delivered,correct,correct,,2026-11-05 12:01:22
+scanner,W06,2,10,Delivered,correct,correct,,2026-11-05 12:01:22
+scanner,W06,2,11,Delivered,correct,correct,,2026-11-05 12:01:22
+scanner,W07,1,1,Address,partly,correct,,2026-11-05 12:01:38
+scanner,W07,1,2,Address,partly,correct,,2026-11-05 12:01:38
+scanner,W07,1,3,Address,partly,correct,,2026-11-05 12:01:38
+scanner,W07,1,4,Address,partly,correct,,2026-11-05 12:01:38
+scanner,W07,1,5,Address,partly,correct,,2026-11-05 12:01:38
+scanner,W07,1,6,Address,partly,correct,,2026-11-05 12:01:38
+scanner,W07,1,7,Address,partly,correct,,2026-11-05 12:01:38
+scanner,W07,1,8,Address,partly,correct,,2026-11-05 12:01:38
+scanner,W07,1,9,Address,partly,correct,,2026-11-05 12:01:38
+scanner,W07,1,10,Address,partly,correct,,2026-11-05 12:01:38
+scanner,W07,1,11,Address,partly,correct,,2026-11-05 12:01:38
+scanner,W07,1,1,Birthday,partly,correct,,2026-11-05 12:01:39
+scanner,W07,1,2,Birthday,partly,correct,,2026-11-05 12:01:39
+scanner,W07,1,3,Birthday,partly,correct,,2026-11-05 12:01:39
+scanner,W07,1,4,Birthday,partly,correct,,2026-11-05 12:01:39
+scanner,W07,1,5,Birthday,partly,correct,,2026-11-05 12:01:39
+scanner,W07,1,6,Birthday,partly,correct,,2026-11-05 12:01:39
+scanner,W07,1,7,Birthday,partly,correct,,2026-11-05 12:01:39
+scanner,W07,1,8,Birthday,partly,correct,,2026-11-05 12:01:39
+scanner,W07,1,9,Birthday,partly,correct,,2026-11-05 12:01:39
+scanner,W07,1,10,Birthday,partly,correct,,2026-11-05 12:01:39
+scanner,W07,1,11,Birthday,partly,correct,,2026-11-05 12:01:39
+scanner,W07,1,1,Patient name,correct,correct,,2026-11-05 12:01:42
+scanner,W07,1,2,Patient name,correct,correct,,2026-11-05 12:01:42
+scanner,W07,1,3,Patient name,correct,correct,,2026-11-05 12:01:42
+scanner,W07,1,4,Patient name,correct,correct,,2026-11-05 12:01:42
+scanner,W07,1,5,Patient name,correct,correct,,2026-11-05 12:01:42
+scanner,W07,1,6,Patient name,correct,correct,,2026-11-05 12:01:42
+scanner,W07,1,7,Patient name,correct,correct,,2026-11-05 12:01:42
+scanner,W07,1,8,Patient name,correct,correct,,2026-11-05 12:01:42
+scanner,W07,1,9,Patient name,correct,correct,,2026-11-05 12:01:42
+scanner,W07,1,10,Patient name,correct,correct,,2026-11-05 12:01:42
+scanner,W07,1,11,Patient name,correct,correct,,2026-11-05 12:01:42
+scanner,W07,1,1,Admitted,correct,correct,,2026-11-05 12:01:43
+scanner,W07,1,2,Admitted,correct,correct,,2026-11-05 12:01:43
+scanner,W07,1,3,Admitted,correct,correct,,2026-11-05 12:01:43
+scanner,W07,1,4,Admitted,correct,correct,,2026-11-05 12:01:43
+scanner,W07,1,5,Admitted,correct,correct,,2026-11-05 12:01:43
+scanner,W07,1,6,Admitted,correct,correct,,2026-11-05 12:01:43
+scanner,W07,1,7,Admitted,correct,correct,,2026-11-05 12:01:43
+scanner,W07,1,8,Admitted,correct,correct,,2026-11-05 12:01:43
+scanner,W07,1,9,Admitted,correct,correct,,2026-11-05 12:01:43
+scanner,W07,1,10,Admitted,correct,correct,,2026-11-05 12:01:43
+scanner,W07,1,11,Admitted,correct,correct,,2026-11-05 12:01:43
+scanner,W07,1,1,Case number,partly,partly,,2026-11-05 12:01:48
+scanner,W07,1,2,Case number,partly,partly,,2026-11-05 12:01:48
+scanner,W07,1,3,Case number,partly,partly,,2026-11-05 12:01:48
+scanner,W07,1,4,Case number,partly,partly,,2026-11-05 12:01:48
+scanner,W07,1,5,Case number,partly,partly,,2026-11-05 12:01:48
+scanner,W07,1,6,Case number,partly,partly,,2026-11-05 12:01:48
+scanner,W07,1,7,Case number,partly,partly,,2026-11-05 12:01:48
+scanner,W07,1,8,Case number,partly,partly,,2026-11-05 12:01:48
+scanner,W07,1,9,Case number,partly,partly,,2026-11-05 12:01:48
+scanner,W07,1,10,Case number,partly,partly,,2026-11-05 12:01:48
+scanner,W07,1,11,Case number,partly,partly,,2026-11-05 12:01:48
+scanner,W07,2,1,Went home,correct,correct,,2026-11-05 12:01:57
+scanner,W07,2,2,Went home,correct,correct,,2026-11-05 12:01:57
+scanner,W07,2,3,Went home,correct,correct,,2026-11-05 12:01:57
+scanner,W07,2,4,Went home,partly,correct,,2026-11-05 12:02:00
+scanner,W07,2,5,Went home,partly,correct,,2026-11-05 12:01:59
+scanner,W07,2,6,Went home,correct,correct,,2026-11-05 12:01:57
+scanner,W07,2,7,Went home,correct,correct,,2026-11-05 12:01:57
+scanner,W07,2,8,Went home,partly,correct,,2026-11-05 12:02:02
+scanner,W07,2,9,Went home,correct,correct,,2026-11-05 12:01:57
+scanner,W07,2,10,Went home,correct,correct,,2026-11-05 12:01:57
+scanner,W07,2,11,Went home,partly,correct,,2026-11-05 12:02:05
+scanner,W07,2,1,Final diagnosis,correct,correct,,2026-11-05 12:02:09
+scanner,W07,2,2,Final diagnosis,correct,correct,,2026-11-05 12:02:09
+scanner,W07,2,3,Final diagnosis,correct,correct,,2026-11-05 12:02:09
+scanner,W07,2,4,Final diagnosis,correct,correct,,2026-11-05 12:02:12
+scanner,W07,2,5,Final diagnosis,correct,correct,,2026-11-05 12:02:09
+scanner,W07,2,6,Final diagnosis,correct,correct,,2026-11-05 12:02:09
+scanner,W07,2,7,Final diagnosis,correct,correct,,2026-11-05 12:02:09
+scanner,W07,2,8,Final diagnosis,correct,correct,,2026-11-05 12:02:09
+scanner,W07,2,9,Final diagnosis,correct,correct,,2026-11-05 12:02:09
+scanner,W07,2,10,Final diagnosis,correct,correct,,2026-11-05 12:02:09
+scanner,W07,2,11,Final diagnosis,correct,correct,,2026-11-05 12:02:09
+scanner,W07,2,1,Delivered,correct,correct,,2026-11-05 12:02:16
+scanner,W07,2,2,Delivered,correct,correct,,2026-11-05 12:02:16
+scanner,W07,2,3,Delivered,correct,correct,,2026-11-05 12:02:16
+scanner,W07,2,4,Delivered,correct,correct,,2026-11-05 12:02:16
+scanner,W07,2,5,Delivered,correct,correct,,2026-11-05 12:02:16
+scanner,W07,2,6,Delivered,correct,correct,,2026-11-05 12:02:16
+scanner,W07,2,7,Delivered,correct,correct,,2026-11-05 12:02:16
+scanner,W07,2,8,Delivered,correct,correct,,2026-11-05 12:02:16
+scanner,W07,2,9,Delivered,correct,correct,,2026-11-05 12:02:16
+scanner,W07,2,10,Delivered,correct,correct,,2026-11-05 12:02:16
+scanner,W07,2,11,Delivered,correct,correct,,2026-11-05 12:02:16
+scanner,W07,2,1,Reason for admission,correct,correct,,2026-11-05 12:02:18
+scanner,W07,2,2,Reason for admission,correct,correct,,2026-11-05 12:02:18
+scanner,W07,2,3,Reason for admission,correct,correct,,2026-11-05 12:02:18
+scanner,W07,2,4,Reason for admission,partly,correct,,2026-11-05 12:02:22
+scanner,W07,2,5,Reason for admission,partly,correct,,2026-11-05 12:02:21
+scanner,W07,2,6,Reason for admission,partly,correct,,2026-11-05 12:02:23
+scanner,W07,2,7,Reason for admission,partly,correct,,2026-11-05 12:02:25
+scanner,W07,2,8,Reason for admission,partly,correct,,2026-11-05 12:02:25
+scanner,W07,2,9,Reason for admission,partly,correct,,2026-11-05 12:02:26
+scanner,W07,2,10,Reason for admission,partly,correct,,2026-11-05 12:02:27
+scanner,W07,2,11,Reason for admission,partly,correct,,2026-11-05 12:02:29
+scanner,W08,1,1,Address,correct,correct,,2026-11-05 12:02:33
+scanner,W08,1,2,Address,correct,correct,,2026-11-05 12:02:33
+scanner,W08,1,3,Address,correct,correct,,2026-11-05 12:02:33
+scanner,W08,1,4,Address,correct,correct,,2026-11-05 12:02:33
+scanner,W08,1,5,Address,correct,correct,,2026-11-05 12:02:33
+scanner,W08,1,6,Address,correct,correct,,2026-11-05 12:02:33
+scanner,W08,1,7,Address,correct,correct,,2026-11-05 12:02:33
+scanner,W08,1,8,Address,correct,correct,,2026-11-05 12:02:33
+scanner,W08,1,9,Address,correct,correct,,2026-11-05 12:02:33
+scanner,W08,1,10,Address,correct,correct,,2026-11-05 12:02:33
+scanner,W08,1,11,Address,correct,correct,,2026-11-05 12:02:33
+scanner,W08,1,1,Birthday,correct,correct,,2026-11-05 12:02:34
+scanner,W08,1,2,Birthday,correct,correct,,2026-11-05 12:02:34
+scanner,W08,1,3,Birthday,correct,correct,,2026-11-05 12:02:34
+scanner,W08,1,4,Birthday,correct,correct,,2026-11-05 12:02:34
+scanner,W08,1,5,Birthday,correct,correct,,2026-11-05 12:02:34
+scanner,W08,1,6,Birthday,correct,correct,,2026-11-05 12:02:34
+scanner,W08,1,7,Birthday,correct,correct,,2026-11-05 12:02:34
+scanner,W08,1,8,Birthday,correct,correct,,2026-11-05 12:02:34
+scanner,W08,1,9,Birthday,correct,correct,,2026-11-05 12:02:34
+scanner,W08,1,10,Birthday,correct,correct,,2026-11-05 12:02:34
+scanner,W08,1,11,Birthday,correct,correct,,2026-11-05 12:02:34
+scanner,W08,1,1,Patient name,correct,correct,,2026-11-05 12:02:35
+scanner,W08,1,2,Patient name,correct,correct,,2026-11-05 12:02:35
+scanner,W08,1,3,Patient name,correct,correct,,2026-11-05 12:02:35
+scanner,W08,1,4,Patient name,correct,correct,,2026-11-05 12:02:35
+scanner,W08,1,5,Patient name,correct,correct,,2026-11-05 12:02:35
+scanner,W08,1,6,Patient name,correct,correct,,2026-11-05 12:02:35
+scanner,W08,1,7,Patient name,correct,correct,,2026-11-05 12:02:35
+scanner,W08,1,8,Patient name,correct,correct,,2026-11-05 12:02:35
+scanner,W08,1,9,Patient name,correct,correct,,2026-11-05 12:02:35
+scanner,W08,1,10,Patient name,correct,correct,,2026-11-05 12:02:35
+scanner,W08,1,11,Patient name,correct,correct,,2026-11-05 12:02:35
+scanner,W08,1,1,Admitted,correct,correct,,2026-11-05 12:02:35
+scanner,W08,1,2,Admitted,correct,correct,,2026-11-05 12:02:35
+scanner,W08,1,3,Admitted,correct,correct,,2026-11-05 12:02:35
+scanner,W08,1,4,Admitted,correct,correct,,2026-11-05 12:02:35
+scanner,W08,1,5,Admitted,correct,correct,,2026-11-05 12:02:35
+scanner,W08,1,6,Admitted,correct,correct,,2026-11-05 12:02:35
+scanner,W08,1,7,Admitted,correct,correct,,2026-11-05 12:02:35
+scanner,W08,1,8,Admitted,correct,correct,,2026-11-05 12:02:35
+scanner,W08,1,9,Admitted,correct,correct,,2026-11-05 12:02:35
+scanner,W08,1,10,Admitted,correct,correct,,2026-11-05 12:02:35
+scanner,W08,1,11,Admitted,correct,correct,,2026-11-05 12:02:35
+scanner,W08,1,1,Case number,partly,partly,,2026-11-05 12:02:37
+scanner,W08,1,2,Case number,partly,correct,,2026-11-05 12:02:37
+scanner,W08,1,3,Case number,partly,correct,,2026-11-05 12:02:44
+scanner,W08,1,4,Case number,correct,correct,,2026-11-05 12:02:45
+scanner,W08,1,5,Case number,correct,correct,,2026-11-05 12:02:49
+scanner,W08,1,6,Case number,correct,correct,,2026-11-05 12:02:51
+scanner,W08,1,7,Case number,correct,correct,,2026-11-05 12:02:52
+scanner,W08,1,8,Case number,correct,correct,,2026-11-05 12:02:53
+scanner,W08,1,9,Case number,correct,correct,,2026-11-05 12:02:54
+scanner,W08,1,10,Case number,correct,correct,,2026-11-05 12:02:56
+scanner,W08,1,11,Case number,correct,correct,,2026-11-05 12:02:57
+scanner,W08,2,1,Went home,correct,correct,,2026-11-05 12:03:01
+scanner,W08,2,2,Went home,correct,correct,,2026-11-05 12:03:01
+scanner,W08,2,3,Went home,correct,correct,,2026-11-05 12:03:01
+scanner,W08,2,4,Went home,correct,correct,,2026-11-05 12:03:01
+scanner,W08,2,5,Went home,correct,correct,,2026-11-05 12:03:01
+scanner,W08,2,6,Went home,correct,correct,,2026-11-05 12:03:01
+scanner,W08,2,7,Went home,correct,correct,,2026-11-05 12:03:01
+scanner,W08,2,8,Went home,correct,correct,,2026-11-05 12:03:01
+scanner,W08,2,9,Went home,correct,correct,,2026-11-05 12:03:01
+scanner,W08,2,10,Went home,correct,correct,,2026-11-05 12:03:01
+scanner,W08,2,11,Went home,correct,correct,,2026-11-05 12:03:01
+scanner,W08,2,1,Final diagnosis,partly,partly,,2026-11-05 12:03:06
+scanner,W08,2,2,Final diagnosis,partly,partly,,2026-11-05 12:03:06
+scanner,W08,2,3,Final diagnosis,partly,partly,,2026-11-05 12:03:06
+scanner,W08,2,4,Final diagnosis,partly,partly,,2026-11-05 12:03:06
+scanner,W08,2,5,Final diagnosis,partly,partly,,2026-11-05 12:03:06
+scanner,W08,2,6,Final diagnosis,partly,partly,,2026-11-05 12:03:06
+scanner,W08,2,7,Final diagnosis,partly,partly,,2026-11-05 12:03:06
+scanner,W08,2,8,Final diagnosis,partly,partly,,2026-11-05 12:03:06
+scanner,W08,2,9,Final diagnosis,partly,partly,,2026-11-05 12:03:06
+scanner,W08,2,10,Final diagnosis,partly,partly,,2026-11-05 12:03:06
+scanner,W08,2,11,Final diagnosis,partly,partly,,2026-11-05 12:03:06
+scanner,W08,2,1,Delivered,wrong,wrong,,2026-11-05 12:03:08
+scanner,W08,2,2,Delivered,wrong,wrong,,2026-11-05 12:03:08
+scanner,W08,2,3,Delivered,wrong,wrong,,2026-11-05 12:03:08
+scanner,W08,2,4,Delivered,wrong,wrong,,2026-11-05 12:03:08
+scanner,W08,2,5,Delivered,wrong,wrong,,2026-11-05 12:03:08
+scanner,W08,2,6,Delivered,wrong,wrong,,2026-11-05 12:03:08
+scanner,W08,2,7,Delivered,wrong,wrong,,2026-11-05 12:03:08
+scanner,W08,2,8,Delivered,wrong,wrong,,2026-11-05 12:03:08
+scanner,W08,2,9,Delivered,wrong,wrong,,2026-11-05 12:03:08
+scanner,W08,2,10,Delivered,wrong,wrong,,2026-11-05 12:03:08
+scanner,W08,2,11,Delivered,wrong,wrong,,2026-11-05 12:03:08
+scanner,W08,2,1,Reason for admission,wrong,wrong,,2026-11-05 12:03:11
+scanner,W08,2,2,Reason for admission,wrong,wrong,,2026-11-05 12:03:11
+scanner,W08,2,3,Reason for admission,wrong,wrong,,2026-11-05 12:03:11
+scanner,W08,2,4,Reason for admission,wrong,wrong,,2026-11-05 12:03:11
+scanner,W08,2,5,Reason for admission,wrong,wrong,,2026-11-05 12:03:11
+scanner,W08,2,6,Reason for admission,wrong,wrong,,2026-11-05 12:03:11
+scanner,W08,2,7,Reason for admission,wrong,wrong,,2026-11-05 12:03:11
+scanner,W08,2,8,Reason for admission,wrong,wrong,,2026-11-05 12:03:11
+scanner,W08,2,9,Reason for admission,wrong,wrong,,2026-11-05 12:03:11
+scanner,W08,2,10,Reason for admission,wrong,wrong,,2026-11-05 12:03:11
+scanner,W08,2,11,Reason for admission,wrong,wrong,,2026-11-05 12:03:11
+scanner,W09,1,1,Address,correct,correct,,2026-11-05 12:03:22
+scanner,W09,1,2,Address,correct,correct,,2026-11-05 12:03:22
+scanner,W09,1,3,Address,correct,correct,,2026-11-05 12:03:22
+scanner,W09,1,4,Address,correct,correct,,2026-11-05 12:03:22
+scanner,W09,1,5,Address,correct,correct,,2026-11-05 12:03:22
+scanner,W09,1,6,Address,correct,correct,,2026-11-05 12:03:22
+scanner,W09,1,7,Address,correct,correct,,2026-11-05 12:03:22
+scanner,W09,1,8,Address,correct,correct,,2026-11-05 12:03:22
+scanner,W09,1,9,Address,correct,correct,,2026-11-05 12:03:22
+scanner,W09,1,10,Address,correct,correct,,2026-11-05 12:03:22
+scanner,W09,1,11,Address,correct,correct,,2026-11-05 12:03:22
+scanner,W09,1,12,Address,correct,correct,,2026-11-05 12:03:22
+scanner,W09,1,1,Birthday,correct,correct,,2026-11-05 12:03:23
+scanner,W09,1,2,Birthday,correct,correct,,2026-11-05 12:03:23
+scanner,W09,1,3,Birthday,correct,correct,,2026-11-05 12:03:23
+scanner,W09,1,4,Birthday,correct,correct,,2026-11-05 12:03:23
+scanner,W09,1,5,Birthday,correct,correct,,2026-11-05 12:03:23
+scanner,W09,1,6,Birthday,correct,correct,,2026-11-05 12:03:23
+scanner,W09,1,7,Birthday,correct,correct,,2026-11-05 12:03:23
+scanner,W09,1,8,Birthday,correct,correct,,2026-11-05 12:03:23
+scanner,W09,1,9,Birthday,correct,correct,,2026-11-05 12:03:23
+scanner,W09,1,10,Birthday,correct,correct,,2026-11-05 12:03:23
+scanner,W09,1,11,Birthday,correct,correct,,2026-11-05 12:03:23
+scanner,W09,1,12,Birthday,correct,correct,,2026-11-05 12:03:23
+scanner,W09,1,1,Patient name,correct,correct,,2026-11-05 12:03:24
+scanner,W09,1,2,Patient name,correct,correct,,2026-11-05 12:03:24
+scanner,W09,1,3,Patient name,correct,correct,,2026-11-05 12:03:24
+scanner,W09,1,4,Patient name,correct,correct,,2026-11-05 12:03:24
+scanner,W09,1,5,Patient name,correct,correct,,2026-11-05 12:03:24
+scanner,W09,1,6,Patient name,correct,correct,,2026-11-05 12:03:24
+scanner,W09,1,7,Patient name,correct,correct,,2026-11-05 12:03:24
+scanner,W09,1,8,Patient name,correct,correct,,2026-11-05 12:03:24
+scanner,W09,1,9,Patient name,correct,correct,,2026-11-05 12:03:24
+scanner,W09,1,10,Patient name,correct,correct,,2026-11-05 12:03:24
+scanner,W09,1,11,Patient name,correct,correct,,2026-11-05 12:03:24
+scanner,W09,1,12,Patient name,correct,correct,,2026-11-05 12:03:24
+scanner,W09,1,1,Admitted,correct,correct,,2026-11-05 12:03:25
+scanner,W09,1,2,Admitted,correct,correct,,2026-11-05 12:03:25
+scanner,W09,1,3,Admitted,correct,correct,,2026-11-05 12:03:25
+scanner,W09,1,4,Admitted,correct,correct,,2026-11-05 12:03:25
+scanner,W09,1,5,Admitted,correct,correct,,2026-11-05 12:03:25
+scanner,W09,1,6,Admitted,correct,correct,,2026-11-05 12:03:25
+scanner,W09,1,7,Admitted,correct,correct,,2026-11-05 12:03:25
+scanner,W09,1,8,Admitted,correct,correct,,2026-11-05 12:03:25
+scanner,W09,1,9,Admitted,correct,correct,,2026-11-05 12:03:25
+scanner,W09,1,10,Admitted,correct,correct,,2026-11-05 12:03:25
+scanner,W09,1,11,Admitted,correct,correct,,2026-11-05 12:03:25
+scanner,W09,1,12,Admitted,correct,correct,,2026-11-05 12:03:25
+scanner,W09,1,1,Case number,partly,partly,,2026-11-05 12:03:33
+scanner,W09,1,2,Case number,partly,correct,,2026-11-05 12:03:33
+scanner,W09,1,3,Case number,partly,partly,,2026-11-05 12:03:33
+scanner,W09,1,4,Case number,partly,correct,,2026-11-05 12:03:33
+scanner,W09,1,5,Case number,correct,correct,,2026-11-05 12:03:37
+scanner,W09,1,6,Case number,correct,correct,,2026-11-05 12:03:38
+scanner,W09,1,7,Case number,correct,correct,,2026-11-05 12:03:40
+scanner,W09,1,8,Case number,partly,partly,,2026-11-05 12:03:33
+scanner,W09,1,9,Case number,partly,correct,,2026-11-05 12:03:33
+scanner,W09,1,10,Case number,partly,partly,,2026-11-05 12:03:33
+scanner,W09,1,11,Case number,correct,correct,,2026-11-05 12:03:44
+scanner,W09,1,12,Case number,partly,partly,,2026-11-05 12:03:33
+scanner,W09,2,1,Went home,correct,correct,,2026-11-05 12:03:48
+scanner,W09,2,2,Went home,correct,correct,,2026-11-05 12:03:48
+scanner,W09,2,3,Went home,correct,correct,,2026-11-05 12:03:48
+scanner,W09,2,4,Went home,correct,correct,,2026-11-05 12:03:48
+scanner,W09,2,5,Went home,correct,correct,,2026-11-05 12:03:48
+scanner,W09,2,6,Went home,correct,correct,,2026-11-05 12:03:48
+scanner,W09,2,7,Went home,correct,correct,,2026-11-05 12:03:48
+scanner,W09,2,8,Went home,correct,correct,,2026-11-05 12:03:48
+scanner,W09,2,9,Went home,correct,correct,,2026-11-05 12:03:48
+scanner,W09,2,10,Went home,correct,correct,,2026-11-05 12:03:48
+scanner,W09,2,11,Went home,correct,correct,,2026-11-05 12:03:48
+scanner,W09,2,12,Went home,correct,correct,,2026-11-05 12:03:48
+scanner,W09,2,1,Final diagnosis,partly,partly,,2026-11-05 12:03:49
+scanner,W09,2,2,Final diagnosis,partly,partly,,2026-11-05 12:03:49
+scanner,W09,2,3,Final diagnosis,partly,partly,,2026-11-05 12:03:49
+scanner,W09,2,4,Final diagnosis,partly,partly,,2026-11-05 12:03:49
+scanner,W09,2,5,Final diagnosis,partly,partly,,2026-11-05 12:03:49
+scanner,W09,2,6,Final diagnosis,partly,partly,,2026-11-05 12:03:49
+scanner,W09,2,7,Final diagnosis,partly,partly,,2026-11-05 12:03:49
+scanner,W09,2,8,Final diagnosis,partly,partly,,2026-11-05 12:03:49
+scanner,W09,2,9,Final diagnosis,partly,partly,,2026-11-05 12:03:49
+scanner,W09,2,10,Final diagnosis,partly,partly,,2026-11-05 12:03:49
+scanner,W09,2,11,Final diagnosis,partly,partly,,2026-11-05 12:03:49
+scanner,W09,2,12,Final diagnosis,partly,partly,,2026-11-05 12:03:49
+scanner,W09,2,1,Delivered,wrong,wrong,,2026-11-05 12:03:50
+scanner,W09,2,2,Delivered,wrong,wrong,,2026-11-05 12:03:50
+scanner,W09,2,3,Delivered,wrong,wrong,,2026-11-05 12:03:50
+scanner,W09,2,4,Delivered,wrong,wrong,,2026-11-05 12:03:50
+scanner,W09,2,5,Delivered,wrong,wrong,,2026-11-05 12:03:50
+scanner,W09,2,6,Delivered,wrong,wrong,,2026-11-05 12:03:50
+scanner,W09,2,7,Delivered,wrong,wrong,,2026-11-05 12:03:50
+scanner,W09,2,8,Delivered,wrong,wrong,,2026-11-05 12:03:50
+scanner,W09,2,9,Delivered,wrong,wrong,,2026-11-05 12:03:50
+scanner,W09,2,10,Delivered,wrong,wrong,,2026-11-05 12:03:50
+scanner,W09,2,11,Delivered,wrong,wrong,,2026-11-05 12:03:50
+scanner,W09,2,12,Delivered,wrong,wrong,,2026-11-05 12:03:50
+scanner,W09,2,1,Reason for admission,wrong,wrong,,2026-11-05 12:03:52
+scanner,W09,2,2,Reason for admission,wrong,wrong,,2026-11-05 12:03:52
+scanner,W09,2,3,Reason for admission,wrong,wrong,,2026-11-05 12:03:52
+scanner,W09,2,4,Reason for admission,wrong,wrong,,2026-11-05 12:03:52
+scanner,W09,2,5,Reason for admission,wrong,wrong,,2026-11-05 12:03:52
+scanner,W09,2,6,Reason for admission,wrong,wrong,,2026-11-05 12:03:52
+scanner,W09,2,7,Reason for admission,wrong,wrong,,2026-11-05 12:03:52
+scanner,W09,2,8,Reason for admission,wrong,wrong,,2026-11-05 12:03:52
+scanner,W09,2,9,Reason for admission,wrong,wrong,,2026-11-05 12:03:52
+scanner,W09,2,10,Reason for admission,wrong,wrong,,2026-11-05 12:03:52
+scanner,W09,2,11,Reason for admission,wrong,wrong,,2026-11-05 12:03:52
+scanner,W09,2,12,Reason for admission,wrong,wrong,,2026-11-05 12:03:52
+scanner,W10,1,1,Address,correct,correct,,2026-11-05 12:04:07
+scanner,W10,1,2,Address,correct,correct,,2026-11-05 12:04:23
+scanner,W10,1,3,Address,partly,correct,,2026-11-05 12:04:19
+scanner,W10,1,4,Address,correct,correct,,2026-11-05 12:04:07
+scanner,W10,1,5,Address,partly,correct,,2026-11-05 12:04:18
+scanner,W10,1,6,Address,correct,correct,,2026-11-05 12:04:07
+scanner,W10,1,7,Address,partly,correct,,2026-11-05 12:04:16
+scanner,W10,1,8,Address,partly,correct,,2026-11-05 12:04:16
+scanner,W10,1,9,Address,partly,correct,,2026-11-05 12:04:15
+scanner,W10,1,10,Address,correct,correct,,2026-11-05 12:04:07
+scanner,W10,1,1,Birthday,correct,correct,,2026-11-05 12:04:07
+scanner,W10,1,2,Birthday,correct,correct,,2026-11-05 12:04:07
+scanner,W10,1,3,Birthday,correct,correct,,2026-11-05 12:04:07
+scanner,W10,1,4,Birthday,correct,correct,,2026-11-05 12:04:07
+scanner,W10,1,5,Birthday,correct,correct,,2026-11-05 12:04:07
+scanner,W10,1,6,Birthday,correct,correct,,2026-11-05 12:04:07
+scanner,W10,1,7,Birthday,correct,correct,,2026-11-05 12:04:07
+scanner,W10,1,8,Birthday,correct,correct,,2026-11-05 12:04:07
+scanner,W10,1,9,Birthday,correct,correct,,2026-11-05 12:04:07
+scanner,W10,1,10,Birthday,correct,correct,,2026-11-05 12:04:07
+scanner,W10,1,1,Admitted,correct,correct,,2026-11-05 12:04:09
+scanner,W10,1,2,Admitted,correct,correct,,2026-11-05 12:04:09
+scanner,W10,1,3,Admitted,correct,correct,,2026-11-05 12:04:09
+scanner,W10,1,4,Admitted,correct,correct,,2026-11-05 12:04:09
+scanner,W10,1,5,Admitted,correct,correct,,2026-11-05 12:04:09
+scanner,W10,1,6,Admitted,correct,correct,,2026-11-05 12:04:09
+scanner,W10,1,7,Admitted,correct,correct,,2026-11-05 12:04:09
+scanner,W10,1,8,Admitted,correct,correct,,2026-11-05 12:04:09
+scanner,W10,1,9,Admitted,correct,correct,,2026-11-05 12:04:09
+scanner,W10,1,10,Admitted,correct,correct,,2026-11-05 12:04:09
+scanner,W10,1,1,Case number,correct,correct,,2026-11-05 12:04:10
+scanner,W10,1,2,Case number,correct,correct,,2026-11-05 12:04:10
+scanner,W10,1,3,Case number,correct,correct,,2026-11-05 12:04:10
+scanner,W10,1,4,Case number,correct,correct,,2026-11-05 12:04:10
+scanner,W10,1,5,Case number,correct,correct,,2026-11-05 12:04:10
+scanner,W10,1,6,Case number,correct,correct,,2026-11-05 12:04:10
+scanner,W10,1,7,Case number,correct,correct,,2026-11-05 12:04:10
+scanner,W10,1,8,Case number,correct,correct,,2026-11-05 12:04:10
+scanner,W10,1,9,Case number,correct,correct,,2026-11-05 12:04:10
+scanner,W10,1,10,Case number,correct,correct,,2026-11-05 12:04:10
+scanner,W10,1,1,Patient name,correct,correct,,2026-11-05 12:04:12
+scanner,W10,1,2,Patient name,correct,correct,,2026-11-05 12:04:12
+scanner,W10,1,3,Patient name,correct,correct,,2026-11-05 12:04:12
+scanner,W10,1,4,Patient name,correct,correct,,2026-11-05 12:04:12
+scanner,W10,1,5,Patient name,correct,correct,,2026-11-05 12:04:12
+scanner,W10,1,6,Patient name,correct,correct,,2026-11-05 12:04:12
+scanner,W10,1,7,Patient name,correct,correct,,2026-11-05 12:04:12
+scanner,W10,1,8,Patient name,correct,correct,,2026-11-05 12:04:12
+scanner,W10,1,9,Patient name,correct,correct,,2026-11-05 12:04:12
+scanner,W10,1,10,Patient name,correct,correct,,2026-11-05 12:04:12
+scanner,W10,2,1,Went home,correct,correct,,2026-11-05 12:04:26
+scanner,W10,2,2,Went home,correct,correct,,2026-11-05 12:04:26
+scanner,W10,2,3,Went home,correct,correct,,2026-11-05 12:04:26
+scanner,W10,2,4,Went home,correct,correct,,2026-11-05 12:04:26
+scanner,W10,2,5,Went home,correct,correct,,2026-11-05 12:04:26
+scanner,W10,2,6,Went home,correct,correct,,2026-11-05 12:04:26
+scanner,W10,2,7,Went home,correct,correct,,2026-11-05 12:04:26
+scanner,W10,2,8,Went home,correct,correct,,2026-11-05 12:04:26
+scanner,W10,2,9,Went home,correct,correct,,2026-11-05 12:04:26
+scanner,W10,2,10,Went home,correct,correct,,2026-11-05 12:04:26
+scanner,W10,2,1,Final diagnosis,partly,partly,,2026-11-05 12:04:29
+scanner,W10,2,2,Final diagnosis,partly,partly,,2026-11-05 12:04:29
+scanner,W10,2,3,Final diagnosis,partly,partly,,2026-11-05 12:04:29
+scanner,W10,2,4,Final diagnosis,partly,partly,,2026-11-05 12:04:29
+scanner,W10,2,5,Final diagnosis,partly,partly,,2026-11-05 12:04:29
+scanner,W10,2,6,Final diagnosis,partly,partly,,2026-11-05 12:04:29
+scanner,W10,2,7,Final diagnosis,partly,partly,,2026-11-05 12:04:29
+scanner,W10,2,8,Final diagnosis,partly,partly,,2026-11-05 12:04:29
+scanner,W10,2,9,Final diagnosis,partly,partly,,2026-11-05 12:04:29
+scanner,W10,2,10,Final diagnosis,partly,partly,,2026-11-05 12:04:29
+scanner,W10,2,1,Delivered,wrong,wrong,,2026-11-05 12:04:32
+scanner,W10,2,2,Delivered,wrong,wrong,,2026-11-05 12:04:32
+scanner,W10,2,3,Delivered,wrong,wrong,,2026-11-05 12:04:32
+scanner,W10,2,4,Delivered,wrong,wrong,,2026-11-05 12:04:32
+scanner,W10,2,5,Delivered,wrong,wrong,,2026-11-05 12:04:32
+scanner,W10,2,6,Delivered,wrong,wrong,,2026-11-05 12:04:32
+scanner,W10,2,7,Delivered,wrong,wrong,,2026-11-05 12:04:32
+scanner,W10,2,8,Delivered,wrong,wrong,,2026-11-05 12:04:32
+scanner,W10,2,9,Delivered,wrong,wrong,,2026-11-05 12:04:32
+scanner,W10,2,10,Delivered,wrong,wrong,,2026-11-05 12:04:32
+scanner,W10,2,1,Reason for admission,wrong,wrong,,2026-11-05 12:04:34
+scanner,W10,2,2,Reason for admission,wrong,wrong,,2026-11-05 12:04:34
+scanner,W10,2,3,Reason for admission,wrong,wrong,,2026-11-05 12:04:34
+scanner,W10,2,4,Reason for admission,wrong,wrong,,2026-11-05 12:04:34
+scanner,W10,2,5,Reason for admission,wrong,wrong,,2026-11-05 12:04:34
+scanner,W10,2,6,Reason for admission,wrong,wrong,,2026-11-05 12:04:34
+scanner,W10,2,7,Reason for admission,wrong,wrong,,2026-11-05 12:04:34
+scanner,W10,2,8,Reason for admission,wrong,wrong,,2026-11-05 12:04:34
+scanner,W10,2,9,Reason for admission,wrong,wrong,,2026-11-05 12:04:34
+scanner,W10,2,10,Reason for admission,wrong,wrong,,2026-11-05 12:04:34
+phone,W01,1,1,Case number,wrong,wrong,,2026-11-05 12:04:47
+phone,W01,1,2,Case number,wrong,wrong,,2026-11-05 12:04:47
+phone,W01,1,3,Case number,wrong,wrong,,2026-11-05 12:04:47
+phone,W01,1,4,Case number,wrong,wrong,,2026-11-05 12:04:47
+phone,W01,1,5,Case number,wrong,wrong,,2026-11-05 12:04:47
+phone,W01,1,6,Case number,wrong,wrong,,2026-11-05 12:05:02
+phone,W01,1,7,Case number,wrong,wrong,,2026-11-05 12:04:47
+phone,W01,1,8,Case number,wrong,wrong,,2026-11-05 12:04:47
+phone,W01,1,9,Case number,wrong,wrong,,2026-11-05 12:04:47
+phone,W01,1,10,Case number,wrong,wrong,,2026-11-05 12:04:47
+phone,W01,1,11,Case number,wrong,wrong,,2026-11-05 12:04:47
+phone,W01,1,1,Admitted,wrong,wrong,,2026-11-05 12:04:50
+phone,W01,1,2,Admitted,wrong,wrong,,2026-11-05 12:04:50
+phone,W01,1,3,Admitted,wrong,wrong,,2026-11-05 12:04:50
+phone,W01,1,4,Admitted,wrong,wrong,,2026-11-05 12:04:50
+phone,W01,1,5,Admitted,wrong,wrong,,2026-11-05 12:04:50
+phone,W01,1,6,Admitted,wrong,wrong,,2026-11-05 12:05:02
+phone,W01,1,7,Admitted,wrong,wrong,,2026-11-05 12:04:50
+phone,W01,1,8,Admitted,wrong,wrong,,2026-11-05 12:04:50
+phone,W01,1,9,Admitted,wrong,wrong,,2026-11-05 12:04:50
+phone,W01,1,10,Admitted,wrong,wrong,,2026-11-05 12:04:50
+phone,W01,1,11,Admitted,wrong,wrong,,2026-11-05 12:04:50
+phone,W01,1,1,Patient name,wrong,wrong,,2026-11-05 12:04:51
+phone,W01,1,2,Patient name,wrong,wrong,,2026-11-05 12:04:51
+phone,W01,1,3,Patient name,wrong,wrong,,2026-11-05 12:04:51
+phone,W01,1,4,Patient name,wrong,wrong,,2026-11-05 12:04:51
+phone,W01,1,5,Patient name,wrong,wrong,,2026-11-05 12:04:51
+phone,W01,1,6,Patient name,wrong,wrong,,2026-11-05 12:05:02
+phone,W01,1,7,Patient name,wrong,wrong,,2026-11-05 12:04:51
+phone,W01,1,8,Patient name,wrong,wrong,,2026-11-05 12:04:51
+phone,W01,1,9,Patient name,wrong,wrong,,2026-11-05 12:04:51
+phone,W01,1,10,Patient name,wrong,wrong,,2026-11-05 12:04:51
+phone,W01,1,11,Patient name,wrong,wrong,,2026-11-05 12:04:51
+phone,W01,1,1,Birthday,wrong,wrong,,2026-11-05 12:04:52
+phone,W01,1,2,Birthday,wrong,wrong,,2026-11-05 12:04:52
+phone,W01,1,3,Birthday,wrong,wrong,,2026-11-05 12:04:52
+phone,W01,1,4,Birthday,wrong,wrong,,2026-11-05 12:04:52
+phone,W01,1,5,Birthday,wrong,wrong,,2026-11-05 12:04:52
+phone,W01,1,6,Birthday,wrong,wrong,,2026-11-05 12:05:02
+phone,W01,1,7,Birthday,wrong,wrong,,2026-11-05 12:04:52
+phone,W01,1,8,Birthday,wrong,wrong,,2026-11-05 12:04:52
+phone,W01,1,9,Birthday,wrong,wrong,,2026-11-05 12:04:52
+phone,W01,1,10,Birthday,wrong,wrong,,2026-11-05 12:04:52
+phone,W01,1,11,Birthday,wrong,wrong,,2026-11-05 12:04:52
+phone,W01,1,1,Address,wrong,wrong,,2026-11-05 12:04:54
+phone,W01,1,2,Address,wrong,wrong,,2026-11-05 12:04:54
+phone,W01,1,3,Address,wrong,wrong,,2026-11-05 12:04:54
+phone,W01,1,4,Address,wrong,wrong,,2026-11-05 12:04:54
+phone,W01,1,5,Address,wrong,wrong,,2026-11-05 12:04:54
+phone,W01,1,6,Address,wrong,wrong,,2026-11-05 12:05:02
+phone,W01,1,7,Address,wrong,wrong,,2026-11-05 12:04:54
+phone,W01,1,8,Address,wrong,wrong,,2026-11-05 12:04:54
+phone,W01,1,9,Address,wrong,wrong,,2026-11-05 12:04:54
+phone,W01,1,10,Address,wrong,wrong,,2026-11-05 12:04:54
+phone,W01,1,11,Address,wrong,wrong,,2026-11-05 12:04:54
+phone,W01,2,2,Final diagnosis,correct,wrong,,2026-11-05 12:05:15
+phone,W01,2,1,Final diagnosis,correct,wrong,,2026-11-05 12:05:15
+phone,W01,2,3,Final diagnosis,correct,wrong,,2026-11-05 12:05:15
+phone,W01,2,4,Final diagnosis,correct,wrong,,2026-11-05 12:05:15
+phone,W01,2,5,Final diagnosis,correct,wrong,,2026-11-05 12:05:15
+phone,W01,2,6,Final diagnosis,correct,wrong,,2026-11-05 12:05:15
+phone,W01,2,7,Final diagnosis,correct,wrong,,2026-11-05 12:05:15
+phone,W01,2,8,Final diagnosis,wrong,wrong,,2026-11-05 12:06:15
+phone,W01,2,9,Final diagnosis,wrong,wrong,,2026-11-05 12:06:17
+phone,W01,2,10,Final diagnosis,wrong,wrong,,2026-11-05 12:06:26
+phone,W01,2,11,Final diagnosis,wrong,wrong,,2026-11-05 12:06:21
+phone,W01,2,1,Went home,wrong,wrong,,2026-11-05 12:05:17
+phone,W01,2,2,Went home,wrong,wrong,,2026-11-05 12:05:17
+phone,W01,2,3,Went home,wrong,wrong,,2026-11-05 12:05:17
+phone,W01,2,4,Went home,wrong,wrong,,2026-11-05 12:05:17
+phone,W01,2,5,Went home,wrong,wrong,,2026-11-05 12:05:17
+phone,W01,2,6,Went home,wrong,wrong,,2026-11-05 12:05:17
+phone,W01,2,7,Went home,wrong,wrong,,2026-11-05 12:05:17
+phone,W01,2,8,Went home,wrong,wrong,,2026-11-05 12:05:17
+phone,W01,2,9,Went home,wrong,wrong,,2026-11-05 12:05:17
+phone,W01,2,10,Went home,wrong,wrong,,2026-11-05 12:05:17
+phone,W01,2,11,Went home,wrong,wrong,,2026-11-05 12:05:17
+phone,W01,2,1,Delivered,correct,wrong,,2026-11-05 12:06:00
+phone,W01,2,2,Delivered,correct,wrong,,2026-11-05 12:06:00
+phone,W01,2,3,Delivered,wrong,wrong,,2026-11-05 12:06:02
+phone,W01,2,4,Delivered,correct,wrong,,2026-11-05 12:06:00
+phone,W01,2,5,Delivered,correct,wrong,,2026-11-05 12:06:00
+phone,W01,2,6,Delivered,correct,wrong,,2026-11-05 12:06:00
+phone,W01,2,7,Delivered,correct,wrong,,2026-11-05 12:06:00
+phone,W01,2,8,Delivered,correct,wrong,,2026-11-05 12:06:12
+phone,W01,2,9,Delivered,wrong,wrong,,2026-11-05 12:06:17
+phone,W01,2,10,Delivered,wrong,wrong,,2026-11-05 12:06:18
+phone,W01,2,11,Delivered,wrong,wrong,,2026-11-05 12:06:25
+phone,W01,2,1,Reason for admission,wrong,wrong,,2026-11-05 12:05:49
+phone,W01,2,2,Reason for admission,wrong,wrong,,2026-11-05 12:05:48
+phone,W01,2,3,Reason for admission,wrong,wrong,,2026-11-05 12:05:47
+phone,W01,2,4,Reason for admission,wrong,wrong,,2026-11-05 12:05:45
+phone,W01,2,5,Reason for admission,partly,wrong,,2026-11-05 12:05:43
+phone,W01,2,6,Reason for admission,wrong,wrong,,2026-11-05 12:05:34
+phone,W01,2,7,Reason for admission,wrong,wrong,,2026-11-05 12:05:37
+phone,W01,2,8,Reason for admission,wrong,wrong,,2026-11-05 12:06:06
+phone,W01,2,9,Reason for admission,wrong,wrong,,2026-11-05 12:06:30
+phone,W01,2,10,Reason for admission,wrong,wrong,,2026-11-05 12:06:34
+phone,W01,2,11,Reason for admission,wrong,wrong,,2026-11-05 12:06:32
+phone,W02,1,1,Address,wrong,wrong,,2026-11-05 12:06:43
+phone,W02,1,2,Address,wrong,wrong,,2026-11-05 12:06:43
+phone,W02,1,3,Address,wrong,wrong,,2026-11-05 12:06:43
+phone,W02,1,4,Address,wrong,wrong,,2026-11-05 12:06:43
+phone,W02,1,5,Address,wrong,wrong,,2026-11-05 12:06:43
+phone,W02,1,6,Address,wrong,wrong,,2026-11-05 12:06:43
+phone,W02,1,7,Address,wrong,wrong,,2026-11-05 12:06:43
+phone,W02,1,8,Address,wrong,wrong,,2026-11-05 12:06:43
+phone,W02,1,9,Address,wrong,wrong,,2026-11-05 12:06:43
+phone,W02,1,10,Address,wrong,wrong,,2026-11-05 12:06:43
+phone,W02,1,11,Address,wrong,wrong,,2026-11-05 12:06:43
+phone,W02,1,1,Birthday,wrong,wrong,,2026-11-05 12:06:44
+phone,W02,1,2,Birthday,wrong,wrong,,2026-11-05 12:06:44
+phone,W02,1,3,Birthday,wrong,wrong,,2026-11-05 12:06:44
+phone,W02,1,4,Birthday,wrong,wrong,,2026-11-05 12:06:44
+phone,W02,1,5,Birthday,wrong,wrong,,2026-11-05 12:06:44
+phone,W02,1,6,Birthday,wrong,wrong,,2026-11-05 12:06:44
+phone,W02,1,7,Birthday,wrong,wrong,,2026-11-05 12:06:44
+phone,W02,1,8,Birthday,wrong,wrong,,2026-11-05 12:06:44
+phone,W02,1,9,Birthday,wrong,wrong,,2026-11-05 12:06:44
+phone,W02,1,10,Birthday,wrong,wrong,,2026-11-05 12:06:44
+phone,W02,1,11,Birthday,wrong,wrong,,2026-11-05 12:06:44
+phone,W02,1,1,Patient name,wrong,wrong,,2026-11-05 12:06:45
+phone,W02,1,2,Patient name,wrong,wrong,,2026-11-05 12:06:45
+phone,W02,1,3,Patient name,wrong,wrong,,2026-11-05 12:06:45
+phone,W02,1,4,Patient name,wrong,wrong,,2026-11-05 12:06:45
+phone,W02,1,5,Patient name,wrong,wrong,,2026-11-05 12:06:45
+phone,W02,1,6,Patient name,wrong,wrong,,2026-11-05 12:06:45
+phone,W02,1,7,Patient name,wrong,wrong,,2026-11-05 12:06:45
+phone,W02,1,8,Patient name,wrong,wrong,,2026-11-05 12:06:45
+phone,W02,1,9,Patient name,wrong,wrong,,2026-11-05 12:06:45
+phone,W02,1,10,Patient name,wrong,wrong,,2026-11-05 12:06:45
+phone,W02,1,11,Patient name,wrong,wrong,,2026-11-05 12:06:45
+phone,W02,1,1,Admitted,wrong,wrong,,2026-11-05 12:06:46
+phone,W02,1,2,Admitted,wrong,wrong,,2026-11-05 12:06:46
+phone,W02,1,3,Admitted,wrong,wrong,,2026-11-05 12:06:46
+phone,W02,1,4,Admitted,wrong,wrong,,2026-11-05 12:06:46
+phone,W02,1,5,Admitted,wrong,wrong,,2026-11-05 12:06:46
+phone,W02,1,6,Admitted,wrong,wrong,,2026-11-05 12:06:46
+phone,W02,1,7,Admitted,wrong,wrong,,2026-11-05 12:06:46
+phone,W02,1,8,Admitted,wrong,wrong,,2026-11-05 12:06:46
+phone,W02,1,9,Admitted,wrong,wrong,,2026-11-05 12:06:46
+phone,W02,1,10,Admitted,wrong,wrong,,2026-11-05 12:06:46
+phone,W02,1,11,Admitted,wrong,wrong,,2026-11-05 12:06:46
+phone,W02,1,1,Case number,wrong,wrong,,2026-11-05 12:06:47
+phone,W02,1,2,Case number,wrong,wrong,,2026-11-05 12:06:47
+phone,W02,1,3,Case number,wrong,wrong,,2026-11-05 12:06:47
+phone,W02,1,4,Case number,wrong,wrong,,2026-11-05 12:06:47
+phone,W02,1,5,Case number,wrong,wrong,,2026-11-05 12:06:47
+phone,W02,1,6,Case number,wrong,wrong,,2026-11-05 12:06:47
+phone,W02,1,7,Case number,wrong,wrong,,2026-11-05 12:06:47
+phone,W02,1,8,Case number,wrong,wrong,,2026-11-05 12:06:47
+phone,W02,1,9,Case number,wrong,wrong,,2026-11-05 12:06:47
+phone,W02,1,10,Case number,wrong,wrong,,2026-11-05 12:06:47
+phone,W02,1,11,Case number,wrong,wrong,,2026-11-05 12:06:47
+phone,W02,2,1,Went home,partly,partly,,2026-11-05 12:06:50
+phone,W02,2,2,Went home,partly,partly,,2026-11-05 12:06:50
+phone,W02,2,3,Went home,partly,partly,,2026-11-05 12:06:50
+phone,W02,2,4,Went home,partly,partly,,2026-11-05 12:06:50
+phone,W02,2,5,Went home,partly,partly,,2026-11-05 12:06:50
+phone,W02,2,6,Went home,partly,partly,,2026-11-05 12:06:50
+phone,W02,2,7,Went home,partly,partly,,2026-11-05 12:06:50
+phone,W02,2,8,Went home,partly,partly,,2026-11-05 12:06:50
+phone,W02,2,9,Went home,partly,partly,,2026-11-05 12:06:50
+phone,W02,2,10,Went home,partly,partly,,2026-11-05 12:06:50
+phone,W02,2,11,Went home,partly,partly,,2026-11-05 12:06:50
+phone,W02,2,1,Final diagnosis,partly,partly,,2026-11-05 12:06:52
+phone,W02,2,2,Final diagnosis,partly,partly,,2026-11-05 12:06:52
+phone,W02,2,3,Final diagnosis,partly,partly,,2026-11-05 12:06:52
+phone,W02,2,4,Final diagnosis,partly,partly,,2026-11-05 12:06:52
+phone,W02,2,5,Final diagnosis,partly,partly,,2026-11-05 12:06:52
+phone,W02,2,6,Final diagnosis,partly,partly,,2026-11-05 12:06:52
+phone,W02,2,7,Final diagnosis,partly,partly,,2026-11-05 12:06:52
+phone,W02,2,8,Final diagnosis,partly,partly,,2026-11-05 12:06:52
+phone,W02,2,9,Final diagnosis,partly,partly,,2026-11-05 12:06:52
+phone,W02,2,10,Final diagnosis,partly,partly,,2026-11-05 12:06:52
+phone,W02,2,11,Final diagnosis,partly,partly,,2026-11-05 12:06:52
+phone,W02,2,1,Delivered,wrong,correct,,2026-11-05 12:06:53
+phone,W02,2,2,Delivered,wrong,correct,,2026-11-05 12:06:53
+phone,W02,2,3,Delivered,wrong,correct,,2026-11-05 12:06:53
+phone,W02,2,4,Delivered,wrong,correct,,2026-11-05 12:06:53
+phone,W02,2,5,Delivered,wrong,correct,,2026-11-05 12:06:53
+phone,W02,2,6,Delivered,wrong,correct,,2026-11-05 12:06:53
+phone,W02,2,7,Delivered,wrong,correct,,2026-11-05 12:06:53
+phone,W02,2,8,Delivered,wrong,correct,,2026-11-05 12:06:53
+phone,W02,2,9,Delivered,wrong,correct,,2026-11-05 12:06:53
+phone,W02,2,10,Delivered,wrong,correct,,2026-11-05 12:06:53
+phone,W02,2,11,Delivered,wrong,correct,,2026-11-05 12:06:53
+phone,W02,2,1,Reason for admission,wrong,correct,,2026-11-05 12:06:59
+phone,W02,2,2,Reason for admission,correct,correct,,2026-11-05 12:07:02
+phone,W02,2,3,Reason for admission,partly,correct,,2026-11-05 12:06:58
+phone,W02,2,4,Reason for admission,partly,correct,,2026-11-05 12:06:58
+phone,W02,2,5,Reason for admission,partly,correct,,2026-11-05 12:06:58
+phone,W02,2,6,Reason for admission,partly,correct,,2026-11-05 12:06:58
+phone,W02,2,7,Reason for admission,partly,correct,,2026-11-05 12:06:58
+phone,W02,2,8,Reason for admission,partly,correct,,2026-11-05 12:06:58
+phone,W02,2,9,Reason for admission,partly,correct,,2026-11-05 12:06:58
+phone,W02,2,10,Reason for admission,partly,correct,,2026-11-05 12:06:58
+phone,W02,2,11,Reason for admission,partly,correct,,2026-11-05 12:06:58
+phone,W03,1,1,Address,correct,correct,,2026-11-05 12:07:20
+phone,W03,1,2,Address,correct,correct,,2026-11-05 12:07:20
+phone,W03,1,3,Address,correct,correct,,2026-11-05 12:07:20
+phone,W03,1,4,Address,correct,correct,,2026-11-05 12:07:20
+phone,W03,1,5,Address,correct,correct,,2026-11-05 12:07:20
+phone,W03,1,6,Address,correct,correct,,2026-11-05 12:07:20
+phone,W03,1,7,Address,correct,correct,,2026-11-05 12:07:20
+phone,W03,1,8,Address,correct,correct,,2026-11-05 12:07:20
+phone,W03,1,9,Address,correct,correct,,2026-11-05 12:07:20
+phone,W03,1,10,Address,correct,correct,,2026-11-05 12:07:20
+phone,W03,1,11,Address,correct,wrong,,2026-11-05 12:07:20
+phone,W03,1,1,Birthday,correct,correct,,2026-11-05 12:07:21
+phone,W03,1,2,Birthday,correct,correct,,2026-11-05 12:07:21
+phone,W03,1,3,Birthday,correct,correct,,2026-11-05 12:07:21
+phone,W03,1,4,Birthday,correct,correct,,2026-11-05 12:07:21
+phone,W03,1,5,Birthday,correct,correct,,2026-11-05 12:07:21
+phone,W03,1,6,Birthday,correct,correct,,2026-11-05 12:07:21
+phone,W03,1,7,Birthday,correct,correct,,2026-11-05 12:07:21
+phone,W03,1,8,Birthday,correct,correct,,2026-11-05 12:07:21
+phone,W03,1,9,Birthday,correct,correct,,2026-11-05 12:07:21
+phone,W03,1,10,Birthday,correct,correct,,2026-11-05 12:07:21
+phone,W03,1,11,Birthday,correct,wrong,,2026-11-05 12:07:21
+phone,W03,1,1,Patient name,correct,correct,,2026-11-05 12:07:22
+phone,W03,1,2,Patient name,correct,correct,,2026-11-05 12:07:22
+phone,W03,1,3,Patient name,correct,correct,,2026-11-05 12:07:22
+phone,W03,1,4,Patient name,correct,correct,,2026-11-05 12:07:22
+phone,W03,1,5,Patient name,correct,correct,,2026-11-05 12:07:22
+phone,W03,1,6,Patient name,correct,correct,,2026-11-05 12:07:22
+phone,W03,1,7,Patient name,correct,correct,,2026-11-05 12:07:22
+phone,W03,1,8,Patient name,correct,correct,,2026-11-05 12:07:22
+phone,W03,1,9,Patient name,correct,correct,,2026-11-05 12:07:22
+phone,W03,1,10,Patient name,correct,correct,,2026-11-05 12:07:22
+phone,W03,1,11,Patient name,correct,wrong,,2026-11-05 12:07:22
+phone,W03,1,1,Admitted,correct,correct,,2026-11-05 12:07:23
+phone,W03,1,2,Admitted,correct,correct,,2026-11-05 12:07:23
+phone,W03,1,3,Admitted,correct,correct,,2026-11-05 12:07:23
+phone,W03,1,4,Admitted,correct,correct,,2026-11-05 12:07:23
+phone,W03,1,5,Admitted,correct,correct,,2026-11-05 12:07:23
+phone,W03,1,6,Admitted,correct,correct,,2026-11-05 12:07:23
+phone,W03,1,7,Admitted,correct,correct,,2026-11-05 12:07:23
+phone,W03,1,8,Admitted,correct,correct,,2026-11-05 12:07:23
+phone,W03,1,9,Admitted,correct,correct,,2026-11-05 12:07:23
+phone,W03,1,10,Admitted,correct,correct,,2026-11-05 12:07:23
+phone,W03,1,11,Admitted,correct,wrong,,2026-11-05 12:07:23
+phone,W03,1,1,Case number,correct,correct,,2026-11-05 12:07:24
+phone,W03,1,2,Case number,correct,correct,,2026-11-05 12:07:24
+phone,W03,1,3,Case number,correct,correct,,2026-11-05 12:07:24
+phone,W03,1,4,Case number,correct,correct,,2026-11-05 12:07:24
+phone,W03,1,5,Case number,correct,correct,,2026-11-05 12:07:24
+phone,W03,1,6,Case number,correct,correct,,2026-11-05 12:07:24
+phone,W03,1,7,Case number,correct,correct,,2026-11-05 12:07:24
+phone,W03,1,8,Case number,correct,correct,,2026-11-05 12:07:24
+phone,W03,1,9,Case number,correct,correct,,2026-11-05 12:07:24
+phone,W03,1,10,Case number,correct,correct,,2026-11-05 12:07:24
+phone,W03,1,11,Case number,correct,wrong,,2026-11-05 12:07:24
+phone,W03,2,1,Went home,correct,correct,,2026-11-05 12:07:31
+phone,W03,2,2,Went home,correct,correct,,2026-11-05 12:07:31
+phone,W03,2,3,Went home,correct,correct,,2026-11-05 12:07:31
+phone,W03,2,4,Went home,correct,correct,,2026-11-05 12:07:31
+phone,W03,2,5,Went home,correct,correct,,2026-11-05 12:07:31
+phone,W03,2,6,Went home,correct,correct,,2026-11-05 12:07:31
+phone,W03,2,7,Went home,correct,correct,,2026-11-05 12:07:31
+phone,W03,2,8,Went home,correct,correct,,2026-11-05 12:07:31
+phone,W03,2,9,Went home,correct,correct,,2026-11-05 12:07:31
+phone,W03,2,10,Went home,correct,correct,,2026-11-05 12:07:31
+phone,W03,2,11,Went home,correct,correct,,2026-11-05 12:07:31
+phone,W03,2,1,Final diagnosis,correct,correct,,2026-11-05 12:07:33
+phone,W03,2,2,Final diagnosis,correct,correct,,2026-11-05 12:07:33
+phone,W03,2,3,Final diagnosis,correct,correct,,2026-11-05 12:07:33
+phone,W03,2,4,Final diagnosis,correct,correct,,2026-11-05 12:07:33
+phone,W03,2,5,Final diagnosis,correct,correct,,2026-11-05 12:07:33
+phone,W03,2,6,Final diagnosis,correct,correct,,2026-11-05 12:07:33
+phone,W03,2,7,Final diagnosis,correct,correct,,2026-11-05 12:07:33
+phone,W03,2,8,Final diagnosis,correct,correct,,2026-11-05 12:07:33
+phone,W03,2,9,Final diagnosis,correct,correct,,2026-11-05 12:07:33
+phone,W03,2,10,Final diagnosis,correct,correct,,2026-11-05 12:07:33
+phone,W03,2,11,Final diagnosis,correct,correct,,2026-11-05 12:07:33
+phone,W03,2,1,Delivered,correct,correct,,2026-11-05 12:07:34
+phone,W03,2,2,Delivered,correct,correct,,2026-11-05 12:07:34
+phone,W03,2,3,Delivered,correct,correct,,2026-11-05 12:07:34
+phone,W03,2,4,Delivered,correct,correct,,2026-11-05 12:07:34
+phone,W03,2,5,Delivered,correct,correct,,2026-11-05 12:07:34
+phone,W03,2,6,Delivered,correct,correct,,2026-11-05 12:07:34
+phone,W03,2,7,Delivered,correct,correct,,2026-11-05 12:07:34
+phone,W03,2,8,Delivered,correct,correct,,2026-11-05 12:07:34
+phone,W03,2,9,Delivered,correct,correct,,2026-11-05 12:07:34
+phone,W03,2,10,Delivered,correct,correct,,2026-11-05 12:07:34
+phone,W03,2,11,Delivered,correct,correct,,2026-11-05 12:07:34
+phone,W03,2,1,Reason for admission,correct,correct,,2026-11-05 12:07:35
+phone,W03,2,2,Reason for admission,correct,correct,,2026-11-05 12:07:35
+phone,W03,2,3,Reason for admission,correct,correct,,2026-11-05 12:07:35
+phone,W03,2,4,Reason for admission,correct,correct,,2026-11-05 12:07:35
+phone,W03,2,5,Reason for admission,correct,correct,,2026-11-05 12:07:35
+phone,W03,2,6,Reason for admission,correct,correct,,2026-11-05 12:07:35
+phone,W03,2,7,Reason for admission,correct,correct,,2026-11-05 12:07:35
+phone,W03,2,8,Reason for admission,correct,correct,,2026-11-05 12:07:35
+phone,W03,2,9,Reason for admission,correct,correct,,2026-11-05 12:07:35
+phone,W03,2,10,Reason for admission,correct,correct,,2026-11-05 12:07:35
+phone,W03,2,11,Reason for admission,correct,correct,,2026-11-05 12:07:35
+phone,W04,1,1,Address,correct,correct,,2026-11-05 12:07:41
+phone,W04,1,2,Address,correct,correct,,2026-11-05 12:07:41
+phone,W04,1,3,Address,correct,correct,,2026-11-05 12:07:41
+phone,W04,1,4,Address,correct,correct,,2026-11-05 12:07:41
+phone,W04,1,5,Address,correct,correct,,2026-11-05 12:07:41
+phone,W04,1,6,Address,correct,correct,,2026-11-05 12:07:41
+phone,W04,1,7,Address,correct,correct,,2026-11-05 12:07:41
+phone,W04,1,8,Address,correct,correct,,2026-11-05 12:07:41
+phone,W04,1,9,Address,correct,correct,,2026-11-05 12:07:41
+phone,W04,1,10,Address,correct,wrong,,2026-11-05 12:07:41
+phone,W04,1,11,Address,correct,wrong,,2026-11-05 12:07:41
+phone,W04,1,1,Birthday,correct,correct,,2026-11-05 12:07:41
+phone,W04,1,2,Birthday,correct,correct,,2026-11-05 12:07:41
+phone,W04,1,3,Birthday,correct,correct,,2026-11-05 12:07:41
+phone,W04,1,4,Birthday,correct,correct,,2026-11-05 12:07:41
+phone,W04,1,5,Birthday,correct,correct,,2026-11-05 12:07:41
+phone,W04,1,6,Birthday,correct,correct,,2026-11-05 12:07:41
+phone,W04,1,7,Birthday,correct,correct,,2026-11-05 12:07:41
+phone,W04,1,8,Birthday,correct,correct,,2026-11-05 12:07:41
+phone,W04,1,9,Birthday,correct,correct,,2026-11-05 12:07:41
+phone,W04,1,10,Birthday,correct,wrong,,2026-11-05 12:07:41
+phone,W04,1,11,Birthday,correct,wrong,,2026-11-05 12:07:41
+phone,W04,1,1,Patient name,correct,correct,,2026-11-05 12:07:42
+phone,W04,1,2,Patient name,correct,correct,,2026-11-05 12:07:42
+phone,W04,1,3,Patient name,correct,correct,,2026-11-05 12:07:42
+phone,W04,1,4,Patient name,correct,correct,,2026-11-05 12:07:42
+phone,W04,1,5,Patient name,correct,correct,,2026-11-05 12:07:42
+phone,W04,1,6,Patient name,correct,correct,,2026-11-05 12:07:42
+phone,W04,1,7,Patient name,correct,correct,,2026-11-05 12:07:42
+phone,W04,1,8,Patient name,correct,correct,,2026-11-05 12:07:42
+phone,W04,1,9,Patient name,correct,correct,,2026-11-05 12:07:42
+phone,W04,1,10,Patient name,correct,wrong,,2026-11-05 12:07:42
+phone,W04,1,11,Patient name,correct,wrong,,2026-11-05 12:07:42
+phone,W04,1,1,Admitted,correct,correct,,2026-11-05 12:07:43
+phone,W04,1,2,Admitted,correct,correct,,2026-11-05 12:07:43
+phone,W04,1,3,Admitted,correct,correct,,2026-11-05 12:07:43
+phone,W04,1,4,Admitted,correct,correct,,2026-11-05 12:07:43
+phone,W04,1,5,Admitted,correct,correct,,2026-11-05 12:07:43
+phone,W04,1,6,Admitted,correct,correct,,2026-11-05 12:07:43
+phone,W04,1,7,Admitted,correct,correct,,2026-11-05 12:07:43
+phone,W04,1,8,Admitted,correct,correct,,2026-11-05 12:07:43
+phone,W04,1,9,Admitted,correct,correct,,2026-11-05 12:07:43
+phone,W04,1,10,Admitted,correct,wrong,,2026-11-05 12:07:43
+phone,W04,1,11,Admitted,correct,wrong,,2026-11-05 12:07:43
+phone,W04,1,1,Case number,partly,correct,,2026-11-05 12:07:46
+phone,W04,1,2,Case number,partly,correct,,2026-11-05 12:07:47
+phone,W04,1,3,Case number,partly,correct,,2026-11-05 12:07:49
+phone,W04,1,4,Case number,partly,correct,,2026-11-05 12:07:50
+phone,W04,1,5,Case number,partly,correct,,2026-11-05 12:07:52
+phone,W04,1,6,Case number,correct,correct,,2026-11-05 12:07:45
+phone,W04,1,7,Case number,correct,correct,,2026-11-05 12:07:45
+phone,W04,1,8,Case number,correct,correct,,2026-11-05 12:07:45
+phone,W04,1,9,Case number,correct,correct,,2026-11-05 12:07:45
+phone,W04,1,10,Case number,correct,wrong,,2026-11-05 12:07:45
+phone,W04,1,11,Case number,correct,wrong,,2026-11-05 12:07:45
+phone,W04,2,1,Went home,correct,correct,,2026-11-05 12:08:01
+phone,W04,2,2,Went home,correct,correct,,2026-11-05 12:08:01
+phone,W04,2,3,Went home,correct,correct,,2026-11-05 12:08:01
+phone,W04,2,4,Went home,correct,correct,,2026-11-05 12:08:01
+phone,W04,2,5,Went home,correct,correct,,2026-11-05 12:08:01
+phone,W04,2,6,Went home,correct,correct,,2026-11-05 12:08:01
+phone,W04,2,7,Went home,correct,correct,,2026-11-05 12:08:01
+phone,W04,2,8,Went home,correct,correct,,2026-11-05 12:08:01
+phone,W04,2,9,Went home,correct,correct,,2026-11-05 12:08:01
+phone,W04,2,10,Went home,correct,correct,,2026-11-05 12:08:01
+phone,W04,2,11,Went home,correct,correct,,2026-11-05 12:08:01
+phone,W04,2,1,Final diagnosis,correct,correct,,2026-11-05 12:08:02
+phone,W04,2,2,Final diagnosis,correct,correct,,2026-11-05 12:08:02
+phone,W04,2,3,Final diagnosis,correct,correct,,2026-11-05 12:08:02
+phone,W04,2,4,Final diagnosis,correct,correct,,2026-11-05 12:08:02
+phone,W04,2,5,Final diagnosis,correct,correct,,2026-11-05 12:08:02
+phone,W04,2,6,Final diagnosis,correct,correct,,2026-11-05 12:08:02
+phone,W04,2,7,Final diagnosis,correct,correct,,2026-11-05 12:08:02
+phone,W04,2,8,Final diagnosis,correct,correct,,2026-11-05 12:08:02
+phone,W04,2,9,Final diagnosis,correct,correct,,2026-11-05 12:08:02
+phone,W04,2,10,Final diagnosis,correct,correct,,2026-11-05 12:08:02
+phone,W04,2,11,Final diagnosis,correct,correct,,2026-11-05 12:08:02
+phone,W04,2,1,Delivered,correct,correct,,2026-11-05 12:08:03
+phone,W04,2,2,Delivered,correct,correct,,2026-11-05 12:08:03
+phone,W04,2,3,Delivered,correct,correct,,2026-11-05 12:08:03
+phone,W04,2,4,Delivered,correct,correct,,2026-11-05 12:08:03
+phone,W04,2,5,Delivered,correct,correct,,2026-11-05 12:08:03
+phone,W04,2,6,Delivered,correct,correct,,2026-11-05 12:08:03
+phone,W04,2,7,Delivered,correct,correct,,2026-11-05 12:08:03
+phone,W04,2,8,Delivered,correct,correct,,2026-11-05 12:08:03
+phone,W04,2,9,Delivered,correct,correct,,2026-11-05 12:08:03
+phone,W04,2,10,Delivered,correct,correct,,2026-11-05 12:08:03
+phone,W04,2,11,Delivered,correct,correct,,2026-11-05 12:08:03
+phone,W04,2,1,Reason for admission,correct,correct,,2026-11-05 12:08:04
+phone,W04,2,2,Reason for admission,correct,correct,,2026-11-05 12:08:04
+phone,W04,2,3,Reason for admission,correct,correct,,2026-11-05 12:08:04
+phone,W04,2,4,Reason for admission,correct,correct,,2026-11-05 12:08:04
+phone,W04,2,5,Reason for admission,correct,correct,,2026-11-05 12:08:04
+phone,W04,2,6,Reason for admission,correct,correct,,2026-11-05 12:08:04
+phone,W04,2,7,Reason for admission,correct,correct,,2026-11-05 12:08:04
+phone,W04,2,8,Reason for admission,correct,correct,,2026-11-05 12:08:04
+phone,W04,2,9,Reason for admission,correct,correct,,2026-11-05 12:08:04
+phone,W04,2,10,Reason for admission,correct,correct,,2026-11-05 12:08:04
+phone,W04,2,11,Reason for admission,correct,correct,,2026-11-05 12:08:04
+phone,W05,1,1,Address,correct,correct,,2026-11-05 12:08:09
+phone,W05,1,2,Address,correct,correct,,2026-11-05 12:08:09
+phone,W05,1,3,Address,correct,correct,,2026-11-05 12:08:09
+phone,W05,1,4,Address,correct,correct,,2026-11-05 12:08:09
+phone,W05,1,5,Address,correct,correct,,2026-11-05 12:08:09
+phone,W05,1,6,Address,correct,correct,,2026-11-05 12:08:09
+phone,W05,1,7,Address,correct,correct,,2026-11-05 12:08:09
+phone,W05,1,8,Address,correct,correct,,2026-11-05 12:08:09
+phone,W05,1,9,Address,correct,correct,,2026-11-05 12:08:09
+phone,W05,1,10,Address,correct,correct,,2026-11-05 12:08:09
+phone,W05,1,11,Address,correct,correct,,2026-11-05 12:08:09
+phone,W05,1,1,Birthday,partly,correct,,2026-11-05 12:08:13
+phone,W05,1,2,Birthday,correct,correct,,2026-11-05 12:08:12
+phone,W05,1,3,Birthday,correct,correct,,2026-11-05 12:08:12
+phone,W05,1,4,Birthday,correct,correct,,2026-11-05 12:08:12
+phone,W05,1,5,Birthday,partly,correct,,2026-11-05 12:08:15
+phone,W05,1,6,Birthday,partly,correct,,2026-11-05 12:08:17
+phone,W05,1,7,Birthday,partly,correct,,2026-11-05 12:08:16
+phone,W05,1,8,Birthday,partly,correct,,2026-11-05 12:08:18
+phone,W05,1,9,Birthday,partly,correct,,2026-11-05 12:08:19
+phone,W05,1,10,Birthday,correct,correct,,2026-11-05 12:08:12
+phone,W05,1,11,Birthday,correct,correct,,2026-11-05 12:08:12
+phone,W05,1,1,Patient name,partly,correct,,2026-11-05 12:08:27
+phone,W05,1,2,Patient name,partly,correct,,2026-11-05 12:08:31
+phone,W05,1,3,Patient name,correct,correct,,2026-11-05 12:08:31
+phone,W05,1,4,Patient name,correct,correct,,2026-11-05 12:08:26
+phone,W05,1,5,Patient name,partly,correct,,2026-11-05 12:08:34
+phone,W05,1,6,Patient name,partly,correct,,2026-11-05 12:08:35
+phone,W05,1,7,Patient name,partly,correct,,2026-11-05 12:08:36
+phone,W05,1,8,Patient name,partly,correct,,2026-11-05 12:08:37
+phone,W05,1,9,Patient name,partly,correct,,2026-11-05 12:08:37
+phone,W05,1,10,Patient name,partly,correct,,2026-11-05 12:08:38
+phone,W05,1,11,Patient name,correct,correct,,2026-11-05 12:08:26
+phone,W05,1,1,Admitted,correct,correct,,2026-11-05 12:08:43
+phone,W05,1,2,Admitted,correct,correct,,2026-11-05 12:08:43
+phone,W05,1,3,Admitted,correct,correct,,2026-11-05 12:08:43
+phone,W05,1,4,Admitted,correct,correct,,2026-11-05 12:08:43
+phone,W05,1,5,Admitted,correct,correct,,2026-11-05 12:08:43
+phone,W05,1,6,Admitted,correct,correct,,2026-11-05 12:08:43
+phone,W05,1,7,Admitted,correct,correct,,2026-11-05 12:08:43
+phone,W05,1,8,Admitted,correct,correct,,2026-11-05 12:08:43
+phone,W05,1,9,Admitted,correct,correct,,2026-11-05 12:08:43
+phone,W05,1,10,Admitted,correct,correct,,2026-11-05 12:08:43
+phone,W05,1,11,Admitted,correct,correct,,2026-11-05 12:08:43
+phone,W05,1,1,Case number,correct,correct,,2026-11-05 12:08:44
+phone,W05,1,2,Case number,correct,correct,,2026-11-05 12:08:44
+phone,W05,1,3,Case number,correct,correct,,2026-11-05 12:08:44
+phone,W05,1,4,Case number,correct,correct,,2026-11-05 12:08:44
+phone,W05,1,5,Case number,correct,correct,,2026-11-05 12:08:44
+phone,W05,1,6,Case number,correct,correct,,2026-11-05 12:08:44
+phone,W05,1,7,Case number,correct,correct,,2026-11-05 12:08:44
+phone,W05,1,8,Case number,correct,correct,,2026-11-05 12:08:44
+phone,W05,1,9,Case number,correct,correct,,2026-11-05 12:08:44
+phone,W05,1,10,Case number,correct,correct,,2026-11-05 12:08:44
+phone,W05,1,11,Case number,correct,correct,,2026-11-05 12:08:44
+phone,W05,2,1,Went home,correct,correct,,2026-11-05 12:08:48
+phone,W05,2,2,Went home,correct,correct,,2026-11-05 12:08:48
+phone,W05,2,3,Went home,correct,correct,,2026-11-05 12:08:48
+phone,W05,2,4,Went home,correct,correct,,2026-11-05 12:08:48
+phone,W05,2,5,Went home,correct,correct,,2026-11-05 12:08:48
+phone,W05,2,6,Went home,correct,correct,,2026-11-05 12:08:48
+phone,W05,2,7,Went home,correct,correct,,2026-11-05 12:08:48
+phone,W05,2,8,Went home,correct,correct,,2026-11-05 12:08:48
+phone,W05,2,9,Went home,correct,correct,,2026-11-05 12:08:48
+phone,W05,2,10,Went home,correct,correct,,2026-11-05 12:08:48
+phone,W05,2,11,Went home,correct,correct,,2026-11-05 12:08:48
+phone,W05,2,1,Final diagnosis,correct,correct,,2026-11-05 12:08:49
+phone,W05,2,2,Final diagnosis,correct,correct,,2026-11-05 12:08:49
+phone,W05,2,3,Final diagnosis,correct,correct,,2026-11-05 12:08:49
+phone,W05,2,4,Final diagnosis,correct,correct,,2026-11-05 12:08:49
+phone,W05,2,5,Final diagnosis,correct,correct,,2026-11-05 12:08:49
+phone,W05,2,6,Final diagnosis,correct,correct,,2026-11-05 12:08:49
+phone,W05,2,7,Final diagnosis,correct,correct,,2026-11-05 12:08:49
+phone,W05,2,8,Final diagnosis,correct,correct,,2026-11-05 12:08:49
+phone,W05,2,9,Final diagnosis,correct,correct,,2026-11-05 12:08:49
+phone,W05,2,10,Final diagnosis,correct,correct,,2026-11-05 12:08:49
+phone,W05,2,11,Final diagnosis,correct,correct,,2026-11-05 12:08:49
+phone,W05,2,1,Delivered,correct,correct,,2026-11-05 12:08:50
+phone,W05,2,2,Delivered,correct,correct,,2026-11-05 12:08:50
+phone,W05,2,3,Delivered,correct,correct,,2026-11-05 12:08:50
+phone,W05,2,4,Delivered,correct,correct,,2026-11-05 12:08:50
+phone,W05,2,5,Delivered,correct,correct,,2026-11-05 12:08:50
+phone,W05,2,6,Delivered,correct,correct,,2026-11-05 12:08:50
+phone,W05,2,7,Delivered,correct,correct,,2026-11-05 12:08:50
+phone,W05,2,8,Delivered,correct,correct,,2026-11-05 12:08:50
+phone,W05,2,9,Delivered,correct,correct,,2026-11-05 12:08:50
+phone,W05,2,10,Delivered,correct,correct,,2026-11-05 12:08:50
+phone,W05,2,11,Delivered,correct,correct,,2026-11-05 12:08:50
+phone,W05,2,1,Reason for admission,correct,correct,,2026-11-05 12:08:57
+phone,W05,2,2,Reason for admission,correct,correct,,2026-11-05 12:08:55
+phone,W05,2,3,Reason for admission,correct,correct,,2026-11-05 12:08:55
+phone,W05,2,4,Reason for admission,correct,correct,,2026-11-05 12:08:55
+phone,W05,2,5,Reason for admission,correct,correct,,2026-11-05 12:08:55
+phone,W05,2,6,Reason for admission,correct,correct,,2026-11-05 12:08:55
+phone,W05,2,7,Reason for admission,correct,correct,,2026-11-05 12:08:55
+phone,W05,2,8,Reason for admission,correct,correct,,2026-11-05 12:08:55
+phone,W05,2,9,Reason for admission,correct,correct,,2026-11-05 12:08:55
+phone,W05,2,10,Reason for admission,correct,correct,,2026-11-05 12:08:55
+phone,W05,2,11,Reason for admission,correct,correct,,2026-11-05 12:08:55
+phone,W06,1,1,Address,correct,correct,,2026-11-05 12:09:03
+phone,W06,1,2,Address,correct,correct,,2026-11-05 12:09:03
+phone,W06,1,3,Address,correct,correct,,2026-11-05 12:09:03
+phone,W06,1,4,Address,correct,correct,,2026-11-05 12:09:03
+phone,W06,1,5,Address,correct,correct,,2026-11-05 12:09:03
+phone,W06,1,6,Address,correct,correct,,2026-11-05 12:09:03
+phone,W06,1,7,Address,correct,correct,,2026-11-05 12:09:03
+phone,W06,1,8,Address,correct,wrong,,2026-11-05 12:09:03
+phone,W06,1,9,Address,correct,wrong,,2026-11-05 12:09:03
+phone,W06,1,10,Address,correct,wrong,,2026-11-05 12:09:03
+phone,W06,1,11,Address,correct,wrong,,2026-11-05 12:09:03
+phone,W06,1,1,Birthday,correct,correct,,2026-11-05 12:09:03
+phone,W06,1,2,Birthday,correct,correct,,2026-11-05 12:09:03
+phone,W06,1,3,Birthday,correct,correct,,2026-11-05 12:09:03
+phone,W06,1,4,Birthday,correct,correct,,2026-11-05 12:09:03
+phone,W06,1,5,Birthday,correct,correct,,2026-11-05 12:09:03
+phone,W06,1,6,Birthday,correct,correct,,2026-11-05 12:09:03
+phone,W06,1,7,Birthday,correct,correct,,2026-11-05 12:09:03
+phone,W06,1,8,Birthday,correct,wrong,,2026-11-05 12:09:03
+phone,W06,1,9,Birthday,correct,wrong,,2026-11-05 12:09:03
+phone,W06,1,10,Birthday,correct,wrong,,2026-11-05 12:09:03
+phone,W06,1,11,Birthday,correct,wrong,,2026-11-05 12:09:03
+phone,W06,1,1,Patient name,correct,correct,,2026-11-05 12:09:04
+phone,W06,1,2,Patient name,correct,correct,,2026-11-05 12:09:04
+phone,W06,1,3,Patient name,correct,correct,,2026-11-05 12:09:04
+phone,W06,1,4,Patient name,correct,correct,,2026-11-05 12:09:04
+phone,W06,1,5,Patient name,correct,correct,,2026-11-05 12:09:04
+phone,W06,1,6,Patient name,correct,correct,,2026-11-05 12:09:04
+phone,W06,1,7,Patient name,correct,correct,,2026-11-05 12:09:04
+phone,W06,1,8,Patient name,correct,wrong,,2026-11-05 12:09:04
+phone,W06,1,9,Patient name,correct,wrong,,2026-11-05 12:09:04
+phone,W06,1,10,Patient name,correct,wrong,,2026-11-05 12:09:04
+phone,W06,1,11,Patient name,correct,wrong,,2026-11-05 12:09:04
+phone,W06,1,1,Admitted,correct,correct,,2026-11-05 12:09:05
+phone,W06,1,2,Admitted,correct,correct,,2026-11-05 12:09:05
+phone,W06,1,3,Admitted,correct,correct,,2026-11-05 12:09:05
+phone,W06,1,4,Admitted,correct,correct,,2026-11-05 12:09:05
+phone,W06,1,5,Admitted,correct,correct,,2026-11-05 12:09:05
+phone,W06,1,6,Admitted,correct,correct,,2026-11-05 12:09:05
+phone,W06,1,7,Admitted,correct,correct,,2026-11-05 12:09:05
+phone,W06,1,8,Admitted,correct,wrong,,2026-11-05 12:09:05
+phone,W06,1,9,Admitted,correct,wrong,,2026-11-05 12:09:05
+phone,W06,1,10,Admitted,correct,wrong,,2026-11-05 12:09:05
+phone,W06,1,11,Admitted,correct,wrong,,2026-11-05 12:09:05
+phone,W06,1,1,Case number,partly,correct,,2026-11-05 12:09:08
+phone,W06,1,2,Case number,partly,correct,,2026-11-05 12:09:09
+phone,W06,1,3,Case number,partly,correct,,2026-11-05 12:09:09
+phone,W06,1,4,Case number,correct,correct,,2026-11-05 12:09:07
+phone,W06,1,5,Case number,correct,correct,,2026-11-05 12:09:07
+phone,W06,1,6,Case number,correct,correct,,2026-11-05 12:09:07
+phone,W06,1,7,Case number,correct,correct,,2026-11-05 12:09:07
+phone,W06,1,8,Case number,correct,wrong,,2026-11-05 12:09:07
+phone,W06,1,9,Case number,correct,wrong,,2026-11-05 12:09:07
+phone,W06,1,10,Case number,correct,wrong,,2026-11-05 12:09:07
+phone,W06,1,11,Case number,correct,wrong,,2026-11-05 12:09:07
+phone,W06,2,1,Went home,correct,correct,,2026-11-05 12:09:13
+phone,W06,2,2,Went home,correct,correct,,2026-11-05 12:09:13
+phone,W06,2,3,Went home,correct,correct,,2026-11-05 12:09:13
+phone,W06,2,4,Went home,correct,correct,,2026-11-05 12:09:13
+phone,W06,2,5,Went home,correct,correct,,2026-11-05 12:09:13
+phone,W06,2,6,Went home,correct,correct,,2026-11-05 12:09:13
+phone,W06,2,7,Went home,correct,correct,,2026-11-05 12:09:13
+phone,W06,2,8,Went home,correct,wrong,,2026-11-05 12:09:13
+phone,W06,2,9,Went home,correct,wrong,,2026-11-05 12:09:13
+phone,W06,2,10,Went home,correct,wrong,,2026-11-05 12:09:13
+phone,W06,2,11,Went home,correct,wrong,,2026-11-05 12:09:13
+phone,W06,2,1,Final diagnosis,correct,correct,,2026-11-05 12:09:14
+phone,W06,2,2,Final diagnosis,correct,correct,,2026-11-05 12:09:14
+phone,W06,2,3,Final diagnosis,correct,correct,,2026-11-05 12:09:14
+phone,W06,2,4,Final diagnosis,correct,correct,,2026-11-05 12:09:14
+phone,W06,2,5,Final diagnosis,correct,correct,,2026-11-05 12:09:14
+phone,W06,2,6,Final diagnosis,correct,correct,,2026-11-05 12:09:14
+phone,W06,2,7,Final diagnosis,partly,correct,,2026-11-05 12:09:25
+phone,W06,2,8,Final diagnosis,correct,wrong,,2026-11-05 12:09:14
+phone,W06,2,9,Final diagnosis,correct,wrong,,2026-11-05 12:09:14
+phone,W06,2,10,Final diagnosis,correct,wrong,,2026-11-05 12:09:14
+phone,W06,2,11,Final diagnosis,correct,wrong,,2026-11-05 12:09:14
+phone,W06,2,1,Reason for admission,correct,correct,,2026-11-05 12:09:17
+phone,W06,2,2,Reason for admission,correct,correct,,2026-11-05 12:09:17
+phone,W06,2,3,Reason for admission,correct,correct,,2026-11-05 12:09:17
+phone,W06,2,4,Reason for admission,correct,correct,,2026-11-05 12:09:17
+phone,W06,2,5,Reason for admission,correct,correct,,2026-11-05 12:09:17
+phone,W06,2,6,Reason for admission,correct,correct,,2026-11-05 12:09:17
+phone,W06,2,7,Reason for admission,correct,correct,,2026-11-05 12:09:17
+phone,W06,2,8,Reason for admission,correct,wrong,,2026-11-05 12:09:17
+phone,W06,2,9,Reason for admission,correct,wrong,,2026-11-05 12:09:17
+phone,W06,2,10,Reason for admission,correct,wrong,,2026-11-05 12:09:17
+phone,W06,2,11,Reason for admission,correct,wrong,,2026-11-05 12:09:17
+phone,W06,2,1,Delivered,correct,correct,,2026-11-05 12:09:18
+phone,W06,2,2,Delivered,correct,correct,,2026-11-05 12:09:18
+phone,W06,2,3,Delivered,correct,correct,,2026-11-05 12:09:18
+phone,W06,2,4,Delivered,correct,correct,,2026-11-05 12:09:18
+phone,W06,2,5,Delivered,correct,correct,,2026-11-05 12:09:18
+phone,W06,2,6,Delivered,correct,correct,,2026-11-05 12:09:18
+phone,W06,2,7,Delivered,correct,correct,,2026-11-05 12:09:18
+phone,W06,2,8,Delivered,correct,wrong,,2026-11-05 12:09:18
+phone,W06,2,9,Delivered,correct,wrong,,2026-11-05 12:09:18
+phone,W06,2,10,Delivered,correct,wrong,,2026-11-05 12:09:18
+phone,W06,2,11,Delivered,correct,wrong,,2026-11-05 12:09:18
+phone,W07,1,1,Address,wrong,partly,,2026-11-05 12:09:34
+phone,W07,1,2,Address,wrong,partly,,2026-11-05 12:09:34
+phone,W07,1,3,Address,wrong,partly,,2026-11-05 12:09:34
+phone,W07,1,4,Address,wrong,partly,,2026-11-05 12:09:34
+phone,W07,1,5,Address,wrong,partly,,2026-11-05 12:09:34
+phone,W07,1,6,Address,wrong,partly,,2026-11-05 12:09:34
+phone,W07,1,7,Address,wrong,partly,,2026-11-05 12:09:34
+phone,W07,1,8,Address,wrong,partly,,2026-11-05 12:09:34
+phone,W07,1,9,Address,wrong,partly,,2026-11-05 12:09:34
+phone,W07,1,10,Address,wrong,partly,,2026-11-05 12:09:34
+phone,W07,1,11,Address,wrong,partly,,2026-11-05 12:09:34
+phone,W07,1,1,Birthday,wrong,correct,,2026-11-05 12:09:44
+phone,W07,1,2,Birthday,wrong,correct,,2026-11-05 12:09:46
+phone,W07,1,3,Birthday,wrong,correct,,2026-11-05 12:09:48
+phone,W07,1,4,Birthday,wrong,correct,,2026-11-05 12:09:49
+phone,W07,1,5,Birthday,wrong,correct,,2026-11-05 12:09:50
+phone,W07,1,6,Birthday,wrong,correct,,2026-11-05 12:09:50
+phone,W07,1,7,Birthday,wrong,correct,,2026-11-05 12:09:52
+phone,W07,1,8,Birthday,wrong,correct,,2026-11-05 12:09:53
+phone,W07,1,9,Birthday,wrong,correct,,2026-11-05 12:09:54
+phone,W07,1,10,Birthday,wrong,correct,,2026-11-05 12:09:55
+phone,W07,1,11,Birthday,wrong,correct,,2026-11-05 12:09:55
+phone,W07,1,1,Patient name,correct,correct,,2026-11-05 12:09:59
+phone,W07,1,2,Patient name,correct,correct,,2026-11-05 12:09:59
+phone,W07,1,3,Patient name,correct,correct,,2026-11-05 12:09:59
+phone,W07,1,4,Patient name,correct,correct,,2026-11-05 12:09:59
+phone,W07,1,5,Patient name,correct,correct,,2026-11-05 12:09:59
+phone,W07,1,6,Patient name,correct,correct,,2026-11-05 12:09:59
+phone,W07,1,7,Patient name,correct,correct,,2026-11-05 12:09:59
+phone,W07,1,8,Patient name,correct,correct,,2026-11-05 12:09:59
+phone,W07,1,9,Patient name,correct,correct,,2026-11-05 12:09:59
+phone,W07,1,10,Patient name,correct,correct,,2026-11-05 12:09:59
+phone,W07,1,11,Patient name,correct,correct,,2026-11-05 12:09:59
+phone,W07,1,1,Admitted,correct,correct,,2026-11-05 12:10:06
+phone,W07,1,2,Admitted,correct,correct,,2026-11-05 12:10:06
+phone,W07,1,3,Admitted,correct,correct,,2026-11-05 12:10:06
+phone,W07,1,4,Admitted,correct,correct,,2026-11-05 12:10:06
+phone,W07,1,5,Admitted,correct,correct,,2026-11-05 12:10:06
+phone,W07,1,6,Admitted,correct,correct,,2026-11-05 12:10:06
+phone,W07,1,7,Admitted,correct,correct,,2026-11-05 12:10:06
+phone,W07,1,8,Admitted,correct,correct,,2026-11-05 12:10:06
+phone,W07,1,9,Admitted,correct,correct,,2026-11-05 12:10:06
+phone,W07,1,10,Admitted,correct,correct,,2026-11-05 12:10:06
+phone,W07,1,11,Admitted,correct,correct,,2026-11-05 12:10:06
+phone,W07,1,1,Case number,wrong,partly,,2026-11-05 12:10:08
+phone,W07,1,2,Case number,wrong,partly,,2026-11-05 12:10:08
+phone,W07,1,3,Case number,wrong,partly,,2026-11-05 12:10:08
+phone,W07,1,4,Case number,wrong,partly,,2026-11-05 12:10:08
+phone,W07,1,5,Case number,wrong,partly,,2026-11-05 12:10:08
+phone,W07,1,6,Case number,wrong,partly,,2026-11-05 12:10:08
+phone,W07,1,7,Case number,wrong,partly,,2026-11-05 12:10:08
+phone,W07,1,8,Case number,wrong,partly,,2026-11-05 12:10:08
+phone,W07,1,9,Case number,wrong,partly,,2026-11-05 12:10:08
+phone,W07,1,10,Case number,wrong,partly,,2026-11-05 12:10:08
+phone,W07,1,11,Case number,wrong,partly,,2026-11-05 12:10:08
+phone,W07,2,1,Went home,correct,correct,,2026-11-05 12:10:11
+phone,W07,2,2,Went home,correct,correct,,2026-11-05 12:10:11
+phone,W07,2,3,Went home,correct,correct,,2026-11-05 12:10:11
+phone,W07,2,4,Went home,correct,correct,,2026-11-05 12:10:11
+phone,W07,2,5,Went home,correct,correct,,2026-11-05 12:10:11
+phone,W07,2,6,Went home,correct,correct,,2026-11-05 12:10:11
+phone,W07,2,7,Went home,correct,correct,,2026-11-05 12:10:11
+phone,W07,2,8,Went home,correct,correct,,2026-11-05 12:10:11
+phone,W07,2,9,Went home,correct,correct,,2026-11-05 12:10:11
+phone,W07,2,10,Went home,correct,correct,,2026-11-05 12:10:11
+phone,W07,2,11,Went home,correct,correct,,2026-11-05 12:10:11
+phone,W07,2,1,Final diagnosis,wrong,partly,,2026-11-05 12:10:19
+phone,W07,2,2,Final diagnosis,wrong,partly,,2026-11-05 12:10:19
+phone,W07,2,3,Final diagnosis,wrong,partly,,2026-11-05 12:10:19
+phone,W07,2,4,Final diagnosis,wrong,partly,,2026-11-05 12:10:19
+phone,W07,2,5,Final diagnosis,wrong,partly,,2026-11-05 12:10:19
+phone,W07,2,6,Final diagnosis,wrong,partly,,2026-11-05 12:10:19
+phone,W07,2,7,Final diagnosis,wrong,partly,,2026-11-05 12:10:19
+phone,W07,2,8,Final diagnosis,wrong,partly,,2026-11-05 12:10:19
+phone,W07,2,9,Final diagnosis,wrong,partly,,2026-11-05 12:10:19
+phone,W07,2,10,Final diagnosis,wrong,partly,,2026-11-05 12:10:19
+phone,W07,2,11,Final diagnosis,wrong,partly,,2026-11-05 12:10:19
+phone,W07,2,1,Delivered,wrong,wrong,,2026-11-05 12:10:20
+phone,W07,2,2,Delivered,wrong,wrong,,2026-11-05 12:10:20
+phone,W07,2,3,Delivered,wrong,wrong,,2026-11-05 12:10:20
+phone,W07,2,4,Delivered,wrong,wrong,,2026-11-05 12:10:20
+phone,W07,2,5,Delivered,wrong,wrong,,2026-11-05 12:10:20
+phone,W07,2,6,Delivered,wrong,wrong,,2026-11-05 12:10:20
+phone,W07,2,7,Delivered,wrong,wrong,,2026-11-05 12:10:20
+phone,W07,2,8,Delivered,wrong,wrong,,2026-11-05 12:10:20
+phone,W07,2,9,Delivered,wrong,wrong,,2026-11-05 12:10:20
+phone,W07,2,10,Delivered,wrong,wrong,,2026-11-05 12:10:20
+phone,W07,2,11,Delivered,wrong,wrong,,2026-11-05 12:10:20
+phone,W07,2,1,Reason for admission,wrong,wrong,,2026-11-05 12:10:21
+phone,W07,2,2,Reason for admission,wrong,wrong,,2026-11-05 12:10:21
+phone,W07,2,3,Reason for admission,wrong,wrong,,2026-11-05 12:10:21
+phone,W07,2,4,Reason for admission,wrong,wrong,,2026-11-05 12:10:21
+phone,W07,2,5,Reason for admission,wrong,wrong,,2026-11-05 12:10:21
+phone,W07,2,6,Reason for admission,wrong,wrong,,2026-11-05 12:10:21
+phone,W07,2,7,Reason for admission,wrong,wrong,,2026-11-05 12:10:21
+phone,W07,2,8,Reason for admission,wrong,wrong,,2026-11-05 12:10:21
+phone,W07,2,9,Reason for admission,wrong,wrong,,2026-11-05 12:10:21
+phone,W07,2,10,Reason for admission,wrong,wrong,,2026-11-05 12:10:21
+phone,W07,2,11,Reason for admission,wrong,wrong,,2026-11-05 12:10:21
+phone,W08,1,1,Address,correct,correct,,2026-11-05 12:10:26
+phone,W08,1,2,Address,correct,correct,,2026-11-05 12:10:26
+phone,W08,1,3,Address,correct,correct,,2026-11-05 12:10:26
+phone,W08,1,4,Address,correct,correct,,2026-11-05 12:10:26
+phone,W08,1,5,Address,correct,correct,,2026-11-05 12:10:26
+phone,W08,1,6,Address,correct,correct,,2026-11-05 12:10:26
+phone,W08,1,7,Address,correct,correct,,2026-11-05 12:10:26
+phone,W08,1,8,Address,correct,correct,,2026-11-05 12:10:26
+phone,W08,1,9,Address,correct,wrong,,2026-11-05 12:10:26
+phone,W08,1,10,Address,correct,wrong,,2026-11-05 12:10:26
+phone,W08,1,11,Address,correct,wrong,,2026-11-05 12:10:26
+phone,W08,1,1,Birthday,correct,correct,,2026-11-05 12:10:27
+phone,W08,1,2,Birthday,correct,correct,,2026-11-05 12:10:27
+phone,W08,1,3,Birthday,correct,correct,,2026-11-05 12:10:27
+phone,W08,1,4,Birthday,correct,correct,,2026-11-05 12:10:27
+phone,W08,1,5,Birthday,correct,correct,,2026-11-05 12:10:27
+phone,W08,1,6,Birthday,correct,correct,,2026-11-05 12:10:27
+phone,W08,1,7,Birthday,correct,correct,,2026-11-05 12:10:27
+phone,W08,1,8,Birthday,correct,correct,,2026-11-05 12:10:27
+phone,W08,1,9,Birthday,correct,wrong,,2026-11-05 12:10:27
+phone,W08,1,10,Birthday,correct,wrong,,2026-11-05 12:10:27
+phone,W08,1,11,Birthday,correct,wrong,,2026-11-05 12:10:27
+phone,W08,1,1,Patient name,correct,correct,,2026-11-05 12:10:29
+phone,W08,1,2,Patient name,correct,correct,,2026-11-05 12:10:29
+phone,W08,1,3,Patient name,correct,correct,,2026-11-05 12:10:29
+phone,W08,1,4,Patient name,correct,correct,,2026-11-05 12:10:29
+phone,W08,1,5,Patient name,correct,correct,,2026-11-05 12:10:29
+phone,W08,1,6,Patient name,correct,correct,,2026-11-05 12:10:29
+phone,W08,1,7,Patient name,correct,correct,,2026-11-05 12:10:29
+phone,W08,1,8,Patient name,correct,correct,,2026-11-05 12:10:29
+phone,W08,1,9,Patient name,correct,wrong,,2026-11-05 12:10:29
+phone,W08,1,10,Patient name,correct,wrong,,2026-11-05 12:10:29
+phone,W08,1,11,Patient name,correct,wrong,,2026-11-05 12:10:29
+phone,W08,1,1,Admitted,correct,correct,,2026-11-05 12:10:29
+phone,W08,1,2,Admitted,correct,correct,,2026-11-05 12:10:29
+phone,W08,1,3,Admitted,correct,correct,,2026-11-05 12:10:29
+phone,W08,1,4,Admitted,correct,correct,,2026-11-05 12:10:29
+phone,W08,1,5,Admitted,correct,correct,,2026-11-05 12:10:29
+phone,W08,1,6,Admitted,correct,correct,,2026-11-05 12:10:29
+phone,W08,1,7,Admitted,correct,correct,,2026-11-05 12:10:29
+phone,W08,1,8,Admitted,correct,correct,,2026-11-05 12:10:29
+phone,W08,1,9,Admitted,correct,wrong,,2026-11-05 12:10:29
+phone,W08,1,10,Admitted,correct,wrong,,2026-11-05 12:10:29
+phone,W08,1,11,Admitted,correct,wrong,,2026-11-05 12:10:29
+phone,W08,1,1,Case number,partly,partly,,2026-11-05 12:10:32
+phone,W08,1,2,Case number,partly,partly,,2026-11-05 12:10:32
+phone,W08,1,3,Case number,partly,partly,,2026-11-05 12:10:32
+phone,W08,1,4,Case number,partly,partly,,2026-11-05 12:10:32
+phone,W08,1,5,Case number,partly,correct,,2026-11-05 12:10:40
+phone,W08,1,6,Case number,partly,correct,,2026-11-05 12:10:39
+phone,W08,1,7,Case number,partly,correct,,2026-11-05 12:10:32
+phone,W08,1,8,Case number,partly,correct,,2026-11-05 12:10:32
+phone,W08,1,9,Case number,partly,wrong,,2026-11-05 12:10:32
+phone,W08,1,10,Case number,partly,wrong,,2026-11-05 12:10:32
+phone,W08,1,11,Case number,partly,wrong,,2026-11-05 12:10:32
+phone,W08,2,1,Went home,correct,correct,,2026-11-05 12:10:48
+phone,W08,2,2,Went home,correct,correct,,2026-11-05 12:10:48
+phone,W08,2,3,Went home,correct,correct,,2026-11-05 12:10:48
+phone,W08,2,4,Went home,correct,correct,,2026-11-05 12:10:48
+phone,W08,2,5,Went home,correct,correct,,2026-11-05 12:10:48
+phone,W08,2,6,Went home,correct,correct,,2026-11-05 12:10:48
+phone,W08,2,7,Went home,correct,correct,,2026-11-05 12:10:48
+phone,W08,2,8,Went home,correct,correct,,2026-11-05 12:10:48
+phone,W08,2,9,Went home,correct,correct,,2026-11-05 12:10:48
+phone,W08,2,10,Went home,correct,correct,,2026-11-05 12:10:48
+phone,W08,2,11,Went home,wrong,wrong,,2026-11-05 12:11:12
+phone,W08,2,1,Final diagnosis,wrong,partly,,2026-11-05 12:11:03
+phone,W08,2,2,Final diagnosis,wrong,partly,,2026-11-05 12:11:01
+phone,W08,2,3,Final diagnosis,wrong,partly,,2026-11-05 12:11:01
+phone,W08,2,4,Final diagnosis,wrong,partly,,2026-11-05 12:11:00
+phone,W08,2,5,Final diagnosis,partly,partly,,2026-11-05 12:10:51
+phone,W08,2,6,Final diagnosis,partly,partly,,2026-11-05 12:10:51
+phone,W08,2,7,Final diagnosis,wrong,partly,,2026-11-05 12:10:58
+phone,W08,2,8,Final diagnosis,wrong,partly,,2026-11-05 12:10:59
+phone,W08,2,9,Final diagnosis,wrong,partly,,2026-11-05 12:10:57
+phone,W08,2,10,Final diagnosis,wrong,partly,,2026-11-05 12:10:56
+phone,W08,2,11,Final diagnosis,wrong,wrong,,2026-11-05 12:11:10
+phone,W08,2,1,Delivered,wrong,wrong,,2026-11-05 12:11:04
+phone,W08,2,2,Delivered,wrong,wrong,,2026-11-05 12:11:04
+phone,W08,2,3,Delivered,wrong,wrong,,2026-11-05 12:11:04
+phone,W08,2,4,Delivered,wrong,wrong,,2026-11-05 12:11:04
+phone,W08,2,5,Delivered,wrong,wrong,,2026-11-05 12:11:04
+phone,W08,2,6,Delivered,wrong,wrong,,2026-11-05 12:11:04
+phone,W08,2,7,Delivered,wrong,wrong,,2026-11-05 12:11:04
+phone,W08,2,8,Delivered,wrong,wrong,,2026-11-05 12:11:04
+phone,W08,2,9,Delivered,wrong,wrong,,2026-11-05 12:11:04
+phone,W08,2,10,Delivered,wrong,wrong,,2026-11-05 12:11:04
+phone,W08,2,11,Delivered,wrong,wrong,,2026-11-05 12:11:04
+phone,W08,2,1,Reason for admission,wrong,wrong,,2026-11-05 12:11:05
+phone,W08,2,2,Reason for admission,wrong,wrong,,2026-11-05 12:11:05
+phone,W08,2,3,Reason for admission,wrong,wrong,,2026-11-05 12:11:05
+phone,W08,2,4,Reason for admission,wrong,wrong,,2026-11-05 12:11:05
+phone,W08,2,5,Reason for admission,wrong,wrong,,2026-11-05 12:11:05
+phone,W08,2,6,Reason for admission,wrong,wrong,,2026-11-05 12:11:05
+phone,W08,2,7,Reason for admission,wrong,wrong,,2026-11-05 12:11:05
+phone,W08,2,8,Reason for admission,wrong,wrong,,2026-11-05 12:11:05
+phone,W08,2,9,Reason for admission,wrong,wrong,,2026-11-05 12:11:05
+phone,W08,2,10,Reason for admission,wrong,wrong,,2026-11-05 12:11:05
+phone,W08,2,11,Reason for admission,wrong,wrong,,2026-11-05 12:11:05
+phone,W09,1,1,Address,correct,correct,,2026-11-05 12:11:16
+phone,W09,1,2,Address,correct,correct,,2026-11-05 12:11:16
+phone,W09,1,3,Address,correct,correct,,2026-11-05 12:11:16
+phone,W09,1,4,Address,correct,correct,,2026-11-05 12:11:16
+phone,W09,1,5,Address,correct,correct,,2026-11-05 12:11:16
+phone,W09,1,6,Address,correct,correct,,2026-11-05 12:11:16
+phone,W09,1,7,Address,correct,correct,,2026-11-05 12:11:16
+phone,W09,1,8,Address,correct,correct,,2026-11-05 12:11:16
+phone,W09,1,9,Address,correct,correct,,2026-11-05 12:11:16
+phone,W09,1,10,Address,correct,correct,,2026-11-05 12:11:16
+phone,W09,1,11,Address,correct,correct,,2026-11-05 12:11:16
+phone,W09,1,12,Address,correct,wrong,,2026-11-05 12:11:16
+phone,W09,1,1,Birthday,correct,correct,,2026-11-05 12:11:18
+phone,W09,1,2,Birthday,correct,correct,,2026-11-05 12:11:18
+phone,W09,1,3,Birthday,correct,correct,,2026-11-05 12:11:18
+phone,W09,1,4,Birthday,correct,correct,,2026-11-05 12:11:18
+phone,W09,1,5,Birthday,correct,correct,,2026-11-05 12:11:18
+phone,W09,1,6,Birthday,correct,correct,,2026-11-05 12:11:18
+phone,W09,1,7,Birthday,correct,correct,,2026-11-05 12:11:18
+phone,W09,1,8,Birthday,correct,correct,,2026-11-05 12:11:18
+phone,W09,1,9,Birthday,correct,correct,,2026-11-05 12:11:18
+phone,W09,1,10,Birthday,correct,correct,,2026-11-05 12:11:18
+phone,W09,1,11,Birthday,correct,correct,,2026-11-05 12:11:18
+phone,W09,1,12,Birthday,correct,wrong,,2026-11-05 12:11:18
+phone,W09,1,1,Patient name,correct,correct,,2026-11-05 12:11:18
+phone,W09,1,2,Patient name,correct,correct,,2026-11-05 12:11:18
+phone,W09,1,3,Patient name,correct,correct,,2026-11-05 12:11:18
+phone,W09,1,4,Patient name,correct,correct,,2026-11-05 12:11:18
+phone,W09,1,5,Patient name,correct,correct,,2026-11-05 12:11:18
+phone,W09,1,6,Patient name,correct,correct,,2026-11-05 12:11:18
+phone,W09,1,7,Patient name,correct,correct,,2026-11-05 12:11:18
+phone,W09,1,8,Patient name,correct,correct,,2026-11-05 12:11:18
+phone,W09,1,9,Patient name,correct,correct,,2026-11-05 12:11:18
+phone,W09,1,10,Patient name,correct,correct,,2026-11-05 12:11:18
+phone,W09,1,11,Patient name,correct,correct,,2026-11-05 12:11:18
+phone,W09,1,12,Patient name,correct,wrong,,2026-11-05 12:11:18
+phone,W09,1,1,Admitted,correct,correct,,2026-11-05 12:11:19
+phone,W09,1,2,Admitted,correct,correct,,2026-11-05 12:11:19
+phone,W09,1,3,Admitted,correct,correct,,2026-11-05 12:11:19
+phone,W09,1,4,Admitted,correct,correct,,2026-11-05 12:11:19
+phone,W09,1,5,Admitted,correct,correct,,2026-11-05 12:11:19
+phone,W09,1,6,Admitted,correct,correct,,2026-11-05 12:11:19
+phone,W09,1,7,Admitted,correct,correct,,2026-11-05 12:11:19
+phone,W09,1,8,Admitted,correct,correct,,2026-11-05 12:11:19
+phone,W09,1,9,Admitted,correct,correct,,2026-11-05 12:11:19
+phone,W09,1,10,Admitted,correct,correct,,2026-11-05 12:11:19
+phone,W09,1,11,Admitted,correct,correct,,2026-11-05 12:11:19
+phone,W09,1,12,Admitted,correct,wrong,,2026-11-05 12:11:19
+phone,W09,1,1,Case number,partly,correct,,2026-11-05 12:11:21
+phone,W09,1,2,Case number,partly,correct,,2026-11-05 12:11:22
+phone,W09,1,3,Case number,correct,correct,,2026-11-05 12:11:20
+phone,W09,1,4,Case number,correct,correct,,2026-11-05 12:11:20
+phone,W09,1,5,Case number,correct,correct,,2026-11-05 12:11:20
+phone,W09,1,6,Case number,correct,correct,,2026-11-05 12:11:20
+phone,W09,1,7,Case number,correct,correct,,2026-11-05 12:11:20
+phone,W09,1,8,Case number,partly,correct,,2026-11-05 12:11:25
+phone,W09,1,9,Case number,partly,correct,,2026-11-05 12:11:26
+phone,W09,1,10,Case number,partly,correct,,2026-11-05 12:11:27
+phone,W09,1,11,Case number,partly,correct,,2026-11-05 12:11:28
+phone,W09,1,12,Case number,correct,wrong,,2026-11-05 12:11:20
+phone,W09,2,1,Went home,correct,correct,,2026-11-05 12:11:34
+phone,W09,2,2,Went home,correct,correct,,2026-11-05 12:11:34
+phone,W09,2,3,Went home,correct,correct,,2026-11-05 12:11:34
+phone,W09,2,4,Went home,correct,correct,,2026-11-05 12:11:34
+phone,W09,2,5,Went home,correct,correct,,2026-11-05 12:11:34
+phone,W09,2,6,Went home,correct,correct,,2026-11-05 12:11:34
+phone,W09,2,7,Went home,correct,correct,,2026-11-05 12:11:34
+phone,W09,2,8,Went home,correct,correct,,2026-11-05 12:11:34
+phone,W09,2,9,Went home,correct,correct,,2026-11-05 12:11:34
+phone,W09,2,10,Went home,correct,correct,,2026-11-05 12:11:34
+phone,W09,2,11,Went home,correct,correct,,2026-11-05 12:11:34
+phone,W09,2,12,Went home,correct,correct,,2026-11-05 12:11:34
+phone,W09,2,1,Final diagnosis,wrong,partly,,2026-11-05 12:11:36
+phone,W09,2,2,Final diagnosis,wrong,partly,,2026-11-05 12:11:36
+phone,W09,2,3,Final diagnosis,wrong,partly,,2026-11-05 12:11:36
+phone,W09,2,4,Final diagnosis,wrong,partly,,2026-11-05 12:11:41
+phone,W09,2,5,Final diagnosis,wrong,partly,,2026-11-05 12:11:36
+phone,W09,2,6,Final diagnosis,partly,partly,,2026-11-05 12:11:43
+phone,W09,2,7,Final diagnosis,partly,partly,,2026-11-05 12:11:44
+phone,W09,2,8,Final diagnosis,partly,partly,,2026-11-05 12:11:46
+phone,W09,2,9,Final diagnosis,partly,partly,,2026-11-05 12:11:47
+phone,W09,2,10,Final diagnosis,wrong,partly,,2026-11-05 12:11:36
+phone,W09,2,11,Final diagnosis,wrong,partly,,2026-11-05 12:11:36
+phone,W09,2,12,Final diagnosis,wrong,partly,,2026-11-05 12:11:36
+phone,W09,2,1,Delivered,wrong,wrong,,2026-11-05 12:11:50
+phone,W09,2,2,Delivered,wrong,wrong,,2026-11-05 12:11:50
+phone,W09,2,3,Delivered,wrong,wrong,,2026-11-05 12:11:50
+phone,W09,2,4,Delivered,wrong,wrong,,2026-11-05 12:11:50
+phone,W09,2,5,Delivered,wrong,wrong,,2026-11-05 12:11:50
+phone,W09,2,6,Delivered,wrong,wrong,,2026-11-05 12:11:50
+phone,W09,2,7,Delivered,wrong,wrong,,2026-11-05 12:11:50
+phone,W09,2,8,Delivered,wrong,wrong,,2026-11-05 12:11:50
+phone,W09,2,9,Delivered,wrong,wrong,,2026-11-05 12:11:50
+phone,W09,2,10,Delivered,wrong,wrong,,2026-11-05 12:11:50
+phone,W09,2,11,Delivered,wrong,wrong,,2026-11-05 12:11:50
+phone,W09,2,12,Delivered,wrong,wrong,,2026-11-05 12:11:50
+phone,W09,2,1,Reason for admission,wrong,wrong,,2026-11-05 12:11:52
+phone,W09,2,2,Reason for admission,wrong,wrong,,2026-11-05 12:11:52
+phone,W09,2,3,Reason for admission,wrong,wrong,,2026-11-05 12:11:52
+phone,W09,2,4,Reason for admission,wrong,wrong,,2026-11-05 12:11:52
+phone,W09,2,5,Reason for admission,wrong,wrong,,2026-11-05 12:11:52
+phone,W09,2,6,Reason for admission,wrong,wrong,,2026-11-05 12:11:52
+phone,W09,2,7,Reason for admission,wrong,wrong,,2026-11-05 12:11:52
+phone,W09,2,8,Reason for admission,wrong,wrong,,2026-11-05 12:11:52
+phone,W09,2,9,Reason for admission,wrong,wrong,,2026-11-05 12:11:52
+phone,W09,2,10,Reason for admission,wrong,wrong,,2026-11-05 12:11:52
+phone,W09,2,11,Reason for admission,wrong,wrong,,2026-11-05 12:11:52
+phone,W09,2,12,Reason for admission,wrong,wrong,,2026-11-05 12:11:52
+phone,W10,1,1,Address,partly,correct,,2026-11-05 12:12:12
+phone,W10,1,2,Address,partly,correct,,2026-11-05 12:12:10
+phone,W10,1,3,Address,correct,correct,,2026-11-05 12:11:56
+phone,W10,1,4,Address,partly,correct,,2026-11-05 12:12:09
+phone,W10,1,5,Address,correct,correct,,2026-11-05 12:11:56
+phone,W10,1,6,Address,correct,correct,,2026-11-05 12:11:56
+phone,W10,1,7,Address,partly,correct,,2026-11-05 12:12:05
+phone,W10,1,8,Address,partly,correct,,2026-11-05 12:12:07
+phone,W10,1,9,Address,correct,correct,,2026-11-05 12:11:56
+phone,W10,1,10,Address,correct,wrong,,2026-11-05 12:11:56
+phone,W10,1,1,Birthday,correct,correct,,2026-11-05 12:11:57
+phone,W10,1,2,Birthday,correct,correct,,2026-11-05 12:11:57
+phone,W10,1,3,Birthday,correct,correct,,2026-11-05 12:11:57
+phone,W10,1,4,Birthday,correct,correct,,2026-11-05 12:11:57
+phone,W10,1,5,Birthday,correct,correct,,2026-11-05 12:11:57
+phone,W10,1,6,Birthday,correct,correct,,2026-11-05 12:11:57
+phone,W10,1,7,Birthday,correct,correct,,2026-11-05 12:11:57
+phone,W10,1,8,Birthday,correct,correct,,2026-11-05 12:11:57
+phone,W10,1,9,Birthday,correct,correct,,2026-11-05 12:11:57
+phone,W10,1,10,Birthday,correct,wrong,,2026-11-05 12:11:57
+phone,W10,1,1,Patient name,correct,correct,,2026-11-05 12:11:58
+phone,W10,1,2,Patient name,correct,correct,,2026-11-05 12:11:58
+phone,W10,1,3,Patient name,correct,correct,,2026-11-05 12:11:58
+phone,W10,1,4,Patient name,correct,correct,,2026-11-05 12:11:58
+phone,W10,1,5,Patient name,correct,correct,,2026-11-05 12:11:58
+phone,W10,1,6,Patient name,correct,correct,,2026-11-05 12:11:58
+phone,W10,1,7,Patient name,correct,correct,,2026-11-05 12:11:58
+phone,W10,1,8,Patient name,correct,correct,,2026-11-05 12:11:58
+phone,W10,1,9,Patient name,correct,correct,,2026-11-05 12:11:58
+phone,W10,1,10,Patient name,correct,wrong,,2026-11-05 12:11:58
+phone,W10,1,1,Admitted,correct,correct,,2026-11-05 12:11:59
+phone,W10,1,2,Admitted,correct,correct,,2026-11-05 12:11:59
+phone,W10,1,3,Admitted,correct,correct,,2026-11-05 12:11:59
+phone,W10,1,4,Admitted,correct,correct,,2026-11-05 12:11:59
+phone,W10,1,5,Admitted,correct,correct,,2026-11-05 12:11:59
+phone,W10,1,6,Admitted,correct,correct,,2026-11-05 12:11:59
+phone,W10,1,7,Admitted,correct,correct,,2026-11-05 12:11:59
+phone,W10,1,8,Admitted,correct,correct,,2026-11-05 12:11:59
+phone,W10,1,9,Admitted,correct,correct,,2026-11-05 12:11:59
+phone,W10,1,10,Admitted,correct,wrong,,2026-11-05 12:11:59
+phone,W10,1,1,Case number,wrong,partly,,2026-11-05 12:12:01
+phone,W10,1,2,Case number,wrong,partly,,2026-11-05 12:12:01
+phone,W10,1,3,Case number,wrong,partly,,2026-11-05 12:12:01
+phone,W10,1,4,Case number,wrong,partly,,2026-11-05 12:12:01
+phone,W10,1,5,Case number,wrong,partly,,2026-11-05 12:12:01
+phone,W10,1,6,Case number,wrong,partly,,2026-11-05 12:12:01
+phone,W10,1,7,Case number,wrong,partly,,2026-11-05 12:12:01
+phone,W10,1,8,Case number,wrong,partly,,2026-11-05 12:12:01
+phone,W10,1,9,Case number,wrong,partly,,2026-11-05 12:12:01
+phone,W10,1,10,Case number,wrong,wrong,,2026-11-05 12:12:01
+phone,W10,2,1,Went home,correct,correct,,2026-11-05 12:12:17
+phone,W10,2,2,Went home,correct,correct,,2026-11-05 12:12:17
+phone,W10,2,3,Went home,correct,correct,,2026-11-05 12:12:17
+phone,W10,2,4,Went home,correct,correct,,2026-11-05 12:12:17
+phone,W10,2,5,Went home,correct,correct,,2026-11-05 12:12:17
+phone,W10,2,6,Went home,correct,correct,,2026-11-05 12:12:17
+phone,W10,2,7,Went home,correct,correct,,2026-11-05 12:12:17
+phone,W10,2,8,Went home,correct,correct,,2026-11-05 12:12:17
+phone,W10,2,9,Went home,correct,correct,,2026-11-05 12:12:17
+phone,W10,2,10,Went home,correct,correct,,2026-11-05 12:12:17
+phone,W10,2,1,Final diagnosis,wrong,partly,,2026-11-05 12:12:20
+phone,W10,2,2,Final diagnosis,partly,partly,,2026-11-05 12:12:20
+phone,W10,2,3,Final diagnosis,partly,partly,,2026-11-05 12:12:20
+phone,W10,2,4,Final diagnosis,wrong,partly,,2026-11-05 12:12:22
+phone,W10,2,5,Final diagnosis,partly,partly,,2026-11-05 12:12:20
+phone,W10,2,6,Final diagnosis,partly,partly,,2026-11-05 12:12:20
+phone,W10,2,7,Final diagnosis,wrong,partly,,2026-11-05 12:12:23
+phone,W10,2,8,Final diagnosis,wrong,partly,,2026-11-05 12:12:24
+phone,W10,2,9,Final diagnosis,wrong,partly,,2026-11-05 12:12:26
+phone,W10,2,10,Final diagnosis,wrong,partly,,2026-11-05 12:12:25
+phone,W10,2,1,Delivered,wrong,wrong,,2026-11-05 12:12:29
+phone,W10,2,2,Delivered,wrong,wrong,,2026-11-05 12:12:29
+phone,W10,2,3,Delivered,wrong,wrong,,2026-11-05 12:12:29
+phone,W10,2,4,Delivered,wrong,wrong,,2026-11-05 12:12:29
+phone,W10,2,5,Delivered,wrong,wrong,,2026-11-05 12:12:29
+phone,W10,2,6,Delivered,wrong,wrong,,2026-11-05 12:12:29
+phone,W10,2,7,Delivered,wrong,wrong,,2026-11-05 12:12:29
+phone,W10,2,8,Delivered,wrong,wrong,,2026-11-05 12:12:29
+phone,W10,2,9,Delivered,wrong,wrong,,2026-11-05 12:12:29
+phone,W10,2,10,Delivered,wrong,wrong,,2026-11-05 12:12:29
+phone,W10,2,1,Reason for admission,wrong,wrong,,2026-11-05 12:12:30
+phone,W10,2,2,Reason for admission,wrong,wrong,,2026-11-05 12:12:30
+phone,W10,2,3,Reason for admission,wrong,wrong,,2026-11-05 12:12:30
+phone,W10,2,4,Reason for admission,wrong,wrong,,2026-11-05 12:12:30
+phone,W10,2,5,Reason for admission,wrong,wrong,,2026-11-05 12:12:30
+phone,W10,2,6,Reason for admission,wrong,wrong,,2026-11-05 12:12:30
+phone,W10,2,7,Reason for admission,wrong,wrong,,2026-11-05 12:12:30
+phone,W10,2,8,Reason for admission,wrong,wrong,,2026-11-05 12:12:30
+phone,W10,2,9,Reason for admission,wrong,wrong,,2026-11-05 12:12:30
+phone,W10,2,10,Reason for admission,wrong,wrong,,2026-11-05 12:12:30

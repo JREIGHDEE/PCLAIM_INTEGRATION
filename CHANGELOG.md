@@ -11,6 +11,49 @@ Related documents:
 
 ---
 
+## 2026-11-05: Field mapping fixes, image quality checks for logbook pages, proof reports for the research tests (JRAD)
+
+**After pulling:** restart the backend (`PClaimAssist.bat`) and press Ctrl+F5 on
+the forms. No migration. The research tests' pictures and reports are not in
+git (outputs/ is ignored): rerun a test to make them (research_tests/README.md).
+
+The system:
+- *Mailing address no longer prints N/A for Street and Barangay.* The mailing
+  City and Province boxes start filled with DAVAO CITY / DAVAO DEL SUR; those
+  untouched defaults no longer count as "a mailing address given", so CF1 and
+  PMRF print the home address when none is typed (app.js mailingGiven;
+  overlays/pmrf.js mailing boxes follow the same rule as CF1).
+- *A one-word "-VILLE" name is read as the subdivision*, not the street
+  (RAMONAVILLE, DACOVILLE; philhealth/address_parser.py, new test).
+- *CF4 no longer ticks AM when there is no time.* Its AM/PM boxes follow the
+  time, as on CF2 (overlays/cf4.js).
+- *IQ-01 checks logbook pages more closely.* The Logbook Reader now runs
+  image_quality.assess_logbook_page: the old rules plus a dim page
+  (brightness < 220), soft focus (sharpness < 200 at 1000 px wide) and washed-out
+  writing (paper >= 50% pure white and the darkest writing >= 100). A dim,
+  washed-out or too-dark page is also evened out before it is read
+  (enhance_for_ocr); the warning still asks staff to rescan. Thresholds and the
+  switch are in config.py (OCR_IMAGE_QUALITY_...). On the real IQ test scans it
+  warns on 10 of 10 bad pages and on none of the 10 normal ones or the 40
+  original logbook pages. The general check used by /ocr is unchanged. New tests
+  in test_image_quality.py. Please review the thresholds - they were set on the
+  test pages.
+
+Research tests (research_tests/README.md has the commands):
+- Proof reports (PDF with bookmarks, every number with its pictures) and
+  workbooks for field mapping, OCR field mapping (new test: the forms filled
+  from what the OCR read), logbook cutting (new test), OCR accuracy, the
+  correction module, image quality (real IQ scans in inputs/scans/handwriting_iq
+  test/, labels in inputs/iq_expected.csv) and the validation engine (all 31
+  rules covered: 27 by seeded errors, 4 by an engine-level check; the
+  relationship error is now seeded where staff type it).
+- Two checking pages, on this computer only: `python -m
+  research_tests.logbook_cutting_review` (tag every cut Correct / Partly / Not
+  at all - done, inputs/logbook_cutting_human_check.csv) and `python -m
+  research_tests.field_mapping_review` (check the expected box table against the
+  paper forms - in progress: CSF 18 of 28 so far; carry on from there). Each has
+  a "Make the report" button.
+
 ## 2026-11-05: Relationship to Member fills itself in (JRAD)
 
 **After pulling:** press Ctrl+F5 on the forms (no restart needed).

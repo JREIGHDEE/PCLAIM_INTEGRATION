@@ -23,6 +23,13 @@ class SplitAddressTests(unittest.TestCase):
         self.assertEqual(parts["addr_subdivision"], "DECA HOMES PHASE 1")
         self.assertNotIn("addr_street", parts)
 
+    def test_one_word_ville_is_a_subdivision_not_a_street(self):
+        self.assertEqual(split_address("RAMONAVILLE, CABANTIAN, DAVAO CITY"), {
+            "addr_subdivision": "RAMONAVILLE", "addr_barangay": "CABANTIAN",
+            "addr_city": "DAVAO CITY", "addr_province": "DAVAO DEL SUR"})
+        parts = split_address("PUROK 3 DACOVILLE TIGATTO DAVAO CITY")
+        self.assertEqual((parts["addr_subdivision"], parts["addr_street"]), ("DACOVILLE", "PUROK 3"))
+
     def test_barangay_gives_its_city(self):
         self.assertEqual(split_address("brgy. sasa"), {
             "addr_barangay": "SASA", "addr_city": "DAVAO CITY", "addr_province": "DAVAO DEL SUR"})

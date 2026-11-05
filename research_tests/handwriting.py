@@ -419,12 +419,12 @@ def page_reports(path, run):
     """Per page: IQ-01 (the pipeline's own check, on the page as the pipeline
     loads it) and how the page was matched and cut (from the run)."""
     import logbook_pipeline
-    from image_quality import assess_image_quality
+    from image_quality import assess_logbook_page
     found = {p["page"]: p for p in (run or {}).get("pages", [])}
     out = []
     import template_engine
     for number, image, _parity in logbook_pipeline.load_pages(str(path)):
-        iq = assess_image_quality(image)
+        iq = assess_logbook_page(image)
         p = found.get(number, {})
         # The pipeline's own ruled-line finding on the same (straightened) page.
         rules = template_engine.detect_ruling_lines(image)
@@ -761,9 +761,10 @@ def run(progress, samples=False, writers=None, fresh=False, dry_check=False, met
                    "notes": ["Overall: " + "; ".join(f"{m}: entries {d[2]} % ({d[1]} of {d[0]} found on both pages), "
                                                      f"page rows {d[3][2]} % ({d[3][1]} of {d[3][0]})"
                                                      for m, *d in det_rows),
-                             "IQ-01 = image_quality.assess_image_quality on the page as the pipeline loads it "
-                             "(logbook_pipeline.load_pages). Thresholds: blur < 100, brightness < 60 or > 200 with the "
-                             "ink washed out.",
+                             "IQ-01 = image_quality.assess_logbook_page (what the Logbook Reader runs) on the page as "
+                             "the pipeline loads it (logbook_pipeline.load_pages). Thresholds: config.py - blur < 100, "
+                             "brightness < 60 or > 200 with the ink washed out, plus dim, soft focus and washed out "
+                             "(see the image quality test).",
                              "Why the page failed = the pipeline's own message (e.g. no logbook setup matching the "
                              "page's printed columns).",
                              "Printed lines found / line spacing / spread / tilt = the pipeline's own ruled-line finding "

@@ -1,22 +1,22 @@
 Form,Box ID,Printed label (check on the paper form),Answer-key value,Format,Position,Note,Checked
-CSF,patientLastName,5. Name of Patient:,Last name,text,,,
-CSF,patientFirstName,,First name,text,,,
-CSF,patientNameExt,,Suffix,text,,,
-CSF,patientMiddleName,,Middle name,text,,,
-CSF,dateAdmittedD1,a. Date Admitted:,Admitted date,date_digit,1,,
-CSF,dateAdmittedD2,a. Date Admitted:,Admitted date,date_digit,2,,
-CSF,dateAdmittedD3,a. Date Admitted:,Admitted date,date_digit,3,,
-CSF,dateAdmittedD4,a. Date Admitted:,Admitted date,date_digit,4,,
-CSF,dateAdmittedD5,a. Date Admitted:,Admitted date,date_digit,5,,
-CSF,dateAdmittedD6,a. Date Admitted:,Admitted date,date_digit,6,,
-CSF,dateAdmittedD7,a. Date Admitted:,Admitted date,date_digit,7,,
-CSF,dateAdmittedD8,a. Date Admitted:,Admitted date,date_digit,8,,
-CSF,dateDischargeD1,b. Date Discharged:,Went home date,date_digit,1,,
-CSF,dateDischargeD2,b. Date Discharged:,Went home date,date_digit,2,,
-CSF,dateDischargeD3,b. Date Discharged:,Went home date,date_digit,3,,
-CSF,dateDischargeD4,b. Date Discharged:,Went home date,date_digit,4,,
-CSF,dateDischargeD5,b. Date Discharged:,Went home date,date_digit,5,,
-CSF,dateDischargeD6,b. Date Discharged:,Went home date,date_digit,6,,
+CSF,patientLastName,5. Name of Patient:,Last name,text,,,yes
+CSF,patientFirstName,,First name,text,,,yes
+CSF,patientNameExt,,Suffix,text,,,yes
+CSF,patientMiddleName,,Middle name,text,,,yes
+CSF,dateAdmittedD1,a. Date Admitted:,Admitted date,date_digit,1,,yes
+CSF,dateAdmittedD2,a. Date Admitted:,Admitted date,date_digit,2,,yes
+CSF,dateAdmittedD3,a. Date Admitted:,Admitted date,date_digit,3,,yes
+CSF,dateAdmittedD4,a. Date Admitted:,Admitted date,date_digit,4,,yes
+CSF,dateAdmittedD5,a. Date Admitted:,Admitted date,date_digit,5,,yes
+CSF,dateAdmittedD6,a. Date Admitted:,Admitted date,date_digit,6,,yes
+CSF,dateAdmittedD7,a. Date Admitted:,Admitted date,date_digit,7,,yes
+CSF,dateAdmittedD8,a. Date Admitted:,Admitted date,date_digit,8,,yes
+CSF,dateDischargeD1,b. Date Discharged:,Went home date,date_digit,1,,yes
+CSF,dateDischargeD2,b. Date Discharged:,Went home date,date_digit,2,,yes
+CSF,dateDischargeD3,b. Date Discharged:,Went home date,date_digit,3,,yes
+CSF,dateDischargeD4,b. Date Discharged:,Went home date,date_digit,4,,yes
+CSF,dateDischargeD5,b. Date Discharged:,Went home date,date_digit,5,,yes
+CSF,dateDischargeD6,b. Date Discharged:,Went home date,date_digit,6,,yes
 CSF,dateDischargeD7,b. Date Discharged:,Went home date,date_digit,7,,
 CSF,dateDischargeD8,b. Date Discharged:,Went home date,date_digit,8,,
 CSF,patientDOBd1,Patient,Birthday,date_digit,1,,
