@@ -35,6 +35,15 @@ member, the PIN and birth date go in the patient's boxes (the member's
 follow them, app.js applyMemberIsPatient). The manifest says, for every
 error, whether the page kept the seeded value.
 
+Those four rules (IC-01, IC-02, IC-07, MF-08) are covered by an engine-level
+check instead (4e, 4f): the record's own computed features with only the
+feature the rule reads set the way it tests it - the rule must fire, and
+nothing else. That checks the rule's logic; it is not part of Eq. 3.7-3.10.
+
+Proof: for every record the page's own "Rule Check Results" panel
+(renderRuleFeedback) is saved as a picture in outputs/validation/proof/,
+with proof/manifest.json; research_tests.validation_report builds the PDF.
+
 The manifest (outputs/validation/seeded_errors_manifest.csv) is the same for
 the same answer key and seed.
 """
@@ -153,10 +162,16 @@ ERRORS = [
     _err("IC-delivery", "Inconsistent entry", "Delivery date before admission", "deliveryDate", ["IC-05"],
          needs={"delivery"}, touches={"admit", "delivery", "discharge"},
          seed=lambda d: ({"deliveryDate": _shift(d["dateAdmitted"], -1)}, {}, {})),
-    _err("IC-relationship", "Inconsistent entry", "Member differs from patient, relationship blank", "relationship",
-         ["IC-06"], touches={"relationship", "member", "name", "pin", "memberdob"},
+    # The page fills the relationship in itself for the patient as member
+    # (Self), a newborn (Child) and a married mother (Spouse) - app.js
+    # memberRelationship - so the error is seeded where staff must type it:
+    # an unmarried adult patient filed under another member (e.g. a parent).
+    _err("IC-relationship", "Inconsistent entry", "Unmarried patient filed under another member (her father), "
+         "relationship to member left blank", "relationship", ["IC-06"], needs={"adult"},
+         touches={"relationship", "member", "name", "pin", "memberdob", "civil"},
          seed=lambda d: ({"memberIsPatient": False, "memberFirstName": "ROLANDO", "memberLastName":
-                          (d["patientLastName"] or "CRUZ"), "memberSex": "Male", "relationship": ""}, {}, {})),
+                          (d["patientLastName"] or "CRUZ"), "memberSex": "Male", "civilStatus": "Single",
+                          "relationship": ""}, {}, {})),
     _err("IC-dx", "Inconsistent entry", "CF2 and CF4 diagnoses differ", "dxADiagnosis / cf4FinalDiagnosis",
          ["IC-09"], needs={"cf4"}, touches={"dx"},
          seed=lambda d: ({"dxADiagnosis": "PREGNANCY UTERINE", "cf4FinalDiagnosis": "ACUTE GASTROENTERITIS"}, {}, {})),
@@ -249,6 +264,88 @@ def assign(errors, records, seed):
                        "(labor/newborn) and with a delivery date.")
 
 
+# ── proof: the page's own rule panel, and the rules that cannot be seeded ──
+
+PANEL_JS = """([ocr, sig, override, title]) => {
+    window.PCA_OCR_STATE = ocr || undefined; window.PCA_SIGNATURE_STATE = sig || undefined;
+    let r;
+    if (override) {                      // engine-level: one feature set the way the rule reads it
+        const forms = typeof pcaClaimForms === 'function' ? pcaClaimForms() : claimFormKeys(state.data);
+        const base = runValidationRules(getComputedValue, state.data, forms);
+        const f = Object.assign({}, base.features, override);
+        const inClaim = rule => !rule.form || forms.includes(rule.form);
+        const violations = VALIDATION_RULES.filter(inClaim).filter(rule => { try { return !!rule.test(f); }
+                                                                            catch (e) { return false; } })
+            .map(rule => ({id: rule.id, category: rule.category, action: rule.action, message: rule.message,
+                           field: rule.field || null, form: rule.form || null, severity: SEVERITY[rule.action]}));
+        r = {violations, critical: violations.filter(v => v.severity.critical),
+             warnings: violations.filter(v => !v.severity.critical), before: base.violations.map(v => v.id)};
+    } else {
+        r = runValidationRules(getComputedValue, state.data);
+    }
+    window.PCA_OCR_STATE = undefined; window.PCA_SIGNATURE_STATE = undefined;
+    renderRuleFeedback(r);
+    let box = document.getElementById('proof-panel');
+    if (!box) {
+        box = document.createElement('div');
+        box.id = 'proof-panel';
+        document.body.appendChild(box);
+    }
+    box.style.cssText = 'position:fixed;left:0;top:0;width:760px;background:#fff;padding:14px;z-index:99999;' +
+                        'border:1px solid #ccc;font-family:system-ui,sans-serif;font-size:14px';
+    box.innerHTML = '<style>#proof-panel .rule-id{display:inline!important;margin:0 6px;font-weight:600}</style>' +
+                    '<div style="font-weight:600;margin-bottom:8px">' + title + '</div>' +
+                    document.getElementById('ruleFeedback').innerHTML;
+    return {fired: r.violations.map(v => v.id), before: r.before || null};
+}"""
+
+
+def panel_shot(page, path, title, ocr=None, sig=None, override=None):
+    """The page's own "Rule Check Results" panel (renderRuleFeedback) for the
+    record as it is now, saved as a picture. With `override`, the features
+    the engine computed for the record with those set (engine-level check).
+    -> {"fired": [...], "before": [...] or None}"""
+    result = page.page.evaluate(PANEL_JS, [ocr, sig, override, title])
+    page.page.set_viewport_size({"width": 800, "height": 1400})
+    page.page.locator("#proof-panel").screenshot(path=str(path), type="jpeg", quality=80)
+    return result
+
+
+# Rules no seeded error can reach end to end, checked at engine level: the
+# record's own computed features with the one feature the rule reads set the
+# way the rule tests it - the rule's logic, not detection on a real claim.
+ENGINE_CHECKS = [
+    ("IC-01", {"name_match_across_forms": 0}, "Patient name differs between forms"),
+    ("IC-02", {"pin_match_across_forms": 0}, "PIN differs between CSF, CF4 and PMRF"),
+    ("IC-07", {"dates_match_across_forms": 0}, "Admission/discharge dates differ between CSF, CF2 and CF4"),
+    ("MF-08", {"cf4CourseInWard_present": 0}, "CF4 course in the ward blank"),
+]
+
+
+def engine_checks(page, patient, saved, proof):
+    """Each ENGINE_CHECKS rule on one clean CF4 record: what fired with the
+    record as it is, and with the one feature set; and, for MF-08, what the
+    page does when the course in the ward is emptied."""
+    body, _ = answer_key.auto_populate(patient)
+    body["saved_values"] = saved
+    page.open_claim(body)
+    rows = []
+    for rule, override, what in ENGINE_CHECKS:
+        name = f"engine_{rule}.jpg"
+        res = panel_shot(page, proof / name, f"Rule Check Results - engine-level check {rule}: {what}",
+                         GOOD_OCR, ALL_SIGNED, override)
+        new = sorted(set(res["fired"]) - set(res["before"] or []))
+        rows.append({"rule": rule, "what": what, "feature": override, "before": res["before"] or [],
+                     "fired": res["fired"], "new": new, "ok": new == [rule], "picture": name})
+    # MF-08 end to end: empty the course in the ward and see what the page keeps.
+    keys = page.page.evaluate("() => Object.keys(state.data).filter(k => /^cf4Course/.test(k))")
+    before = {k: v for k, v in page.data().items() if k in keys}
+    page.set_values({k: "" for k in keys})
+    after = {k: v for k, v in page.data().items() if k in keys}
+    refilled = {k: v for k, v in after.items() if str(v or "").strip()}
+    return rows, {"keys": keys, "before": before, "after": after, "refilled": refilled}
+
+
 def run(progress, samples=False, seed=SEED):
     root = INPUTS / "samples" if samples else INPUTS
     key_path = root / "answer_key.xlsx"
@@ -267,6 +364,10 @@ def run(progress, samples=False, seed=SEED):
     assert len(instances) == 40
 
     results, rules = [], {}
+    import shutil
+    proof = output_dir(TEST_KEY) / "proof"
+    shutil.rmtree(proof, ignore_errors=True)
+    proof.mkdir(parents=True)
     with FormsPage() as page:
         progress(0.05, "Loading the forms page")
         # Which forms each patient's claim has (for placing CF4 errors).
@@ -278,7 +379,8 @@ def run(progress, samples=False, seed=SEED):
             body["saved_values"] = answer_key.claim_values(p) or fictional_details(p, chosen.index(p))
             page.open_claim(body)
             d = page.data()
-            has[p["Patient ID"]] = set(page.claim_forms()) | ({"delivery"} if d.get("deliveryDate") else set())
+            has[p["Patient ID"]] = (set(page.claim_forms()) | ({"delivery"} if d.get("deliveryDate") else set())
+                                    | (set() if is_baby(p) else {"adult"}))
             # Does the page keep CF4's drugs blank? (A delivery package puts its drugs back.)
             page.set_values({"cf4DrugName1": "", "cf4DrugName2": "", "cf4DrugName3": ""})
             after = page.data()
@@ -314,12 +416,23 @@ def run(progress, samples=False, seed=SEED):
             for det in details:
                 det["reverted"] = {k: after.get(k) for k, v in det["to"].items() if after.get(k) != v}
             out = page.validate(ocr_state=ocr, signature_state=sig)
+            picture = f"{rec['record']}.jpg"
+            shown = panel_shot(page, proof / picture,
+                               f"Rule Check Results - record {rec['record']} ({p['Patient ID']}, "
+                               f"{'clean' if rec['kind'] == 'clean' else 'seeded: ' + ', '.join(e['key'] for e in rec['errors'])})",
+                               ocr, sig)
             rec.update({"fired": out["fired"], "violations": out["violations"], "details": details,
-                        "forms": page.claim_forms(), "ms": out["ms"]})
+                        "forms": page.claim_forms(), "ms": out["ms"], "picture": picture,
+                        "panel_matches": sorted(shown["fired"]) == sorted(out["fired"])})
             results.append(rec)
+        progress(0.95, "Engine-level checks of the rules no error can be seeded for")
+        cf4_patient = next((p for p in chosen if "cf4" in has[p["Patient ID"]]), chosen[0])
+        engine, mf08 = engine_checks(page, cf4_patient, answer_key.claim_values(cf4_patient)
+                                     or fictional_details(cf4_patient, chosen.index(cf4_patient)), proof)
         browser, page_errors = page.browser_version, list(page.errors)
 
-    return report(progress, results, rules, samples, seed, browser, page_errors, left_out)
+    return report(progress, results, rules, samples, seed, browser, page_errors, left_out, engine, mf08,
+                  cf4_patient["Patient ID"])
 
 
 def score(rec):
@@ -336,7 +449,8 @@ def _prf(tp, fp, fn):
     return p, r, stats.f1(p, r)
 
 
-def report(progress, results, rules, samples, seed, browser, page_errors, left_out=()):
+def report(progress, results, rules, samples, seed, browser, page_errors, left_out=(), engine=None, mf08=None,
+           engine_patient=None):
     from research_tests.common.specs import machine_specs
     progress(0.96, "Comparing the flags with the manifest")
     scored = [(rec, score(rec)) for rec in results]
@@ -421,9 +535,46 @@ def report(progress, results, rules, samples, seed, browser, page_errors, left_o
                     ["PDF export", f"PClaimAssist/js/pdf/pdf-overlay.js buildFilledPdf with pdf-lib 1.17.1 "
                                    f"(research_tests/vendor), run in headless {browser}"]])},
     ]
+    # Every rule: seeded end to end (and caught), or checked at engine level.
+    engine = engine or []
+    eng = {r["rule"]: r for r in engine}
+    coverage = []
+    for rid, rule in rules.items():
+        seeded = [(rec, e) for rec, _s in scored for e in rec["errors"] if rid in e["required"]]
+        caught = sum(1 for rec, e in seeded if rid in rec["fired"])
+        how = ("seeded end to end" if seeded else
+               "engine-level check" if rid in eng else "not covered")
+        result = (f"{caught} of {len(seeded)} caught" if seeded else
+                  ("fires, and only it" if eng[rid]["ok"] else f"did not fire alone: {eng[rid]['new']}")
+                  if rid in eng else "-")
+        coverage.append([rid, rule.get("category"), rule.get("action"), len(seeded), caught, how, result,
+                         next((why for r, _w, why in NOT_SEEDED if r == rid), "")])
+    covered = sum(1 for r in coverage if r[5] != "not covered")
+    summary.insert(3, {
+        "name": "4e Rule coverage", "title": "Table - Every validation rule and how this test covers it",
+        "headers": ["Rule", "Category", "Action", "Seeded errors", "Caught", "Covered by", "Result",
+                    "Why not seeded end to end"], "rows": coverage,
+        "notes": [f"{covered} of {len(coverage)} rules covered: {sum(1 for r in coverage if r[3])} by seeded errors "
+                  f"on real records, {sum(1 for r in coverage if r[5] == 'engine-level check')} by an engine-level "
+                  "check (they cannot be reached on a real claim: see the last column).",
+                  "Engine-level checks are not part of precision, recall, F1 or the false alarm rate (4a-4c)."]})
+    if engine:
+        summary.insert(4, {
+            "name": "4f Engine-level checks", "title": "Table - Rules checked at engine level",
+            "headers": ["Rule", "What it guards", "Feature set", "Rules fired on the record as it is",
+                        "Rules fired with the feature set", "New flag(s)", "Fires, and only it", "Panel picture"],
+            "rows": [[r["rule"], r["what"], r["feature"], ", ".join(r["before"]) or "none", ", ".join(r["fired"]),
+                      ", ".join(r["new"]), "Yes" if r["ok"] else "No", r["picture"]] for r in engine],
+            "notes": [f"Record: patient {engine_patient}, clean, with CF4. The engine's own computed features for the "
+                      "record, with only the feature the rule reads set the way the rule tests it; the rules then run "
+                      "as runValidationRules runs them, and the page's own panel shows the result.",
+                      "MF-08 on the real page: the CF4 course in the ward was emptied "
+                      f"({', '.join((mf08 or {}).get('keys') or []) or 'no course fields found'}); the page kept "
+                      + (f"{(mf08 or {}).get('refilled')} - it writes the course back, so MF-08 cannot fire on a real "
+                         "claim." if (mf08 or {}).get("refilled") else "it blank.")]})
     manifest_headers = ["Record", "Patient", "Error #", "Seeded category", "Error type", "Field", "Original value",
                         "Seeded value", "Kept by the page", "Expected rule(s)", "Also allowed (consequence)",
-                        "Detected"]
+                        "Detected", "Rules fired on the record", "Panel picture"]
     manifest = []
     for rec, s in scored:
         for i, d in enumerate(rec.get("details") or [], start=1):
@@ -434,14 +585,16 @@ def report(progress, results, rules, samples, seed, browser, page_errors, left_o
                              d["from"] or "", seeded_value,
                              "Yes" if not d.get("reverted") else f"No - the page put back {d['reverted']}",
                              ", ".join(e["required"]), ", ".join(e["allowed"]),
-                             "Yes" if set(e["required"]) & set(rec["fired"]) else "No"])
+                             "Yes" if set(e["required"]) & set(rec["fired"]) else "No",
+                             ", ".join(sorted(rec["fired"])), rec.get("picture", "")])
     manifest_notes = [f"{r}: {what} - NOT SEEDED. {why}" for r, what, why in NOT_SEEDED]
     raw_rows = []
     for rec, s in scored:
         raw_rows.append([rec["record"], rec["kind"], rec["patient"]["Patient ID"], ", ".join(rec["forms"]),
                          ", ".join(e["key"] for e in rec["errors"]), ", ".join(sorted(rec["fired"])),
                          ", ".join(sorted(s["tp"])), ", ".join(sorted(s["fp"])), ", ".join(sorted(s["fn"])),
-                         ", ".join(sorted(s["consequence"])), round(rec["ms"], 3)])
+                         ", ".join(sorted(s["consequence"])), round(rec["ms"], 3), rec.get("picture", ""),
+                         "Yes" if rec.get("panel_matches", True) else "No"])
     out = output_dir(TEST_KEY)
     excel.write_workbook(out / "seeded_errors_manifest.xlsx",
                          [{"name": "Manifest", "headers": manifest_headers, "rows": manifest, "notes": manifest_notes}])
@@ -456,11 +609,25 @@ def report(progress, results, rules, samples, seed, browser, page_errors, left_o
             w.writerow([note])
     path = excel.write_workbook(out / "validation_results.xlsx", [
         {"name": "Raw data", "headers": ["Record", "Kind", "Patient", "Forms", "Seeded errors", "Rules fired", "TP",
-                                         "FP", "FN", "Allowed consequences", "Engine ms"], "rows": raw_rows,
+                                         "FP", "FN", "Allowed consequences", "Engine ms", "Panel picture",
+                                         "Panel shows the same rules"], "rows": raw_rows,
          "notes": [f"Page errors: {len(page_errors)}"] + page_errors[:3]},
         {"name": "Manifest", "headers": manifest_headers, "rows": manifest, "notes": manifest_notes},
     ] + summary)
     excel.save_summary(out, TEST_KEY, TITLE, summary, {"samples": samples})
+    import json
+    (out / "proof" / "manifest.json").write_text(json.dumps({
+        "records": [{"record": rec["record"], "kind": rec["kind"], "patient": rec["patient"]["Patient ID"],
+                     "forms": rec["forms"], "fired": sorted(rec["fired"]), "tp": sorted(s["tp"]),
+                     "fp": sorted(s["fp"]), "fn": sorted(s["fn"]), "consequence": sorted(s["consequence"]),
+                     "picture": rec.get("picture"),
+                     "errors": [{"key": d["error"]["key"], "category": d["error"]["category"],
+                                 "kind": d["error"]["kind"], "field": d["error"]["field"], "from": d["from"],
+                                 "to": d["to"], "ocr": d["ocr"], "sig": d["sig"], "reverted": d.get("reverted"),
+                                 "required": d["error"]["required"], "allowed": d["error"]["allowed"]}
+                                for d in rec.get("details") or []]} for rec, s in scored],
+        "engine": engine, "mf08": mf08, "engine_patient": engine_patient,
+        "rules": [{"id": k, **v} for k, v in rules.items()]}, indent=1, default=str), encoding="utf-8")
     progress(1.0, "Done")
     return {"outputs": [path, out / "seeded_errors_manifest.csv"], "headline": [
         ["TP / FP / FN", f"{tp} / {fp} / {fn}"], ["Precision", precision], ["Recall", recall], ["F1", f1],

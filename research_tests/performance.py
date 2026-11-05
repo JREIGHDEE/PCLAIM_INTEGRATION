@@ -8,7 +8,8 @@ folder is empty, the 10-writer handwriting scans are used.
 
 Every stage is the real function, timed with time.perf_counter() by
 wrapping it in this process only (no file is edited):
-  image quality check   image_quality.assess_image_quality, per page
+  image quality check   image_quality.assess_logbook_page per page, and
+                        enhance_for_ocr on a flagged page
   table/row detection   the rest of logbook_pipeline.build_review_rows:
                         template match, ruled lines, rows, cells (the build
                         time minus the timed stages inside it)
@@ -165,14 +166,16 @@ def run(progress, samples=False, scans=3, method="scanner"):
 
     entries, pages_done = [], []
     network = {"remote": set(), "samples": 0}
-    original_iq = logbook_pipeline.assess_image_quality
+    # The image quality stage: the page check and, on a flagged page, the evening-out.
+    original_iq = (logbook_pipeline.assess_logbook_page, logbook_pipeline.enhance_for_ocr)
     jobs = [(m, path) for m, ps, _src in method_paths for path in ps]
     with FormsPage() as page:
         for n, (scan_method, path) in enumerate(jobs):
             base = 0.05 + 0.9 * n / len(jobs)
             progress(base, f"{scan_method} {path.name}: reading the scan")
             clock = Clock()
-            logbook_pipeline.assess_image_quality = clock.wrap("iq", original_iq)
+            logbook_pipeline.assess_logbook_page = clock.wrap("iq", original_iq[0])
+            logbook_pipeline.enhance_for_ocr = clock.wrap("iq", original_iq[1])
             try:
                 ocr_fn = clock.wrap("ocr", extract_tokens_from_array)
                 batch_fn = clock.wrap("ocr", read_many)
@@ -189,7 +192,7 @@ def run(progress, samples=False, scans=3, method="scanner"):
                 network["remote"] |= watch.remote
                 network["samples"] += watch.samples
             finally:
-                logbook_pipeline.assess_image_quality = original_iq
+                logbook_pipeline.assess_logbook_page, logbook_pipeline.enhance_for_ocr = original_iq
             rows = result["rows"]
             second_look_ms = clock.ms.get("correction", 0.0)          # inside build_review_rows
             t0 = time.perf_counter()

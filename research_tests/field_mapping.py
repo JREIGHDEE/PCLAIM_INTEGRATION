@@ -38,6 +38,7 @@ against the paper forms - that check is what makes it independent of the
 code under test.
 """
 import csv
+import json
 import re
 from pathlib import Path
 
@@ -103,6 +104,14 @@ def expected_value(row, patient):
     raise ValueError(f"Unknown format {fmt!r} in the expected box table")
 
 
+def table_digest(path=EXPECTED):
+    """A short fingerprint of the expected box table (which version a run was scored with)."""
+    import hashlib
+    rows = load_expected(path)
+    return hashlib.sha256(json.dumps([[r.get(c, "") for c in EXPECTED_COLUMNS if c != "Checked"] for r in rows])
+                          .encode()).hexdigest()[:12] if path.is_file() else ""
+
+
 def load_expected(path=EXPECTED):
     with open(path, newline="", encoding="utf-8-sig") as fh:
         rows = [r for r in csv.DictReader(fh) if (r.get("Form") or "").strip()]
@@ -135,18 +144,123 @@ def printed_text(doc, spot, form=None):
     form's own words left out)."""
     blank = template_words(form) if form else set()
     page = doc[spot["page"] - 1]
+    r = box_rect(page, spot)
+    x0, x1, y0, y1 = r.x0, r.x1, r.y0, r.y1
+    words = [wd for wd in page.get_text("words")
+             if x0 <= (wd[0] + wd[2]) / 2 <= x1 and y0 <= (wd[1] + wd[3]) / 2 <= y1
+             and (spot["page"], round(wd[0]), round(wd[1]), wd[4]) not in blank]
+    words.sort(key=lambda wd: (round(wd[1]), wd[0]))
+    return " ".join(wd[4] for wd in words)
+
+
+def box_rect(page, spot):
+    """The area of the page that printed_text reads for this box."""
+    import fitz
     w, h = page.rect.width, page.rect.height
     x0 = spot["left"] / 100 * w - 1.5
     x1 = x0 + max(spot["w"] / 100 * w, 6) + 3
     top = spot["top"] / 100 * h
     lines = max(1, int(spot.get("lines") or 1)) if spot.get("wrap") or spot.get("lh") else 1
     line_h = spot.get("lh") or (spot.get("fs") or 7) + 1
-    y0, y1 = top - 2.5, top + 6 + 2.5 + (lines - 1) * line_h
-    words = [wd for wd in page.get_text("words")
-             if x0 <= (wd[0] + wd[2]) / 2 <= x1 and y0 <= (wd[1] + wd[3]) / 2 <= y1
-             and (spot["page"], round(wd[0]), round(wd[1]), wd[4]) not in blank]
-    words.sort(key=lambda wd: (round(wd[1]), wd[0]))
-    return " ".join(wd[4] for wd in words)
+    return fitz.Rect(x0, top - 2.5, x1, top + 6 + 2.5 + (lines - 1) * line_h)
+
+
+# ── proof pictures: the saved PDF itself, every checked box outlined ───
+
+PROOF_DPI, PROOF_ZOOM_DPI, PROOF_QUALITY = 90, 160, 60
+GREEN, RED, ORANGE = (0.0, 0.6, 0.15), (0.9, 0.0, 0.0), (0.95, 0.5, 0.0)
+
+
+def save_proof(doc, form, patient_id, checked, proof_dir):
+    """Outline every checked box on the saved PDF (green = right, red =
+    wrong, with what was expected), render each page that has a checked box
+    to a small JPEG, and a zoomed crop of each wrong box.
+    A line with "map_ok" (the OCR test): orange = wrong, but not a mapping
+    error - misread, or filled by a rule with nothing usable read (no crop);
+    red = the box does not hold what was read.
+    checked: [(spot, line)]. Returns ([page pictures], [crop pictures])."""
+    import fitz
+    pages, crops = {}, []
+    for spot, line in checked:
+        ok = line["correct"] and line["printed_ok"] is not False
+        misread = not ok and "map_ok" in line and line["map_ok"] is not False
+        colour = GREEN if ok else ORANGE if misread else RED
+        page = doc[spot["page"] - 1]
+        rect = box_rect(page, spot)
+        page.draw_rect(rect, color=colour, width=0.8 if ok else 1.4)
+        pages.setdefault(spot["page"], 0)
+        if not ok:
+            pages[spot["page"]] += 1
+            tag = f"expected: {line['expected'] or '(empty)'}"
+            page.insert_text((rect.x0, rect.y1 + 7), tag, fontsize=6, color=colour)
+            if not misread or line.get("by_rule"):
+                crops.append((spot["page"], rect, line))
+    pictures = []
+    for number in sorted(pages):
+        name = f"{patient_id}_{FORM_NAMES[form]}_p{number}.jpg"
+        pix = doc[number - 1].get_pixmap(dpi=PROOF_DPI)
+        pix.save(str(proof_dir / name), jpg_quality=PROOF_QUALITY)
+        pictures.append({"file": name, "page": number, "wrong": pages[number]})
+    crop_files = []
+    for i, (number, rect, line) in enumerate(crops, 1):
+        page = doc[number - 1]
+        area = fitz.Rect(rect.x0 - 60, rect.y0 - 25, rect.x1 + 60, rect.y1 + 25) & page.rect
+        name = f"{patient_id}_{FORM_NAMES[form]}_wrong{i}_{line['box']}.jpg"
+        page.get_pixmap(dpi=PROOF_ZOOM_DPI, clip=area).save(str(proof_dir / name), jpg_quality=75)
+        crop_files.append({"file": name, "line": line})
+    return pictures, crop_files
+
+
+def write_proof_index(proof_dir, entries, per_form, provisional):
+    """proof/index.html: the summary, every mismatch with its crop, then
+    every saved page per patient."""
+    from html import escape as e
+    wrong = [c for en in entries for c in en["crops"]]
+    out = ["<!doctype html><meta charset='utf-8'><title>Field mapping proof</title>",
+           "<style>body{font:14px system-ui,sans-serif;margin:16px;max-width:1200px}"
+           "img{max-width:100%;border:1px solid #bbb}table{border-collapse:collapse}"
+           "td,th{border:1px solid #ccc;padding:3px 8px;text-align:left}.bad{color:#c00}.ok{color:#080}"
+           ".grid{display:flex;flex-wrap:wrap;gap:12px}.grid figure{margin:0;width:380px}"
+           "figcaption{font-size:12px}</style>",
+           "<h1>Field mapping test — proof</h1>",
+           "<p>Each picture is the PDF that PClaimAssist's \"Save as PDF\" code produced for the patient, "
+           "rendered as is. Outlines were added afterwards: <b class='ok'>green</b> = the box holds the value "
+           "the answer key says, <b class='bad'>red</b> = it does not (the expected value is written under it).</p>"]
+    if provisional:
+        out.append("<p class='bad'><b>PROVISIONAL</b>: the expected box table has not been checked against the "
+                   "paper forms yet.</p>")
+    out.append("<table><tr><th>Form</th><th>Patients</th><th>Boxes checked</th><th>Correct</th><th>%</th></tr>")
+    out += [f"<tr><td>{e(str(r[0]))}</td><td>{r[1]}</td><td>{r[2]}</td><td>{r[3]}</td><td>{r[4]}</td></tr>"
+            for r in per_form]
+    out.append(f"</table><h2>Mismatches ({len(wrong)})</h2>")
+    if not wrong:
+        out.append("<p>None.</p>")
+    out.append("<div class='grid'>")
+    for c in wrong:
+        l = c["line"]
+        out.append(f"<figure><img loading='lazy' src='{e(c['file'])}'><figcaption><b>{e(l['patient'])} "
+                   f"{e(FORM_NAMES[l['form']])}</b> {e(l['box'])} ({e(l['column'])})<br>expected "
+                   f"<b>{e(l['expected'] or '(empty)')}</b>, on screen <b>{e(l['shown'] or '(empty)')}</b>, "
+                   f"printed <b>{e(l['printed'] or '(nothing)')}</b></figcaption></figure>")
+    out.append("</div><h2>Every saved page</h2>")
+    for en in entries:
+        bad = sum(p["wrong"] for p in en["pages"])
+        out.append(f"<h3>{e(en['patient'])} — {e(FORM_NAMES[en['form']])}: {en['checked']} boxes, "
+                   f"<span class='{'bad' if bad else 'ok'}'>{bad} wrong</span></h3><div class='grid'>")
+        out += [f"<figure><a href='{e(p['file'])}'><img loading='lazy' src='{e(p['file'])}'></a>"
+                f"<figcaption>page {p['page']}</figcaption></figure>" for p in en["pages"]]
+        out.append("</div>")
+    path = proof_dir / "index.html"
+    path.write_text("\n".join(out), encoding="utf-8")
+    import json      # what the pictures show, for field_mapping_report.py
+    manifest = [{**en, "crops": [{"file": c["file"], "line": {k: c["line"].get(k) for k in (
+        "patient", "form", "box", "label", "column", "expected", "shown", "printed",
+        "as_read", "ocr_text", "cause")}} for c in en["crops"]]}
+        for en in entries]
+    (proof_dir / "manifest.json").write_text(json.dumps(
+        {"per_form": per_form, "provisional": provisional, "entries": manifest}, indent=1, default=str),
+        encoding="utf-8")
+    return path
 
 
 def _same(expected, got, fmt):
@@ -163,33 +277,29 @@ def _printed_same(expected, got, fmt):
     return _upper(expected) == _upper(got)
 
 
-# ── the test ───────────────────────────────────────────────────────────
+# ── the check, shared with ocr_field_mapping.py ────────────────────────
 
-def run(progress, samples=False, limit=20, draft_expected=False, no_pdf=False):
-    if draft_expected:
-        return draft(progress)
-    root = INPUTS / "samples" if samples else INPUTS
-    key_path = root / "answer_key.xlsx"
-    if not key_path.is_file():
-        raise FileNotFoundError(f"{key_path} not found (template: inputs/answer_key_template.xlsx; or --samples)")
-    if not EXPECTED.is_file():
-        raise FileNotFoundError(f"{EXPECTED} not found - run with --draft-expected first, then check it.")
+def check_patients(progress, patients, populate, expected, out_dir, no_pdf=False, line_extra=None):
+    """Open each patient's claim in the real forms page and check every box
+    of the expected box table on the forms the claim needs.
+      populate(p) -> (form-data body, warnings): what the page loads;
+      line_extra(row, p, on_map, shown) -> {...}: more columns for a box
+      ("keep": True checks it even when nothing is expected or shown).
+    Pictures go to out_dir/proof/ (replaced).
+    -> (lines, proof entries, PDF errors, browser, page errors)"""
     import fitz
     from research_tests.common.forms_page import FormsPage
-
-    expected = load_expected()
-    provisional = not all((r.get("Checked") or "").strip().lower() in ("yes", "y", "checked") for r in expected)
-    banner = ("PROVISIONAL - the expected box table (field_mapping_expected.csv) has not been checked against the "
-              "paper forms yet (its Checked column).") if provisional else ""
-    patients = answer_key.patients(key_path)[:limit]
-    if not patients:
-        raise ValueError("No patients in the answer key (sheet Patients).")
-    lines, pdf_errors = [], []
+    lines, pdf_errors, proof_entries = [], [], []
+    proof_dir = None
+    if not no_pdf:
+        import shutil
+        proof_dir = out_dir / "proof"
+        shutil.rmtree(proof_dir, ignore_errors=True)        # pictures of this run only
+        proof_dir.mkdir(parents=True)
     with FormsPage() as page:
         for n, p in enumerate(patients):
             progress(0.05 + 0.9 * n / len(patients), f"Patient {p['Patient ID']}: auto-populating the forms")
-            body, warnings = answer_key.auto_populate(p)
-            body["saved_values"] = answer_key.claim_values(p) or {}     # what the task packet gives
+            body, warnings = populate(p)
             page.open_claim(body)
             forms = page.claim_forms()
             for form in FORMS:
@@ -203,36 +313,82 @@ def run(progress, samples=False, limit=20, draft_expected=False, no_pdf=False):
                         doc = fitz.open(stream=pdf, filetype="pdf")
                     except Exception as exc:
                         pdf_errors.append(f"{p['Patient ID']} {form}: {exc}")
+                checked = []
                 for row in (r for r in expected if r["Form"] == form):
                     want = expected_value(row, p)
                     spot = spots.get(row["Box ID"])
                     shown = spot["value"] if spot else None
-                    if not want and not (shown or "").strip():
+                    extra = line_extra(row, p, spot is not None, shown or "") if line_extra else {}
+                    if not want and not (shown or "").strip() and not extra.pop("keep", False):
                         continue                      # nothing expected, nothing shown
                     printed = printed_text(doc, spot, form) if doc is not None and spot else None
-                    lines.append({
+                    line = {
                         "patient": p["Patient ID"], "form": form, "box": row["Box ID"],
                         "label": row["Printed label (check on the paper form)"], "column": row["Answer-key value"],
                         "format": row["Format"], "position": row["Position"], "expected": want,
                         "shown": shown, "printed": printed,
                         "correct": spot is not None and _same(want, shown or "", row["Format"]),
                         "printed_ok": None if printed is None else _printed_same(want, printed, row["Format"]),
-                        "warnings": "; ".join(warnings)})
+                        "warnings": "; ".join(warnings)}
+                    extra.pop("keep", None)
+                    line.update(extra)
+                    lines.append(line)
+                    if spot:
+                        checked.append((spot, line))
                 if doc is not None:
+                    if checked:
+                        pics, crops = save_proof(doc, form, p["Patient ID"], checked, proof_dir)
+                        proof_entries.append({"patient": p["Patient ID"], "form": form, "checked": len(checked),
+                                              "pages": pics, "crops": crops})
                     doc.close()
         browser = page.browser_version
         page_errors = list(page.errors)
+    return lines, proof_entries, pdf_errors, browser, page_errors
 
-    progress(0.96, "Summarising")
-    per_form = []
+
+def per_form_rows(lines, key="correct"):
+    """[form, patients, boxes, correct, %, boxes read on the PDF, printed correctly %] per form + all."""
+    rows = []
     for form in FORMS + ("all",):
         group = [l for l in lines if form == "all" or l["form"] == form]
         if not group:
             continue
         printed = [l for l in group if l["printed_ok"] is not None]
-        per_form.append([FORM_NAMES.get(form, "All forms"), len({l["patient"] for l in group}), len(group),
-                         sum(l["correct"] for l in group), stats.percent(sum(l["correct"] for l in group), len(group)),
-                         len(printed), stats.percent(sum(l["printed_ok"] for l in printed), len(printed))])
+        rows.append([FORM_NAMES.get(form, "All forms"), len({l["patient"] for l in group}), len(group),
+                     sum(bool(l[key]) for l in group), stats.percent(sum(bool(l[key]) for l in group), len(group)),
+                     len(printed), stats.percent(sum(l["printed_ok"] for l in printed), len(printed))])
+    return rows
+
+
+# ── the test ───────────────────────────────────────────────────────────
+
+def run(progress, samples=False, limit=20, draft_expected=False, no_pdf=False):
+    if draft_expected:
+        return draft(progress)
+    root = INPUTS / "samples" if samples else INPUTS
+    key_path = root / "answer_key.xlsx"
+    if not key_path.is_file():
+        raise FileNotFoundError(f"{key_path} not found (template: inputs/answer_key_template.xlsx; or --samples)")
+    if not EXPECTED.is_file():
+        raise FileNotFoundError(f"{EXPECTED} not found - run with --draft-expected first, then check it.")
+
+    expected = load_expected()
+    provisional = not all((r.get("Checked") or "").strip().lower() in ("yes", "y", "checked") for r in expected)
+    banner = ("PROVISIONAL - the expected box table (field_mapping_expected.csv) has not been checked against the "
+              "paper forms yet (its Checked column).") if provisional else ""
+    patients = answer_key.patients(key_path)[:limit]
+    if not patients:
+        raise ValueError("No patients in the answer key (sheet Patients).")
+    def populate(p):
+        body, warnings = answer_key.auto_populate(p)
+        body["saved_values"] = answer_key.claim_values(p) or {}     # what the task packet gives
+        return body, warnings
+
+    lines, proof_entries, pdf_errors, browser, page_errors = check_patients(
+        progress, patients, populate, expected, output_dir(TEST_KEY), no_pdf)
+
+    progress(0.96, "Summarising")
+    per_form = per_form_rows(lines)
     per_value = []
     for column in dict.fromkeys(l["column"] for l in lines):
         group = [l for l in lines if l["column"] == column]
@@ -277,10 +433,14 @@ def run(progress, samples=False, limit=20, draft_expected=False, no_pdf=False):
                     for l in lines]}
     out = output_dir(TEST_KEY)
     path = excel.write_workbook(out / "field_mapping_results.xlsx", [raw] + sheets)
-    excel.save_summary(out, TEST_KEY, TITLE, sheets, {"samples": samples, "provisional": provisional})
+    excel.save_summary(out, TEST_KEY, TITLE, sheets, {"samples": samples, "provisional": provisional,
+                                                      "expected_table": table_digest()})
+    outputs = [path]
+    if not no_pdf:
+        outputs.append(write_proof_index(out / "proof", proof_entries, per_form, provisional))
     progress(1.0, "Done")
     overall = per_form[-1] if per_form else None
-    return {"outputs": [path], "headline": [
+    return {"outputs": outputs, "headline": [
         ["Patients", len(patients)], ["Boxes checked", overall[2] if overall else 0],
         ["Field mapping accuracy % (on screen)", overall[4] if overall else None],
         ["Printed correctly %", overall[6] if overall else None], ["Mismatches", len(mismatches)]]}

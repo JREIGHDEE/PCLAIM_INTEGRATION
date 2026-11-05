@@ -10,6 +10,8 @@ validation, PDF generation — **without changing them**. It writes only to
 | 1 | Handwriting (10 writers) | `python -m research_tests.handwriting` | Handwriting (10 Writers) | exact match, 100 × (1 − CER) |
 | 2 | Correction metrics | `python -m research_tests.correction_metrics` | Correction Metrics | 3.2–3.4 |
 | 3 | Field mapping | `python -m research_tests.field_mapping` | Field Mapping | 3.6 |
+| 3b | OCR field mapping (after the handwriting test) | `python -m research_tests.ocr_field_mapping` | — | 3.6 on OCR input |
+| 3c | Logbook cutting (after the handwriting test) | `python -m research_tests.logbook_cutting` | — | correct cuts % |
 | 4 | Validation (seeded errors) | `python -m research_tests.validation` | Validation (Seeded Errors) | 3.7–3.10 |
 | 5 | Performance | `python -m research_tests.performance` | Performance | time per stage |
 | 6 | Image quality (IQ-01) | `python -m research_tests.iq_check` | Image Quality | — |
@@ -69,6 +71,7 @@ files are git-ignored, so they stay on this computer.
 | `answer_key.xlsx` — sheet **Patients** | 3, 4, 7 | Built by `python -m research_tests.build_patients`: 20 entries R01–R20 covering every case type, names split by hand, claim-only values generated (fictional) and marked |
 | `task_packet.xlsx` | 7 | Every value a session participant is given, per patient (logbook + generated claim-only values) |
 | `scans/performance/*` | 5 | Optional; the handwriting scans are used when empty |
+| `scans/iq/*_iq.pdf` (or `scans/handwriting_iq test/`), `iq_expected.csv` | 6 | **Main result.** REAL scans of the 10 handwriting spreads with some pages made dark, bright or blurred by hand; `iq_expected.csv` gives each page's expected condition (the label given, the one used, and the evidence from comparing it with the original scan) |
 | `iq/good/*`, `iq/bad/*`, `iq/expected.csv` | 6 | REAL good and deliberately bad scans; expected.csv optional (File, Expected pass/warn, Reason). `iq_check --generate` adds blurry/dark/bright copies of the real scanner pages in `iq/generated/` (git-ignored); every result says real or generated |
 | `sessions/session_data.xlsx` | 7 | From `session_data_template.xlsx`: sheets **7a Session log** (time per claim), **7c Claim errors** (per box, with Value group; `user_sessions --prefill-errors` writes the reference rows), **7d Suggestion log** (accept / edit / reject / not acted on), **SUS** (optional). Participant codes P1–P5 only — checked by the pre-commit hook |
 | `field_mapping_expected.csv` | 3 | Which box of each form holds which answer-key value, and in which format — **check every row against the paper forms** |
@@ -111,6 +114,26 @@ in the correction metrics workbook, labelled "including blank cells".
 **Field mapping.**
 - Confirmed values go through `case_bridge.draft_patient_and_encounter`, then `form_prefill.build_form_data`, then the real forms page.
 - Each box is checked twice: the value the form shows, and the text read back from the PDF the page saves.
+- **Check the expected box table against the paper forms:** `python -m research_tests.field_mapping_review` opens a page on this computer (http://127.0.0.1:8766) showing every box of `inputs/field_mapping_expected.csv` on the blank paper form and as PClaimAssist fills it for a test patient, with the value the table expects. Mark each box Correct, correct its printed label / answer-key value / format / position, remove it, or add a box the table left out. Changes save at once to the table (the original is kept as `field_mapping_expected.before_review.csv`); once every box is checked the results are no longer PROVISIONAL. "Make the reports" reruns the field mapping and OCR field mapping tests and their reports. Each run records which version of the table it used, and the reports warn when the run before the fixes was scored with a different one.
+- Proof: `outputs/field_mapping/proof/index.html`. Every saved PDF page, rendered as is (small JPEGs), with each checked box outlined: green means right, red means wrong, with the expected value written under it. Each mismatch also gets a zoomed crop. The pictures are redrawn on every run (skipped with `--no-pdf`).
+- Proof report (one PDF, with bookmarks and links): `python -m research_tests.field_mapping_report` writes `outputs/field_mapping/field_mapping_proof_report.pdf`. It compares `outputs/field_mapping/before_fix/` (a run on the code before the fixes) with the latest run, and adds `outputs/field_mapping/live_check/` (the fix checked in the real app) when that folder is there.
+
+**Correction module proof report.**
+- `python -m research_tests.correction_report` (after the handwriting and correction tests) writes `outputs/correction_metrics/correction_proof_report.pdf`, `correction_changes.xlsx` (every change) and the pictures in `proof/`: every change the correction module made, judged by the test's own code (helpful, harmful, closer, further, no difference), with the cell picture. It reads the approved handwriting results when the working copy is not there.
+
+**OCR accuracy proof report.**
+- `python -m research_tests.ocr_accuracy_report` (after the handwriting test) writes `outputs/handwriting/ocr_accuracy_proof_report.pdf` and a picture of every logbook row in `outputs/handwriting/proof/`: each cell with what is written and what PaddleOCR, PaddleOCR + Correction, Tesseract and Tesseract + Correction read, framed by the value the system pre-fills (green exact, orange close, red wrong). Nothing is re-read; the numbers are the handwriting test's. When the logbook cutting test has run, it also gives the accuracy on properly cut cells.
+
+**Logbook cutting.**
+- Does each cut of a logbook row hold the writing of its category? Uses the handwriting test's runs and cut pictures (nothing re-read), scanner and phone.
+- The result is a visual check of every cut, kept in `inputs/logbook_cutting_visual_check.csv` per scan, writer, page, category and rows: the cut (Proper / Clipped / Wrong column / Half of two entries / Empty paper / Not found) and, separately, the row number it got (Right / Off by N). Check it against the page mosaics (`outputs/logbook_cutting/proof/mosaic_*.jpg`), correct it if needed, and rerun. An automatic judgement from the OCR readings is reported beside it for support only: it cannot see a cut that holds part of two columns when the reading is poor.
+- Proof report: `python -m research_tests.logbook_cutting_report`.
+- **Check the cuts yourself:** `python -m research_tests.logbook_cutting_review` opens a page on this computer (http://127.0.0.1:8765, nothing goes online) with every writer's pages as mosaics. Click a cut to tag it Correct -> Partly -> Not at all, or tag a whole column or row with its buttons. Each cut starts with the earlier visual check as a dashed suggestion; it counts only once you click or accept it. Tags save at once to `inputs/logbook_cutting_human_check.csv`, so you can stop and carry on later. "Make the report" reruns the test with your tags: the report and the workbook then lead with your check (sheets 4-You ...).
+
+**OCR field mapping.**
+- The same check as field mapping, but the forms get what the OCR read, not the confirmed values: each patient's logbook row ("Source (writer, row)" in the answer key) as the handwriting test read it (`outputs/handwriting/handwriting_results.xlsx`, default the scanner and PaddleOCR + Correction), through the review page's own pre-fill and Submit (`review_fields.suggest_parts` + `normalize`), unedited. Run the handwriting test first.
+- Two scores per box: end-to-end (the answer-key value) and mapping (the value the reading gives - did it land in the right box?). Each wrong box is put down to an OCR misread, a mapping error, a row not detected, or a rule of the system filling a box with nothing usable read.
+- Pictures as for field mapping, plus orange: wrong, but not a mapping error. Proof report: `python -m research_tests.ocr_field_mapping_report` (`outputs/ocr_field_mapping/before_fix/` is a run on the code before the fixes).
 
 **Validation.**
 - The real `validation-rules.js` runs in the real forms page.
@@ -119,6 +142,9 @@ in the correction metrics workbook, labelled "including blank cells".
   - IC-01, IC-02, IC-07: consistent by construction.
   - MF-08: the CF4 course in the ward is auto-filled with a discharge line.
   - Attachments: no rule exists.
+- Those four rules are covered by an engine-level check (4e, 4f): the record's own features with only the one the rule reads set - the rule must fire, and nothing else. Not part of Eq. 3.7-3.10. 4e lists all 31 rules and how each is covered.
+- The relationship error (IC-06) is seeded on an unmarried adult patient filed under another member: the page fills the relationship in itself for Self, a newborn (Child) and a married mother (Spouse).
+- Proof: the page's own "Rule Check Results" panel for every record in `outputs/validation/proof/`; `python -m research_tests.validation_report` builds `outputs/validation/validation_proof_report.pdf`.
 - The seeded errors were designed from the rule definitions, so the result shows the rules work as written, not how much of all real-world errors they cover.
 - The run environment (headless Edge for the JS engine and the PDF export) is recorded in the workbook.
 
@@ -128,6 +154,10 @@ in the correction metrics workbook, labelled "including blank cells".
 - Machine specs are recorded.
 
 **Image quality.** The real `assess_image_quality`, run on pages loaded the way the Logbook Reader loads them.
+- Main result: the real IQ test scans (6a-6e): every page checked with `assess_logbook_page`, the check the Logbook Reader runs (too dark/bright, blurry, plus dim page, soft focus and washed out - thresholds in `Ocr_module/config.py`), the confusion table, and every miss or false warning with the threshold involved. Each page is also measured beside the same page of the original scan. 6f checks the 40 original pages (should pass) and the generated copies (not used to set the thresholds).
+- `--ocr` (about a minute a scan) reads the IQ scans with PaddleOCR + Correction the way the Logbook Reader does (a dim, washed-out or too-dark page evened out first by `enhance_for_ocr`), each page scored beside the original (6g, 6h). Readings are kept in `outputs/iq_check/runs_iq_enhanced.json` and re-read when the scan, the evening-out code or its thresholds change.
+- Generated copies (`--generate`) are optional and only checked with `--include-generated`; they are never part of the real-scan result.
+- Proof report: `python -m research_tests.iq_report` writes `outputs/iq_check/iq_proof_report.pdf`.
 
 **User sessions.** Calculations only.
 

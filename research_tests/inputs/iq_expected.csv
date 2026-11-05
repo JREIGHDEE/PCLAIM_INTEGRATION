@@ -1,0 +1,21 @@
+File,Page,Label given,Expected condition,Evidence (this page vs the same page of the original scanner scan)
+W01_caps_iq.pdf,1,dark,dark,mean brightness 230.4 -> 128.0; ink 70 -> 1
+W01_caps_iq.pdf,2,bright,bright,mean brightness 233.4 -> 247.6; ink 69 -> 114 (fainter)
+W02_caps_iq.pdf,1,normal,normal,unchanged (mean -0.9; ink +4; re-saved)
+W02_caps_iq.pdf,2,normal,normal,nearly unchanged (mean +7.0; ink -9)
+W03_caps_iq.pdf,1,normal/bright,bright,mean brightness 233.8 -> 246.4; ink 67 -> 121 (fainter) - the same change as W01 p2
+W03_caps_iq.pdf,2,dark,dark,mean brightness 234.7 -> 159.1; ink 48 -> 0
+W04_caps_iq.pdf,1,normal,normal,unchanged (mean -0.9; ink +13)
+W04_caps_iq.pdf,2,bright,dark,"CORRECTED: the page got darker, not brighter - mean brightness 236.0 -> 202.1 (grey paper), ink unchanged (50 -> 49)"
+W05_caps_iq.pdf,1,normal,normal,unchanged (mean -0.8; ink +5)
+W05_caps_iq.pdf,2,normal,bright,"CORRECTED: brightened like W01 p2 - mean brightness 235.7 -> 247.3, ink 67 -> 104 (fainter), sharpness halved"
+W06_lower_iq.pdf,1,normal,normal,unchanged (mean -1.0; ink +6)
+W06_lower_iq.pdf,2,dark,dark,mean brightness 235.5 -> 179.0; ink 69 -> 1
+W07_lower_iq.pdf,1,normal,normal,unchanged (mean -3.4; ink +3)
+W07_lower_iq.pdf,2,normal,dark,"CORRECTED: darkened - mean brightness 237.1 -> 211.1, ink 89 -> 22"
+W08_lower_iq.pdf,1,normal,normal,unchanged (mean -0.9; ink +7)
+W08_lower_iq.pdf,2,normal,normal,unchanged (mean -0.9; ink +10)
+W09_lower_iq.pdf,1,blurred,blurred,sharpness (Laplacian variance) 1146 -> 176 (x0.15); page also rescaled
+W09_lower_iq.pdf,2,blurred,blurred,sharpness (Laplacian variance) 1088 -> 104 (x0.10); page also rescaled
+W10_lower_iq.pdf,1,normal,normal,unchanged (mean -0.8; ink +5)
+W10_lower_iq.pdf,2,normal,normal,unchanged (mean -0.9; ink +10)

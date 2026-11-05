@@ -116,7 +116,8 @@ class ValidationScoringTests(unittest.TestCase):
         self.assertEqual(len(instances), 40)
         records = [{"record": f"S{i:02d}", "has": {"csf", "cf1", "cf2"}
                     | ({"cf4", "delivery"} if i % 3 == 0 else set())
-                    | ({"cf4", "cf4_drugs_kept_blank"} if i % 5 == 1 else set())} for i in range(20)]
+                    | ({"cf4", "cf4_drugs_kept_blank"} if i % 5 == 1 else set())
+                    | ({"adult"} if i % 4 != 2 else set())} for i in range(20)]      # every 4th a newborn
         slots = val.assign(instances, records, val.SEED)
         by = {r["record"]: r for r in records}
         for record, errors in slots.items():
