@@ -122,6 +122,19 @@ def _unreadable_date(d):
     return {"patientDOB": f"O{iso[6:7]}-{iso[8:10]}-{iso[0:4]}"}, {}, {}
 
 
+def _gravida_plus_one(d):
+    g = str(d.get("gravida") or "").strip()
+    return {"gravida": str(int(g) + 1) if g.isdigit() else "9"}, {}, {}
+
+
+def _lmp_off(d):
+    """An LMP 5 weeks off the weeks AOG the admission diagnosis gives."""
+    import re
+    m = re.search(r"\b(\d{1,2})\s*(?:\d/7\s*)?(?:WKS?|WEEKS)\.?\s*AOG\b", str(d.get("admissionDx") or "").upper())
+    weeks = int(m[1]) if m else 39
+    return {"lmp": _shift(d["dateAdmitted"], -7 * (weeks - 5))}, {}, {}
+
+
 def _digit_name(d):
     first = d["patientFirstName"] or "ANA"
     return {"patientFirstName": first[0] + "1" + first[2:] if len(first) > 1 else first + "1"}, {}, {}
@@ -154,7 +167,7 @@ ERRORS = [
     _err("IF-digit", "Invalid format", "Digit in the patient's first name", "patientFirstName", ["IF-04"],
          touches={"name"}, seed=_digit_name),
     _err("IC-dis-before", "Inconsistent entry", "Discharge date before admission", "dateDischarge", ["IC-03"],
-         allowed=["IC-05", "IC-08"], touches={"admit", "discharge", "delivery"},
+         allowed=["IC-05", "IC-08", "IC-11"], touches={"admit", "discharge", "delivery"},
          seed=lambda d: ({"dateDischarge": _shift(d["dateAdmitted"], -2)}, {}, {})),
     _err("IC-dob-after", "Inconsistent entry", "Member born after admission", "memberDOB", ["IC-04"],
          touches={"admit", "memberdob", "patientdob"},
@@ -178,6 +191,18 @@ ERRORS = [
     _err("IC-same-day", "Inconsistent entry", "Discharged the same day as the delivery", "dateDischarge", ["IC-08"],
          needs={"delivery"}, touches={"discharge", "delivery", "dischargetime"},
          seed=lambda d: ({"dateDischarge": d["deliveryDate"]}, {}, {})),
+    # The clinic's RTH reasons (inputs/rth_mistakes.csv) typed again on CF4.
+    _err("IC-ob", "Inconsistent entry", "CF4 gravida differs from the G in the admission diagnosis", "gravida",
+         ["IC-10"], needs={"cf4", "delivery"}, touches={"ob"}, seed=_gravida_plus_one),
+    _err("IC-course", "Inconsistent entry", "CF4 course in the ward dated after the discharge", "cf4CourseDate1",
+         ["IC-11"], needs={"cf4"}, touches={"course", "admit", "discharge"},
+         seed=lambda d: ({"cf4CourseDate1": _shift(d["dateDischarge"], 3),
+                          "cf4CourseOrder1": d.get("cf4CourseOrder1") or "VITAL SIGNS TAKEN"}, {}, {})),
+    _err("IC-baby", "Inconsistent entry", "Baby's date of birth a day after its mother's date of delivery "
+         "(the baby's claim linked to the mother's)", "patientDOB", ["IC-13"], needs={"linked"},
+         touches={"patientdob"}, seed=lambda d: ({"patientDOB": _shift(d["patientDOB"], 1)}, {}, {})),
+    _err("IC-lmp", "Inconsistent entry", "LMP 5 weeks off the weeks AOG in the admission diagnosis", "lmp",
+         ["IC-12"], needs={"cf4", "delivery"}, touches={"lmp", "admit"}, seed=_lmp_off),
     _err("SP-member", "Signature", "Member signature missing (signed form checked)", "member signature", ["SP-01"],
          seed=lambda d: ({}, {}, {"member": False})),
     _err("SP-midwife", "Signature", "Attending midwife signature missing on CF4", "midwife signature", ["SP-02"],
@@ -207,11 +232,10 @@ for _e in ERRORS:
     if _e["key"].startswith("MF-") and _e["key"] != "MF-many" and "MF-06" not in _e["allowed"]:
         _e["allowed"].append("MF-06")
 BY_KEY = {e["key"]: e for e in ERRORS}
-# The 13 errors seeded a second time to make 40 (27 kinds + 13): missing fields, formats and
+# The 9 errors seeded a second time to make 40 (31 kinds + 9): missing fields, formats and
 # inconsistencies are the commonest return-to-hospital reasons.
 SECOND_TIME = ["MF-pin", "MF-admit", "MF-discharge", "MF-cc", "IF-11", "IF-letter", "IF-date",
-               "IC-dis-before", "IC-dob-after", "IC-same-day", "MF-dob", "MF-name",
-               "MF-drugs"]
+               "IC-dis-before", "IC-same-day"]
 
 
 # ── records ────────────────────────────────────────────────────────────
@@ -371,16 +395,38 @@ def run(progress, samples=False, seed=SEED):
     with FormsPage() as page:
         progress(0.05, "Loading the forms page")
         # Which forms each patient's claim has (for placing CF4 errors).
+        # A newborn whose mother is among the patients is opened as its saved
+        # claim linked to hers (rth_errors.linked_to_mother), as the clinic files them.
+        from research_tests.rth_errors import MOTHER_OF, linked_to_mother
+        from philhealth.mother_baby import values_for_baby
+        by_id = {q["Patient ID"]: q for q in patients}
+        links = {}
+        for baby_id, mother_id in MOTHER_OF.items():
+            if mother_id in by_id and any(q["Patient ID"] == baby_id for q in chosen):
+                mother = by_id[mother_id]
+                body, _ = answer_key.auto_populate(mother)
+                body["saved_values"] = answer_key.claim_values(mother) or fictional_details(mother, 0)
+                page.open_claim(body)
+                md = page.data()
+                links[baby_id] = linked_to_mother(by_id[baby_id], mother, md, values_for_baby(md))
+
+        def open_record(p, body):
+            page.open_claim(body, api=links.get(p["Patient ID"]))
+            if p["Patient ID"] in links:
+                page.page.wait_for_function("() => typeof mb !== 'undefined' && mb.fromMother", timeout=15000)
+                page.page.wait_for_timeout(300)
+
         has = {}
         for p in chosen:
             if p["Patient ID"] in has:
                 continue
             body, _ = answer_key.auto_populate(p)
             body["saved_values"] = answer_key.claim_values(p) or fictional_details(p, chosen.index(p))
-            page.open_claim(body)
+            open_record(p, body)
             d = page.data()
             has[p["Patient ID"]] = (set(page.claim_forms()) | ({"delivery"} if d.get("deliveryDate") else set())
-                                    | (set() if is_baby(p) else {"adult"}))
+                                    | (set() if is_baby(p) else {"adult"})
+                                    | ({"linked"} if p["Patient ID"] in links else set()))
             # Does the page keep CF4's drugs blank? (A delivery package puts its drugs back.)
             page.set_values({"cf4DrugName1": "", "cf4DrugName2": "", "cf4DrugName3": ""})
             after = page.data()
@@ -401,7 +447,7 @@ def run(progress, samples=False, seed=SEED):
             progress(0.1 + 0.85 * n / len(records), f"Record {rec['record']} ({p['Patient ID']})")
             body, _ = answer_key.auto_populate(p)
             body["saved_values"] = answer_key.claim_values(p) or fictional_details(p, chosen.index(p))
-            page.open_claim(body)
+            open_record(p, body)
             before = page.data()
             ocr, sig, changes, details = dict(GOOD_OCR), dict(ALL_SIGNED), {}, []
             for e in rec["errors"]:

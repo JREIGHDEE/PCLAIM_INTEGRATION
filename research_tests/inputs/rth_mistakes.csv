@@ -1,0 +1,31 @@
+ID,RTH reason,How common (clinic),How it happens,Mistake,Forms involved,Example (fictional),Applies to,Include,Notes
+D1,Dates,very common,Dual entry,Date admitted typed one day off on one form,CSF / CF2 / CF4,CF2 says 03-14-2026; CSF and CF4 say 03-15-2026,all,yes,
+D2,Dates,very common,Dual entry,Date discharged typed differently on one form,CSF / CF2 / CF4,CF4 says 03-17-2026; CSF and CF2 say 03-16-2026,all,yes,
+D3,Dates,very common,Dual entry,Patient's birth date with a wrong year on one form,CSF / CF1 / PMRF,CF1 says 1996; CSF and PMRF say 1995,all,yes,
+D4,Dates,very common,Typed once,Day and month swapped in the patient's birth date,every form that prints the date,05-03-1995 typed for 03-05-1995,all,yes,The wrong date is the same on every form
+D5,Dates,very common,Typed once,Discharge date before the admission date,CSF / CF2 / CF4,admitted 03-15 discharged 03-13,all,yes,
+D6,Dates,very common,Typed once,Delivery date outside the stay,CF2 / CF4,delivered 03-20 but discharged 03-16,delivery,yes,
+G1,Gravida and baby details,slightly uncommon,Dual entry,Gravida in CF4's OB history differs from the GRAVIDA in the CF2 admission diagnosis,CF2 / CF4,CF4 G3; CF2 says GRAVIDA 2,delivery,yes,
+G2,Gravida and baby details,slightly uncommon,Dual entry,Para in CF4's OB history differs from the PARA in the admission diagnosis,CF2 / CF4,CF4 P4; diagnosis says G3P2 (2002),delivery,yes,"CF2 prints no final diagnosis with the para (its Diagnosis A is the package wording), so the para is compared with the admission diagnosis"
+G3,Gravida and baby details,slightly uncommon,Dual entry,Baby's claim gives the mother a different gravida/para than the mother's claim,mother's CF2 / baby's CF2,baby's says TO A GRAVIDA 3 PARA 3 MOTHER; mother's says GRAVIDA 2 PARA 2,baby,yes,The baby's claim is saved and linked to the mother's claim; checked against her saved claim (IC-13)
+G4,Gravida and baby details,slightly uncommon,Dual entry,Baby's birth date differs from the mother's delivery date,mother's CF2/CF4 / baby's CSF/CF1,baby born 03-15; mother delivered 03-14,baby,yes,The baby's claim is saved and linked to the mother's claim; checked against her saved claim (IC-13)
+G5,Gravida and baby details,slightly uncommon,Dual entry,Baby's sex or birth weight differs between the mother's and the baby's claim,mother's CF4 / baby's CF2,mother's: male 3100 g; baby's: female 3100 g,baby,yes,The baby's claim is saved and linked to the mother's claim; checked against her saved claim (IC-13)
+P1,PIN,slightly uncommon,Dual entry,PIN with one wrong digit on one form,CSF / CF1 / CF4 / PMRF,CF1 12-345678901-2; others 12-345678901-3,all,yes,
+P2,PIN,slightly uncommon,Dual entry,PIN with two digits swapped on one form,CSF / CF1 / CF4 / PMRF,PMRF 12-354678901-3,all,yes,
+P3,PIN,slightly uncommon,Typed once,PIN with a digit missing (11 digits),every form that prints it,12-34567890-3,all,yes,
+A1,Inconsistent admission reason,uncommon,Dual entry,CF2 admission diagnosis differs from CF4 admitting diagnosis,CF2 / CF4,CF2 IN LABOR; CF4 PRENATAL CARE,all,yes,
+A2,Inconsistent admission reason,uncommon,Dual entry,CF4 chief complaint does not fit the admission diagnosis,CF2 / CF4,chief complaint FEVER; admitted IN LABOR,all,no,Not a mistake: the chief complaint is always different from the admission diagnosis (the clinic)
+A3,Inconsistent admission reason,uncommon,Dual entry,CF2 final diagnosis differs from CF4 discharge diagnosis,CF2 / CF4,CF2 NSVD; CF4 CESAREAN,all,yes,
+N1,Name,very common,Dual entry,Name spelled with one letter different on one form,all five forms,CF4 DELA CRUS; others DELA CRUZ,all,yes,
+N2,Name,very common,Dual entry,Middle name left out on one form,all five forms,PMRF has no middle name,all,yes,
+N3,Name,very common,Dual entry,First and last name swapped on one form,all five forms,CF2 last name MARIA first name SANTOS,all,yes,
+N4,Name,very common,Dual entry,Suffix left out on one form,all five forms,CF1 without JR.,all,yes,"A suffix (JR.) is typed on Patient details first, then left out on CF1"
+N5,Name,very common,Typed once,Name misspelled the same way on every form,all five forms,DELA CRUS everywhere,all,yes,The forms agree with each other but not with the ID
+C1,Clinical details and examinations,common,Dual entry,History of present illness on CF4 differs from the brief history,Patient details / CF4,CF4: labor pains 6 hours; brief history: labor pains since yesterday,all,yes,
+C2,Clinical details and examinations,common,Dual entry,ICD-10 or RVS case rate code differs between CSF and CF4,CSF / CF4,CSF O80.0; CF4 O82.0,all,yes,
+C3,Clinical details and examinations,common,Dual entry,Attending midwife's name or accreditation number differs on one form,CSF / CF2 / CF4,CF4 1234-5678901-2; CSF and CF2 1234-5678901-3,all,yes,
+C4,Clinical details and examinations,common,Typed once,Age of gestation in the diagnosis does not fit the LMP on CF4,CF2 / CF4,diagnosis 40 WEEKS AOG; LMP gives 36 weeks,delivery,yes,
+C5,Clinical details and examinations,common,Typed once,Physical examination does not fit the diagnosis,CF4,fundic height 24 cm for a 40-week pregnancy,delivery,yes,"The examinations are only on one form (CF4), so they cannot differ between forms (the clinic)"
+C6,Clinical details and examinations,common,Typed once,Course in the ward dated outside the stay,CF4,course entry 03-19 but discharged 03-16,all,yes,
+C7,Clinical details and examinations,common,Typed once,Drugs given do not fit the delivery,CF4,no oxytocin on a normal delivery,delivery,yes,"The drugs are only on one form (CF4), so they cannot differ between forms"
+C8,Clinical details and examinations,common,Dual entry,Vital signs in CF4's boxes differ from the vital signs written in the physical examination or the course in the ward,CF4,BP box 120/80; physical examination says BP 110/70,all,yes,

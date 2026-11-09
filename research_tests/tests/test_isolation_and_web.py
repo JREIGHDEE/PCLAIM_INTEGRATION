@@ -92,7 +92,7 @@ class WebTests(unittest.TestCase):
         tabs = client.get("/ocr-testing/research/api/tabs").get_json()["tabs"]
         self.assertEqual([t["tab"] for t in tabs], [
             "Handwriting (10 Writers)", "Correction Metrics", "Field Mapping", "Validation (Seeded Errors)",
-            "Performance", "Image Quality", "User Sessions", "Results"])
+            "Performance", "Image Quality", "User Sessions", "RTH Mistakes", "Results"])
         self.assertEqual(client.get("/ocr-testing/research/static/tabs.js").status_code, 200)
         for t in tabs:
             self.assertEqual(client.get(t["url"]).status_code, 200, t["url"])

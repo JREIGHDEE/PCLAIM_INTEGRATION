@@ -117,7 +117,8 @@ class ValidationScoringTests(unittest.TestCase):
         records = [{"record": f"S{i:02d}", "has": {"csf", "cf1", "cf2"}
                     | ({"cf4", "delivery"} if i % 3 == 0 else set())
                     | ({"cf4", "cf4_drugs_kept_blank"} if i % 5 == 1 else set())
-                    | ({"adult"} if i % 4 != 2 else set())} for i in range(20)]      # every 4th a newborn
+                    | ({"adult"} if i % 4 != 2 else set())                            # every 4th a newborn
+                    | ({"linked"} if i in (2, 6) else set())} for i in range(20)]     # two linked to their mother
         slots = val.assign(instances, records, val.SEED)
         by = {r["record"]: r for r in records}
         for record, errors in slots.items():
@@ -211,3 +212,59 @@ class HelperTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RthErrorTests(unittest.TestCase):
+    """Test 8: the planted mistakes' values and the error reduction."""
+
+    def setUp(self):
+        from research_tests import rth_errors
+        self.rth = rth_errors
+
+    def test_planted_values(self):
+        rth = self.rth
+        self.assertEqual(rth._pin_digit("12-345678901-3"), "12-345778901-3")
+        self.assertEqual(rth._pin_swap("12-345678901-3"), "12-354678901-3")
+        self.assertEqual(rth._pin_11("12-345678901-3"), "12-34567890-1")
+        self.assertIsNone(rth._pin_11("12-34567890-1"))
+        self.assertEqual(rth._swap_day_month("1995-03-05"), "1995-05-03")
+        self.assertIsNone(rth._swap_day_month("1995-03-25"))          # no 25th month
+        self.assertIsNone(rth._swap_day_month("1995-04-04"))          # swapping changes nothing
+        self.assertEqual(rth._swap_day_month("03-05-1995"), "1995-05-03")
+        self.assertEqual(rth._other_letter("DELA CRUZ"), "DELA CRUS")
+        self.assertEqual(rth._shift("2026-03-01", -1), "2026-02-28")
+
+    def test_reading_the_diagnosis(self):
+        rth = self.rth
+        self.assertEqual((rth.gravida_of("G3P2 (2002) PUFT 37 WKS AOG"), rth.para_of("G3P2 (2002)")), ("3", "2"))
+        self.assertEqual(rth.gravida_of("CEPHALIC IN LABOR GRAVIDA 2 PARA 1 (1001)"), "2")
+        self.assertEqual(rth.gravida_of("TO A G3P3 MOTHER"), "3")
+        self.assertIsNone(rth.gravida_of("WELL BABY CARE"))
+        self.assertEqual(rth._replace_gp("TO A G3P3 MOTHER", g="4", p="5"), "TO A G4P5 MOTHER")
+        self.assertEqual(rth.delivery_mode("SPONTANEOUS VERTEX DELIVERY"), "VAGINAL")
+        self.assertEqual(rth.delivery_mode("DELIVERED VIA NSVD"), "VAGINAL")
+        self.assertEqual(rth.delivery_mode("DELIVERED VIA LOW SEGMENT CESAREAN SECTION"), "CESAREAN")
+        self.assertEqual(rth._aog_weeks("G3P2 (2002) PUFT 37 4/7 WKS AOG"), 37)
+
+    def test_judging_the_rules(self):
+        v = lambda i, action: {"id": i, "action": action}
+        before = {"fired": ["MF-06"], "violations": [v("MF-06", "flag_high_risk")], "canGeneratePDF": True}
+        self.assertEqual(self.rth._judge(before, before), ("Gets through", []))
+        warned = {"fired": ["MF-06", "IC-05"], "canGeneratePDF": True,
+                  "violations": [v("MF-06", "flag_high_risk"), v("IC-05", "display_warning")]}
+        self.assertEqual(self.rth._judge(before, warned), ("Warned", ["IC-05"]))
+        blocked = {"fired": ["IC-03"], "canGeneratePDF": False, "violations": [v("IC-03", "block_submission")]}
+        self.assertEqual(self.rth._judge(before, blocked), ("Blocked", ["IC-03"]))
+
+    def test_error_reduction(self):
+        cases = [{"outcome": o} for o in ["Prevented"] * 5 + ["Blocked"] * 2 + ["Warned"] + ["Gets through"] * 2]
+        n, counts, strict_left, strict, lenient_left, lenient = self.rth._reduction(cases)
+        self.assertEqual((n, strict_left, lenient_left), (10, 3, 2))
+        self.assertEqual((strict, lenient), (70.0, 80.0))           # (10 - 3) / 10, (10 - 2) / 10
+
+    def test_every_listed_mistake_has_a_probe(self):
+        mistakes = self.rth.load_mistakes()
+        self.assertTrue(mistakes)
+        for m in mistakes:
+            self.assertIn(m["ID"], self.rth.PROBES, m["ID"])
+            self.assertIsNotNone(m["weight"], f"{m['ID']}: How common (clinic) is empty")
