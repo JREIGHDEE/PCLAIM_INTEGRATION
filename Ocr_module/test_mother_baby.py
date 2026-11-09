@@ -139,5 +139,88 @@ class ValuesForBabyTests(unittest.TestCase):
                 self.assertIn(item["key"], form_keys)
 
 
+class CompareWithMotherTests(unittest.TestCase):
+    """A baby's claim against its mother's (the clinic's RTH reasons G3-G5;
+    the forms' rule IC-13 does the same)."""
+    FACTS = {"gravida": "3", "para": "2", "deliveryDate": "2026-08-29", "babySex": "Female", "birthWeight": "2800"}
+    BABY = {"patientDOB": "2026-08-29", "patientSex": "Female",
+            "dischargeDx": "LIVE TERM BABY GIRL AGA DELIVERED VIA NSVD TO A G3P3 MOTHER WEIGHING 2800 GRAMS"}
+
+    def whats(self, baby):
+        return [d["what"] for d in mother_baby.compare_with_mother(baby, self.FACTS)]
+
+    def test_a_baby_that_matches_its_mother(self):
+        self.assertEqual(self.whats(self.BABY), [])
+
+    def test_each_difference(self):
+        self.assertEqual(self.whats({**self.BABY, "patientDOB": "2026-08-30"}),
+                         ["Baby's date of birth / mother's date of delivery"])
+        self.assertEqual(self.whats({**self.BABY, "patientSex": "Male"}), ["Baby's sex"])
+        self.assertEqual(self.whats({**self.BABY, "dischargeDx": self.BABY["dischargeDx"].replace("G3P3", "G4P4")}),
+                         ["Mother's G and P in the baby's diagnosis"])
+        self.assertEqual(self.whats({**self.BABY, "dischargeDx": self.BABY["dischargeDx"].replace("2800", "3100")}),
+                         ["Birth weight in the baby's diagnosis"])
+        self.assertEqual(self.whats({**self.BABY, "dischargeDx": self.BABY["dischargeDx"].replace("GIRL", "BOY")}),
+                         ["Baby's sex in the diagnosis"])
+
+    def test_only_what_both_claims_have(self):
+        self.assertEqual(mother_baby.compare_with_mother({"patientDOB": "2026-08-30"}, {}), [])
+        self.assertEqual(self.whats({"dischargeDx": "WELL BABY CARE"}), [])
+
+
+def _database_available():
+    try:
+        import db
+        db.test_connection()
+        return True
+    except Exception:
+        return False
+
+
+@unittest.skipUnless(_database_available(), "MariaDB is not reachable in this environment")
+class MotherThenBabyInTheDatabaseTests(unittest.TestCase):
+    """Save a mother's claim, then her baby's, link them, and read back what
+    the baby's saved claim says differently (claims_store.values_from_mother).
+    Both claims are made for the test and deleted after it."""
+
+    def setUp(self):
+        import claims_store
+        self.store = claims_store
+        self.mother = claims_store.save_patient(None, {
+            "patientLastName": "ZZ_RTH_TEST", "patientFirstName": "MOTHER", "patientDOB": "1995-03-15",
+            "patientSex": "Female", "dateAdmitted": "2026-08-29", "dateDischarge": "2026-08-30",
+            "deliveryDate": "2026-08-29", "gravida": "3", "para": "2", "babySex": "Female", "birthWeight": "2800",
+            "admissionDx": "G3P2 (2002) PUFT 37 WKS AOG CEPHALIC IN LABOR"})
+        self.baby = None
+
+    def tearDown(self):
+        for claim_id in (self.baby, self.mother):
+            if claim_id:
+                try:
+                    self.store.delete_patient(claim_id)
+                except Exception:
+                    pass
+
+    def save_baby(self, **changes):
+        values = {"patientLastName": "ZZ_RTH_TEST", "patientFirstName": "BABY GIRL", "patientDOB": "2026-08-29",
+                  "patientSex": "Female", "dateAdmitted": "2026-08-29", "dateDischarge": "2026-08-30",
+                  "dischargeDx": "LIVE TERM BABY GIRL AGA DELIVERED VIA NSVD TO A G3P3 MOTHER WEIGHING 2800 GRAMS",
+                  **changes}
+        self.baby = self.store.save_patient(self.baby, values)
+        self.store.set_family(self.baby, role="baby", mother_claim_id=self.mother, set_role=True, set_mother=True)
+        return [d["what"] for d in self.store.values_from_mother(self.baby)["differences"]]
+
+    def test_matching_baby_has_no_differences(self):
+        self.assertEqual(self.save_baby(), [])
+
+    def test_baby_saved_with_other_details_is_caught(self):
+        self.save_baby()
+        found = self.save_baby(patientDOB="2026-08-30", patientSex="Male",
+                               dischargeDx="LIVE TERM BABY GIRL AGA DELIVERED VIA NSVD TO A G4P4 MOTHER "
+                                           "WEIGHING 3100 GRAMS")
+        self.assertEqual(found, ["Baby's date of birth / mother's date of delivery", "Baby's sex",
+                                 "Mother's G and P in the baby's diagnosis", "Birth weight in the baby's diagnosis"])
+
+
 if __name__ == "__main__":
     unittest.main()

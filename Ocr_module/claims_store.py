@@ -745,4 +745,7 @@ def values_from_mother(claim_id):
     mother_id = rows["claim"].get("mother_claim_id")
     if not mother_id:
         raise InvalidRequestError("This claim is not linked to a mother's claim yet.")
-    return {"mother_claim_id": mother_id, **mother_baby.values_for_baby(claim_form_values(mother_id))}
+    copied = mother_baby.values_for_baby(claim_form_values(mother_id))
+    # What the baby's saved claim says differently about the birth (IC-13).
+    differences = mother_baby.compare_with_mother(claim_form_values(claim_id), copied["mother_facts"])
+    return {"mother_claim_id": mother_id, **copied, "differences": differences}
