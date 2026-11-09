@@ -56,6 +56,13 @@ TESTS = [
      "uploads": {"sessions": "sessions/session_data.xlsx"},
      "options": [{"name": "prefill_errors", "label": "Write the 7c reference rows for the claims in 7a",
                   "type": "check"}], "ocr": False},
+    {"key": "rth_errors", "tab": "RTH Mistakes", "workbook": "rth_errors_results.xlsx",
+     "summary": "Supplementary to Eq. 3.12: the clinic's common return-to-hospital mistakes (dates, names, gravida "
+                "and baby details, PIN, admission reason, clinical details) planted on the real forms page; each "
+                "prevented, blocked, warned or let through, and the error reduction against manual typing.",
+     "inputs": ["rth_mistakes.csv (the clinic's list of mistakes)", "answer_key.xlsx (sheet Patients)"],
+     "uploads": {"mistakes": "rth_mistakes.csv", "answer_key": "answer_key.xlsx"},
+     "options": [{"name": "only", "label": "Only these mistake IDs (e.g. D1,N1)", "type": "text"}], "ocr": False},
 ]
 BY_KEY = {t["key"]: t for t in TESTS}
 RESULTS = {"key": "results", "tab": "Results", "workbook": "chapter5_results.xlsx"}

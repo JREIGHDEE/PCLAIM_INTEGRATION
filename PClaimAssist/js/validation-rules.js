@@ -140,6 +140,36 @@ function parseDisplayDate(v) {
   return d;
 }
 
+/* What a baby's claim says differently from its mother's claim about the
+   birth: date of birth vs date of delivery, sex, the mother's G and P after
+   this birth, the birth weight. The same check as the server's
+   (Ocr_module/philhealth/mother_baby.py compare_with_mother) - keep the two
+   alike. facts: the mother's (mother_baby.values_for_baby mother_facts). */
+function motherDifferences(data, getValue, facts, toDate) {
+  const out = [];
+  if (!facts || !Object.keys(facts).length) return out;
+  const num = v => (/^\d+$/.test(String(v ?? '').trim()) ? +String(v).trim() : null);
+  const dx = ['dischargeDx', 'admissionDx', 'dxADiagnosis', 'cf4FinalDiagnosis']
+    .map(k => String(getValue(k) || data[k] || '')).join(' ').toUpperCase();
+  const born = toDate(data.patientDOB) || toDate(getValue('patientDOB'));
+  const delivered = toDate(facts.deliveryDate);
+  if (born && delivered && born.getTime() !== delivered.getTime()) out.push('date of birth');
+  const motherSex = String(facts.babySex || '').trim().toLowerCase();
+  if (motherSex === 'male' || motherSex === 'female') {
+    const own = String(data.patientSex || '').trim().toLowerCase();
+    if ((own === 'male' || own === 'female') && own !== motherSex) out.push('sex');
+    const word = dx.match(/\bBABY\s+(BOY|GIRL)\b/);
+    if (word && (word[1] === 'BOY' ? 'male' : 'female') !== motherSex) out.push('sex in the diagnosis');
+  }
+  const gp = dx.match(/\bG(?:RAVIDA)?\s*(\d{1,2})\s*,?\s*P(?:ARA)?\s*(\d{1,2})\b/);
+  const g = num(facts.gravida), p = num(facts.para);
+  if (gp && g !== null && p !== null && (+gp[1] !== g || +gp[2] !== p + 1)) out.push("mother's G and P");
+  const grams = dx.match(/\bWEIGHING\s+(\d{3,4})\s*(?:GRAMS|GMS?|G)\b/);
+  const weight = num(facts.birthWeight);
+  if (grams && weight !== null && +grams[1] !== weight) out.push('birth weight');
+  return out;
+}
+
 /* ── Feature extraction (Table 3.3) ──────────────────────── */
 
 function computeFeatures(getValue, data, forms) {
@@ -187,10 +217,13 @@ function computeFeatures(getValue, data, forms) {
     if (!cf2 || !cf4) return 1; // can't mismatch until both are filled
     // CF2 carries the package's short diagnosis ("SPONTANEOUS VERTEX
     // DELIVERY", js/dx-templates.js cf2Dx) while CF4 has the full final
-    // diagnosis, as the clinic writes them: that is a match.
-    const short = typeof DX_PACKAGES !== 'undefined'
-      ? Object.values(DX_PACKAGES).map(p => String(p.cf2Dx || '').toLowerCase()).filter(Boolean) : [];
-    return cf2 === cf4 || short.includes(cf2) ? 1 : 0;
+    // diagnosis, as the clinic writes them: that is a match - as long as
+    // CF4's diagnosis is one that package covers (a cesarean on CF4 against
+    // CF2's SPONTANEOUS VERTEX DELIVERY is not; research_tests/rth_errors.py A3).
+    if (cf2 === cf4) return 1;
+    const pkgs = typeof DX_PACKAGES !== 'undefined'
+      ? Object.values(DX_PACKAGES).filter(p => String(p.cf2Dx || '').toLowerCase() === cf2) : [];
+    return pkgs.some(p => !p.cf4Fits || p.cf4Fits(cf4)) ? 1 : 0;
   })();
 
   // Date ordering
@@ -204,6 +237,37 @@ function computeFeatures(getValue, data, forms) {
   // Dates only, so the same day counts: a mother goes home the day after
   // delivering at the earliest.
   f._dischargeNotAfterDelivery = (dis && del && dis <= del) ? 1 : 0;
+
+  // The clinic's RTH reasons (research_tests/inputs/rth_mistakes.csv) that a
+  // second entry on CF4 can make: the OB score, the course in the ward and
+  // the LMP must agree with what the rest of the claim says.
+  // G and P in CF4's boxes and in the admission diagnosis are both the
+  // mother's before this delivery (js/dx-templates.js), so they are equal.
+  const ob = String(getValue('admissionDx') || '').toUpperCase()
+    .match(/\bG(?:RAVIDA)?\s*(\d{1,2})\s*,?\s*P(?:ARA)?\s*(\d{1,2})\b/);
+  const obBox = k => { const v = String(getValue(k) || '').trim(); return /^\d{1,2}$/.test(v) ? +v : null; };
+  const g = obBox('gravida'), p = obBox('para');
+  f._obScoreDiffersFromDx = (ob && ((g !== null && g !== +ob[1]) || (p !== null && p !== +ob[2]))) ? 1 : 0;
+  // CF4 IV. Course in the ward: every dated row falls within the stay.
+  const anyDate = v => {
+    const s = String(v || '').trim();
+    const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return iso ? parseDisplayDate(`${iso[2]}-${iso[3]}-${iso[1]}`) : parseDisplayDate(s);
+  };
+  const courseDates = Object.keys(data || {}).filter(k => /^cf4CourseDate\d+$/.test(k))
+    .map(k => anyDate(data[k])).filter(Boolean);
+  f._courseDateOutsideStay = (adm && dis && courseDates.some(d => d < adm || d > dis)) ? 1 : 0;
+  // The weeks AOG in the admission diagnosis against the weeks the LMP gives
+  // on the day of admission: more than 2 weeks apart does not fit.
+  const aog = String(getValue('admissionDx') || '').toUpperCase().match(/\b(\d{1,2})\s*(?:\d\/7\s*)?(?:WKS?|WEEKS)\.?\s*AOG\b/);
+  const lmp = parseDisplayDate(getValue('lmp')) || anyDate(data && data.lmp);
+  const lmpWeeks = adm && lmp ? (adm - lmp) / (7 * 24 * 3600 * 1000) : null;
+  f._lmpDiffersFromAog = (aog && lmpWeeks !== null && Math.abs(lmpWeeks - +aog[1]) > 2) ? 1 : 0;
+  // A baby's claim against its mother's saved claim (js/mother-baby.js loads
+  // her facts once the two are linked).
+  const facts = typeof dxMotherFacts === 'function' ? dxMotherFacts() : {};
+  f._motherDifferences = motherDifferences(data || {}, getValue, facts, anyDate);
+  f._differsFromMother = f._motherDifferences.length ? 1 : 0;
 
   // Member vs patient identity + relationship
   const memberName  = String(getValue('memberName')  || '').trim().toLowerCase();
@@ -367,6 +431,27 @@ const RULES = [
     test: f => f.diagnosis_match_cf2_cf4 === 0,
     message:'The final diagnosis on CF2 does not match the diagnosis on CF4.',
     field:'cf4FinalDiagnosis', form:'cf4', source:'PhilHealth CF4 requirement' },
+
+  { id:'IC-10', category:'Inconsistent Entry', action:'display_warning',
+    test: f => f._obScoreDiffersFromDx === 1,
+    message:"CF4's gravida or para does not match the G and P in the admission diagnosis. Please check both.",
+    field:'gravida', form:'cf4', source:'Clinic RTH reasons' },
+
+  { id:'IC-11', category:'Inconsistent Entry', action:'display_warning',
+    test: f => f._courseDateOutsideStay === 1,
+    message:'A date in the CF4 course in the ward is before the admission or after the discharge.',
+    field:'cf4CourseDate1', form:'cf4', source:'Clinic RTH reasons' },
+
+  { id:'IC-12', category:'Inconsistent Entry', action:'display_warning',
+    test: f => f._lmpDiffersFromAog === 1,
+    message:'The LMP does not fit the weeks AOG in the admission diagnosis (more than 2 weeks apart).',
+    field:'lmp', form:'cf4', source:'Clinic RTH reasons' },
+
+  { id:'IC-13', category:'Inconsistent Entry', action:'display_warning',
+    test: f => f._differsFromMother === 1,
+    message:"The baby's claim does not match the mother's claim (date of birth, sex, the mother's G and P, " +
+            'or the birth weight). Please check both claims.',
+    field:'patientDOB', source:'Clinic RTH reasons' },
 
   { id:'IC-08', category:'Inconsistent Entry', action:'block_submission',
     test: f => f._dischargeNotAfterDelivery === 1,

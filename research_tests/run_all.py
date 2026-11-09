@@ -3,7 +3,8 @@
     python -m research_tests.run_all [--samples] [--skip performance,handwriting]
 
 Order: user sessions, image quality, field mapping, validation, handwriting,
-correction metrics (uses the handwriting results), performance, results.
+correction metrics (uses the handwriting results), performance, RTH mistakes,
+results.
 A test that fails is reported and the rest still run.
 """
 import importlib
@@ -12,7 +13,7 @@ import traceback
 from research_tests.registry import BY_KEY
 
 ORDER = ["user_sessions", "iq_check", "field_mapping", "validation", "handwriting", "correction_metrics",
-         "performance"]
+         "performance", "rth_errors"]
 NO_SAMPLES = {"correction_metrics"}
 
 

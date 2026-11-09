@@ -6,6 +6,7 @@ with per-form missing-required-field lists. It never mutates its inputs and
 never touches the database or Flask - see claims_store.py for persistence
 and routes/claims_routes.py for the HTTP layer built on top of this.
 """
+import re
 from datetime import date
 
 from philhealth.field_catalog import (
@@ -162,8 +163,14 @@ def _truthy(value):
 
 # A package's short CF2 diagnosis, written in place of the full final
 # diagnosis CF4 carries (PClaimAssist/js/dx-templates.js DX_PACKAGES cf2Dx):
-# CF2 and CF4 then still agree (IC-09).
-_CF2_SHORT_DIAGNOSES = {"spontaneous vertex delivery"}
+# CF2 and CF4 then still agree (IC-09) - as long as CF4's diagnosis is one
+# that package covers (dx-templates.js cf4Fits): not a cesarean, and a
+# pregnancy or delivery.
+_NOT_NSD = re.compile(r"\b(cesarean|caesarean|ltcs|c-?section)\b", re.I)
+_PREGNANCY = re.compile(r"\bdeliver|\bpregnan|\bpuft\b|\bn?sv?d\b|\baog\b|\bgravida\b|\bg\d+\s*p\d+|\blabou?r\b", re.I)
+_CF2_SHORT_DIAGNOSES = {
+    "spontaneous vertex delivery": lambda cf4: not _NOT_NSD.search(cf4) and bool(_PREGNANCY.search(cf4)),
+}
 
 
 def critical_rule_problems(data):
@@ -201,7 +208,8 @@ def critical_rule_problems(data):
         problems.append(("IC-04", "Date of birth cannot be after the admission date."))
     cf2_dx = str(data.get("dxADiagnosis") or "").strip().lower()
     cf4_dx = str(data.get("cf4FinalDiagnosis") or "").strip().lower()
-    if cf2_dx and cf4_dx and cf2_dx != cf4_dx and cf2_dx not in _CF2_SHORT_DIAGNOSES:
+    fits = _CF2_SHORT_DIAGNOSES.get(cf2_dx)
+    if cf2_dx and cf4_dx and cf2_dx != cf4_dx and not (fits and fits(cf4_dx)):
         problems.append(("IC-09", "The final diagnosis on CF2 does not match the diagnosis on CF4."))
     if discharged and delivered and discharged <= delivered:
         problems.append(("IC-08", "Discharge date must be at least one day after the delivery date."))

@@ -50,6 +50,10 @@ const DX_PACKAGES = {
     code: 'NSDBF', title: 'NORMAL SPONTANEOUS DELIVERY', name: 'Normal delivery (mother)', icd: 'O80.0',
     // CF2 Discharge Diagnosis, as the clinic writes it (staff review 3).
     rvs: 'NSDBF', cf2Dx: 'SPONTANEOUS VERTEX DELIVERY',
+    // CF2's short wording matches a CF4 diagnosis of a pregnancy or delivery
+    // that is not a cesarean (validation-rules.js IC-09).
+    cf4Fits: text => !/\b(CESAREAN|CAESAREAN|LTCS|C-?SECTION)\b/i.test(text) &&
+      /\bDELIVER|\bPREGNAN|\bPUFT\b|\bN?SV?D\b|\bAOG\b|\bGRAVIDA\b|\bG\d+\s*P\d+|\bLABOU?R\b/i.test(text),
     proc: 'NORMAL SPONTANEOUS DELIVERY (NSD), MANAGED IN A NON-HOSPITAL HEALTH FACILITY, INCLUDING LYING-IN AND INFIRMARY',
     // In labor on admission; delivered by the final diagnosis.
     text: 'PREGNANCY UTERINE FULL TERM {aog} WEEKS AOG, CEPHALIC IN LABOR GRAVIDA {g} PARA {p} ({tpal}).',
@@ -247,9 +251,23 @@ function dxGuessPackage() {
   if (/\bPOST\s*-?PARTUM\b/.test(dx) && !/DELIVER/.test(dx)) return 'PPC01';
   if (/\bINTRAUTERINE\b|\bIUD\b/.test(dx)) return 'IUD';
   // The logbook writes the implant as "PSI" (progestin subdermal implant):
-  // "FOR PSI INSERTION", "FAMILY PLANNING (PSI)" (user testing #4).
-  if (/\bIMPLANT|\bPSI\b|\bSUBDERMAL\b/.test(dx)) return 'FP001';
+  // "FOR PSI INSERTION", "FAMILY PLANNING (PSI)" (user testing #4). Taking
+  // an implant out has no package (Ocr_module/philhealth/admission_patterns.py).
+  if (/\bIMPLANT|\bPSI\b|\bSUBDERMAL\b/.test(dx) && !/\bREMOV/.test(dx)) return 'FP001';
+  // A visit that is not a delivery and has none of the packages above
+  // (family planning counseling, pills refill, DMPA or CIC injection, an
+  // implant taken out ...) has no package until staff pick one. Filing it as
+  // a normal delivery put NSDBF, O80.0 and SPONTANEOUS VERTEX DELIVERY on
+  // its CSF, CF2 and CF4 (research_tests/rth_errors.py, R17-R20).
+  if (dx.trim() && !dxIsDelivery(d, dx)) return '';
   return 'NSDBF';
+}
+
+/* A delivery, as far as the forms know: a date of delivery, or labor or a
+   delivery in the diagnosis. */
+function dxIsDelivery(d, dx) {
+  return !dxBlank(d.deliveryDate) ||
+    /\bLABOU?R\b|\bDELIVER|\bPUFT\b|\bFULL\s*TERM\b|\bN?SV?D\b|\bCEPHALIC\b/.test(dx);
 }
 
 function dxCurrentPackage() {
@@ -539,19 +557,31 @@ function dxShell(title, extra, buttons) {
 const dxDiagnosis = (function setupDiagnosisWording() {
   const host = document.getElementById('admissionDxTemplate');
   if (!host) return null;
-  const options = Object.entries(DX_PACKAGES).map(([key, p]) =>
+  const options = '<option value="">No package - pick one if the visit has one</option>' +
+    Object.entries(DX_PACKAGES).map(([key, p]) =>
     `<option value="${key}">${p.code} — ${p.name} · ${typeof p.icd === 'function' ? 'Z34.0 / Z34.8' : p.icd}</option>`).join('');
+  // No package (dxGuessPackage): no wording, and the codes an earlier
+  // package put in come out where they are still as put in.
+  const noPackage = () => {
+    const out = { dxARvsI: '', dxAProcI: '', dxADateI: '', dxAIcd10: '', cf4IcdCode: '', csfFirstCaseRate: '' };
+    ['dxADiagnosis', 'admissionDx', 'dischargeDx', 'cf4FinalDiagnosis'].forEach(key => {
+      if (sentence.following[key] !== undefined && state.data[key] === sentence.following[key]) out[key] = '';
+    });
+    return out;
+  };
   const sentence = new DxSentence(host, {
     // A delivery's two sentences are shown one under the other, sharing
     // their blanks.
     template: () => {
       const p = DX_PACKAGES[dxCurrentPackage()];
+      if (!p) return '';
       return p.finalText ? `Admission diagnosis: ${p.text}\nFinal diagnosis: ${p.finalText}` : p.text;
     },
     pkg: dxCurrentPackage,
     label: key => DX_TARGET_LABELS[key] || key,
     targets: (text, values) => {
       const p = DX_PACKAGES[dxCurrentPackage()];
+      if (!p) return noPackage();
       // One sentence for both: at discharge without its leading "FOR"
       // (app.js dischargeFromAdmission) - FOR INSERTION OF ... becomes
       // INSERTION OF ... in the final diagnosis, CF2 and CF4.
@@ -573,6 +603,7 @@ const dxDiagnosis = (function setupDiagnosisWording() {
     // The targets above that need no blank (DxSentence.refresh).
     earlyTargets: values => {
       const p = DX_PACKAGES[dxCurrentPackage()];
+      if (!p) return noPackage();
       const rate = dxCaseRate(p, values);
       const early = {
         dxARvsI: p.rvs || '', dxAProcI: p.proc || '', dxADateI: p.rvs ? state.data.dateAdmitted || '' : '',
@@ -621,6 +652,10 @@ const dxDiagnosis = (function setupDiagnosisWording() {
       label.textContent = 'Package';
       label.title = auto ? 'Picked automatically from the patient' : 'Picked by hand';
       sentence.refresh();
+      if (!DX_PACKAGES[dxCurrentPackage()]) {
+        sentence.box.querySelector('.dx-status').innerHTML = '<i class="bi bi-info-circle me-1"></i>' +
+          'This visit has no PhilHealth package of its own (not a delivery). Pick one above if it has one.';
+      }
     },
     reset() { sentence.reset(); },
   };

@@ -44,6 +44,7 @@ class FormsPage:
     def __init__(self, headless=True):
         self.headless = headless
         self.bodies = {}
+        self.api = {}          # "api/claims/<id>/<name>" -> answer, for one claim (open_claim api=)
         self.errors = []
         self.external = set()
         self._ids = itertools.count(900001)
@@ -78,6 +79,8 @@ class FormsPage:
             if path.startswith("api/"):
                 if path == "api/auth/me":
                     return route.fulfill(json={"success": True, "user": RESEARCH_USER})
+                if path in self.api:
+                    return route.fulfill(json=self.api[path])
                 if path.startswith("api/claims/") and path.endswith("/form-data"):
                     body = self.bodies.get(path.split("/")[2])
                     if body is not None:
@@ -96,14 +99,18 @@ class FormsPage:
         return route.fulfill(status=204, body="")
 
     # ── a claim ────────────────────────────────────────────────────────
-    def open_claim(self, body, timeout=30000):
+    def open_claim(self, body, timeout=30000, api=None):
         """Load a claim the way the page does (?claim=<id>, claim-loader.js).
         body: {"data", "fields", "saved_values", ...} as GET
-        /api/claims/<id>/form-data answers. Returns state.data."""
+        /api/claims/<id>/form-data answers. api: other answers for this
+        claim, {"family": {...}, "from-mother": {...}} as GET
+        /api/claims/<id>/<name> answers. Returns state.data."""
         claim_id = str(next(self._ids))
         body = json.loads(json.dumps({"success": True, "fields": {}, "saved_values": {},
                                       "ocr_reference": {}, **body}, default=str))
         self.bodies[claim_id] = body
+        for name, answer in (api or {}).items():
+            self.api[f"api/claims/{claim_id}/{name}"] = json.loads(json.dumps(answer, default=str))
         self.page.goto(f"{HOST}index.html?claim={claim_id}")
         expect = {k: body["data"][k] for k in ("patientLastName", "dateAdmitted") if body["data"].get(k)}
         self.page.wait_for_function(

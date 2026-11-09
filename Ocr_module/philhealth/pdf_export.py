@@ -35,6 +35,8 @@ def _draw_field(page, field, value, page_width, page_height):
     # "N/A" (or a `) in a box means left blank on purpose (PClaimAssist
     # js/pdf/pdf-overlay.js stripNotApplicable): it is never printed.
     text = str(value or "").replace("`", " ")
+    if re.fullmatch(r"\s*N\.?\s?A\.?\s*", text, flags=re.IGNORECASE):     # "NA", "N.A." the same
+        return
     text = re.sub(r"(^|[\s,])N/A(?=$|[\s,])", r"\1", text, flags=re.IGNORECASE)
     text = re.sub(r"^\s*,\s*", "", re.sub(r"\s*,\s*(,|$)", r"\1", text))
     text = " ".join(text.split())

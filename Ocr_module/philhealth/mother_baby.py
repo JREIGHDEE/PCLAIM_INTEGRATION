@@ -343,3 +343,61 @@ def values_for_baby(mother):
 _MOTHER_FACT_KEYS = ("gravida", "para", "obTerm", "obPreterm", "obAbortion", "obLiving",
                      "birthWeight", "apgarScore1", "apgarScore", "babySex", "lmp", "deliveryDate", "deliveryTime",
                      "amPmDelivery")
+
+
+# ---------------------------------------------------------------------------
+# A baby's claim against its mother's
+# ---------------------------------------------------------------------------
+# The clinic's return-to-hospital reasons (research_tests/inputs/rth_mistakes.csv,
+# G3-G5): the baby's claim must say what the mother's says about the birth.
+# The same check runs on the forms as rule IC-13 (js/validation-rules.js
+# motherDifferences) - keep the two alike.
+_GP = re.compile(r"\bG(?:RAVIDA)?\s*(\d{1,2})\s*,?\s*P(?:ARA)?\s*(\d{1,2})\b")
+_GRAMS = re.compile(r"\bWEIGHING\s+(\d{3,4})\s*(?:GRAMS|GMS?|G)\b")
+_SEX_WORD = re.compile(r"\bBABY\s+(BOY|GIRL)\b")
+_BABY_DX_KEYS = ("dischargeDx", "admissionDx", "dxADiagnosis", "cf4FinalDiagnosis")
+
+
+def _number(value):
+    text = str(value or "").strip()
+    return int(text) if text.isdigit() else None
+
+
+def _baby_claim_dx(baby):
+    return " ".join(str(baby.get(k) or "") for k in _BABY_DX_KEYS).upper()
+
+
+def compare_with_mother(baby, facts):
+    """baby: the baby's claim as form values; facts: values_for_baby(the
+    mother's claim)["mother_facts"]. Returns [{"what", "baby", "mother"}]:
+    every fact about the birth the two claims give differently. Only facts
+    both claims have are compared."""
+    out = []
+
+    def differs(what, baby_value, mother_value):
+        out.append({"what": what, "baby": baby_value, "mother": mother_value})
+
+    born, delivered = _iso(baby.get("patientDOB")), _iso(facts.get("deliveryDate"))
+    if born and delivered and born != delivered:
+        differs("Baby's date of birth / mother's date of delivery", born.isoformat(), delivered.isoformat())
+
+    mother_sex = str(facts.get("babySex") or "").strip().title()
+    if mother_sex in ("Male", "Female"):
+        own = str(baby.get("patientSex") or "").strip().title()
+        if own in ("Male", "Female") and own != mother_sex:
+            differs("Baby's sex", own, mother_sex)
+        word = _SEX_WORD.search(_baby_claim_dx(baby))
+        if word and {"BOY": "Male", "GIRL": "Female"}[word[1]] != mother_sex:
+            differs("Baby's sex in the diagnosis", f"BABY {word[1]}", mother_sex)
+
+    # The baby's diagnosis names the mother after this birth: her para + 1.
+    gp = _GP.search(_baby_claim_dx(baby))
+    g, p = _number(facts.get("gravida")), _number(facts.get("para"))
+    if gp and g is not None and p is not None and (int(gp[1]), int(gp[2])) != (g, p + 1):
+        differs("Mother's G and P in the baby's diagnosis", f"G{gp[1]}P{gp[2]}", f"G{g}P{p + 1}")
+
+    grams = _GRAMS.search(_baby_claim_dx(baby))
+    weight = _number(facts.get("birthWeight"))
+    if grams and weight is not None and int(grams[1]) != weight:
+        differs("Birth weight in the baby's diagnosis", grams[1], str(weight))
+    return out

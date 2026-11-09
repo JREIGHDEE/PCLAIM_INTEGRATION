@@ -11,6 +11,76 @@ Related documents:
 
 ---
 
+## 2026-11-06: RTH mistakes test, no delivery package for visits without one, four new warnings (JRAD)
+
+**After pulling:** restart the backend (`PClaimAssist.bat`) and press Ctrl+F5 on
+the forms. No migration. The validation test changed (three new seeded
+errors), so rerun it and the RTH mistakes test before using their numbers.
+
+The system:
+- *Visits with no PhilHealth package are no longer filed as a normal delivery.*
+  Family planning counseling, pills refill, DMPA/CIC injection and implant
+  removal got NSDBF, O80.0 and SPONTANEOUS VERTEX DELIVERY on CSF, CF2 and CF4,
+  because the package guess fell back to NSDBF (dx-templates.js
+  dxGuessPackage). They now have no package until staff pick one; Patient
+  details says so, and the package list has a "No package" choice. Deliveries,
+  newborns, prenatal and postpartum visits, implant and IUD insertion are
+  picked as before. The admission patterns and the clinic's wording are
+  unchanged.
+- *A newborn's claim can be saved as PDF again.* The PMRF (on newborn claims
+  only) shows the monthly income as "₱25,000"; the PDF's font (Helvetica) has
+  no peso sign, so building the PMRF threw and Save as PDF failed for every
+  newborn with an income typed (claims 238, 349, 368 were never exported).
+  The PDF now prints it as "PHP 25,000" and leaves out any other character the
+  font cannot print instead of stopping (js/pdf/pdf-overlay.js pdfSafeText;
+  the screen still shows ₱). New test in test_export_validation.py.
+- *N/A no longer prints on the saved forms.* A box left empty now prints
+  blank: it was filled with "N/A" on every form (15 to 76 boxes a form;
+  staff testing 2026-10-27). A box marked not applicable - "N/A", "n/a", a `,
+  and now also a whole box of "NA" or "N.A." - prints blank too, in the
+  browser's PDF and the server's CF2/CSF export (pdf-overlay.js
+  stripNotApplicable, buildFilledPdf; philhealth/pdf_export.py). The PMRF's
+  own printed instruction "If not applicable, write N/A" is part of the
+  blank form. New tests in test_export_validation.py.
+- *IC-09 no longer passes a cesarean on CF4 against CF2's SPONTANEOUS VERTEX
+  DELIVERY.* The short CF2 wording still matches CF4's full final diagnosis, as
+  the clinic writes them; it no longer matches a CF4 diagnosis that says
+  cesarean or names no pregnancy or delivery (validation-rules.js and the
+  server's copy in philhealth/mapping_service.py; new test).
+- *New warnings* (category Inconsistent Entry, action display_warning: staff
+  are told, Save as PDF still works; validation-rules.js):
+  - **IC-10** - CF4's gravida or para does not match the G and P in the
+    admission diagnosis (CF4 claims).
+  - **IC-11** - a CF4 course in the ward date is before the admission or after
+    the discharge (CF4 claims).
+  - **IC-12** - the LMP is more than 2 weeks off the weeks AOG in the admission
+    diagnosis (CF4 claims).
+  - **IC-13** - a baby's claim does not match its mother's linked claim: date
+    of birth vs her date of delivery, sex, her G and P after this birth, the
+    birth weight. The server gives the same differences with her values (GET
+    /api/claims/<id>/from-mother "differences",
+    philhealth/mother_baby.compare_with_mother). New tests, including one that
+    saves a mother's claim, then her baby's, in the database (skipped without
+    MariaDB).
+
+  The thesis's rule tables need rows for IC-10 to IC-13.
+
+Research tests:
+- *New test 8, RTH mistakes* (`python -m research_tests.rth_errors`, tab "RTH
+  Mistakes"): the clinic's common return-to-hospital reasons
+  (inputs/rth_mistakes.csv) planted on the real forms page; each prevented,
+  blocked, warned or let through, and the error reduction against manual
+  typing, per reason and weighted by how common the clinic says it is.
+  Supplementary to Eq. 3.12, which still needs the user sessions.
+  Not counted, as the clinic said: the chief complaint (always different from
+  the admission diagnosis), and the examinations, drugs, history and vital
+  signs (on CF4 only). The newborns R05 and R07 are opened as claims linked
+  to their mothers' (R01, R03).
+- The validation test seeds IC-10 to IC-13 (31 kinds + 9 repeats = 40) and
+  opens R05 and R07 linked to their mothers' claims.
+
+---
+
 ## 2026-11-05: Field mapping fixes, image quality checks for logbook pages, proof reports for the research tests (JRAD)
 
 **After pulling:** restart the backend (`PClaimAssist.bat`) and press Ctrl+F5 on

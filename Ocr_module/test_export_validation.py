@@ -60,6 +60,13 @@ class CriticalRuleTests(unittest.TestCase):
         self.assertNotIn("IC-09", rule_ids({**READY, "dxADiagnosis": "SPONTANEOUS VERTEX DELIVERY",
                                             "cf4FinalDiagnosis": "PREGNANCY UTERINE FULL TERM ... DELIVERED VIA NSVD"}))
 
+    def test_short_cf2_delivery_diagnosis_does_not_cover_a_cesarean(self):
+        # The clinic's short wording stands for a normal delivery only.
+        for cf4 in ("PUFT 37 WKS AOG DELIVERED VIA LOW SEGMENT CESAREAN SECTION", "ACUTE GASTROENTERITIS"):
+            with self.subTest(cf4=cf4):
+                self.assertIn("IC-09", rule_ids({**READY, "dxADiagnosis": "SPONTANEOUS VERTEX DELIVERY",
+                                                 "cf4FinalDiagnosis": cf4}))
+
     def test_no_philhealth_member_needs_no_pin(self):
         self.assertEqual(rule_ids({**READY, "memberPIN": "", "memberNoPhilhealth": True}), [])
 
@@ -83,6 +90,37 @@ class BrowserExportGateTests(unittest.TestCase):
         for function in ("exportFilledPDF", "exportAllForms"):
             body = re.search(r"async function %s\([^)]*\) \{(.*?)\n\}" % function, self.js, re.S).group(1)
             self.assertIn("if (exportBlocked()) return;", body, function)
+
+    def test_only_printable_text_is_drawn(self):
+        # The PMRF's monthly income ("₱25,000") stopped every newborn's PDF:
+        # Helvetica (WinAnsi) has no peso sign.
+        build = re.search(r"async function buildFilledPdf\(.*?\n\}", self.js, re.S).group(0)
+        self.assertIn("const printable = new Set(font.getCharacterSet());", build)
+        self.assertIn(".replace(/₱\\s*/g, 'PHP ')", build)
+        self.assertRegex(build, r"const safeVal = pdfSafeText\(")
+        for draw in re.findall(r"drawText\((\w+)", build):
+            self.assertIn(draw, ("text", "row"), "every drawn text comes from safeVal")
+
+    def test_empty_and_not_applicable_boxes_print_blank(self):
+        # N/A never appears on the saved forms: an empty box is not filled
+        # with N/A, and a box marked N/A ("N/A", "n/a", "NA", "N.A.", `) prints empty.
+        build = re.search(r"async function buildFilledPdf\(.*?\n\}", self.js, re.S).group(0)
+        self.assertNotIn("val = 'N/A'", build)
+        self.assertIn("if (!val) return;", build)
+        strip = re.search(r"function stripNotApplicable\(value\) \{.*?\n\}", self.js, re.S).group(0)
+        self.assertIn(r"/^\s*N\.?\s?A\.?\s*$/i", strip)
+
+    def test_server_export_prints_not_applicable_blank(self):
+        from philhealth import pdf_export
+        drawn = []
+        page = mock.Mock(insert_textbox=lambda *a, **k: drawn.append(a), insert_text=lambda *a, **k: drawn.append(a))
+        field = {"left": 10, "top": 10, "w": 50, "fs": 8}
+        for value in ("N/A", "n/a", "NA", "N.A.", "`", ""):
+            drawn.clear()
+            pdf_export._draw_field(page, field, value, 600, 800)
+            self.assertEqual(drawn, [], value)
+        pdf_export._draw_field(page, field, "DELA CRUZ", 600, 800)       # a real value still prints
+        self.assertEqual(len(drawn), 1)
 
     def test_gate_runs_the_rules_fresh(self):
         gate = re.search(r"function exportBlocked\(\) \{(.*?)\n\}", self.js, re.S).group(1)

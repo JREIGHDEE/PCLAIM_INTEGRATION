@@ -43,6 +43,13 @@ const SKIP_VALIDATION_FOR_EXPORT = false;
 /* True (and says why) when a PDF must not be made yet. The rules are run
    again here rather than trusting the last on-screen check, which may not
    have run yet; if they cannot be run at all, nothing is saved. */
+/* Only the characters the PDF's font can print (pdf-lib's standard
+   Helvetica: WinAnsi). One it cannot made buildFilledPdf throw, and the
+   form was not saved at all. */
+function pdfSafeText(text, printable) {
+  return Array.from(text).filter(ch => ch === '\n' || printable.has(ch.codePointAt(0))).join('');
+}
+
 function exportBlocked() {
   if (SKIP_VALIDATION_FOR_EXPORT) return false;
   const v = (typeof runValidationRules === 'function' && typeof getComputedValue === 'function' &&
@@ -370,8 +377,10 @@ function fitOverlayLines(formKey) {
    blank on purpose: the box counts as answered - no highlight, not missing
    - and prints empty. Taken out of whatever is printed, on screen and in
    the saved PDF; inside a longer line (a name put together from parts)
-   only the N/A part goes. */
+   only the N/A part goes. A box holding only "NA" or "N.A." counts too. */
 function stripNotApplicable(value) {
+  // A whole box of "NA" or "N.A." means the same, typed without the slash.
+  if (typeof value === 'string' && /^\s*N\.?\s?A\.?\s*$/i.test(value)) return '';
   if (typeof value !== 'string' || !/`|N\/A/i.test(value)) return value;
   return value.replace(/`/g, ' ').replace(/(^|[\s,])N\/A(?=$|[\s,])/gi, '$1')
     .replace(/\s*,\s*(,|$)/g, '$1').replace(/^\s*,\s*/, '').replace(/\s+/g, ' ').trim();
@@ -659,6 +668,7 @@ async function buildFilledPdf(formKey) {
     const pages = pdfDoc.getPages();
     const { StandardFonts } = PDFLib;
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const printable = new Set(font.getCharacterSet());
 
     const fields = OVERLAY_MAP[formKey] || [];
     fields.forEach(f => {
@@ -666,25 +676,20 @@ async function buildFilledPdf(formKey) {
       if (!pg) return;
       const { width, height } = pg.getSize();
 
-      /* PhilHealth wants a box that was left blank to say so, rather than
-         come back as an empty line, so the print fills one in with N/A.
-         Only a box that holds words: a digit cell, a tick box, a date part
-         or a time would read as nonsense with "N/A" in it, and a field the
-         staff marked to sign by hand is meant to be empty. */
-      // A box staff marked N/A themselves (typed, or a `) prints empty, as
-      // on screen: before user testing #4 its N/A was taken out and then put
-      // straight back by the blank-box rule above, so it still printed.
-      const raw = resolveOverlayFieldValueRaw(f);
-      let val = stripNotApplicable(raw);
-      if (!val) {
-        if (!isFreeTextField(f) || isHandwrittenField(f)) return;
-        if (typeof raw === 'string' && /`|N\/A/i.test(raw)) return;
-        val = 'N/A';
-      }
+      /* A box left empty, or marked N/A by staff (typed, or a `), prints
+         blank: N/A never appears on the saved forms (JRAD, 2026-11-08).
+         It used to fill every empty text box with N/A (staff testing,
+         2026-10-27). */
+      const val = stripNotApplicable(resolveOverlayFieldValueRaw(f));
+      if (!val) return;
       // pdf-lib's standard Helvetica uses WinAnsi encoding, which can't
       // represent '✓' — substitute a safe ASCII mark for the exported PDF
       // (the on-screen overlay still renders the real checkmark glyph).
-      const safeVal = String(val).replace(/✓/g, 'X');
+      // The same for the peso sign (the PMRF's monthly income, "₱25,000"):
+      // it stopped every PDF of a newborn's claim, the only claims with the
+      // PMRF. Any other character Helvetica cannot print is left out rather
+      // than stopping the whole PDF.
+      const safeVal = pdfSafeText(String(val).replace(/✓/g, 'X').replace(/₱\s*/g, 'PHP '), printable);
 
       const y = height - ((f.top / 100) * height) - BASELINE_OFFSET_PT;
       const boxW = (f.w / 100) * width;

@@ -16,6 +16,7 @@ validation, PDF generation — **without changing them**. It writes only to
 | 5 | Performance | `python -m research_tests.performance` | Performance | time per stage |
 | 6 | Image quality (IQ-01) | `python -m research_tests.iq_check` | Image Quality | — |
 | 7 | User sessions | `python -m research_tests.user_sessions` | User Sessions | 3.11, 3.12, 3.5 |
+| 8 | RTH mistakes (supplementary to 3.12) | `python -m research_tests.rth_errors` | RTH Mistakes | the form of 3.12 on planted mistakes |
 | — | All of them + the combined workbook | `python -m research_tests.run_all` | — | — |
 | — | Combined workbook only | `python -m research_tests.results` | Results | — |
 
@@ -74,6 +75,7 @@ files are git-ignored, so they stay on this computer.
 | `scans/iq/*_iq.pdf` (or `scans/handwriting_iq test/`), `iq_expected.csv` | 6 | **Main result.** REAL scans of the 10 handwriting spreads with some pages made dark, bright or blurred by hand; `iq_expected.csv` gives each page's expected condition (the label given, the one used, and the evidence from comparing it with the original scan) |
 | `iq/good/*`, `iq/bad/*`, `iq/expected.csv` | 6 | REAL good and deliberately bad scans; expected.csv optional (File, Expected pass/warn, Reason). `iq_check --generate` adds blurry/dark/bright copies of the real scanner pages in `iq/generated/` (git-ignored); every result says real or generated |
 | `sessions/session_data.xlsx` | 7 | From `session_data_template.xlsx`: sheets **7a Session log** (time per claim), **7c Claim errors** (per box, with Value group; `user_sessions --prefill-errors` writes the reference rows), **7d Suggestion log** (accept / edit / reject / not acted on), **SUS** (optional). Participant codes P1–P5 only — checked by the pre-commit hook |
+| `rth_mistakes.csv` | 8 | The clinic's common return-to-hospital mistakes: ID, RTH reason, How common (very common / common / slightly uncommon / uncommon), How it happens (dual entry / typed once), Mistake, Forms involved, Example, Applies to (all / delivery / baby), Include (yes/no), Notes. Each ID needs a probe in `rth_errors.py` (PROBES); an ID without one is listed as not tested |
 | `field_mapping_expected.csv` | 3 | Which box of each form holds which answer-key value, and in which format — **check every row against the paper forms** |
 
 The expected box table was drafted from the boxes' printed labels (`python
@@ -160,6 +162,14 @@ in the correction metrics workbook, labelled "including blank cells".
 - Proof report: `python -m research_tests.iq_report` writes `outputs/iq_check/iq_proof_report.pdf`.
 
 **User sessions.** Calculations only.
+
+**RTH mistakes (supplementary to Eq. 3.12).**
+- The mistakes are the clinic's own list of common return-to-hospital reasons (`inputs/rth_mistakes.csv`), not the validation rules, so a mistake nothing catches is reported as getting through.
+- Each mistake is planted in every test patient it applies to, on the real forms page, the way staff would make it: *dual entry* types the value on one form and then differently in another form's box (through the page's own input events); *typed once* types the wrong value where staff type it; *baby claim* gives the baby's claim a value that differs from the mother's (R05/R01, R07/R03).
+- Outcome: Prevented (the form's box is locked and filled from Patient details, typing in it changes every form, or the page does not keep the value), Blocked (a critical rule fires, Save as PDF refuses), Warned, or Gets through. Items printed on one form only (CF4's history of present illness, vital signs) are listed in 8c, not counted.
+- Manual = every planted mistake stays in the claim (each form typed separately, nothing checks it): an assumption, stated in the workbook. Error reduction % = (manual - PClaimAssist) / manual x 100, strict (a warning is an error left) and with warnings counted as caught; per RTH reason, overall, and weighted by how common the clinic says each reason is (4/3/2/1 - the clinic's estimate).
+- It shows whether the system stops a mistake once made, not how often staff make mistakes: Eq. 3.12 proper still needs the user sessions.
+- Proof: the page's Rule Check Results panel for every planted mistake that was not prevented, in `outputs/rth_errors/proof/`.
 
 ## Isolation
 
