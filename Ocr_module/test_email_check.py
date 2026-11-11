@@ -79,7 +79,9 @@ class EmailCheckTests(unittest.TestCase):
         self.assertIsNone(email_check.save_problem({}))
         dns, api = _patched(disposable=True)
         with dns, api:
-            self.assertIn("Email address", email_check.save_problem({"email": "x@mailinator.com"}))
+            problem = email_check.save_problem({"email": "x@mailinator.com"})
+            self.assertIn("Email address", problem)
+            self.assertIn("type N/A", problem)        # says how to save a patient with no email
 
 
 class SavePatientRefusesWrongEmailTests(unittest.TestCase):

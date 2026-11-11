@@ -111,6 +111,9 @@ function initDateText(real) {
     const iso = isoFromTyped(text.value);
     if (iso) { showProblem(false); setReal(iso); }
     else if (!text.value) { showProblem(false); setReal(''); }
+    // A whole date typed (MM/DD/YYYY): on to the next box (user testing, P5).
+    if (iso && !deleting && text.value.length === 10 && document.activeElement === text &&
+        typeof pcaFocusNextField === 'function') pcaFocusNextField(text, text.parentElement);
   });
 
   text.addEventListener('blur', () => {

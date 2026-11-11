@@ -103,9 +103,14 @@
         if (typed) {
           // Digits spilled over: carry on in the first box that isn't full.
           const next = boxes.find((b, k) => b.value.length < GROUPS[k]);
-          (next || boxes[boxes.length - 1]).focus();
+          if (next) next.focus();
+          else if (typeof pcaFocusNextField === 'function') pcaFocusNextField(box, box.parentElement);
+          else boxes[boxes.length - 1].focus();
         } else if (box.value.length === GROUPS[i] && boxes[i + 1]) {
           boxes[i + 1].focus();
+        } else if (box.value.length === GROUPS[i] && typeof pcaFocusNextField === 'function') {
+          // The whole PIN typed: on to the next box (user testing, P5).
+          pcaFocusNextField(box, box.parentElement);
         }
       });
       box.addEventListener('keydown', e => {

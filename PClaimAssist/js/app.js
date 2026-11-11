@@ -1627,13 +1627,18 @@ function syncAllAutofillElements() {
   if (window.PCASexLock) setTimeout(window.PCASexLock.refresh, 0);
   if (window.PCADeliveryTime) setTimeout(window.PCADeliveryTime.refresh, 0);
   if (window.PCAAddressSelects) setTimeout(window.PCAAddressSelects.refresh, 0);
-  const seen = new Set();
+  // The page is searched once and its boxes grouped by key. Searching it
+  // again for every key (several hundred searches on each keystroke) was
+  // most of the time a key took: the typing lag in user testing (P3).
+  const byKey = new Map();
   document.querySelectorAll('[data-autofill]').forEach(el => {
     const key = el.dataset.autofill;
-    if (seen.has(key)) return; // only process each key once
-    seen.add(key);
+    if (!byKey.has(key)) byKey.set(key, []);
+    byKey.get(key).push(el);
+  });
+  byKey.forEach((siblings, key) => {
     const val = state.data[key] || '';
-    document.querySelectorAll(`[data-autofill="${key}"]`).forEach(sibling => {
+    siblings.forEach(sibling => {
       if (sibling === document.activeElement) return; // don't clobber the field being typed in
       if (sibling.type === 'radio') {
         sibling.checked = sibling.value === val;
@@ -2540,6 +2545,9 @@ function bindBoxGroupListeners() {
       box.addEventListener('input', () => {
         box.value = box.value.replace(/\D/g, '').slice(0, box.maxLength);
         if (box.value.length >= box.maxLength && boxes[i + 1]) boxes[i + 1].focus();
+        else if (box.value.length >= box.maxLength && typeof pcaFocusNextField === 'function') {
+          pcaFocusNextField(box, group);   // the last box: on to the next field (user testing, P5)
+        }
         commitBoxGroup(group);
       });
       box.addEventListener('keydown', e => {
@@ -3172,6 +3180,8 @@ const FIX_FIELD_ALIASES = {
   obHistory:    'gravida',
   timeAdmittedStr:  'timeAdmitted',
   timeDischargeStr: 'timeDischarge',
+  // The PMRF's red box is the income shown with its peso sign (spotKey).
+  monthlyIncomeDisplay: 'monthlyIncome',
   deliveryTimeStr:  'deliveryTime',
   cf4CourseInWard:      'cf4CourseDate1',
   cf4DrugsAdministered: 'cf4DrugName1',
@@ -3214,11 +3224,17 @@ function editableFieldFor(key) {
     return input.type !== 'hidden' && !input.disabled && !input.readOnly;
   };
   const inPatient = el => el.closest('#section-patient') !== null;
+  // A hidden real box (class d-none) typed through a row of boxes standing
+  // in for it - the CSF / CF1 dates signed (box-input-date): the row is
+  // where the cursor goes. Picking the hidden box itself left "Fix this"
+  // and a click on the red box going nowhere.
+  const standIn = el => (el.id && el.classList.contains('d-none')
+    ? document.querySelector(`.box-input[data-target="#${el.id}"], .box-input-date[data-target="#${el.id}"]`) : null);
   // Most of these are typed on Patient details; go there by choice, so one
   // detail is always corrected in the same place.
   const typed = all.find(el => usable(el) && inPatient(el)) || all.find(usable);
   // A date is typed in the MM/DD/YYYY box standing in for it (js/date-text.js).
-  if (typed) return typed.pcaDateText || typed;
+  if (typed) return typed.pcaDateText || standIn(typed) || typed;
 
   // Discharged 24 hours after admission: the date follows the admission,
   // so the place to go is that tick (keep it and fill the delivery date, or
@@ -3229,7 +3245,7 @@ function editableFieldFor(key) {
   // Hidden input: show the row of boxes that stands in for it.
   for (const el of all) {
     if (el.id) {
-      const row = document.querySelector(`.box-input[data-target="#${el.id}"]`);
+      const row = document.querySelector(`.box-input[data-target="#${el.id}"], .box-input-date[data-target="#${el.id}"]`);
       if (row) return row;
     }
     const group = el.closest('.pca-box-group');
@@ -4353,6 +4369,7 @@ function setupExpandingRows(opts) {
          .some(el => (el.value || '').trim() !== ''));
 
   let shown = 0;
+  let shownBefore = null;   // what the red marks and previews were last redone for
   const lastFilled = () => {
     let n = 0;
     groups.forEach((g, i) => { if (filled(g)) n = i + 1; });
@@ -4367,9 +4384,15 @@ function setupExpandingRows(opts) {
     addBtn.setAttribute('aria-expanded', shown > 0 ? 'true' : 'false');
     // Only offer to hide a line that is still empty.
     delBtn.hidden = shown === 0 || shown <= lastFilled();
-    refreshRedMarksSoon();   // a line just shown is marked if empty
-    // ...on the form preview too, which only asks for open lines (keyIsSkipped)
-    if (typeof updateAllOverlays === 'function') updateAllOverlays();
+    // Only when a line was shown or put away: this runs after every
+    // keystroke anywhere (syncAllAutofillElements), and redoing every red
+    // mark and every form's preview each time made typing lag (P3).
+    if (shown !== shownBefore) {
+      shownBefore = shown;
+      refreshRedMarksSoon();   // a line just shown is marked if empty
+      // ...on the form preview too, which only asks for open lines (keyIsSkipped)
+      if (typeof updateAllOverlays === 'function') updateAllOverlays();
+    }
     if (count) {
       count.textContent = shown + 1 === TOTAL
         ? 'All ' + TOTAL + ' ' + opts.noun + ' shown'

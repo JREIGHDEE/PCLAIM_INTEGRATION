@@ -239,4 +239,7 @@ def save_problem(values):
     if not address or is_not_applicable(address):
         return None
     result = check_email(address)
-    return None if result["ok"] else f"Email address: {result['reason']}"
+    # Saying how to save without one (user testing, P6: a made-up address
+    # was refused and nothing said what to do instead).
+    return None if result["ok"] else (f"Email address: {result['reason']} "
+                                      "If the patient has no email, type N/A in the email box.")

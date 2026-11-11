@@ -11,6 +11,32 @@ Related documents:
 
 ---
 
+## 2026-11-11: Defects from user testing - typing lag, cursor moves on, red boxes that went nowhere, email message (JRAD)
+
+**After pulling:** restart the backend and press Ctrl+F5 on the forms. No migration.
+
+- *Typing lag (P3).* Each keystroke re-searched the whole page once per field
+  key (several hundred searches) to copy values between forms, and redid every
+  red mark and every form's preview through the CF4 course-in-the-ward rows.
+  The page is now searched once per keystroke (app.js syncAllAutofillElements),
+  and the course rows redo the marks and previews only when a line is shown or
+  put away (setupExpandingRows). Measured on the project lead's laptop: 53 -> 29
+  ms a key on Patient details, 70 -> 47 on CF4, 79 -> 49 on the PMRF.
+- *The cursor moves on (P5).* After the last box of a PIN, a date (MM/DD/YYYY,
+  or a row of date boxes) or a row of digit boxes, the cursor goes to the next
+  box on the page that takes typing (box-input.js pcaFocusNextField, used by
+  date-text.js, pin-input.js and app.js).
+- *Clicking a red box always goes somewhere.* The dates signed typed in a row
+  of boxes (CSF / CF1 employer, the health care professionals 2 and 3 on CSF
+  and CF2) and the PMRF's monthly income went nowhere from the preview or "Fix
+  this". Checked on every red field of every form of a delivery and a newborn
+  claim: none goes nowhere now (app.js editableFieldFor, FIX_FIELD_ALIASES).
+- *Email (P6).* A refused address (e.g. a throw-away mailinator.com one) is
+  still not saved (adviser's revision S2); the message now says how to go on:
+  "If the patient has no email, type N/A in the email box." (email_check.py).
+
+---
+
 ## 2026-11-06: RTH mistakes test, no delivery package for visits without one, four new warnings (JRAD)
 
 **After pulling:** restart the backend (`PClaimAssist.bat`) and press Ctrl+F5 on

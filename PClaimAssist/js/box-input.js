@@ -10,6 +10,25 @@
    by the OCR - still reach the boxes. The widgets used to refresh only on the
    real input's "input" event, which a programmatic assignment does not fire,
    so those boxes stayed blank while the value sat in the field behind them. */
+/* Once the last box of a PIN, a date or a row of digit boxes is filled,
+   the cursor goes on to the next box on the page that takes typing, so a
+   PIN or a date is not followed by a click (user testing, P5). `group`:
+   the boxes of this one value, which are skipped. Used by js/date-text.js,
+   js/pin-input.js and js/app.js too. */
+function pcaFocusNextField(from, group) {
+  const scope = from.closest('.content-section') || document;
+  const takesTyping = el => !el.disabled && !el.readOnly && el.offsetParent !== null &&
+    !['hidden', 'checkbox', 'radio', 'button', 'submit'].includes(el.type) &&
+    !el.closest('.dx-template, .pdf-overlay, .mb-panel, .saved-patients');
+  const next = [...scope.querySelectorAll('input, select, textarea')].find(el =>
+    (from.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING) &&
+    !(group && group.contains(el)) && takesTyping(el));
+  if (next) {
+    next.focus();
+    if (typeof next.select === 'function' && next.tagName !== 'SELECT') next.select();
+  }
+}
+
 const BOX_INPUT_SYNCS = [];
 // Each date row's way to forget a half-typed date ("Start a new patient").
 const BOX_INPUT_RESETS = [];
@@ -72,6 +91,7 @@ function initBoxInput(wrapEl) {
       box.value = box.value.replace(/\D/g, '').slice(-1);
       syncToReal();
       if (box.value && i < boxes.length - 1) boxes[i + 1].focus();
+      else if (box.value) pcaFocusNextField(box, box.parentElement);
     });
     box.addEventListener('keydown', e => {
       if (e.key === 'Backspace' && !box.value && i > 0) {
@@ -192,6 +212,7 @@ function initDateBoxInput(wrapEl) {
       box.value = box.value.replace(/\D/g, '').slice(-1);
       syncToReal();
       if (box.value && i < allBoxes.length - 1) allBoxes[i + 1].focus();
+      else if (box.value) pcaFocusNextField(box, box.closest('.box-input, .box-input-date') || box.parentElement);
     });
     box.addEventListener('keydown', e => {
       if (e.key === 'Backspace' && !box.value && i > 0) {
@@ -307,6 +328,7 @@ function initTimeBoxInput(wrapEl) {
       box.value = box.value.replace(/\D/g, '').slice(-1);
       syncToReal();
       if (box.value && i < allBoxes.length - 1) allBoxes[i + 1].focus();
+      else if (box.value) pcaFocusNextField(box, box.closest('.box-input, .box-input-date') || box.parentElement);
     });
     box.addEventListener('keydown', e => {
       if (e.key === 'Backspace' && !box.value && i > 0) {
