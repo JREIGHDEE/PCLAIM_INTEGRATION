@@ -1818,10 +1818,13 @@ function onlyNumbers(input, allowDash){
     }
 }
 
-// Same as review_fields.clean_name_part: letters, spaces, hyphens and
-// apostrophes only - no periods ("JR", not "JR."), "!", digits, ...
+// Same as review_fields.clean_name_part: letters, spaces, hyphens,
+// apostrophes, and the period that ends an abbreviation ("MA. CECILIA") -
+// not in the suffix ("JR", not "JR."), and no "!", digits, ...
 function onlyLetters(input){
-    const cleaned = input.value.replace(/[^\p{L} '\-]/gu, "");
+    let cleaned = input.value.replace(/[^\p{L} '\-.]/gu, "");
+    cleaned = input.dataset.part === "suffix" ? cleaned.replace(/\./g, "")
+        : cleaned.replace(/(^|[^\p{L}])\.+/gu, "$1").replace(/\.{2,}/g, ".");
     if(cleaned !== input.value){
         input.value = cleaned;
         flashNote(input, "Only letters can go in a name.");
@@ -1839,9 +1842,11 @@ function toCaps(input){
     if(at !== null) input.setSelectionRange(at, at);
 }
 function caps(value){ return String(value ?? "").toUpperCase(); }
-// A name box as filled from the scan or a draft (review_fields.clean_name_part).
+// A name box as filled from the scan or a draft (review_fields.clean_name_part,
+// keep_periods: the scan's own periods are already taken out on the server).
 function cleanName(value){
-    return caps(value).replace(/[^\p{L}\s'\-]/gu, " ").replace(/\s+/g, " ").trim();
+    return caps(value).replace(/(\p{L})\.(?=\p{L})/gu, "$1. ").replace(/[^\p{L}\s'\-.]/gu, " ")
+        .replace(/(^|[^\p{L}])\.+/gu, "$1 ").replace(/\s+/g, " ").trim();
 }
 
 function nextWhenFull(input){

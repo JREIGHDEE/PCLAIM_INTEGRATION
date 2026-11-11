@@ -272,9 +272,40 @@ def split_address(text):
         parts["addr_city"], province = CITIES[barangay_city]
         parts.setdefault("addr_province", province)
 
-    # Whatever is left (PUROK 12, KM 16, a street name) is the street.
-    leftover = [w for w in _tidy(rest).replace(",", " ").split()
-                if w not in _NOT_A_NAME and re.search(r"[A-Z0-9]", w)]
-    if leftover:
-        parts["addr_street"] = _tidy(" ".join(leftover))
+    # Whatever is left is the street (PUROK 12, KM 16, 123 RIZAL ST) - except
+    # an area's own name with no street word or number in it ("PUROK 30, MT.
+    # VIEW", "FATIMA, INDANGAN"): a sitio, which the forms have no box for, so
+    # it goes in Subdivision / Village rather than running on in the street.
+    street, area = [], []
+    for piece in _tidy(rest).split(","):
+        words = [w for w in piece.split() if w not in _NOT_A_NAME and re.search(r"[A-Z0-9]", w)]
+        if not words:
+            continue
+        head = _STREET_HEAD.match(" ".join(words))
+        if head and head.end() < len(" ".join(words)):
+            # "PUROK 26 MT. VIEW" written without a comma: the purok, then the area.
+            street.append(head.group().strip())
+            area.append(" ".join(words)[head.end():].strip())
+        elif _looks_like_street(words):
+            street.append(" ".join(words))
+        else:
+            area.append(" ".join(words))
+    if area and "addr_subdivision" not in parts:
+        parts["addr_subdivision"] = _tidy(" ".join(area))
+    else:
+        street += area
+    if street:
+        parts["addr_street"] = _tidy(" ".join(street))
     return {k: v for k, v in parts.items() if v}
+
+
+# A street, as the logbook writes one: a purok, kilometre or zone with its
+# number, a house number, or a name ending in a street word.
+_STREET_HEAD = re.compile(r"^(PUROK|PRK|KM|KILOMETER|ZONE|SITIO)\.?\s*\d+[A-Z]?\b")
+_STREET_WORDS = {"ST", "ST.", "STREET", "ROAD", "RD", "RD.", "AVE", "AVE.", "AVENUE", "DRIVE", "DR", "DR.",
+                 "BLVD", "BLVD.", "BOULEVARD", "HIGHWAY", "HWY", "HWY.", "EXTENSION", "EXT", "EXT.", "LANE",
+                 "PUROK", "PRK", "PRK.", "KM", "KM.", "ZONE", "SITIO", "CORNER", "COR", "COR."}
+
+
+def _looks_like_street(words):
+    return any(re.search(r"\d", w) for w in words) or any(w in _STREET_WORDS for w in words)

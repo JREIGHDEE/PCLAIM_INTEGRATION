@@ -34,6 +34,20 @@ Related documents:
 - *Email (P6).* A refused address (e.g. a throw-away mailinator.com one) is
   still not saved (adviser's revision S2); the message now says how to go on:
   "If the patient has no email, type N/A in the email box." (email_check.py).
+- *An area name no longer runs on in the street.* "PUROK 30, MT. VIEW
+  CABANTIAN" put "PUROK 30 MT. VIEW" in Street; an area (sitio) name with no
+  street word or number now goes in Subdivision / Village when none was found:
+  Street PUROK 30, Subdivision MT. VIEW; "FATIMA, INDANGAN" -> Subdivision
+  FATIMA (philhealth/address_parser.py split_address).
+- *A name keeps the period of an abbreviation.* "MA. CECILIA" was saved and
+  printed as "MA CECILIA": a name typed by staff now keeps a period right after
+  a letter ("MA.", "STA."; "Ma.Liza" -> "MA. LIZA"), on the server
+  (review_fields.clean_name_part keep_periods, the name check) and on the
+  Logbook review (onlyLetters, cleanName). Suffixes stay without it (JR), and
+  an OCR reading still loses every period.
+- Field mapping test after these: 100% on screen, 0 mismatches (was 99.58%, 6:
+  the street and name above). New tests in test_address_mapping.py and
+  test_review_fields.py.
 
 ---
 

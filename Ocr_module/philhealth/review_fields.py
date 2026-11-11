@@ -53,9 +53,9 @@ FIELD_NAMES = {
 
 _CASE_NUMBER_RE = re.compile(r"^\d+(-\d+)*$")
 # Letters (any alphabet, so ñ/é are fine), spaces, and the punctuation
-# real names use: hyphen and apostrophe (periods are taken out, see
-# clean_name_part).
-_NAME_RE = re.compile(r"^[^\W\d_]+(?:[ '\-]+[^\W\d_]*)*$", re.UNICODE)
+# real names use: hyphen, apostrophe, and the period that ends an
+# abbreviation typed by staff ("MA. CECILIA", "STA. ANA"; see clean_name_part).
+_NAME_RE = re.compile(r"^[^\W\d_]+\.?(?:[ '\-]+[^\W\d_]*\.?)*$", re.UNICODE)
 # Only the address has a length limit: patients.address is VARCHAR(255).
 # The diagnoses are TEXT columns - the clinic's full final diagnosis is
 # longer than 255 letters - so they have none.
@@ -77,12 +77,26 @@ def kind_of(category):
 _NAME_PUNCTUATION = re.compile(r"[^\w\s'\-]|_", re.UNICODE)
 
 
-def clean_name_part(text, drop_digits=False):
+# The same, but keeping a period right after a letter (an abbreviation).
+_NAME_PUNCTUATION_BUT_PERIOD = re.compile(r"[^\w\s'\-.]|_|(?<![^\W\d_])\.", re.UNICODE)
+
+
+def clean_name_part(text, drop_digits=False, keep_periods=False):
     """One name box as it goes on the forms: capitals, no punctuation
-    ("Jr." -> "JR", "Ma.Liza" -> "MA LIZA"), single spaces. Digits are
+    ("Jr." -> "JR", "Ma.Liza" -> "MA LIZA"), single spaces - or, with
+    keep_periods (a name typed by staff), the period of an abbreviation kept
+    ("Ma.Liza" -> "MA. LIZA"). Digits are
     dropped only from an OCR reading (drop_digits); typed ones are kept so
     check() asks for the name to be fixed instead of guessing."""
-    text = _NAME_PUNCTUATION.sub(" ", _s(text))
+    if keep_periods:
+        # A name typed by staff keeps the period of an abbreviation, as PhilHealth
+        # records write it: "MA. CECILIA", not "MA CECILIA" (field mapping test,
+        # R19). "MA.LIZA" gets its space. An OCR reading still loses every
+        # period - there one is as likely a stray mark.
+        text = re.sub(r"(?<=[^\W\d_])\.(?=[^\W\d_])", ". ", _s(text))
+        text = _NAME_PUNCTUATION_BUT_PERIOD.sub(" ", text)
+    else:
+        text = _NAME_PUNCTUATION.sub(" ", _s(text))
     if drop_digits:
         text = re.sub(r"\d", " ", text)
     return re.sub(r"\s+", " ", text).strip().upper()
@@ -175,7 +189,9 @@ def normalize(category, parts):
     # Names and free text are kept in capitals, the way every PhilHealth
     # form is filled in (and how PClaimAssist stores what is typed there).
     if kind == NAME_KIND:
-        return {k: clean_name_part(parts.get(k)) for k in ("last", "first", "middle", "suffix")}
+        # Suffixes stay without their period ("Jr." -> JR): patients.name_ext.
+        return {k: clean_name_part(parts.get(k), keep_periods=(k != "suffix"))
+                for k in ("last", "first", "middle", "suffix")}
     if kind == DATE_KIND:
         return {"date": _s(parts.get("date"))}
     if kind == DATETIME_KIND:

@@ -23,6 +23,23 @@ class SplitAddressTests(unittest.TestCase):
         self.assertEqual(parts["addr_subdivision"], "DECA HOMES PHASE 1")
         self.assertNotIn("addr_street", parts)
 
+    def test_an_area_name_is_not_left_in_the_street(self):
+        # Field mapping test R04, R15, R18: the area (sitio) went on in the street.
+        for text, street in (("PUROK 30, MT. VIEW CABANTIAN, DAVAO CITY", "PUROK 30"),
+                             ("PUROK 26 MT. VIEW CABANTIAN DAVAO CITY", "PUROK 26")):
+            parts = split_address(text)
+            self.assertEqual((parts.get("addr_street"), parts.get("addr_subdivision")), (street, "MT. VIEW"), text)
+        parts = split_address("FATIMA, INDANGAN, DAVAO CITY")
+        self.assertEqual((parts.get("addr_subdivision"), parts.get("addr_barangay")), ("FATIMA", "INDANGAN"))
+        self.assertNotIn("addr_street", parts)
+        # A street word or a house number keeps it a street.
+        self.assertEqual(split_address("123 RIZAL ST QUEZON CITY")["addr_street"], "123 RIZAL ST")
+        parts = split_address("RIZAL ST, FATIMA, INDANGAN DAVAO CITY")
+        self.assertEqual((parts["addr_street"], parts["addr_subdivision"]), ("RIZAL ST", "FATIMA"))
+        # A subdivision already found: the rest stays in the street.
+        parts = split_address("PUROK 3, MT. VIEW, EMILY HOMES CABANTIAN DAVAO CITY")
+        self.assertEqual((parts["addr_subdivision"], parts["addr_street"]), ("EMILY HOMES", "PUROK 3 MT. VIEW"))
+
     def test_one_word_ville_is_a_subdivision_not_a_street(self):
         self.assertEqual(split_address("RAMONAVILLE, CABANTIAN, DAVAO CITY"), {
             "addr_subdivision": "RAMONAVILLE", "addr_barangay": "CABANTIAN",

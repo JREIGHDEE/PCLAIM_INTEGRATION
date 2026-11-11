@@ -178,6 +178,16 @@ class ClaimFieldsTests(unittest.TestCase):
         self.assertEqual((claim["delivery_time"], claim["am_pm_delivery"]), ("20:01", "PM"))
         self.assertEqual(warnings, [])
 
+    def test_typed_name_keeps_an_abbreviation_period(self):
+        # Field mapping test R19: "MA. CECILIA" printed as "MA CECILIA".
+        parts = review_fields.normalize(NAME, {"last": "Rosales", "first": "Ma. Cecilia", "middle": "Sta.Ana",
+                                                "suffix": "Jr."})
+        self.assertEqual((parts["first"], parts["middle"], parts["suffix"]), ("MA. CECILIA", "STA. ANA", "JR"))
+        self.assertEqual(review_fields.clean_name_part("Maria! ."), "MARIA")
+        self.assertEqual(review_fields.clean_name_part(".Maria!", keep_periods=True), "MARIA")
+        # An OCR reading still loses every period: there one is as likely a stray mark.
+        self.assertEqual(review_fields.clean_name_part("Ma. Cecilia", drop_digits=True), "MA CECILIA")
+
     def test_suffix_goes_to_name_extension(self):
         fields = review_fields.claim_fields(NAME, {"last": "Reyes", "first": "Jose", "middle": "", "suffix": "Jr."})
         self.assertEqual(fields[("patients", "name_ext")], "JR")
