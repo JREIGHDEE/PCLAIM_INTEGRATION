@@ -4585,7 +4585,7 @@ document.addEventListener('visibilitychange', () => {
     if (keep) putBack(); else clearDraft();
     return;
   }
-  document.getElementById('unsavedDraftWho').textContent = who;
+  document.getElementById('unsavedDraftWho').textContent = name || 'No name typed yet';
   document.getElementById('unsavedDraftWhen').textContent = when;
   const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
   draftOfferPending = true;

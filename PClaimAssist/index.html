@@ -7,7 +7,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" rel="stylesheet">
-  <link href="css/style.css?v=20261103a" rel="stylesheet">
+  <link href="css/style.css?v=20261112c" rel="stylesheet">
   <link href="css/easy.css?v=20261025q" rel="stylesheet">
   <link href="css/colorblind.css?v=20261101b" rel="stylesheet">
   <link href="css/outlines.css?v=20261101a" rel="stylesheet">
@@ -3889,20 +3889,21 @@
      browser's own OK / Cancel box; staff did not know it was PClaimAssist's. -->
 <div class="modal fade" id="unsavedDraftModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false"
      aria-labelledby="unsavedDraftTitle">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="unsavedDraftTitle"><i class="bi bi-clock-history me-2 text-primary"></i>Unsaved patient found</h5>
+  <div class="modal-dialog modal-dialog-centered unsaved-draft-dialog">
+    <div class="modal-content unsaved-draft">
+      <div class="unsaved-draft-icon" aria-hidden="true"><i class="bi bi-clock-history"></i></div>
+      <h5 class="unsaved-draft-title" id="unsavedDraftTitle">Continue with this patient?</h5>
+      <p class="unsaved-draft-lead">The page closed before this patient was saved.</p>
+      <div class="unsaved-draft-patient">
+        <i class="bi bi-person-fill" aria-hidden="true"></i>
+        <div>
+          <div class="unsaved-draft-name" id="unsavedDraftWho"></div>
+          <div class="unsaved-draft-when">Last typed <span id="unsavedDraftWhen"></span></div>
+        </div>
       </div>
-      <div class="modal-body">
-        <p class="mb-2"><strong id="unsavedDraftWho"></strong> were being typed on <strong id="unsavedDraftWhen"></strong>,
-          and the page closed before the patient was saved.</p>
-        <p class="text-muted mb-0">Put them back to carry on with that patient, or start with empty forms.
-          Starting empty removes what was kept.</p>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary" id="unsavedDraftDiscard">Start with empty forms</button>
-        <button type="button" class="btn btn-primary" id="unsavedDraftRestore"><i class="bi bi-arrow-counterclockwise me-1"></i>Put them back</button>
+      <div class="unsaved-draft-actions">
+        <button type="button" class="btn btn-outline-secondary" id="unsavedDraftDiscard">Start empty</button>
+        <button type="button" class="btn btn-primary" id="unsavedDraftRestore">Put them back</button>
       </div>
     </div>
   </div>
@@ -4149,7 +4150,7 @@
 <script src="js/pin-input.js?v=20261111a"></script>
 <!-- Davao Region address lists, and the cascading dropdowns built from
      them. Both after app.js: they write through its input listeners. -->
-<script src="js/app.js?v=20261112b"></script>
+<script src="js/app.js?v=20261112c"></script>
 <script src="js/ph-psgc.js?v=20261101s"></script>
 <script src="js/ph-address.js?v=20261101s"></script>
 <script src="js/address-select.js?v=20261101s"></script>

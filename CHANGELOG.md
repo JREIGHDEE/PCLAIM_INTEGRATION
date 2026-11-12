@@ -47,9 +47,9 @@ Related documents:
 - *"Unsaved patient found" is PClaimAssist's own window.* Typing kept from a
   page that closed before the patient was saved was offered back in the
   browser's OK / Cancel box, which staff took for a message from the PC. It is
-  now a window in the site's style (like "Set a new password") naming the
-  patient - "The details of MARIA SANTOS DELA CRUZ were being typed on ..." -
-  with "Put them back" and "Start with empty forms" (index.html
+  now the site's own window, "Continue with this patient?": the patient's
+  name and when it was last typed in one box, and two equal buttons, "Put
+  them back" and "Start empty" (index.html, css/style.css .unsaved-draft;
   #unsavedDraftModal, app.js offerLastDraft). Nothing kept is written over
   while it waits for an answer. It also no longer comes back for empty forms:
   a new patient's defaults (Sex, citizenship, the clinic's details) counted as
