@@ -261,6 +261,28 @@ html .dx-pkg .dx-sentence .dx-blank.dx-empty{ border:0 !important; border-bottom
 .dx-pkg .dx-actions{ margin-top:8px; padding-top:8px; border-top:1px solid #e2e8f0; }
 .dx-pkg .dx-actions button{ min-height:36px; padding:5px 14px; font-size:.9rem; }
 .dx-pkg .dx-note{ font-size:.88rem; }
+/* Motion, as on the forms page (PClaimAssist/css/motion.css; user feedback:
+   the pages felt "boring"): opacity and transform only, so nothing stutters,
+   and none for someone whose computer asks for reduced motion. */
+@keyframes rvFadeUp{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:none; } }
+@keyframes rvFadeIn{ from{ opacity:0; } to{ opacity:1; } }
+.tab-panel:not([hidden]){ animation:rvFadeUp .28s cubic-bezier(.2,.8,.2,1); }
+#fields .field:not([hidden]), .finish-step:not([hidden]){ animation:rvFadeUp .24s cubic-bezier(.2,.8,.2,1); }
+.patient-row{ animation:rvFadeIn .3s ease backwards; transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease; }
+.patient-row:hover{ transform:translateY(-2px); box-shadow:0 8px 20px rgba(15,23,42,.10); }
+button, .file-button{ transition:background-color .15s ease, border-color .15s ease, color .15s ease,
+    box-shadow .15s ease, transform .15s cubic-bezier(.2,.8,.2,1); }
+button:active:not(:disabled), .file-button:active{ transform:scale(.97); }
+button.primary:hover:not(:disabled), button.go:hover:not(:disabled), .file-button:hover{ box-shadow:0 6px 16px rgba(37,99,235,.25); }
+.box-steps button{ transition:background-color .15s ease, border-color .15s ease, transform .15s ease; }
+.box-steps button:hover:not([aria-current="step"]){ transform:translateY(-2px); }
+.adm-suggest:not([hidden]), .dx-pkg:not([hidden]), .notice, .message:not(:empty){ animation:rvFadeIn .25s ease; }
+input, select, textarea{ transition:border-color .15s ease, box-shadow .15s ease, background-color .15s ease; }
+.heartline-fill, #heartlineFill{ transition:transform .5s cubic-bezier(.2,.8,.2,1); }
+@media (prefers-reduced-motion: reduce){
+    .tab-panel, #fields .field, .finish-step, .patient-row, .adm-suggest, .dx-pkg, .notice, .message{ animation:none !important; }
+    button, .file-button, .patient-row, input, select, textarea{ transition:none !important; }
+}
 /* The reason for admission recognised from what the logbook says (admission patterns). */
 .adm-suggest{ margin-top:10px; padding:10px 14px; border:2px solid #fcd34d; border-radius:12px; background:#fffbeb; }
 .adm-suggest[hidden]{ display:none; }

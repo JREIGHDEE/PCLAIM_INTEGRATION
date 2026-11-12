@@ -1,0 +1,131 @@
+/* ═══════════════════════════════════════════════════════════
+   PClaimAssist – Motion
+   Quick, smooth movement across the site (user feedback: the pages felt
+   "boring" with every animation switched off). Only opacity and transform
+   are animated, which the browser can do without re-laying the page out,
+   so nothing stutters. Loaded after easy.css on every PClaimAssist page;
+   easy.css switches all of it off for someone whose computer asks for
+   reduced motion.
+═══════════════════════════════════════════════════════════ */
+:root {
+  --motion-fast: .15s;
+  --motion: .25s;
+  --motion-slow: .4s;
+  --motion-ease: cubic-bezier(.2, .8, .2, 1);
+  --motion-spring: cubic-bezier(.34, 1.4, .64, 1);
+}
+
+@keyframes pcaFadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes pcaFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes pcaSlideInRight {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes pcaPopIn {
+  from { opacity: 0; transform: scale(.96); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ── Pages and sections ──────────────────────────────────── */
+/* A page (Home, Patient details, a form, the checker...) slides in when
+   it is opened. The section is shown with display, so the animation runs
+   each time. */
+.content-section.active { animation: pcaFadeUp var(--motion) var(--motion-ease); }
+/* Its cards follow one after the other. */
+.content-section.active > .pca-card,
+.content-section.active > .row > [class*="col"] > .pca-card,
+.content-section.active .stat-card,
+.content-section.active .form-status-card {
+  animation: pcaFadeUp var(--motion-slow) var(--motion-ease) backwards;
+}
+.content-section.active .form-status-card:nth-child(2),
+.content-section.active .stat-card:nth-child(2) { animation-delay: .04s; }
+.content-section.active .form-status-card:nth-child(3),
+.content-section.active .stat-card:nth-child(3) { animation-delay: .08s; }
+.content-section.active .form-status-card:nth-child(4) { animation-delay: .12s; }
+.content-section.active .form-status-card:nth-child(5) { animation-delay: .16s; }
+
+/* Patient details parts (Bootstrap tabs) fade from one to the next. */
+.tab-pane.fade { transition: opacity var(--motion) var(--motion-ease); }
+.tab-pane.active.show { animation: pcaFadeUp var(--motion) var(--motion-ease); }
+
+/* ── Cards that can be clicked lift a little ────────────── */
+.form-status-card,
+.stat-card,
+.saved-patient-row,
+.quick-action-btn {
+  transition: transform var(--motion-fast) var(--motion-ease), box-shadow var(--motion-fast) var(--motion-ease);
+}
+.form-status-card:hover,
+.quick-action-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, .12);
+}
+.stat-card:hover { transform: translateY(-2px); }
+
+/* ── Buttons answer the mouse and the press ─────────────── */
+.btn,
+.btn-export,
+.sidebar-item,
+.val-fix,
+.rule-fix-btn,
+.dx-quick-phrase,
+.export-chip {
+  transition: background-color var(--motion-fast) ease, border-color var(--motion-fast) ease,
+              color var(--motion-fast) ease, box-shadow var(--motion-fast) ease,
+              transform var(--motion-fast) var(--motion-ease);
+}
+.btn:active:not(:disabled),
+.btn-export:active:not(:disabled),
+.val-fix:active,
+.rule-fix-btn:active,
+.dx-quick-phrase:active { transform: scale(.97); }
+.btn-primary:hover:not(:disabled),
+.btn-success:hover:not(:disabled),
+.btn-export:hover:not(:disabled) { box-shadow: 0 6px 16px rgba(37, 99, 235, .25); }
+/* The arrow on "next" and "go to" buttons nudges forward. */
+.btn .bi-arrow-right,
+.val-fix .bi-arrow-right,
+.rule-fix-btn .bi-arrow-right { display: inline-block; transition: transform var(--motion-fast) var(--motion-ease); }
+.btn:hover .bi-arrow-right,
+.val-fix:hover .bi-arrow-right,
+.rule-fix-btn:hover .bi-arrow-right { transform: translateX(3px); }
+
+/* ── Boxes ease into focus ──────────────────────────────── */
+.form-control,
+.form-select,
+.pca-input,
+.pca-box,
+.box-input input,
+.pin-boxes input,
+.pca-date-text,
+.form-check-input {
+  transition: border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease,
+              background-color var(--motion-fast) ease;
+}
+
+/* ── Progress glides ────────────────────────────────────── */
+.form-progress-fill,
+.progress-bar,
+#overallProgress,
+.val-progress-fill { transition: width var(--motion-slow) var(--motion-ease) !important; }
+.score-ring { transition: background var(--motion-slow) ease; }
+
+/* ── Messages, dialogs, lists ───────────────────────────── */
+.pca-toast { animation: pcaSlideInRight var(--motion) var(--motion-spring); }
+.modal.fade .modal-dialog { transition: transform var(--motion) var(--motion-ease); }
+.modal-content { animation: pcaPopIn var(--motion) var(--motion-ease); }
+.collapsing { transition: height var(--motion) var(--motion-ease); }
+.saved-patients-list > *,
+.val-item { animation: pcaFadeIn var(--motion) ease backwards; }
+.dx-template { animation: pcaFadeIn var(--motion) ease; }
+
+/* ── Sign-in page ───────────────────────────────────────── */
+#signInCard, .login-brand { animation: pcaFadeUp var(--motion-slow) var(--motion-ease) backwards; }
+#signInCard { animation-delay: .08s; }

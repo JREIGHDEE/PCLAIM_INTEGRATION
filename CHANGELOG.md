@@ -15,6 +15,17 @@ Related documents:
 
 **After pulling:** restart the backend and press Ctrl+F5 on the forms. No migration.
 
+- *Smooth sidebar, and movement across the site.* The sidebar stuttered
+  because every part of it animated its width and margins (the whole page
+  was laid out again on every frame). Now only the sidebar's width changes;
+  its labels only fade, and its icons slide (style.css). Measured: 60 frames a
+  second while it folds and opens. easy.css no longer switches every
+  animation off, only for a computer set to reduce motion. New
+  css/motion.css (all PClaimAssist pages): pages and their cards fade up,
+  clickable cards lift, buttons answer a press, boxes ease into focus,
+  progress bars glide, messages slide in and dialogs pop in. The logbook
+  review (review.html) gets the same: tabs and fields fade in, rows lift,
+  buttons press.
 - *Typing lag (P3).* Each keystroke re-searched the whole page once per field
   key (several hundred searches) to copy values between forms, and redid every
   red mark and every form's preview through the CF4 course-in-the-ward rows.

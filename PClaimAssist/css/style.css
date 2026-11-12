@@ -219,7 +219,8 @@ body {
   --sb-dur: .35s;
   --sb-ease: cubic-bezier(.4, 0, .2, 1);
   transition: width var(--sb-dur) var(--sb-ease), margin-right var(--sb-dur) var(--sb-ease),
-              box-shadow var(--sb-dur) var(--sb-ease), transform .25s ease;
+              transform .25s ease;
+  will-change: width;
   scrollbar-width: thin;
   scrollbar-color: rgba(255,255,255,.1) transparent;
 }
@@ -314,7 +315,7 @@ body {
 .sidebar-section-label,
 .sidebar-item span:not(.sidebar-step),
 .sidebar-footer span {
-  transition: opacity var(--sb-dur) var(--sb-ease), max-width var(--sb-dur) var(--sb-ease);
+  transition: opacity calc(var(--sb-dur) * .7) var(--sb-ease);
   opacity: 1;
   max-width: 14rem;
   overflow: hidden;
@@ -329,7 +330,6 @@ body {
 .sidebar.collapsed:not(.peek) .sidebar-section-label,
 .sidebar.collapsed:not(.peek) .sidebar-item span:not(.sidebar-step) {
   opacity: 0;
-  max-width: 0;
   pointer-events: none;
 }
 .sidebar.collapsed:not(.peek) .sidebar-footer span {
@@ -342,15 +342,17 @@ body {
    An icon is 1em wide (its own size, bigger in easy.css), a step 30px.
    The green dot glides to the middle the same way. */
 .sidebar-item > i,
-.sidebar-item .sidebar-step { transition: margin-left var(--sb-dur) var(--sb-ease); }
+.sidebar-item .sidebar-step,
+.sidebar-footer .sync-dot { transition: transform var(--sb-dur) var(--sb-ease); will-change: transform; }
 .sidebar.collapsed:not(.peek) .sidebar-item > i {
-  margin-left: calc((var(--sidebar-collapsed-w) - 1.5rem - 1em) / 2 - .75rem);
+  transform: translateX(calc((var(--sidebar-collapsed-w) - 1.5rem - 1em) / 2 - .75rem));
 }
 .sidebar.collapsed:not(.peek) .sidebar-item .sidebar-step {
-  margin-left: calc((var(--sidebar-collapsed-w) - 1.5rem - 30px) / 2 - .75rem);
+  transform: translateX(calc((var(--sidebar-collapsed-w) - 1.5rem - 30px) / 2 - .75rem));
 }
-.sidebar-footer { transition: padding var(--sb-dur) var(--sb-ease); }
-.sidebar.collapsed:not(.peek) .sidebar-footer { padding-left: calc((var(--sidebar-collapsed-w) - 10px) / 2); }
+.sidebar.collapsed:not(.peek) .sidebar-footer .sync-dot {
+  transform: translateX(calc((var(--sidebar-collapsed-w) - 10px) / 2 - .75rem));
+}
 /* Round whatever the note beside it asks for (it was squashed to a bar). */
 .sidebar-footer .sync-dot { flex-shrink: 0; }
 
@@ -360,18 +362,19 @@ body {
 /* The page just picked gives a little bounce. */
 .sidebar-item.active > i,
 .sidebar-item.active > .sidebar-step { animation: sidebarPop .4s cubic-bezier(.34,1.56,.64,1); }
+/* `scale`, not `transform`: the icon's transform is its glide to the middle
+   of the closed bar, which the pop must not undo. */
 @keyframes sidebarPop {
-  0%   { transform: scale(.6); }
-  100% { transform: scale(1); }
+  0%   { scale: .6; }
+  100% { scale: 1; }
 }
 
 /* easy.css turns every animation off (transition-duration: 0s !important
    on *). The sidebar's fold is the one exception, agreed with the team:
    these selectors outrank `*`, so only the sidebar moves. */
-.sidebar,
-.sidebar * { transition-duration: var(--sb-dur) !important; }
-.sidebar-item.active > i,
-.sidebar-item.active > .sidebar-step { animation-duration: .4s !important; }
+/* (easy.css no longer stops all motion, so the sidebar needs no exception;
+   the blanket transition on every property of every child is gone - it made
+   the fold choppy.) */
 
 /* Someone who would rather not see motion gets the fold with none. */
 @media (prefers-reduced-motion: reduce) {

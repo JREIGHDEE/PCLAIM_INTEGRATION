@@ -21,13 +21,18 @@
   --navbar-h:  72px;
 }
 
-/* ── Base: one bigger size on every page, no animation ─────── */
+/* ── Base: one bigger size on every page ─────────────────────
+   Motion was switched off here for everyone; it is now the site's own
+   (css/motion.css, user feedback: "boring", and the sidebar was choppy),
+   and off only for someone whose computer asks for reduced motion. */
 html { font-size: 112.5%; }               /* 18px base instead of 16px */
 body { font-size: 1rem; line-height: 1.65; }
 
-*, *::before, *::after {
-  animation-duration: 0s !important;
-  transition-duration: 0s !important;
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0s !important;
+    transition-duration: 0s !important;
+  }
 }
 [data-aos] { opacity: 1 !important; transform: none !important; }
 
