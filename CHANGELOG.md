@@ -26,6 +26,13 @@ Related documents:
   progress bars glide, messages slide in and dialogs pop in. The logbook
   review (review.html) gets the same: tabs and fields fade in, rows lift,
   buttons press.
+- *Sidebar wording no longer cut off as it closes.* The words faded more
+  slowly than the bar narrowed, so they were seen cut by its edge and
+  squeezed to slivers. They are now gone within .1s when it closes and fade
+  in only once it is nearly open. Long wording ("Check for missing
+  information", "The forms (open, check, print)") now wraps to a second line
+  instead of being cut off, at a fixed width, so it never re-wraps while the
+  bar moves.
 - *Typing lag (P3).* Each keystroke re-searched the whole page once per field
   key (several hundred searches) to copy values between forms, and redid every
   red mark and every form's preview through the CF4 course-in-the-ward rows.

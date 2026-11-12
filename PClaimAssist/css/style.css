@@ -320,22 +320,40 @@ body {
   max-width: 14rem;
   overflow: hidden;
 }
-.sidebar-section-label,
-.sidebar-item span:not(.sidebar-step) { white-space: nowrap; }
+/* Long wording ("Check for missing information", "The forms (open, check,
+   print)") wraps to a second line instead of being cut off - at a fixed
+   width, the open bar's, so it wraps the same while the bar moves and
+   nothing below it jumps. The bar's own overflow clips it when closed. */
+.sidebar-section-label { width: calc(var(--sidebar-w) - 1.5rem); white-space: normal; }
+.sidebar-item span:not(.sidebar-step):not(.sidebar-badge) {
+  flex: 0 0 calc(var(--sidebar-w) - 3rem - 30px - .75rem);
+  white-space: normal;
+  text-overflow: clip;
+}
 /* The footer note keeps its width (two lines), so it doesn't re-wrap. */
 .sidebar-footer span { flex: 0 0 calc(var(--sidebar-w) - 3.5rem); }
 .sidebar-footer { overflow: hidden; }
 /* The step numbers (1, 2, 3) are spans too, but stand in for the icon,
    so they stay when the wording folds away. */
-.sidebar.collapsed:not(.peek) .sidebar-section-label,
-.sidebar.collapsed:not(.peek) .sidebar-item span:not(.sidebar-step) {
-  opacity: 0;
-  pointer-events: none;
+/* Opening: the wording waits until the bar is nearly open, then fades in.
+   Closing (below): it is gone within .1s, before the bar narrows - so it is
+   never seen being cut off by the edge or squeezed to a sliver (user
+   feedback: "cuts like this when it closes"). */
+.sidebar-section-label,
+.sidebar-item span:not(.sidebar-step),
+.sidebar-footer span {
+  transition: opacity .16s ease calc(var(--sb-dur) * .55);
 }
+.sidebar.collapsed:not(.peek) .sidebar-section-label,
+.sidebar.collapsed:not(.peek) .sidebar-item span:not(.sidebar-step),
 .sidebar.collapsed:not(.peek) .sidebar-footer span {
   opacity: 0;
   pointer-events: none;
+  transition: opacity .1s linear 0s;
 }
+/* Closed, a label keeps its full width (hidden, clipped by the item) rather
+   than shrinking with the bar to a sliver with "...". */
+.sidebar.collapsed:not(.peek) .sidebar-item span:not(.sidebar-step) { flex-shrink: 0; }
 /* Closed, every icon and step circle glides to the exact middle of the
    bar: the item is the bar less the menu's padding (2 x .75rem) and starts
    its mark .75rem in, so the nudge is half the room left over, less that.
