@@ -267,9 +267,9 @@ function mbBabyHtml() {
       <div class="mb-muted mt-1">${mbEscape(why)}</div>
       <div class="form-check pca-checkbox member-is-patient mt-2">
         <input type="checkbox" class="form-check-input" id="mbCopyTick" ${ticked ? 'checked' : ''} ${mb.busy ? 'disabled' : ''}>
-        <label class="form-check-label" for="mbCopyTick">
-          <strong>Copy the mother's details</strong> to this baby's claim — the member, home address and contact,
-          birth details and who signs for the baby. Boxes already filled are kept.
+        <label class="form-check-label" for="mbCopyTick"
+               title="The member, home address and contact, birth details and who signs for the baby. Boxes already filled are kept.">
+          <strong>Copy the mother's details</strong>
         </label>
       </div>
       ${ticked ? mbAppliedHtml() : ''}

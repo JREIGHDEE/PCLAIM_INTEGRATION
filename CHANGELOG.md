@@ -34,6 +34,16 @@ Related documents:
 - *Email (P6).* A refused address (e.g. a throw-away mailinator.com one) is
   still not saved (adviser's revision S2); the message now says how to go on:
   "If the patient has no email, type N/A in the email box." (email_check.py).
+- *Shorter labels on tick boxes.* Labels that carried their own explanation
+  are now the short name; the explanation shows when the label is pointed at:
+  "The patient is the member" (Patient details, CSF, CF1 - was "... (same
+  person) - fill in the member's details from the patient's" / "ticks Yes in
+  item 7 and leaves Part II empty"), "No contact info", "Brief History of
+  Present Illness / Pertinent History", "Write the name by hand" / "Write
+  both names by hand" (was "Leave blank - the name is written by hand after
+  printing"), "Copy the mother's details" (baby's claim) and the logbook
+  setup's "Use only this setup". PhilHealth's own printed wording ("Signature
+  Over Printed Name of ...") is kept, so the boxes match the paper forms.
 - *The forms are saved only from "Check for missing information", and only at
   100%.* The "Save as PDF to print" button on each form (CSF, CF1, CF2, CF4,
   PMRF) is gone. On Check for missing information the save button stays locked

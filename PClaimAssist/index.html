@@ -348,8 +348,9 @@
              applyMemberIsPatient), so they are not typed twice. -->
         <div class="form-check pca-checkbox member-is-patient mb-3">
           <input type="checkbox" class="form-check-input" data-autofill="memberIsPatient" id="memberIsPatient">
-          <label class="form-check-label" for="memberIsPatient">
-            <strong>The patient is the PhilHealth member</strong> (same person) — fill in the member's details from the patient's
+          <label class="form-check-label" for="memberIsPatient"
+                 title="Same person: the member's details are filled in from the patient's">
+            <strong>The patient is the member</strong>
           </label>
         </div>
         <div class="row g-3">
@@ -456,8 +457,8 @@
         <!-- No contact info: the phone and email boxes are emptied, locked and not asked for (app.js applyNoContact). -->
         <div class="form-check pca-check mb-2">
           <input class="form-check-input" type="checkbox" id="noContact" data-autofill="noContact">
-          <label class="form-check-label fw-semibold" for="noContact">No contact info
-            <span class="text-muted fw-normal">- no phone or email; those boxes are left blank on the forms</span></label>
+          <label class="form-check-label fw-semibold" for="noContact"
+                 title="No phone or email: those boxes are left blank on the forms">No contact info</label>
         </div>
         <div class="row g-3">
           <div class="col-md-4">
@@ -656,8 +657,7 @@
         <p class="pca-tab-section-label mt-4">History of Present Illness</p>
         <div class="row g-3">
           <div class="col-12">
-            <label class="pca-label">Brief History of Present Illness / Pertinent History
-              <span class="text-muted fw-normal">- one line per pregnancy, from Gravida (G) above</span></label>
+            <label class="pca-label" title="One line per pregnancy, from Gravida (G) above">Brief History of Present Illness / Pertinent History</label>
             <textarea class="form-control pca-input" data-autofill="briefHistory" rows="4"
               placeholder="G1 - 2018 - HOSPITAL&#10;G2 - PRESENT PREGNANCY"></textarea>
           </div>
@@ -992,8 +992,9 @@
         <div class="entry-section-title">Member (PhilHealth Account Holder)</div>
         <div class="form-check pca-checkbox member-is-patient mb-2">
           <input type="checkbox" class="form-check-input" data-autofill="memberIsPatient" id="csf-memberIsPatient">
-          <label class="form-check-label" for="csf-memberIsPatient">
-            <strong>The patient is the member</strong> (same person) — fill in from the patient's details
+          <label class="form-check-label" for="csf-memberIsPatient"
+                 title="Same person: the member's details are filled in from the patient's">
+            <strong>The patient is the member</strong>
           </label>
         </div>
         <div class="row g-2">
@@ -1106,7 +1107,7 @@
           <div class="col-12">
             <!-- The names printed over the member's and the representative's signature lines. -->
             <div class="handwritten-check" data-handwritten="csfMemberSignName,csfRepSignName"
-                 data-handwritten-label="Leave the names on both signature lines blank - they are written by hand after printing"></div>
+                 data-handwritten-label="Write both names by hand"></div>
           </div>
           <div class="col-12" data-signer="memberSignerType:Member">
             <label class="pca-label">Date Signed (Member)</label>
@@ -1366,8 +1367,9 @@
         <div class="entry-section-title">Part I &mdash; Member Information</div>
         <div class="form-check pca-checkbox member-is-patient mb-2">
           <input type="checkbox" class="form-check-input" data-autofill="memberIsPatient" id="cf1-memberIsPatient">
-          <label class="form-check-label" for="cf1-memberIsPatient">
-            <strong>The patient is the member</strong> (same person) &mdash; ticks &ldquo;Yes&rdquo; in item 7 and leaves Part II empty
+          <label class="form-check-label" for="cf1-memberIsPatient"
+                 title="Same person: ticks &ldquo;Yes&rdquo; in item 7 and leaves Part II empty">
+            <strong>The patient is the member</strong>
           </label>
         </div>
         <div class="row g-2">
@@ -1527,7 +1529,7 @@
           </div>
           <div class="col-12">
             <div class="handwritten-check" data-handwritten="cf1MemberSignName,cf1RepSignName"
-                 data-handwritten-label="Leave the names on both signature lines blank - they are written by hand after printing"></div>
+                 data-handwritten-label="Write both names by hand"></div>
           </div>
           <div class="col-12" data-signer="memberSignerType:Member">
             <label class="pca-label">Date Signed (Member)</label>
@@ -4150,14 +4152,14 @@
 <script src="js/pin-input.js?v=20261111a"></script>
 <!-- Davao Region address lists, and the cascading dropdowns built from
      them. Both after app.js: they write through its input listeners. -->
-<script src="js/app.js?v=20261112d"></script>
+<script src="js/app.js?v=20261112e"></script>
 <script src="js/ph-psgc.js?v=20261101s"></script>
 <script src="js/ph-address.js?v=20261101s"></script>
 <script src="js/address-select.js?v=20261101s"></script>
 <script src="js/email-check.js?v=20261105a"></script>
 <script src="js/easy.js?v=20261103b"></script>
 <!-- Loads a claim sent from the OCR review: index.html?claim=<id> -->
-<script src="js/mother-baby.js?v=20261103a"></script>
+<script src="js/mother-baby.js?v=20261112e"></script>
 <script src="js/dx-templates.js?v=20261106a"></script>
 <!-- Reason for admission from the logbook's wording, and its pattern table -->
 <script src="js/admission-patterns.js?v=20261104a"></script>

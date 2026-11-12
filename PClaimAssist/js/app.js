@@ -4319,8 +4319,8 @@ const PCA_HANDWRITTEN = new Set();
     label.className = 'form-check pca-check handwritten-check-label';
     label.innerHTML = '<input type="checkbox" class="form-check-input">' +
       '<span class="form-check-label"></span>';
-    label.querySelector('span').textContent = slot.dataset.handwrittenLabel ||
-      'Leave blank - the name is written by hand after printing';
+    label.querySelector('span').textContent = slot.dataset.handwrittenLabel || 'Write the name by hand';
+    label.title = 'Leaves the printed name blank, to be written by hand after printing';
     const tick = label.querySelector('input');
     slot.appendChild(label);
     const s = { tick, ids, input };
