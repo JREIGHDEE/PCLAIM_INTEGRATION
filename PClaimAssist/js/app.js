@@ -3488,11 +3488,14 @@ function updateExportGate(result, totalComplete, totalFields) {
     if (txt) txt.textContent = reason;
   }
 
-  // The forms can be saved at any time, one by one or together; the card
-  // says whether anything is still missing. Ready means nothing left to
-  // report: every box the checker counts is filled, and no rule is still
-  // complaining. Parts marked "Not needed" are already out of that count.
-  const ready = !blocked && totalFields > 0 && totalComplete >= totalFields;
+  // The forms are saved only from here, and only at 100%: every box the
+  // checker counts is filled and no critical rule fires. Parts marked "Not
+  // needed" are already out of that count. (The forms' own "Save as PDF"
+  // buttons are gone; js/pdf/pdf-overlay.js exportBlocked checks this again
+  // at the moment of saving.)
+  const missing = Math.max(0, totalFields - totalComplete);
+  const ready = !blocked && totalFields > 0 && missing === 0;
+  window.PCA_PRINT_READY = { ready, missing, critical: result.critical.length };
   const card  = document.getElementById('exportAllCard');
   if (card) card.classList.toggle('export-all-card--missing', !ready);
   const title = document.getElementById('exportAllTitle');
@@ -3500,10 +3503,14 @@ function updateExportGate(result, totalComplete, totalFields) {
   const forms = claimForms().length;
   if (title) title.innerHTML = ready
     ? '<i class="bi bi-check-circle-fill me-2" aria-hidden="true"></i>Everything is filled in'
-    : '<i class="bi bi-exclamation-circle-fill me-2" aria-hidden="true"></i>Some boxes are still empty';
+    : missing
+      ? `<i class="bi bi-lock-fill me-2" aria-hidden="true"></i>Not ready to save: ${missing} box${missing === 1 ? '' : 'es'} still empty`
+      : '<i class="bi bi-lock-fill me-2" aria-hidden="true"></i>Not ready to save: fix the rule checks below';
   if (sub) sub.textContent = ready
     ? `All ${forms} forms are ready. Save them, then print.`
-    : 'The list below shows what is missing. A form saved now prints with those boxes blank.';
+    : 'The forms can be saved once this page shows 100% and no important rule check is left. ' +
+      'The list below shows what is still missing.';
+  if (typeof labelExportButton === 'function') labelExportButton();
 }
 
 /* ══════════════════════════════════════════════════════════

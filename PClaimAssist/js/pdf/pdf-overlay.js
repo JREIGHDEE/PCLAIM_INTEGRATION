@@ -55,6 +55,20 @@ function exportBlocked() {
   const v = (typeof runValidationRules === 'function' && typeof getComputedValue === 'function' &&
              typeof state !== 'undefined')
     ? runValidationRules(getComputedValue, state.data) : null;
+  // Saved only at 100%, counted afresh now: every box "Check for missing
+  // information" counts is filled (app.js updateValidation -> updateExportGate).
+  if (v && v.canGeneratePDF && typeof updateValidation === 'function') {
+    if (typeof clearFormCheckCache === 'function') clearFormCheckCache();
+    updateValidation();
+    const gate = window.PCA_PRINT_READY;
+    if (gate && gate.missing > 0) {
+      showToast('Not ready to save yet',
+        `${gate.missing} box${gate.missing === 1 ? ' is' : 'es are'} still empty. The forms can be saved once ` +
+        '"Check for missing information" shows 100%. The list of what is missing is shown now.', 'danger');
+      if (typeof navigateTo === 'function') navigateTo('validation');
+      return true;
+    }
+  }
   if (v && v.canGeneratePDF) return false;
   const critical = v ? v.critical : [];
   const n = critical.length;
@@ -815,8 +829,13 @@ function labelExportButton() {
   if (!btn || !label || btn.dataset.busy) return;
   const keys = tickedExportForms();
   const name = key => document.querySelector(`[data-export-form="${key}"]`).dataset.label;
-  btn.disabled = !keys.length;
+  // Saving waits for 100% (app.js updateExportGate).
+  const gate = window.PCA_PRINT_READY;
+  const locked = !SKIP_VALIDATION_FOR_EXPORT && gate && !gate.ready;
+  btn.disabled = !keys.length || locked;
+  btn.classList.toggle('is-blocked', !!locked);
   label.textContent =
+    locked ? (gate.missing ? `Fill in every box first (${gate.missing} left)` : 'Fix the rule checks first') :
     !keys.length ? 'Tick a form to save' :
     keys.length === 1 ? `Save ${name(keys[0])} as PDF` :
     keys.length === PDF_FORM_KEYS.length ? `Save all ${keys.length} forms as one PDF` :

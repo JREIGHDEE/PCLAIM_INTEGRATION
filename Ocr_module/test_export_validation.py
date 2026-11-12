@@ -122,6 +122,20 @@ class BrowserExportGateTests(unittest.TestCase):
         pdf_export._draw_field(page, field, "DELA CRUZ", 600, 800)       # a real value still prints
         self.assertEqual(len(drawn), 1)
 
+    def test_saved_only_at_100_percent_from_check_for_missing_information(self):
+        # The gate counts the boxes afresh and refuses while any is empty.
+        gate = re.search(r"function exportBlocked\(\) \{(.*?)\n\}", self.js, re.S).group(1)
+        self.assertIn("updateValidation();", gate)
+        self.assertIn("gate.missing > 0", gate)
+        # The save button on Check for missing information waits for 100%...
+        label = re.search(r"function labelExportButton\(\) \{(.*?)\n\}", self.js, re.S).group(1)
+        self.assertIn("btn.disabled = !keys.length || locked;", label)
+        # ...and the forms have no "Save as PDF" button of their own any more.
+        with open(os.path.join(os.path.dirname(PDF_OVERLAY_JS), "..", "..", "index.html"), encoding="utf-8") as f:
+            page = f.read()
+        self.assertNotRegex(page, r'id="export-(csf|cf1|cf2|cf4|pmrf)-btn"')
+        self.assertIn('id="exportAllBtn"', page)
+
     def test_gate_runs_the_rules_fresh(self):
         gate = re.search(r"function exportBlocked\(\) \{(.*?)\n\}", self.js, re.S).group(1)
         self.assertIn("runValidationRules(getComputedValue, state.data)", gate)

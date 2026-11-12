@@ -34,6 +34,16 @@ Related documents:
 - *Email (P6).* A refused address (e.g. a throw-away mailinator.com one) is
   still not saved (adviser's revision S2); the message now says how to go on:
   "If the patient has no email, type N/A in the email box." (email_check.py).
+- *The forms are saved only from "Check for missing information", and only at
+  100%.* The "Save as PDF to print" button on each form (CSF, CF1, CF2, CF4,
+  PMRF) is gone. On Check for missing information the save button stays locked
+  - "Fill in every box first (30 left)" - until every box it counts is filled
+  and no critical rule fires; the card says "Not ready to save: 30 boxes still
+  empty". The print check (pdf-overlay.js exportBlocked, used by every save)
+  counts the boxes afresh and refuses below 100% too, so a save started any
+  other way is refused with the same message (app.js updateExportGate,
+  pdf-overlay.js labelExportButton). Before, a form could be saved with boxes
+  still empty, printing them blank. New test in test_export_validation.py.
 - *"Unsaved patient found" is PClaimAssist's own window.* Typing kept from a
   page that closed before the patient was saved was offered back in the
   browser's OK / Cancel box, which staff took for a message from the PC. It is
