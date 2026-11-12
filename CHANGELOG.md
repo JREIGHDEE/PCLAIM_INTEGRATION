@@ -33,6 +33,11 @@ Related documents:
   information", "The forms (open, check, print)") now wraps to a second line
   instead of being cut off, at a fixed width, so it never re-wraps while the
   bar moves.
+- *Patient details parts stand apart.* The parts of each tab (Patient,
+  Member, Address, Contact...) had tints that were almost white, so they ran
+  together. Each part is now a clearly coloured panel with a border all
+  round and a heading band in its colour (style.css, #patientTabContent
+  only; Clinic details keeps its lighter look). Red boxes still show red.
 - *Typing lag (P3).* Each keystroke re-searched the whole page once per field
   key (several hundred searches) to copy values between forms, and redid every
   red mark and every form's preview through the CF4 course-in-the-ward rows.

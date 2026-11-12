@@ -3004,6 +3004,27 @@ textarea.from-patient-details:focus {
   margin-top: 0 !important;
   font-weight: 700;
 }
+/* Stronger colours on Patient details (user feedback: the parts were hard
+   to tell apart - the tints above are almost white). Each part is a clearly
+   tinted panel with a border all round, its heading a band of the part's
+   colour, so the white boxes stand out on it. Clinic details keeps the
+   lighter look. */
+#patientTabContent .patient-part[class*="part-tone-"] {
+  --tone-bg: color-mix(in srgb, var(--tone) 9%, #fff);
+  border: 1.5px solid color-mix(in srgb, var(--tone) 35%, #fff);
+  border-left: 6px solid var(--tone);
+  border-radius: 10px;
+  padding: 0 1rem 1rem;
+  margin: 0 0 1.25rem;
+  overflow: hidden;
+}
+#patientTabContent .patient-part[class*="part-tone-"] > .pca-tab-section-label {
+  margin: 0 -1rem .9rem !important;
+  padding: .55rem 1rem;
+  background: color-mix(in srgb, var(--tone) 20%, #fff);
+  border-bottom: 1.5px solid color-mix(in srgb, var(--tone) 35%, #fff);
+  color: color-mix(in srgb, var(--tone) 80%, #000);
+}
 
 /* Clinic details: the same coloured parts as Patient details, each saying
    which forms it fills, and the save button on a bar of its own. */
