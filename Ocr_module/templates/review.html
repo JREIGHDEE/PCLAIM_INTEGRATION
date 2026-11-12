@@ -888,7 +888,7 @@ function renderPkgTemplate(id){
             <div class="dx-actions">
                 <button type="button" class="primary" onclick="putPkg(this.closest('.dx-template'))">Put it in</button>
                 <button type="button" onclick="this.closest('.dx-template').hidden = true; drawAdmission()">Close</button>
-                <button type="button" onclick="undoPkg(this.closest('.dx-template'))">Undo - go back to what was read</button>
+                <button type="button" onclick="undoPkg(this.closest('.dx-template'))" title="Go back to what was read">Undo</button>
                 <span class="dx-note" aria-live="polite"></span>
             </div>
         </div>`;

@@ -38,11 +38,11 @@
                <i class="bi bi-arrow-left me-2"></i>Back</button>`
           : '<span></span>';
         const next = after
-          ? `<button type="button" class="btn btn-primary" data-go="${tabs.indexOf(after)}">
-               Next part: ${names[tabs.indexOf(after)]}
+          ? `<button type="button" class="btn btn-primary" data-go="${tabs.indexOf(after)}" title="Next part">
+               ${names[tabs.indexOf(after)]}
                <i class="bi bi-arrow-right ms-2"></i></button>`
           : `<button type="button" class="btn btn-success" data-section-go="validation">
-               Done &mdash; check for missing information <i class="bi bi-arrow-right ms-2"></i></button>`;
+               Check for missing information <i class="bi bi-arrow-right ms-2"></i></button>`;
         nav.innerHTML = back + next;
       });
     }

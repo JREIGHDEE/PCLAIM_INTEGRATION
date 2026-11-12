@@ -34,6 +34,12 @@ Related documents:
 - *Email (P6).* A refused address (e.g. a throw-away mailinator.com one) is
   still not saved (adviser's revision S2); the message now says how to go on:
   "If the patient has no email, type N/A in the email box." (email_check.py).
+- *Shorter step buttons.* Patient details' last part ends with "Check for
+  missing information" (was "Done - check for missing information"), and each
+  part's next button is the next part's name, e.g. "Stay at the clinic ->"
+  (was "Next part: Stay at the clinic"; js/easy.js). The Logbook review's
+  wording panel has "Undo" (was "Undo - go back to what was read", now its
+  tooltip).
 - *The clinic's wording card is tidier* (Patient details, and CF4's course in the
   ward and delivery medicines; staff found it confusing). Each sentence is on
   its own row with a small label (ADMISSION, FINAL) instead of running on;
