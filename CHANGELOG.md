@@ -34,6 +34,15 @@ Related documents:
 - *Email (P6).* A refused address (e.g. a throw-away mailinator.com one) is
   still not saved (adviser's revision S2); the message now says how to go on:
   "If the patient has no email, type N/A in the email box." (email_check.py).
+- *The clinic's wording card is tidier* (Patient details, and CF4's course in the
+  ward and delivery medicines; staff found it confusing). Each sentence is on
+  its own row with a small label (ADMISSION, FINAL) instead of running on;
+  every blank, typed or picked, is the same size and look (an underlined light
+  field; red while still to fill); the status is one short line beside a
+  smaller "Put it in" button ("4 blanks left to fill in", "Put in. 9 boxes kept
+  their own wording" - which ones shows on pointing at it, instead of listing
+  them). It works the same (dx-templates.js build, renderStatus, dxShell;
+  css/style.css).
 - *Chief Complaint: a "+ Labor pains" button instead of a wording card.* The
   card under Chief Complaint / Reason for Admission ("The usual wording: labor
   pains", a preview and "Put it in") is now one small button on the box's

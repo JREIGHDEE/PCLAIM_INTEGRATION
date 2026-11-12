@@ -338,9 +338,18 @@ class DxSentence {
       return `<input type="text" data-dx-var="${name}" aria-label="${spec.label}" title="${spec.label}"` +
         ` style="width:${spec.w}"${spec.digits ? ' inputmode="numeric"' : ''}>`;
     };
-    const sentence = template.split(/(\{\w+\})/).map(part => {
-      const m = part.match(/^\{(\w+)\}$/);
-      return m ? blank(m[1]) : dxEscape(part);
+    // One row per sentence, its name ("Admission diagnosis: ...") as a small
+    // label in front instead of running on in the text (user feedback: the
+    // card read as one long block).
+    const sentence = template.split('\n').map(line => {
+      const named = line.match(/^([A-Z][a-z][^:{}]*):\s*/);
+      const label = named ? named[1].replace(/\s+diagnosis$/i, '') : '';
+      const text = (named ? line.slice(named[0].length) : line).split(/(\{\w+\})/).map(part => {
+        const m = part.match(/^\{(\w+)\}$/);
+        return m ? blank(m[1]) : dxEscape(part);
+      }).join('');
+      return `<div class="dx-line">${label ? `<span class="dx-line-label">${dxEscape(label)}</span>` : ''}` +
+        `<div class="dx-line-text">${text}</div></div>`;
     }).join('');
     this.box.querySelector('.dx-sentence').innerHTML = sentence;
     this.shownFor = template;
@@ -470,16 +479,21 @@ class DxSentence {
     }
     // One short line (user testing #4: less to read). The red blanks show
     // which are missing; each blank names itself when pointed at.
+    // Which boxes kept their own wording is in the tooltip, not listed (user
+    // feedback: the long list of box names made the card confusing).
     if (missing.length) {
-      status.innerHTML = `<span class="dx-left">${missing.length} red blank${missing.length === 1 ? '' : 's'} left</span> ` +
-        `- it goes in once ${missing.length === 1 ? 'it is' : 'they are'} filled.`;
+      status.innerHTML = `<i class="bi bi-pencil me-1"></i><span class="dx-left">${missing.length} ` +
+        `blank${missing.length === 1 ? '' : 's'} left</span> to fill in`;
     } else if (!auto && !inBoxes) {
       status.innerHTML = `<i class="bi bi-info-circle me-1"></i>${dxEscape(this.opts.notAutoNote || 'Not put in by itself.')}`;
     } else if (!auto || !others.length) {
-      status.innerHTML = '<i class="bi bi-check-circle-fill text-success me-1"></i>Put in the boxes.';
+      status.innerHTML = '<i class="bi bi-check-circle-fill text-success me-1"></i>Put in the boxes';
     } else {
+      const n = new Set(others.map(k => this.opts.label(k))).size;
       status.innerHTML = '<i class="bi bi-check-circle-fill text-success me-1"></i>Put in. ' +
-        `<strong>${dxEscape(names(others))}</strong> kept ${others.length === 1 ? 'its' : 'their'} own wording.`;
+        `<span class="dx-kept" title="Kept their own wording: ${dxEscape(names(others))}">` +
+        `${n} box${n === 1 ? '' : 'es'} kept ${n === 1 ? 'its' : 'their'} own wording ` +
+        '<i class="bi bi-info-circle"></i></span>';
     }
   }
 
@@ -537,10 +551,12 @@ function dxShell(title, extra, buttons) {
     <!-- The sentence above, filled in: kept up to date, not shown (the blanks
          already read as it; user testing #4 asked for less to look at). -->
     <div class="dx-preview" aria-live="polite"></div>
-    <div class="dx-status small"></div>
-    <div class="dx-actions">
-      <button type="button" class="btn btn-primary btn-sm" data-dx-use hidden><i class="bi bi-plus-lg me-1"></i>${b.use || 'Put it in'}</button>
-      ${b.out ? `<button type="button" class="btn btn-outline-secondary btn-sm" data-dx-out hidden><i class="bi bi-dash-lg me-1"></i>${b.out}</button>` : ''}
+    <div class="dx-foot">
+      <div class="dx-status small"></div>
+      <div class="dx-actions">
+        <button type="button" class="btn btn-primary btn-sm" data-dx-use hidden><i class="bi bi-plus-lg me-1"></i>${b.use || 'Put it in'}</button>
+        ${b.out ? `<button type="button" class="btn btn-outline-secondary btn-sm" data-dx-out hidden><i class="bi bi-dash-lg me-1"></i>${b.out}</button>` : ''}
+      </div>
     </div>
     <div class="dx-confirm" role="alertdialog" hidden>
       <div class="dx-confirm-title"><i class="bi bi-exclamation-triangle-fill me-2"></i>Replace what is there?</div>

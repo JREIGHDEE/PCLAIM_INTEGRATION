@@ -3485,3 +3485,75 @@ html .dx-template .dx-sentence .field-missing {
 .dx-quick-phrase .bi { margin-right: .3rem; font-size: .75rem; }
 .dx-quick-phrase:hover { background: var(--primary); color: #fff; }
 .dx-quick-phrase[hidden] { display: none; }
+
+/* ── The clinic's wording, tidied (user feedback: "a bit confusing") ──
+   Each sentence on its own row with a small label; every blank the same
+   size and look, typed or picked (an underline on a light field, like a
+   form's blank); the status line and the button share one footer row.
+   Written for html/body.easy so the site's large buttons and thick box
+   edges (easy.css, outlines.css) do not apply inside the sentence. */
+html .dx-template { padding: 14px 18px; border: 1px solid var(--border); border-radius: var(--radius); }
+html .dx-template .dx-head { margin-bottom: 6px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+html .dx-template .dx-title { font-size: .9rem; }
+html .dx-template .dx-title .bi { color: var(--primary); }
+html .dx-template .dx-package { font-size: .8rem; }
+html .dx-template .dx-package .form-select {
+  width: auto; max-width: 22rem;
+  min-height: 0; height: 2rem;
+  padding: .15rem 2rem .15rem .6rem;
+  border-width: 1px;
+  font-size: .82rem;
+}
+html .dx-template .dx-sentence { white-space: normal; line-height: 1.5; }
+html .dx-template .dx-line { display: flex; align-items: baseline; gap: .9rem; padding: .45rem 0; }
+html .dx-template .dx-line + .dx-line { border-top: 1px dashed var(--border); }
+html .dx-template .dx-line-label {
+  flex: 0 0 5.2rem;
+  font-size: .7rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--text-muted);
+}
+html .dx-template .dx-line-text { flex: 1 1 auto; min-width: 0; font-size: .86rem; line-height: 2.3; color: #334155; }
+html .dx-template .dx-sentence [data-dx-var] {
+  display: inline-block;
+  height: 1.85em; min-height: 0;
+  margin: 0 .2em;
+  padding: 0 .4em;
+  border: 0 !important;
+  border-bottom: 2px solid #93b4e6 !important;
+  border-radius: 4px 4px 0 0;
+  background: var(--primary-light) !important;
+  box-shadow: none !important;
+  outline: none;
+  font: inherit; font-size: .95em; font-weight: 700;
+  line-height: 1.85em;
+  color: var(--text);
+  text-align: center;
+  vertical-align: baseline;
+}
+html .dx-template .dx-sentence select[data-dx-var] { width: auto; padding-right: .2em; cursor: pointer; }
+html .dx-template .dx-sentence [data-dx-var]:focus {
+  border-bottom-color: var(--primary) !important;
+  background: #fff !important;
+}
+/* A blank still to fill: the same shape, in red (blue in colour-blind mode). */
+html .dx-template .dx-sentence .dx-empty,
+html .dx-template .dx-sentence .dx-empty.field-needs-typing,
+html .dx-template .dx-sentence .dx-empty.field-missing {
+  border: 0 !important;
+  border-bottom: 2px solid var(--cb-missing, #dc2626) !important;
+  background: var(--cb-missing-soft, #fef2f2) !important;
+}
+html .dx-template .dx-foot {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: .4rem 1rem;
+  margin-top: 6px; padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+html .dx-template .dx-foot .dx-status { margin: 0; font-size: .82rem; }
+html .dx-template .dx-kept { cursor: help; border-bottom: 1px dotted currentColor; }
+html .dx-template .dx-foot > .dx-actions:not(:has(> button:not([hidden]))) { display: none; }
+html body.easy .dx-template .dx-actions .btn {
+  min-height: 0;
+  padding: .35rem .9rem;
+  font-size: .85rem;
+}
