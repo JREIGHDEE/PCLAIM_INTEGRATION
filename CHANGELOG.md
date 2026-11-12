@@ -38,6 +38,12 @@ Related documents:
   together. Each part is now a clearly coloured panel with a border all
   round and a heading band in its colour (style.css, #patientTabContent
   only; Clinic details keeps its lighter look). Red boxes still show red.
+- *Stay at the clinic split up.* "Confinement Details" held the dates,
+  times, disposition, accommodation, complaint and both diagnoses in one
+  long part (user feedback: cluttered, confusing). It is now four parts,
+  each in its own colour: Admission, Discharge, Disposition & Accommodation,
+  and Reason for Admission & Diagnosis (index.html). No box was moved
+  between forms or renamed.
 - *Typing lag (P3).* Each keystroke re-searched the whole page once per field
   key (several hundred searches) to copy values between forms, and redid every
   red mark and every form's preview through the CF4 course-in-the-ward rows.

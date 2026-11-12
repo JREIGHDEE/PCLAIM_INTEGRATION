@@ -504,7 +504,10 @@
           </div>
         </div>
 
-        <p class="pca-tab-section-label mt-4">Confinement Details</p>
+        <!-- "Confinement Details" was one long part (dates, times, disposition,
+             accommodation, complaint and diagnoses) - user feedback: cluttered
+             and confusing. Split into four, each in its own colour. -->
+        <p class="pca-tab-section-label mt-4">Admission</p>
         <div class="row g-3">
           <div class="col-md-6">
             <label class="pca-label">Date Admitted <span class="required-dot">*</span></label>
@@ -526,6 +529,10 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <p class="pca-tab-section-label mt-4">Discharge</p>
+        <div class="row g-3">
           <div class="col-md-6">
             <label class="pca-label">Date Discharged <span class="required-dot">*</span></label>
             <input type="date" class="form-control pca-input" data-autofill="dateDischarge">
@@ -555,6 +562,10 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <p class="pca-tab-section-label mt-4">Disposition &amp; Accommodation</p>
+        <div class="row g-3">
           <div class="col-md-6">
             <label class="pca-label">Patient Disposition <span class="required-dot">*</span></label>
             <select class="form-select pca-input" data-autofill="disposition">
@@ -588,6 +599,10 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <p class="pca-tab-section-label mt-4">Reason for Admission &amp; Diagnosis</p>
+        <div class="row g-3">
           <div class="col-12">
             <label class="pca-label">Chief Complaint / Reason for Admission <span class="required-dot">*</span></label>
             <input type="text" class="form-control pca-input" data-autofill="chiefComplaint" placeholder="e.g., LABOR PAINS">
