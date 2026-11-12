@@ -3644,24 +3644,38 @@ html body .field-flash { border-radius: 6px; }
 ═══════════════════════════════════════════════════════════ */
 .val-summary {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
   gap: 1rem;
   align-items: stretch;
 }
 @media (max-width: 991px) { .val-summary { grid-template-columns: 1fr; } }
 .val-summary > .pca-card { margin: 0; }
-.val-summary .save-patient-card { align-self: stretch; }
+/* The score first and wider; saving after it, smaller (user feedback:
+   "save the patient smaller and the field checking bigger and switch"). */
+.val-summary .score-hero { order: -1; }
+.val-summary .save-patient-card {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: .6rem;
+  padding: .9rem 1rem;
+}
+.val-summary .save-patient-text { flex: 0 0 auto; }
+.val-summary .save-patient-title { font-size: .95rem; }
+.val-summary .save-patient-sub { font-size: .8rem; line-height: 1.4; }
+.val-summary .save-patient-btn { align-self: flex-start; }
 
-#section-validation .score-hero { padding: 1rem 1.25rem; display: flex; align-items: center; }
-#section-validation .score-hero-main { gap: 1.25rem; flex-wrap: nowrap; width: 100%; }
+#section-validation .score-hero { padding: 1.25rem 1.5rem; display: flex; align-items: center; }
+#section-validation .score-hero-main { gap: 1.75rem; flex-wrap: nowrap; width: 100%; }
 #section-validation .score-hero-text { min-width: 0; }
-#section-validation .score-ring { width: 92px; height: 92px; }
-#section-validation .score-ring::before { width: 70px; height: 70px; }
+#section-validation .score-ring { width: 128px; height: 128px; }
+#section-validation .score-ring::before { width: 98px; height: 98px; }
 #section-validation .score-hero-bar { display: none; }
-#section-validation .score-hero-label { margin-bottom: .45rem; }
-#section-validation .score-counts { margin-top: 0; gap: .4rem; }
+#section-validation .score-hero-label { font-size: 1.3rem; margin-bottom: .7rem; }
+#section-validation .score-counts { margin-top: 0; gap: .5rem; font-size: .95rem; }
+#section-validation .score-count strong { font-size: 1.35rem; }
 #section-validation .score-count {
-  padding: .2rem .65rem;
+  padding: .3rem .85rem;
   border-radius: 999px;
   background: #f1f5f9;
   white-space: nowrap;
