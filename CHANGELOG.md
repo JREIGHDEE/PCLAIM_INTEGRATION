@@ -48,6 +48,12 @@ Related documents:
   CSF, CF1, CF2, CF4 and PMRF, and of Clinic details, is now the same
   clearly coloured panel with a heading band as on Patient details. A part
   ticked "Not needed" still turns grey.
+- *Check for missing information, tidier.* Save Patient Record and the
+  score now share one row; the ring is smaller and the bar that repeated it
+  is gone, the counts are small pills. Each form's missing boxes are white
+  rows in two columns with a red edge and a round "Go to Field", without
+  "Not filled in yet" on every row (still read out to a screen reader) or
+  "(red on the form)" (app.js). Filled-in boxes stay small green chips.
 - *Typing lag (P3).* Each keystroke re-searched the whole page once per field
   key (several hundred searches) to copy values between forms, and redid every
   red mark and every form's preview through the CF4 course-in-the-ward rows.

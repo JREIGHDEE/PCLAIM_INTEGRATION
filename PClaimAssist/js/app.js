@@ -2965,7 +2965,7 @@ function updateValidation() {
       extraHost.innerHTML = stillRed.map(({ key, label }) => `
         <div class="val-item" data-extra-field="${key}" style="order:0">
           <span class="val-dot"></span>
-          <span class="val-label">${escapeHtmlText(label)} <small class="text-muted">(red on the form)</small></span>
+          <span class="val-label">${escapeHtmlText(label)}</span>
           <span class="val-status ms-auto">Not filled in yet</span>
           <button type="button" class="val-fix" data-fix-field="${key}">Go to Field <i class="bi bi-arrow-right"></i></button>
         </div>`).join('');

@@ -3633,3 +3633,86 @@ html body .field-flash { border-radius: 6px; }
     box-shadow: 0 0 0 3px var(--cb-missing, #DC2626), 0 0 0 8px var(--pca-pulse) !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   CHECK FOR MISSING INFORMATION - tidier (user feedback: "more aesthetic
+   and less cluttered"). Saving and the score share one row; the ring is
+   smaller and the bar that repeated it is gone; each form's missing boxes
+   are quiet white rows in two columns, with no "Not filled in yet" on
+   every one (the list is of what is missing - it is still read out to a
+   screen reader).
+═══════════════════════════════════════════════════════════ */
+.val-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: stretch;
+}
+@media (max-width: 991px) { .val-summary { grid-template-columns: 1fr; } }
+.val-summary > .pca-card { margin: 0; }
+.val-summary .save-patient-card { align-self: stretch; }
+
+#section-validation .score-hero { padding: 1rem 1.25rem; display: flex; align-items: center; }
+#section-validation .score-hero-main { gap: 1.25rem; flex-wrap: nowrap; width: 100%; }
+#section-validation .score-hero-text { min-width: 0; }
+#section-validation .score-ring { width: 92px; height: 92px; }
+#section-validation .score-ring::before { width: 70px; height: 70px; }
+#section-validation .score-hero-bar { display: none; }
+#section-validation .score-hero-label { margin-bottom: .45rem; }
+#section-validation .score-counts { margin-top: 0; gap: .4rem; }
+#section-validation .score-count {
+  padding: .2rem .65rem;
+  border-radius: 999px;
+  background: #f1f5f9;
+  white-space: nowrap;
+}
+#section-validation .score-count--done { background: #f0fdf4; }
+#section-validation .score-count--miss { background: #fef2f2; }
+
+/* Each form: a calmer header and a two-column list. */
+#valAccordion { gap: 1rem; }
+#valAccordion .pca-accordion-item { box-shadow: 0 1px 3px rgba(15,23,42,.06); }
+#valAccordion .pca-accordion-btn { padding: 1rem 1.25rem; }
+#valAccordion .pca-accordion-btn:not(.collapsed) {
+  background: color-mix(in srgb, var(--fs-color, var(--primary)) 7%, #fff) !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--fs-color, var(--primary)) 20%, #fff);
+}
+#valAccordion .accordion-body { padding: 1rem 1.25rem 1.25rem !important; }
+#valAccordion .val-list { gap: .5rem .75rem; }
+#valAccordion .val-item:not(.complete):not(.skipped) {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-left: 4px solid var(--danger);
+  border-radius: 8px;
+  padding: .55rem .6rem .55rem .8rem;
+  color: var(--text);
+  font-weight: 500;
+  min-height: 48px;
+  flex: 0 0 calc(50% - .375rem);
+  min-width: 0;
+}
+@media (max-width: 1100px) {
+  #valAccordion .val-item:not(.complete):not(.skipped) { flex-basis: 100%; }
+}
+#valAccordion .val-item:not(.complete):not(.skipped):hover {
+  border-color: #fecaca;
+  border-left-color: var(--danger);
+  background: #fffafa;
+}
+#valAccordion .val-item:not(.complete):not(.skipped) .val-dot { display: none; }
+#valAccordion .val-item.val-warning:not(.complete) { border-left-color: var(--warning); }
+/* "Not filled in yet" on every row said nothing the list doesn't. */
+#valAccordion .val-item:not(.complete) .val-status {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}
+#valAccordion .val-item { position: relative; }
+#valAccordion .val-fix {
+  margin-left: auto;
+  border-color: transparent;
+  background: #fef2f2;
+  border-radius: 999px;
+  padding: .3rem .8rem;
+}
+#valAccordion .val-fix:hover { background: #fee2e2; }
+
