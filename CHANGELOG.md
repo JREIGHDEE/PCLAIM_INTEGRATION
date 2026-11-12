@@ -34,6 +34,22 @@ Related documents:
 - *Email (P6).* A refused address (e.g. a throw-away mailinator.com one) is
   still not saved (adviser's revision S2); the message now says how to go on:
   "If the patient has no email, type N/A in the email box." (email_check.py).
+- *The Logbook review and column check get the forms page's improvements.*
+  Formal, shorter wording: confidence "High Confidence / Verify / Enter
+  Manually / Low Confidence / Blank in Logbook" with "(90% confidence)"
+  (were Looks good / Please check / Please type / Best guess / computer is
+  90% sure), "Logbook image (click to view the full row)", "Reading", "Blank
+  in logbook", "Details", a one-line keyboard tip; the template panel "Use
+  Diagnosis Template" with Apply / Close / Undo and a short status ("6 fields
+  remaining. Final diagnosis also needs: date of delivery, time of delivery
+  (AM/PM)."); the admission pattern card "Matched / Auto-filled / Suggested:
+  ..." with "Correct pattern:" and "Edit Patterns"; "Confirm" / "Edit" for
+  unusual values; "Continue Column Check" / "Choose Another Scan"; and on the
+  column check "Confirm Page ->" / "Confirm and Read Logbook" (was "Yes, this
+  page is right -> next page"). The template panel is laid out like the forms
+  page: ADMISSION / FINAL rows, every blank the same underlined field (red, or
+  blue in colour-blind mode, while empty), small buttons
+  (templates/review.html, templates/logbook_setup.html).
 - *Reading a logbook scan: only the progress shows.* While a scan is sent and
   read, step 1 of "Read a logbook page" now shows just "Reading the logbook"
   and its progress; "1. Choose a file", the file name and "2. Read the

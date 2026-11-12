@@ -235,7 +235,7 @@ if (window.top !== window.self) document.documentElement.classList.add('embedded
             <div id="problems" class="notice bad" role="alert" hidden></div>
             <div class="nav">
                 <button id="backBtn">Back</button>
-                <button class="go" id="okBtn">Yes, this page is right</button>
+                <button class="go" id="okBtn">Confirm Page</button>
             </div>
         </section>
 
@@ -488,8 +488,8 @@ function showPage(index){
     const img = $("pageImg");
     const src = `/api/logbook-setup/${setup.setup_id}/${current.picture}`;
     if(img.getAttribute("src") !== src) img.src = src;
-    $("okBtn").textContent = !last ? "Yes, this page is right → next page"
-        : CHECK_ID ? "Yes, read the logbook" : "Yes, this page is right";
+    $("okBtn").textContent = !last ? "Confirm Page →"
+        : CHECK_ID ? "Confirm and Read Logbook" : "Confirm Page";
     $("backBtn").textContent = CHECK_ID && index === 0 ? "Choose a different scan" : "Back";
     drawPage();
 }

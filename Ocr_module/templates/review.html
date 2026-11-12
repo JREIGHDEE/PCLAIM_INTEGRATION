@@ -238,6 +238,29 @@ input.big.empty-required{ border-color:var(--type-line); background:#fff7f7; }
 .dx-pkg .dx-actions button{ min-height:44px; padding:8px 18px; }
 .dx-pkg .dx-note{ flex-basis:100%; margin-top:2px; }
 .dx-open:has(+ .dx-pkg:not([hidden])){ display:none; }
+/* The template panel, tidied as on the forms page (user feedback): each
+   sentence on its own labelled row, every blank the same underlined field,
+   small buttons, one short status line. */
+.dx-pkg{ padding:12px 16px; border:1px solid var(--blue-soft); border-radius:10px; background:#fff; }
+.dx-pkg .dx-pkg-choice{ display:flex; align-items:center; gap:8px; margin:0 0 6px; padding-bottom:8px;
+    border-bottom:1px solid #e2e8f0; font-size:.85rem; color:#64748b; }
+.dx-pkg .dx-pkg-choice select{ font-size:.9rem; min-height:34px; padding:2px 8px; border:1px solid #cbd5e1; border-radius:8px; }
+.dx-pkg .dx-row{ display:flex; align-items:baseline; gap:14px; padding:6px 0; }
+.dx-pkg .dx-row + .dx-row, .dx-pkg [data-final-part] .dx-row{ border-top:1px dashed #e2e8f0; }
+.dx-pkg .dx-row-label{ flex:0 0 5.4rem; font-size:.72rem; font-weight:700; letter-spacing:.05em;
+    text-transform:uppercase; color:#64748b; }
+.dx-pkg .dx-sentence{ flex:1 1 auto; min-width:0; font-size:.92rem; line-height:2.3; color:#334155; }
+.dx-pkg .dx-sentence .dx-blank{ height:1.85em; min-height:0; margin:0 .15em; padding:0 .4em;
+    border:0; border-bottom:2px solid #93b4e6; border-radius:4px 4px 0 0; background:#eff6ff;
+    font-size:.95em; line-height:1.85em; vertical-align:baseline; box-shadow:none; }
+.dx-pkg .dx-sentence .dx-blank:focus{ outline:none; border-bottom-color:var(--blue); background:#fff; }
+/* Over colorblind.css's thick dashed box for empty blanks: the same
+   underline, in the missing colour (red, or blue in colour-blind mode). */
+html .dx-pkg .dx-sentence .dx-blank.dx-empty{ border:0 !important; border-bottom:2px solid var(--cb-missing, #dc2626) !important;
+    background:var(--cb-missing-soft, #fef2f2) !important; box-shadow:none !important; }
+.dx-pkg .dx-actions{ margin-top:8px; padding-top:8px; border-top:1px solid #e2e8f0; }
+.dx-pkg .dx-actions button{ min-height:36px; padding:5px 14px; font-size:.9rem; }
+.dx-pkg .dx-note{ font-size:.88rem; }
 /* The reason for admission recognised from what the logbook says (admission patterns). */
 .adm-suggest{ margin-top:10px; padding:10px 14px; border:2px solid #fcd34d; border-radius:12px; background:#fffbeb; }
 .adm-suggest[hidden]{ display:none; }
@@ -455,7 +478,7 @@ if (window.top !== window.self) document.documentElement.classList.add('embedded
     <div class="empty-review">
         <p><strong>No scan has been read yet.</strong></p>
         <p class="muted">Go to <strong>1. Upload the scan</strong> first. The patients will show here when it's done.</p>
-        <button type="button" class="primary" onclick="showTab('upload')">Go to Upload the scan</button>
+        <button type="button" class="primary" onclick="showTab('upload')">Go to Upload</button>
     </div>
 </div>
 </div>
@@ -465,7 +488,7 @@ if (window.top !== window.self) document.documentElement.classList.add('embedded
     <div class="empty-review">
         <p><strong>No scan has been read yet.</strong></p>
         <p class="muted">Go to <strong>1. Upload the scan</strong> first. The patients will show here when it's done.</p>
-        <button type="button" class="primary" onclick="showTab('upload')">Go to Upload the scan</button>
+        <button type="button" class="primary" onclick="showTab('upload')">Go to Upload</button>
     </div>
 </div>
 </div>
@@ -506,26 +529,26 @@ const FIELD_NAMES = {
 // Confidence routing (thresholds from config.py), in plain words.
 const STATUS = {
     accepted: {
-        icon: "✓", label: "Looks good",
-        help: "The computer is sure about this. Take a quick look at the picture.",
+        icon: "✓", label: "High Confidence",
+        help: "The computer is confident in this reading. Review the image briefly.",
     },
     needs_check: {
-        icon: "!", label: "Please check",
-        help: "The computer is not sure. Compare the words in the box with the picture, and fix them if needed.",
+        icon: "!", label: "Verify",
+        help: "The computer is not certain. Compare the text with the image and correct it if needed.",
     },
     manual_encoding_required: {
-        icon: "✎", label: "Please type",
-        help: "The computer could not read this. Look at the picture and type what you see.",
+        icon: "✎", label: "Enter Manually",
+        help: "The computer could not read this field. Enter what the image shows.",
     },
     // A field the computer found hard to read, filled with its best guess
     // (logbook_pipeline.fill_best_guesses / paddle_assist.apply_reading).
     best_guess: {
-        icon: "?", label: "Best guess",
-        help: "The writing was hard to read, so this is the computer's best guess. Compare it with the picture carefully and fix anything that is wrong.",
+        icon: "?", label: "Low Confidence",
+        help: "The writing is unclear; this is the computer's best reading. Compare it with the image and correct it.",
     },
     empty: {
-        icon: "–", label: "Empty in the logbook",
-        help: "Nothing is written here in the logbook. Leave it empty, or type it if you know it.",
+        icon: "–", label: "Blank in Logbook",
+        help: "Nothing is written here in the logbook. Leave it blank, or enter it if known.",
     },
 };
 const MAYBE_MISSING = "Part of the writing may be missing from the box. Look at the whole picture.";
@@ -650,8 +673,8 @@ function renderPendingCheck(){
         ? `<p><strong>The columns of your last scan are not checked yet.</strong></p>
             <p class="muted">The scan is not read until each page's columns are checked.</p>
             <div class="upload-actions">
-                <button type="button" class="primary" onclick="openColumnCheck('${escapeHtml(pending)}')">Carry on checking the columns</button>
-                <button type="button" onclick="dropColumnCheck()">Choose a different scan</button>
+                <button type="button" class="primary" onclick="openColumnCheck('${escapeHtml(pending)}')">Continue Column Check</button>
+                <button type="button" onclick="dropColumnCheck()">Choose Another Scan</button>
             </div>`
         : "";
 }
@@ -856,8 +879,8 @@ const PKG_WORKED_OUT = {
 };
 // What to say when a worked-out part can't be worked out yet.
 const PKG_NEEDS = {
-    ddate: "the date of delivery (Date & time of delivery)",
-    time: "the time of delivery with AM or PM (Date & time of delivery)",
+    ddate: "date of delivery",
+    time: "time of delivery (AM/PM)",
 };
 // What the box already says, in any of the clinic's wordings.
 function readPkg(text){
@@ -888,18 +911,18 @@ function textBox(category){
 // called "Put back what was read", and staff pressed it to add the text.)
 function renderPkgTemplate(id){
     const options = Object.entries(PKG_WORDINGS).map(([key, p]) => `<option value="${key}">${escapeHtml(p.name)}</option>`).join("");
-    return `<button type="button" class="quick dx-open" onclick="openPkg(this, '${id}')">Use a clinic wording (NSDBF, newborn care…)</button>
+    return `<button type="button" class="quick dx-open" onclick="openPkg(this, '${id}')">Use Diagnosis Template</button>
         <div class="dx-template dx-pkg" data-for="${id}" hidden>
-            <label class="input-label">Package:
+            <label class="input-label dx-pkg-choice">Package
                 <select class="dx-blank" data-pkg-choice onchange="drawPkg(this.closest('.dx-template'))">${options}</select></label>
-            <p class="input-label">Reason for admission:</p>
-            <p class="dx-sentence" data-sentence="text"></p>
+            <div class="dx-row"><span class="dx-row-label">Admission</span>
+            <p class="dx-sentence" data-sentence="text"></p></div>
             <div data-final-part hidden>
-                <p class="input-label">Final diagnosis (goes in the final diagnosis box):</p>
-                <p class="dx-sentence" data-sentence="final"></p>
+                <div class="dx-row"><span class="dx-row-label" title="Goes in the final diagnosis box">Final</span>
+                <p class="dx-sentence" data-sentence="final"></p></div>
             </div>
             <div class="dx-actions">
-                <button type="button" class="primary" onclick="putPkg(this.closest('.dx-template'))">Put it in</button>
+                <button type="button" class="primary" onclick="putPkg(this.closest('.dx-template'))">Apply</button>
                 <button type="button" onclick="this.closest('.dx-template').hidden = true; drawAdmission()">Close</button>
                 <button type="button" onclick="undoPkg(this.closest('.dx-template'))" title="Go back to what was read">Undo</button>
                 <span class="dx-note" aria-live="polite"></span>
@@ -996,11 +1019,11 @@ function refreshPkg(el){
     });
     const notes = [];
     const blanksLeft = box.querySelectorAll(".dx-sentence .dx-blank.dx-empty").length;
-    if(blanksLeft) notes.push(`Fill in the ${blanksLeft} red blank${blanksLeft === 1 ? "" : "s"} - each wording goes in by itself once complete.`);
+    if(blanksLeft) notes.push(`${blanksLeft} field${blanksLeft === 1 ? "" : "s"} remaining.`);
     if(!missingIn(wording.text, v).length){
         const text = fillSentence(wording.text, v);
         putInBox(document.getElementById(box.dataset.for), text);
-        notes.push("✓ The reason for admission is in its box.");
+        notes.push("✓ Reason for admission applied.");
         // One sentence for both (prenatal, postpartum, implant, IUD, newborn),
         // as on Patient details: it is the final diagnosis too - into a box
         // still empty or holding what this panel put there, so an earlier
@@ -1011,7 +1034,7 @@ function refreshPkg(el){
             if(same && same.checked){ same.checked = false; final.readOnly = false; }
             putInBox(final, dropFor(text));
             box._putFinal = dropFor(text);
-            notes.push("✓ The final diagnosis is in its box.");
+            notes.push("✓ Final diagnosis applied.");
         }
     }
     if(wording.final){
@@ -1023,10 +1046,10 @@ function refreshPkg(el){
             // The final diagnosis writes the APGAR score "8 AND 9".
             box._putFinal = fillSentence(wording.final, {...v, apgar: v.apgar.replace(/\s*&\s*/, " AND ")});
             putInBox(final, box._putFinal);
-            notes.push("✓ The final diagnosis is in its box.");
+            notes.push("✓ Final diagnosis applied.");
         }else{
             const needs = missing.filter(name => PKG_NEEDS[name]).map(name => PKG_NEEDS[name]);
-            if(needs.length) notes.push(`The final diagnosis still needs ${needs.join(" and ")}.`);
+            if(needs.length) notes.push(`Final diagnosis also needs: ${needs.join(", ")}.`);
         }
     }
     const note = box.querySelector(".dx-note");
@@ -1047,7 +1070,7 @@ function putPkg(box){
     try { refreshPkg(box); } finally { box._forceFinal = false; }
     const blank = box.querySelector(".dx-sentence .dx-blank.dx-empty");
     if(blank){
-        box.querySelector(".dx-note").textContent = "Fill in the red blank first - the text goes in once nothing is missing.";
+        box.querySelector(".dx-note").textContent = "Complete the remaining fields first.";
         blank.focus();
         return;
     }
@@ -1134,7 +1157,7 @@ function renderInputs(f, id){
         </div>`;
     }
     const sameAs = f.category === "FINAL DIAGNOSIS" && sameAsAdmittingAtStart(p);
-    return `<label class="input-label" for="${id}">What it says:</label>
+    return `<label class="input-label" for="${id}">Reading</label>
         <input class="big" id="${id}" data-part="text" autocomplete="off" ${f.category === "ADDRESS" ? 'maxlength="255"' : ""} value="${attr(caps(p.text))}"
             oninput="toCaps(this)" ${sameAs ? "readonly" : ""}
             ${f.status === "manual_encoding_required" ? 'placeholder="Type what you see in the picture"' : ""}>
@@ -1191,12 +1214,12 @@ document.addEventListener("input", e => {
 // birthday and admission date: a claim can't be made without them.
 function renderEmptyChoice(f){
     if(CLAIM_REQUIRED.includes(f.category)){
-        return `<p class="field-note muted">Every logbook entry should have this, so it can't be marked empty.</p>`;
+        return `<p class="field-note muted">Required for every logbook entry; it cannot be marked blank.</p>`;
     }
     const empty = !!(f.parts || {}).empty;
     return `<button type="button" class="empty-toggle" aria-pressed="${empty}" onclick="toggleEmpty(this)">
         <span class="tick" aria-hidden="true">${empty ? "☑" : "☐"}</span>
-        Nothing is written here (empty in the logbook)
+        Blank in logbook
     </button>`;
 }
 
@@ -1250,7 +1273,7 @@ function renderField(session, f, index){
     const status = (f.best_guess && f.status === "needs_check" ? STATUS.best_guess : STATUS[f.status]) || STATUS.needs_check;
     const id = `f-${session.session_id}-${index}`;
     const sure = percent(f.confidence);
-    const sureText = sure === null ? "" : ` <span class="sure">(computer is ${sure}% sure)</span>`;
+    const sureText = sure === null ? "" : ` <span class="sure">(${sure}% confidence)</span>`;
     const cropUrl = crop(f.crop);
     const rowUrl = f.row_crop ? crop(f.row_crop) : "";
     const manual = f.status === "manual_encoding_required";
@@ -1266,7 +1289,7 @@ function renderField(session, f, index){
         </div>
         <p class="field-help">${status.help}${neededHere}${f.possibly_incomplete ? ` <strong>${MAYBE_MISSING}</strong>` : ""}</p>
         ${renderAiNote(f)}
-        <p class="scan-label">From the logbook (click the picture to see ${rowUrl ? "the whole row" : "it bigger"}):</p>
+        <p class="scan-label">Logbook image (click to view ${rowUrl ? "the full row" : "it larger"})</p>
         <a class="scan" href="${rowUrl || cropUrl}" target="_blank" rel="noopener"
             ${rowUrl ? `data-cell="${attr(cropUrl)}" data-box="${attr((f.row_box || []).join(","))}"
             data-title="${attr(nameOf(f.category))}" onclick="openRowViewer(event, this)"` : ""}>
@@ -1278,7 +1301,7 @@ function renderField(session, f, index){
         <p class="field-tip" aria-live="polite" hidden></p>
         <p class="field-problem" role="alert" hidden></p>
         <p class="field-warning" hidden></p>
-        <details class="more"><summary>More details</summary><dl>
+        <details class="more"><summary>Details</summary><dl>
             <dt>Computer read</dt><dd>${f.raw_text ? escapeHtml(shownAs(f, f.raw_text)) : "(nothing)"}</dd>
             <dt>How sure</dt><dd>${sure === null ? "—" : sure + "%"} (looks good from ${Math.round(ACCEPT * 100)}%, please check from ${Math.round(REVIEW * 100)}%)</dd>
             ${f.ai ? `<dt>AI read</dt><dd>${f.ai.text ? escapeHtml(shownAs(f, f.ai.text)) : "(nothing)"} (${f.ai.sure ? "sure" : "not sure"})${f.ai.note ? ` — ${escapeHtml(f.ai.note)}` : ""}</dd>` : ""}
@@ -1307,8 +1330,8 @@ function renderPatient(){
     </section>
     <section class="card" aria-label="Boxes for patient ${current + 1}">
         <ol class="box-steps" id="boxSteps" aria-label="Boxes for this patient"></ol>
-        <p class="keys-tip">Tip: press <kbd aria-label="left arrow">←</kbd> and <kbd aria-label="right arrow">→</kbd>
-            on the keyboard to go to the previous or next box. If you are typing in a box, press <kbd>Esc</kbd> first.</p>
+        <p class="keys-tip" title="When typing in a field, press Esc first">Tip: use <kbd aria-label="left arrow">←</kbd> and
+            <kbd aria-label="right arrow">→</kbd> to move between fields.</p>
         <div id="fields">${s.fields.map((f, i) => renderField(s, f, i)).join("")}</div>
         <section id="finishStep" class="finish-step" aria-labelledby="finishTitle" hidden>
             <h2 id="finishTitle" tabindex="-1">Finish: is everything right?</h2>
@@ -1421,28 +1444,28 @@ function drawAdmission(){
     const why = chosen.why ? ` <span class="muted">(${escapeHtml(chosen.why)})</span>` : "";
     const read = `"<span class="adm-reading">${escapeHtml(reading)}</span>"`;
     const head = admissionPick.wording
-        ? `<strong>${escapeHtml(chosen.name)}:</strong> the scan read ${read}.`
+        ? `Matched: <strong>${escapeHtml(chosen.name)}</strong> (reading ${read}).`
         : inBox && auto
-        ? `<strong>Filled in by itself:</strong> the scan read ${read} - that is <strong>${escapeHtml(chosen.name)}</strong>${why}.`
+        ? `Auto-filled: <strong>${escapeHtml(chosen.name)}</strong> (reading ${read})${why}.`
         : inBox
-        ? `<strong>${escapeHtml(chosen.name)}:</strong> the scan read ${read}.`
-        : `<strong>Suggestion:</strong> ${read} looks like <strong>${escapeHtml(chosen.name)}</strong>${why}.
-           The clinic writes: <strong>${escapeHtml(chosen.reason)}</strong>`;
+        ? `Matched: <strong>${escapeHtml(chosen.name)}</strong> (reading ${read}).`
+        : `Suggested: <strong>${escapeHtml(chosen.name)}</strong> (reading ${read})${why}.
+           Standard wording: <strong>${escapeHtml(chosen.reason)}</strong>`;
     box.hidden = false;
     box.innerHTML = `<p>${head}</p>
         ${done ? `<p class="adm-done">✓ ${escapeHtml(done)}</p>` : ""}
         <div class="dx-actions">
             ${admissionPick.wording
-                ? `<button type="button" class="primary" onclick="openDeliveryWording(false)">Open the clinic wording</button>`
+                ? `<button type="button" class="primary" onclick="openDeliveryWording(false)">Open Diagnosis Template</button>`
                 : !inBox && chosen.id !== undefined
-                ? `<button type="button" class="primary" onclick="useAdmission()">Put it in</button>` : ""}
+                ? `<button type="button" class="primary" onclick="useAdmission()">Apply</button>` : ""}
             ${inBox && auto && before.trim() && before !== chosen.reason
-                ? `<button type="button" onclick="undoAdmission()" title="Put back what the scan read">Undo</button>` : ""}
-            ${others.length ? `<label class="input-label">Not right? It is
-                <select onchange="pickAdmission(this)"><option value="">- choose -</option>
+                ? `<button type="button" onclick="undoAdmission()" title="Restore the original reading">Undo</button>` : ""}
+            ${others.length ? `<label class="input-label">Correct pattern:
+                <select onchange="pickAdmission(this)"><option value="">Select…</option>
                     ${others.map(p => `<option value="${p.id ?? ""}">${escapeHtml(p.name)}: ${escapeHtml(p.reason)}</option>`).join("")}
                     <option value="none">None of these</option></select></label>` : ""}
-            <a href="${attr(patternsPageUrl())}" target="_blank" rel="noopener">Edit the patterns</a>
+            <a href="${attr(patternsPageUrl())}" target="_blank" rel="noopener">Edit Patterns</a>
         </div>`;
 }
 // Teach the pattern table that the scan's reading is this pattern - quietly
@@ -1519,13 +1542,13 @@ function closeDeliveryWording(){
 }
 function useAdmission(){
     putInBox(admissionInput(), admissionPick.chosen.reason);
-    learnAdmission(admissionPick.chosen, `Put in, and remembered: "${admissionPick.reading}" is ${admissionPick.chosen.name}.`);
+    learnAdmission(admissionPick.chosen, `Applied and saved: "${admissionPick.reading}" is ${admissionPick.chosen.name}.`);
 }
 function undoAdmission(){
     putInBox(admissionInput(), admissionPick.before);
     finalBackToScan();
     admissionPick.auto = false;
-    admissionPick.done = "Put back what the scan read.";
+    admissionPick.done = "Original reading restored.";
     drawAdmission();
 }
 function pickAdmission(select){
@@ -1540,7 +1563,7 @@ function pickAdmission(select){
         admissionPick.auto = false;
         admissionPick.wording = false;
         admissionPick.chosen = {id: undefined, name: "none of the patterns", reason: "", why: "", package: ""};
-        admissionPick.done = 'Type what the logbook says. To have it filled in next time, add it with "Edit the patterns".';
+        admissionPick.done = 'Enter the text from the logbook. To fill it in automatically next time, add it under "Edit Patterns".';
         drawAdmission();
         return;
     }
@@ -1550,13 +1573,13 @@ function pickAdmission(select){
     admissionPick.wording = isDeliveryPattern(pattern);
     if(admissionPick.wording){
         openDeliveryWording(false);
-        learnAdmission(pattern, `Remembered: "${admissionPick.reading}" is ${pattern.name} - fill in the clinic wording below.`);
+        learnAdmission(pattern, `Saved: "${admissionPick.reading}" is ${pattern.name}. Complete the diagnosis template below.`);
         return;
     }
     closeDeliveryWording();
     putInBox(input, pattern.reason);
     finalFollowsAdmission();
-    learnAdmission(pattern, `Put in, and remembered: "${admissionPick.reading}" is ${pattern.name} - it will be filled in next time.`);
+    learnAdmission(pattern, `Applied and saved: "${admissionPick.reading}" is ${pattern.name}. It will be filled in automatically next time.`);
 }
 // Saved with the pattern's wording in the box: remember the reading under it.
 function rememberAdmissionOnSave(admittingText){
@@ -2011,11 +2034,11 @@ function askToConfirm(data, onYes){
     box.className = "notice warn confirm-box";
     box.setAttribute("role", "alertdialog");
     box.setAttribute("aria-label", "Please confirm");
-    box.innerHTML = `<strong>Some answers look unusual.</strong>
-        Please look at the boxes marked in yellow. Are they correct?
+    box.innerHTML = `<strong>Unusual values found.</strong>
+        Review the fields marked in yellow and confirm they are correct.
         <div class="actions">
-            <button type="button" class="go" id="confirmYes">Yes, they are correct</button>
-            <button type="button" id="confirmNo">No, let me fix them</button>
+            <button type="button" class="go" id="confirmYes">Confirm</button>
+            <button type="button" id="confirmNo">Edit</button>
         </div>`;
     document.getElementById("msg").after(box);
     box.querySelector("#confirmYes").onclick = () => { box.remove(); onYes(); };
