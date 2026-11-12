@@ -1009,9 +1009,36 @@ function dxPhraseCard(section, key, phrase, title, append, opts) {
 // put in by themselves (app.js applyNewPatientDefaults, DERIVED_FIELDS),
 // highlighted until checked, so they have no card.
 // Patient details: labor pains is a reason for admission, not part of the
-// history of present illness - added to whatever is written there.
-const dxLaborPains = dxPhraseCard('patient', 'chiefComplaint', 'LABOR PAINS',
-  'The usual wording: labor pains', true);
+// history of present illness - added to whatever is written there. A small
+// "+ Labor pains" button beside the label puts it in (a whole card with a
+// preview and "Put it in" was too much for two words - user feedback).
+const dxLaborPains = dxQuickPhrase('patient', 'chiefComplaint', 'LABOR PAINS', 'Labor pains');
+
+/* One small button on a box's label that puts a phrase in the box - or adds
+   it after what is written there - and hides once the box has it. */
+function dxQuickPhrase(section, key, phrase, label) {
+  const field = document.querySelector(`#section-${section} [data-autofill="${key}"]`);
+  const host = field && field.parentElement && field.parentElement.querySelector('.pca-label');
+  if (!host) return null;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'dx-quick-phrase';
+  btn.innerHTML = `<i class="bi bi-plus-lg" aria-hidden="true"></i>${dxEscape(label)}`;
+  btn.title = `Put ${phrase} in the box`;
+  host.appendChild(btn);
+  const now = () => String(state.data[key] ?? '').trim();
+  const has = () => now().toUpperCase().split(/\s*,\s*/).includes(phrase.toUpperCase());
+  btn.addEventListener('click', () => {
+    const text = now();
+    dxApplying = true;
+    try { applyFormData({ [key]: text ? text + DX_PHRASE_SEP + phrase : phrase }); } finally { dxApplying = false; }
+    part.refresh();
+    field.focus();
+  });
+  const part = { refresh() { btn.hidden = has(); } };
+  part.refresh();
+  return part;
+}
 
 /* ── Kept in step with the forms ─────────────────────────── */
 

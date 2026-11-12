@@ -3467,3 +3467,21 @@ html .dx-template .dx-sentence .field-missing {
   padding: .7rem 1rem;
   font-weight: 600;
 }
+
+/* "+ Labor pains" on the Chief Complaint label (js/dx-templates.js
+   dxQuickPhrase): a small pill, in place of a whole wording card. */
+.dx-quick-phrase {
+  margin-left: .6rem;
+  padding: .1rem .65rem;
+  border: 1px solid var(--primary-mid);
+  border-radius: 999px;
+  background: var(--primary-light);
+  color: var(--primary);
+  font-size: .82rem; font-weight: 600;
+  line-height: 1.6;
+  vertical-align: middle;
+  cursor: pointer;
+}
+.dx-quick-phrase .bi { margin-right: .3rem; font-size: .75rem; }
+.dx-quick-phrase:hover { background: var(--primary); color: #fff; }
+.dx-quick-phrase[hidden] { display: none; }

@@ -232,14 +232,14 @@ const SAMPLE_DATA = {
   dateAdmitted:'2026-06-10', timeAdmitted:'08:30', amPmAdmitted:'AM',
   dateDischarge:'2026-06-13', timeDischarge:'10:00', amPmDischarge:'AM',
   disposition:'Improved', accommodation:'Non-Private',
-  chiefComplaint:'Labor pains, full-term pregnancy',
+  chiefComplaint:'LABOR PAINS',
   // In labor on admission, delivered at discharge (js/dx-templates.js NSDBF).
   admissionDx:'PREGNANCY UTERINE FULL TERM 40 WEEKS AOG, CEPHALIC IN LABOR GRAVIDA 2 PARA 1 (1001).',
   dischargeDx:'PREGNANCY UTERINE FULL TERM 40 WEEKS AOG GRAVIDA 2 PARA 2 (2002), DELIVERED VIA NORMAL SPONTANEOUS VAGINAL DELIVERY ' +
     'ON JUNE 10, 2026, 09:45 AM TO A LIVE TERM BABY GIRL IN CEPHALIC PRESENTATION WEIGHING 3200 GMS. WITH AN APGAR ' +
     'SCORE OF 8 AND 9 AND WITH AGA.',
   patientAge:'31',
-  cf4ChiefComplaint:'Labor pains, full-term pregnancy',
+  cf4ChiefComplaint:'LABOR PAINS',
   cf4HistoryPresentIllness:'G1 - 2018 - HOSPITAL\nG2 - PRESENT PREGNANCY',
   cf4PhysicalExam:'BP 120/80, HR 88, RR 18, T 36.8C. Abdomen gravid, fundic height 34 cm, '
     + 'FHT 142 bpm. Internal exam: 6 cm dilated, 80% effaced, station -1, intact membranes.',

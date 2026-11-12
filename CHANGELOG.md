@@ -34,6 +34,12 @@ Related documents:
 - *Email (P6).* A refused address (e.g. a throw-away mailinator.com one) is
   still not saved (adviser's revision S2); the message now says how to go on:
   "If the patient has no email, type N/A in the email box." (email_check.py).
+- *Chief Complaint: a "+ Labor pains" button instead of a wording card.* The
+  card under Chief Complaint / Reason for Admission ("The usual wording: labor
+  pains", a preview and "Put it in") is now one small button on the box's
+  label: it puts LABOR PAINS in the box (after anything written there) and
+  hides once the box has it (dx-templates.js dxQuickPhrase). The practice data
+  and the example now say LABOR PAINS.
 - *The patient stays when you go to another page and back.* Going to "Read a
   logbook page" (or any page) while typing a patient and coming back gave
   empty forms: the sidebar's link carries no claim, so a saved patient was not
