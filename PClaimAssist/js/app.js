@@ -3291,13 +3291,115 @@ function focusField(key) {
     const target = el.matches('input,select,textarea,button') ? el
                  : el.querySelector('input:not([type=hidden]),select,textarea,button');
     if (target && !target.disabled && !target.readOnly) target.focus({ preventScroll: true });
-    // The box glows until it is typed in, or for a few seconds (user
-    // feedback: it was not clear where the missing box was).
-    el.classList.add('field-flash');
-    const stop = () => { el.classList.remove('field-flash'); el.removeEventListener('input', stop, true); };
-    el.addEventListener('input', stop, true);
-    setTimeout(stop, 4000);
+    pulseField(el);
   }, 350);
+}
+
+/* The box glows until it is typed in, or for a few seconds (user feedback:
+   it was not clear where the missing box was). */
+function pulseField(el) {
+  el.classList.add('field-flash');
+  const stop = () => { el.classList.remove('field-flash'); el.removeEventListener('input', stop, true); };
+  el.addEventListener('input', stop, true);
+  setTimeout(stop, 4000);
+}
+
+/* ══════════════════════════════════════════════════════════
+   ON TO THE NEXT MISSING FIELD
+   A field that was red (missing) when it was entered, finished - Tab or
+   Enter after typing, a choice picked, a PIN or date row completed - and
+   no longer red: the cursor goes on to the next red field on the same
+   page, in page order (back to the first after the last), opening its
+   Patient details part or form page, and it pulses (user feedback: "go to
+   the next error by itself"). A field still red keeps the cursor; a click
+   elsewhere is always followed.
+══════════════════════════════════════════════════════════ */
+const MISSING_MARKS = '.field-missing, .field-needs-typing, .box-missing';
+const MISSING_GROUPS = '.pca-box-group, .box-input, .box-input-date, .pin-boxes, .btn-check-group';
+const redWhenEntered = new WeakSet();
+
+function markOf(el) {
+  return el.closest(MISSING_GROUPS) || el;
+}
+function isMarkedMissing(el) {
+  const own = markOf(el);
+  return own.matches(MISSING_MARKS) || el.matches(MISSING_MARKS) || !!own.querySelector(MISSING_MARKS);
+}
+function typeableIn(mark) {
+  const usable = x => x && !x.disabled && !x.readOnly && x.type !== 'hidden';
+  if (mark.matches('input, select, textarea')) return usable(mark) ? mark : null;
+  return [...mark.querySelectorAll('input, select, textarea')].find(usable) || null;
+}
+
+function nextMissingAfter(from) {
+  const section = from.closest('.content-section');
+  if (!section) return null;
+  const own = markOf(from);
+  const seen = new Set();
+  const marks = [...section.querySelectorAll(MISSING_MARKS)].map(m => m.closest(MISSING_GROUPS) || m).filter(m => {
+    if (seen.has(m) || m === own || own.contains(m) || m.contains(from)) return false;
+    seen.add(m);
+    return !m.closest('.part-not-needed, .dx-template, .pdf-overlay') && !!typeableIn(m);
+  });
+  return marks.find(m => from.compareDocumentPosition(m) & Node.DOCUMENT_POSITION_FOLLOWING) || marks[0] || null;
+}
+
+let nextMissingTimer = null;
+function goToNextMissingSoon(from) {
+  clearTimeout(nextMissingTimer);
+  // The red marks are redone a moment after a change (updateValidationSoon).
+  nextMissingTimer = setTimeout(() => {
+    if (isMarkedMissing(from)) return;                    // not finished: stay
+    const active = document.activeElement;
+    if (active && active !== from && active !== document.body && !markOf(from).contains(active)) return;  // moved on by hand
+    const next = nextMissingAfter(from);
+    if (!next) {
+      if (typeof showToast === 'function') {
+        showToast('Complete', 'All required fields on this page are complete.', 'success');
+      }
+      return;
+    }
+    revealForTyping(next);
+    setTimeout(() => {
+      next.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const target = typeableIn(next);
+      if (target) target.focus({ preventScroll: true });
+      pulseField(next);
+    }, 250);
+  }, 400);
+}
+
+document.addEventListener('focusin', e => {
+  const el = e.target;
+  if (el && el.closest && el.matches('input, select, textarea') && el.closest('.content-section') && isMarkedMissing(el)) {
+    redWhenEntered.add(el);
+  }
+}, true);
+// Typed, then Tab or Enter: on to the next missing field instead of the next box.
+document.addEventListener('keydown', e => {
+  const el = e.target;
+  if (!redWhenEntered.has(el) || e.shiftKey || e.altKey || e.ctrlKey) return;
+  if (e.key !== 'Tab' && !(e.key === 'Enter' && el.tagName !== 'TEXTAREA')) return;
+  if (String(el.value || '').trim() === '') return;
+  if (e.key === 'Enter' || nextMissingAfter(el)) e.preventDefault();
+  redWhenEntered.delete(el);
+  goToNextMissingSoon(el);
+}, true);
+// A choice picked (dropdown, tick box, round choice).
+document.addEventListener('change', e => {
+  const el = e.target;
+  if (!redWhenEntered.has(el) || !el.matches('select, input[type=checkbox], input[type=radio]')) return;
+  redWhenEntered.delete(el);
+  goToNextMissingSoon(el);
+}, true);
+/* A PIN, date or digit row whose last box was just filled (js/box-input.js
+   pcaFocusNextField asks first): true when it goes to the next missing field. */
+function goToNextMissingIfFixed(from) {
+  const own = markOf(from);
+  const wasRed = [...own.querySelectorAll('input')].some(x => redWhenEntered.has(x)) || redWhenEntered.has(from);
+  if (!wasRed) return false;
+  goToNextMissingSoon(from);
+  return true;
 }
 
 /* ══════════════════════════════════════════════════════════

@@ -16,6 +16,9 @@
    the boxes of this one value, which are skipped. Used by js/date-text.js,
    js/pin-input.js and js/app.js too. */
 function pcaFocusNextField(from, group) {
+  // A missing (red) row just completed goes on to the next missing field
+  // instead (js/app.js goToNextMissingIfFixed).
+  if (typeof goToNextMissingIfFixed === 'function' && goToNextMissingIfFixed(from)) return;
   const scope = from.closest('.content-section') || document;
   const takesTyping = el => !el.disabled && !el.readOnly && el.offsetParent !== null &&
     !['hidden', 'checkbox', 'radio', 'button', 'submit'].includes(el.type) &&

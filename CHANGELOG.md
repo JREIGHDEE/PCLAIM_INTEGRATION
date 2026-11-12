@@ -34,6 +34,14 @@ Related documents:
 - *Email (P6).* A refused address (e.g. a throw-away mailinator.com one) is
   still not saved (adviser's revision S2); the message now says how to go on:
   "If the patient has no email, type N/A in the email box." (email_check.py).
+- *On to the next missing field by itself.* When a red (missing) field is
+  finished - typed then Tab or Enter, a choice picked, or a PIN or date row
+  completed - and is no longer red, the cursor goes to the next red field on
+  the same page (Patient details or a form), in page order, opening its part
+  or page, and that field pulses. A field still red keeps the cursor, a box
+  that was not red tabs as usual, and a click elsewhere is always followed.
+  With none left: "All required fields on this page are complete." (app.js
+  goToNextMissingSoon, pulseField; box-input.js pcaFocusNextField).
 - *The Logbook review and column check get the forms page's improvements.*
   Formal, shorter wording: confidence "High Confidence / Verify / Enter
   Manually / Low Confidence / Blank in Logbook" with "(90% confidence)"
