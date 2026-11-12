@@ -48,6 +48,9 @@ Related documents:
   CSF, CF1, CF2, CF4 and PMRF, and of Clinic details, is now the same
   clearly coloured panel with a heading band as on Patient details. A part
   ticked "Not needed" still turns grey.
+  (Fixed the same day: on the forms the new panels were squeezed to their
+  headings' height and their boxes cut off, because a form's details panel
+  is a scrolling flex column; the parts no longer shrink.)
 - *Check for missing information, tidier.* Save Patient Record and the
   score now share one row; the ring is smaller and the bar that repeated it
   is gone, the counts are small pills. Each form's missing boxes are white

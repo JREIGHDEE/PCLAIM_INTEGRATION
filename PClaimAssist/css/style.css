@@ -3020,6 +3020,10 @@ textarea.from-patient-details:focus {
   padding: 0 1rem 1rem;
   margin: 0 0 1.25rem;
   overflow: hidden;
+  /* A form's details panel is a scrolling flex column: with overflow
+     hidden a part may otherwise be squeezed to its heading's height and
+     its boxes clipped away (seen on the CSF). */
+  flex-shrink: 0;
 }
 #patientTabContent .patient-part[class*="part-tone-"] > .pca-tab-section-label,
 .clinic-parts .patient-part[class*="part-tone-"] > .pca-tab-section-label,
