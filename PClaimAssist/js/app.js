@@ -4597,7 +4597,6 @@ document.addEventListener('visibilitychange', () => {
   document.getElementById('unsavedDraftRestore').addEventListener('click', () => answer(true), { once: true });
   document.getElementById('unsavedDraftDiscard').addEventListener('click', () => answer(false), { once: true });
   modal.show();
-  modalEl.addEventListener('shown.bs.modal', () => document.getElementById('unsavedDraftRestore').focus(), { once: true });
 })();
 
 /* ═══════════════════════════════════════════════════════════
