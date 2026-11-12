@@ -34,6 +34,19 @@ Related documents:
 - *Email (P6).* A refused address (e.g. a throw-away mailinator.com one) is
   still not saved (adviser's revision S2); the message now says how to go on:
   "If the patient has no email, type N/A in the email box." (email_check.py).
+- *"Unsaved patient found" is PClaimAssist's own window.* Typing kept from a
+  page that closed before the patient was saved was offered back in the
+  browser's OK / Cancel box, which staff took for a message from the PC. It is
+  now a window in the site's style (like "Set a new password") naming the
+  patient - "The details of MARIA SANTOS DELA CRUZ were being typed on ..." -
+  with "Put them back" and "Start with empty forms" (index.html
+  #unsavedDraftModal, app.js offerLastDraft). Nothing kept is written over
+  while it waits for an answer. It also no longer comes back for empty forms:
+  a new patient's defaults (Sex, citizenship, the clinic's details) counted as
+  a draft, so it was offered on nearly every opening; now a draft needs one of
+  the patient's own details typed (name, birth date, PIN, dates, diagnosis,
+  street, phone or email; app.js draftHasPatient). Without Bootstrap loaded,
+  the browser's box is still used.
 - *An area name no longer runs on in the street.* "PUROK 30, MT. VIEW
   CABANTIAN" put "PUROK 30 MT. VIEW" in Street; an area (sitio) name with no
   street word or number now goes in Subdivision / Village when none was found:

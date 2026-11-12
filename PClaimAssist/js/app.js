@@ -4472,7 +4472,23 @@ document.addEventListener('input', e => {
 const PCA_DRAFT_KEY = 'pca_draft_v1';
 const PCA_DRAFT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;   // a week
 
+// A draft is a patient only once one of these has been typed: none of them
+// is ever filled by itself. A new patient's defaults (Sex, citizenship, the
+// clinic's details...) were enough to keep a "draft", so every opening of
+// the page offered an unsaved patient that was only the empty forms.
+const DRAFT_PATIENT_KEYS = ['patientLastName', 'patientFirstName', 'patientMiddleName', 'patientDOB',
+  'patientPIN', 'memberLastName', 'memberFirstName', 'memberPIN', 'dateAdmitted', 'dateDischarge',
+  'deliveryDate', 'chiefComplaint', 'admissionDx', 'dischargeDx', 'addrLot', 'addrStreet', 'mobile', 'email'];
+function draftHasPatient(data) {
+  return DRAFT_PATIENT_KEYS.some(k => String((data || {})[k] ?? '').trim() !== '');
+}
+
+// True while "Unsaved patient found" waits for an answer: the kept draft is
+// not written over (or cleared by a claim opening) before staff choose.
+let draftOfferPending = false;
+
 function saveDraft() {
+  if (draftOfferPending) return;
   try {
     /* A claim that is open is already being saved to the database by
        js/claim-loader.js, and reopening it brings everything back. The
@@ -4482,9 +4498,7 @@ function saveDraft() {
       localStorage.removeItem(PCA_DRAFT_KEY);
       return;
     }
-    const hasAnything = Object.values(state.data).some(
-      v => Array.isArray(v) ? v.length : (v !== '' && v !== false && v != null));
-    if (!hasAnything) { localStorage.removeItem(PCA_DRAFT_KEY); return; }
+    if (!draftHasPatient(state.data)) { localStorage.removeItem(PCA_DRAFT_KEY); return; }
     localStorage.setItem(PCA_DRAFT_KEY, JSON.stringify({
       savedAt: Date.now(),
       data: state.data,
@@ -4528,31 +4542,55 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') saveDraft();
 });
 
+/* Typing kept from a page that closed before the patient was saved is
+   offered back when the page opens. Asked in PClaimAssist's own window
+   (index.html #unsavedDraftModal), not the browser's OK / Cancel box, which
+   staff did not know came from PClaimAssist. */
 (function offerLastDraft() {
   const draft = readDraft();
   if (!draft) return;
-  const when = new Date(draft.savedAt).toLocaleString();
-  const filled = Object.values(draft.data).filter(
-    v => Array.isArray(v) ? v.length : (v !== '' && v !== false && v != null)).length;
-  if (!filled) { clearDraft(); return; }
+  const when = new Date(draft.savedAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+  if (!draftHasPatient(draft.data)) { clearDraft(); return; }
+  const d = draft.data;
+  const name = [d.patientFirstName, d.patientMiddleName, d.patientLastName]
+    .map(v => String(v || '').trim()).filter(Boolean).join(' ');
+  const who = name ? 'The details of ' + name : "A patient's details (no name typed yet)";
 
-  const keep = confirm(
-    'Unsaved patient information was found on this computer.\n\n' +
-    filled + ' box' + (filled === 1 ? '' : 'es') + ' were filled in on ' + when + ', ' +
-    'and the page closed before they were saved.\n\n' +
-    'Press OK to put them back, or Cancel to start with empty forms.');
-  if (!keep) { clearDraft(); return; }
+  function putBack() {
+    applyFormData(draft.data);
+    if (draft.notNeeded && typeof applyNotNeededParts === 'function') {
+      state.notNeeded = draft.notNeeded;
+      applyNotNeededParts();
+    }
+    if (typeof syncBoxGroupsFromState === 'function') syncBoxGroupsFromState();
+    if (typeof showToast === 'function') {
+      showToast('Put back what was typed',
+        'The information from ' + when + ' is back in the forms. Check it before printing.', 'info');
+    }
+  }
 
-  applyFormData(draft.data);
-  if (draft.notNeeded && typeof applyNotNeededParts === 'function') {
-    state.notNeeded = draft.notNeeded;
-    applyNotNeededParts();
+  const modalEl = document.getElementById('unsavedDraftModal');
+  if (!modalEl || !window.bootstrap || !bootstrap.Modal) {
+    // Without the page's own window (Bootstrap not loaded): the browser's box.
+    const keep = confirm('Unsaved patient information was found on this computer.\n\n' +
+      who + ' were being typed on ' + when + ', and the page closed before they were saved.\n\n' +
+      'Press OK to put them back, or Cancel to start with empty forms.');
+    if (keep) putBack(); else clearDraft();
+    return;
   }
-  if (typeof syncBoxGroupsFromState === 'function') syncBoxGroupsFromState();
-  if (typeof showToast === 'function') {
-    showToast('Put back what was typed',
-      'The information from ' + when + ' is back in the forms. Check it before printing.', 'info');
-  }
+  document.getElementById('unsavedDraftWho').textContent = who;
+  document.getElementById('unsavedDraftWhen').textContent = when;
+  const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+  draftOfferPending = true;
+  const answer = restore => {
+    draftOfferPending = false;
+    modal.hide();
+    if (restore) putBack(); else clearDraft();
+  };
+  document.getElementById('unsavedDraftRestore').addEventListener('click', () => answer(true), { once: true });
+  document.getElementById('unsavedDraftDiscard').addEventListener('click', () => answer(false), { once: true });
+  modal.show();
+  modalEl.addEventListener('shown.bs.modal', () => document.getElementById('unsavedDraftRestore').focus(), { once: true });
 })();
 
 /* ═══════════════════════════════════════════════════════════

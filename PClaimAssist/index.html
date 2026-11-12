@@ -3898,6 +3898,31 @@
   </div>
 </section>
 
+<!-- ═══ UNSAVED PATIENT FOUND ON THIS COMPUTER ═══
+     Shown when the page opens and finds typing kept from a page that closed
+     before the patient was saved (js/app.js offerLastDraft). It was the
+     browser's own OK / Cancel box; staff did not know it was PClaimAssist's. -->
+<div class="modal fade" id="unsavedDraftModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false"
+     aria-labelledby="unsavedDraftTitle">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="unsavedDraftTitle"><i class="bi bi-clock-history me-2 text-primary"></i>Unsaved patient found</h5>
+      </div>
+      <div class="modal-body">
+        <p class="mb-2"><strong id="unsavedDraftWho"></strong> were being typed on <strong id="unsavedDraftWhen"></strong>,
+          and the page closed before the patient was saved.</p>
+        <p class="text-muted mb-0">Put them back to carry on with that patient, or start with empty forms.
+          Starting empty removes what was kept.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" id="unsavedDraftDiscard">Start with empty forms</button>
+        <button type="button" class="btn btn-primary" id="unsavedDraftRestore"><i class="bi bi-arrow-counterclockwise me-1"></i>Put them back</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ ADMIN: SET A NEW PASSWORD FOR SOMEONE ═══ -->
 <div class="modal fade" id="resetPasswordModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
@@ -4139,7 +4164,7 @@
 <script src="js/pin-input.js?v=20261111a"></script>
 <!-- Davao Region address lists, and the cascading dropdowns built from
      them. Both after app.js: they write through its input listeners. -->
-<script src="js/app.js?v=20261111a"></script>
+<script src="js/app.js?v=20261112a"></script>
 <script src="js/ph-psgc.js?v=20261101s"></script>
 <script src="js/ph-address.js?v=20261101s"></script>
 <script src="js/address-select.js?v=20261101s"></script>
