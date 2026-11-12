@@ -979,23 +979,24 @@ function applyPdfZoom() {
   applyPdfZoom();
 })();
 
-/* ── The preview follows the box being typed in ──────────────
-   Clicking or tabbing into a box on a form (CSF, CF1, CF2, CF4, PMRF)
-   scrolls that form's preview to where the value prints and outlines it,
-   so staff see which part of the paper form they are filling (user
-   feedback). Only scrolls the preview: the page turns with the boxes'
-   own page turner, as before. */
-(function followFieldOnPreview() {
-  let lit = [];
-  const unlight = () => { lit.forEach(s => s.classList.remove('pdf-field--focus')); lit = []; };
+/* ── The boxes and the preview scroll together ───────────────
+   On a form (CSF, CF1, CF2, CF4, PMRF), scrolling the boxes scrolls the
+   preview to the part of the page those boxes print on, and scrolling the
+   preview scrolls the boxes to the ones printed there (user feedback).
+   Each box shown is paired with where it prints on the page in view; a
+   reading line a third of the way down each side is kept in step, blending
+   between the two nearest boxes so the other side moves smoothly. A scroll
+   made here does not set off the other side again. */
+(function scrollFormsTogether() {
+  const LINE = 1 / 3;                     // the reading line, from the top
+  const quietUntil = new WeakMap();       // scroller -> time its own scroll ends
 
   // The form key a box stands for, whichever kind of box it is.
   function keyOf(el) {
-    if (el.dataset.dxVar) return null;                    // a blank in a wording card
+    if (el.dataset.dxVar) return null;                    // a blank in a template card
     if (el.dataset.autofill) return el.dataset.autofill;
     if (el.dataset.dateFor) return el.dataset.dateFor;    // MM/DD/YYYY box (js/date-text.js)
-    const group = el.closest('[data-box-key]');
-    if (group) return group.dataset.boxKey;
+    if (el.dataset.boxKey) return el.dataset.boxKey;
     const row = el.closest('.box-input, .box-input-date');
     const real = row && row.dataset.target && document.querySelector(row.dataset.target);
     if (real && real.dataset.autofill) return real.dataset.autofill;
@@ -1004,54 +1005,110 @@ function applyPdfZoom() {
     return hidden && hidden.dataset ? hidden.dataset.autofill || null : null;
   }
 
-  // Every spot of the form that prints the key: its own boxes, its digits,
-  // and the joined values printed from it (Patient Name from the last name,
-  // the monthly income with its peso sign - app.js FIX_FIELD_ALIASES,
-  // VAL_SPOT_KEYS).
-  function spotsFor(form, key) {
+  // Where on the page (0-100 from the top) a key prints: its own boxes,
+  // its digits, and values printed joined from it (Patient Name from the
+  // last name; app.js FIX_FIELD_ALIASES, VAL_SPOT_KEYS).
+  function topOnPage(form, key, page) {
     const aliases = typeof FIX_FIELD_ALIASES !== 'undefined' ? FIX_FIELD_ALIASES : {};
     const parts = typeof VAL_SPOT_KEYS !== 'undefined' ? VAL_SPOT_KEYS : {};
-    return (OVERLAY_MAP[form] || []).filter(f => {
+    let top = null;
+    (OVERLAY_MAP[form] || []).forEach(f => {
+      if (f.page !== page) return;
       const name = f.computed || f.key;
-      return f.key === key || f.digitKey === key || f.computed === key ||
-        aliases[name] === key || (parts[name] || []).includes(key);
+      if (f.key === key || f.digitKey === key || f.computed === key ||
+          aliases[name] === key || (parts[name] || []).includes(key)) {
+        top = top === null ? f.top : Math.min(top, f.top);
+      }
     });
+    return top;
   }
 
-  document.addEventListener('focusin', e => {
-    const el = e.target;
-    if (!el || !el.closest) return;
-    const section = el.closest('.content-section');
-    const form = section && section.id.replace('section-', '');
-    if (!form || !OVERLAY_MAP[form] || !el.closest('.form-entry-panel')) return;
-    const key = keyOf(el);
-    if (!key) return;
+  // The boxes shown, each with its place in the panel and on the page,
+  // in the panel's order.
+  function anchors(form, panel) {
     const st = pdfState[form];
-    const curPage = st ? st.page : 1;
-    const spans = spotsFor(form, key)
-      .filter(f => f.page === curPage)
-      .map(f => document.getElementById('pof-' + form + '-' + f.id))
-      .filter(s => s && !s.classList.contains('pdf-field--hidden'));
-    unlight();
-    if (!spans.length) return;
-    spans.forEach(s => s.classList.add('pdf-field--focus'));
-    lit = spans;
-    const scroller = spans[0].closest('.pdf-canvas-scroller');
-    if (!scroller) return;
-    const box = scroller.getBoundingClientRect();
-    const rects = spans.map(s => s.getBoundingClientRect());
-    const top = Math.min(...rects.map(r => r.top));
-    const bottom = Math.max(...rects.map(r => r.bottom));
-    scroller.scrollTo({
-      top: scroller.scrollTop + (top - box.top) - (scroller.clientHeight - (bottom - top)) / 2,
-      behavior: 'smooth',
+    const page = st ? st.page : 1;
+    const base = panel.getBoundingClientRect().top - panel.scrollTop;
+    const out = [];
+    const seen = new Set();
+    panel.querySelectorAll('input, select, textarea, .btn-check-group[data-autofill]').forEach(el => {
+      if (el.type === 'hidden' || el.offsetParent === null) return;
+      const key = keyOf(el);
+      if (!key || seen.has(key)) return;
+      const pageTop = topOnPage(form, key, page);
+      if (pageTop === null) return;
+      seen.add(key);
+      out.push({ y: el.getBoundingClientRect().top - base, p: pageTop });
     });
-  });
-  // Out of the boxes: the outline goes too.
-  document.addEventListener('focusout', e => {
-    setTimeout(() => {
-      const now = document.activeElement;
-      if (!now || !now.closest || !now.closest('.form-entry-panel')) unlight();
-    }, 0);
-  });
+    return out;
+  }
+
+  // Blend between the two anchors around v (sorted by `from`).
+  function blend(list, from, to, v) {
+    if (!list.length) return null;
+    if (v <= list[0][from]) return list[0][to];
+    for (let i = 1; i < list.length; i++) {
+      const a = list[i - 1], b = list[i];
+      if (v <= b[from]) {
+        const t = b[from] === a[from] ? 0 : (v - a[from]) / (b[from] - a[from]);
+        return a[to] + t * (b[to] - a[to]);
+      }
+    }
+    return list[list.length - 1][to];
+  }
+
+  function scrollQuietly(el, top) {
+    const max = el.scrollHeight - el.clientHeight;
+    const next = Math.max(0, Math.min(max, Math.round(top)));
+    if (Math.abs(next - el.scrollTop) < 2) return;
+    quietUntil.set(el, performance.now() + 120);
+    el.scrollTop = next;
+  }
+
+  function partsOf(section) {
+    const form = section.id.replace('section-', '');
+    const panel = section.querySelector('.entry-panel-body');
+    const scroller = section.querySelector('.pdf-canvas-scroller');
+    const overlay = document.getElementById('overlay-' + form);
+    if (!OVERLAY_MAP[form] || !panel || !scroller || !overlay || !overlay.offsetHeight) return null;
+    return { form, panel, scroller, overlay };
+  }
+
+  // The overlay's place in the preview's scrolling area.
+  function pageBox(scroller, overlay) {
+    const r = overlay.getBoundingClientRect();
+    return { top: r.top - scroller.getBoundingClientRect().top + scroller.scrollTop, height: r.height };
+  }
+
+  function fromBoxes(x) {
+    const list = anchors(x.form, x.panel);
+    const p = blend(list, 'y', 'p', x.panel.scrollTop + x.panel.clientHeight * LINE);
+    if (p === null) return;
+    const box = pageBox(x.scroller, x.overlay);
+    scrollQuietly(x.scroller, box.top + box.height * p / 100 - x.scroller.clientHeight * LINE);
+  }
+
+  function fromPreview(x) {
+    const box = pageBox(x.scroller, x.overlay);
+    const p = (x.scroller.scrollTop + x.scroller.clientHeight * LINE - box.top) / box.height * 100;
+    const list = anchors(x.form, x.panel).sort((a, b) => a.p - b.p);
+    const y = blend(list, 'p', 'y', p);
+    if (y === null) return;
+    scrollQuietly(x.panel, y - x.panel.clientHeight * LINE);
+  }
+
+  let frame = 0;
+  document.addEventListener('scroll', e => {
+    const el = e.target;
+    if (!el || !el.classList) return;
+    const isPanel = el.classList.contains('entry-panel-body');
+    const isPreview = el.classList.contains('pdf-canvas-scroller');
+    if (!isPanel && !isPreview) return;
+    if (performance.now() < (quietUntil.get(el) || 0)) return;   // our own scroll
+    const section = el.closest('.content-section');
+    const x = section && partsOf(section);
+    if (!x) return;
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(() => (isPanel ? fromBoxes(x) : fromPreview(x)));
+  }, true);
 })();
