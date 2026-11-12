@@ -34,12 +34,14 @@ Related documents:
 - *Email (P6).* A refused address (e.g. a throw-away mailinator.com one) is
   still not saved (adviser's revision S2); the message now says how to go on:
   "If the patient has no email, type N/A in the email box." (email_check.py).
-- *The box you are taken to glows.* "Go to Field" and a red box clicked on a
-  form's preview now make the box glow amber (a ring and a halo, on each box
-  of a PIN or date row) until it is typed in, or for 4 seconds. It used to
-  "flash" with an animation that easy.css turns off, so nothing showed
-  (app.js focusField; css .field-flash). Amber stands out from the red (or
-  colour-blind blue) "missing" edge.
+- *The box you are taken to pulses.* "Go to Field" and a red box clicked on a
+  form's preview now make the box pulse - a ring that swells and fades once
+  a second, on each box of a PIN or date row - in the "missing" colour: red,
+  or blue in colour-blind mode. It stops once the box is typed in, or after
+  4 seconds. The old flash was an animation easy.css turns off, so nothing
+  showed; this one is let through, like the sidebar's fold, and is a steady
+  ring for anyone whose computer asks for reduced motion (app.js focusField;
+  css .field-flash, @keyframes pcaMissingPulse).
 - *The boxes and the form preview scroll together.* On CSF, CF1, CF2, CF4 and
   PMRF, scrolling the boxes scrolls the preview to the part of the page those
   boxes print on, and scrolling the preview scrolls the boxes to the ones

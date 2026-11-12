@@ -3559,14 +3559,30 @@ html body.easy .dx-template .dx-actions .btn {
 }
 
 /* "Go to Field" / a red box clicked on the preview: the box it goes to
-   glows (app.js focusField), so staff see at once which one is missing.
-   A steady glow, not an animation: easy.css turns animations off, which
-   left the old flash invisible. Amber, so it stands out from the red (or,
-   in colour-blind mode, blue) "missing" edge. */
+   pulses - a ring that swells and fades, in and out - so staff see at once
+   which one is missing (app.js focusField). In the "missing" colour: red,
+   or blue in colour-blind mode (css/colorblind.css --cb-missing).
+   easy.css turns every animation off; like the sidebar's fold, this one is
+   let through (these selectors outrank its `*`). */
+html { --pca-pulse: rgba(220, 38, 38, .45); }
+html.cb-mode { --pca-pulse: rgba(0, 80, 255, .45); }
+@keyframes pcaMissingPulse {
+  0%, 100% { box-shadow: 0 0 0 2px var(--cb-missing, #DC2626), 0 0 0 0 var(--pca-pulse); }
+  50%      { box-shadow: 0 0 0 3px var(--cb-missing, #DC2626), 0 0 0 12px var(--pca-pulse); }
+}
 html body .field-flash:is(input, select, textarea),
 html body .field-flash :is(input, select, textarea, .pca-box, .btn-check-option),
 html body .field-flash.btn-check-group .btn-check-option {
-  box-shadow: 0 0 0 3px #FFFFFF, 0 0 0 6px #F59E0B, 0 0 22px 8px rgba(245, 158, 11, .55) !important;
-  transition: box-shadow .2s ease;
+  animation: pcaMissingPulse 1s ease-in-out infinite !important;
+  animation-duration: 1s !important;
 }
 html body .field-flash { border-radius: 6px; }
+/* Someone who would rather not see motion: a steady ring instead. */
+@media (prefers-reduced-motion: reduce) {
+  html body .field-flash:is(input, select, textarea),
+  html body .field-flash :is(input, select, textarea, .pca-box, .btn-check-option),
+  html body .field-flash.btn-check-group .btn-check-option {
+    animation: none !important;
+    box-shadow: 0 0 0 3px var(--cb-missing, #DC2626), 0 0 0 8px var(--pca-pulse) !important;
+  }
+}
