@@ -117,7 +117,18 @@ function renderClaimBanner(body) {
 }
 
 async function loadClaimFromUrl() {
-  const claimId = new URLSearchParams(location.search).get('claim');
+  let claimId = new URLSearchParams(location.search).get('claim');
+  // Back from another page in this tab (the sidebar's links carry no claim):
+  // the saved patient that was on screen is opened again (js/app.js
+  // saveTabPatient). Read before the forms are reset, which clears it.
+  const tab = typeof readTabPatient === 'function' ? readTabPatient() : null;
+  const fromTab = !claimId && tab && tab.claimId ? tab : null;
+  if (fromTab) {
+    claimId = String(fromTab.claimId);
+    const url = new URL(location.href);
+    url.searchParams.set('claim', claimId);
+    history.replaceState(null, '', url);
+  }
   if (!claimId) return;
   if (!/^\d+$/.test(claimId)) {
     showToast('Invalid claim link', 'The claim id in the link is not a number.', 'danger');
@@ -134,6 +145,13 @@ async function loadClaimFromUrl() {
   }
   if (!body.success) {
     showToast('Claim not loaded', body.error || 'Unknown error', 'danger');
+    // The tab's patient is gone (e.g. deleted from Saved patients): forget it.
+    if (fromTab && typeof clearTabPatient === 'function') {
+      clearTabPatient();
+      const url = new URL(location.href);
+      url.searchParams.delete('claim');
+      history.replaceState(null, '', url);
+    }
     return;
   }
 
@@ -184,6 +202,17 @@ async function loadClaimFromUrl() {
   // Mother or baby, and copying a baby's details from its mother's claim
   // (js/mother-baby.js).
   if (typeof initMotherBaby === 'function') initMotherBaby(claimId, copiedFromMother);
+  // The latest typing from before the page was left, in case its last save
+  // had not reached the server yet; it saves again from here.
+  if (fromTab && fromTab.data) {
+    applyFormData(fromTab.data);
+    if (fromTab.notNeeded && typeof applyNotNeededParts === 'function') {
+      state.notNeeded = fromTab.notNeeded;
+      applyNotNeededParts();
+    }
+    if (typeof syncBoxGroupsFromState === 'function') syncBoxGroupsFromState();
+    scheduleClaimSave();
+  }
 }
 
 /* ── Saving what is typed with the claim ──────────────────────
@@ -354,6 +383,6 @@ document.addEventListener('change', e => {
 /* js/app.js keeps a copy of unsaved typing in this browser, as a safety
    net for a tab closed by accident. It must stand aside while a claim is
    open, because this file is already saving that claim to the database. */
-window.PCAClaim = { isOpen: () => openClaimId !== null };
+window.PCAClaim = { isOpen: () => openClaimId !== null, id: () => openClaimId };
 
 loadClaimFromUrl();

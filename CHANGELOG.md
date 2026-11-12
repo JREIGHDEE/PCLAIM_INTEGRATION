@@ -34,6 +34,17 @@ Related documents:
 - *Email (P6).* A refused address (e.g. a throw-away mailinator.com one) is
   still not saved (adviser's revision S2); the message now says how to go on:
   "If the patient has no email, type N/A in the email box." (email_check.py).
+- *The patient stays when you go to another page and back.* Going to "Read a
+  logbook page" (or any page) while typing a patient and coming back gave
+  empty forms: the sidebar's link carries no claim, so a saved patient was not
+  reopened, and an unsaved one only came back through "Continue with this
+  patient?". The browser tab now keeps the patient on screen when the page is
+  left (sessionStorage: this tab only, gone when it is closed). Back in the
+  same tab, a saved patient's claim is opened again with the latest typing on
+  top, and an unsaved patient is put straight back ("Still here"), with no
+  question. "Start a new patient" clears it. The question is kept for a tab
+  that was closed or a page that crashed (app.js saveTabPatient,
+  readTabPatient, offerLastDraft; claim-loader.js loadClaimFromUrl).
 - *Shorter labels on tick boxes.* Labels that carried their own explanation
   are now the short name; the explanation shows when the label is pointed at:
   "The patient is the member" (Patient details, CSF, CF1 - was "... (same

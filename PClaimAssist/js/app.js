@@ -4519,6 +4519,42 @@ function saveDraft() {
 
 function clearDraft() {
   try { localStorage.removeItem(PCA_DRAFT_KEY); } catch (e) { /* nothing to clear */ }
+  clearTabPatient();
+}
+
+/* ── The patient on screen, kept for this browser tab ─────────────
+   Going to "Read a logbook page" (or any other page) and back is a new
+   page load, and the patient being typed went away (user testing): a saved
+   patient was not reopened - the sidebar's link has no ?claim= - and an
+   unsaved one came back only through "Continue with this patient?". The
+   tab (sessionStorage: this tab only, gone when it is closed) now keeps the
+   patient on screen when the page is left: the open claim's number, and
+   everything typed. Back in the same tab, js/claim-loader.js reopens the
+   claim (with the latest typing on top) and offerLastDraft puts an unsaved
+   patient straight back. The question is kept for a tab that was closed or
+   a page that crashed (the localStorage draft above). */
+const PCA_TAB_KEY = 'pca_tab_patient';
+
+function saveTabPatient() {
+  if (draftOfferPending) return;   // still asking: keep what the tab had
+  try {
+    const claimId = window.PCAClaim && PCAClaim.id ? PCAClaim.id() : null;
+    if (!claimId && !draftHasPatient(state.data)) { sessionStorage.removeItem(PCA_TAB_KEY); return; }
+    sessionStorage.setItem(PCA_TAB_KEY, JSON.stringify({
+      claimId, savedAt: Date.now(), data: state.data, notNeeded: state.notNeeded,
+    }));
+  } catch (e) { /* storage blocked: nothing kept, nothing broken */ }
+}
+
+function readTabPatient() {
+  try {
+    const tab = JSON.parse(sessionStorage.getItem(PCA_TAB_KEY) || 'null');
+    return tab && tab.data ? tab : null;
+  } catch (e) { return null; }
+}
+
+function clearTabPatient() {
+  try { sessionStorage.removeItem(PCA_TAB_KEY); } catch (e) { /* nothing to clear */ }
 }
 
 function readDraft() {
@@ -4545,6 +4581,7 @@ document.addEventListener('input', scheduleDraftSave, true);
 document.addEventListener('change', scheduleDraftSave, true);
 // A tab being closed or hidden gets one last write, without the wait.
 window.addEventListener('pagehide', saveDraft);
+window.addEventListener('pagehide', saveTabPatient);
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') saveDraft();
 });
@@ -4554,6 +4591,22 @@ document.addEventListener('visibilitychange', () => {
    (index.html #unsavedDraftModal), not the browser's OK / Cancel box, which
    staff did not know came from PClaimAssist. */
 (function offerLastDraft() {
+  // Back in the same tab: the patient left on screen comes straight back.
+  const tab = readTabPatient();
+  if (tab && tab.claimId) return;   // a saved patient: js/claim-loader.js reopens the claim
+  if (tab && draftHasPatient(tab.data)) {
+    applyFormData(tab.data);
+    if (tab.notNeeded && typeof applyNotNeededParts === 'function') {
+      state.notNeeded = tab.notNeeded;
+      applyNotNeededParts();
+    }
+    if (typeof syncBoxGroupsFromState === 'function') syncBoxGroupsFromState();
+    if (typeof showToast === 'function') {
+      showToast('Still here', 'The patient you were typing is back in the forms. It is not saved yet: ' +
+        'press Save patient when you can.', 'info');
+    }
+    return;
+  }
   const draft = readDraft();
   if (!draft) return;
   const when = new Date(draft.savedAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
