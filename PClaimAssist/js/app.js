@@ -2062,7 +2062,7 @@ function addNotNeededTick(wrap, heading, title) {
   label.className = 'part-skip';
   label.innerHTML =
     '<input type="checkbox" class="part-skip-box">' +
-    '<span>Not needed</span>';
+    '<span>Not Applicable</span>';
   const box = label.querySelector('input');
   box.checked = !!state.notNeeded[id];
   box.setAttribute('aria-label', 'Mark "' + heading + '" as not needed for this patient');
@@ -2484,7 +2484,7 @@ function previewSpotLabel(form, key) {
   const name = FIX_FIELD_ALIASES[key] || key;
   const pick = scope => scope && scope.querySelector(`[data-autofill="${name}"], [data-box-key="${name}"]`);
   const el = pick(document.getElementById('section-' + form)) || pick(document);
-  const clean = t => (t || '').replace(/\s+/g, ' ').replace(/\*/g, '').replace('Not needed', '').trim();
+  const clean = t => (t || '').replace(/\s+/g, ' ').replace(/\*/g, '').replace('Not Applicable', '').trim();
   let label = '', part = '';
   if (el) {
     const wrap = el.closest('.entry-part');
@@ -2693,7 +2693,7 @@ function buildValidationAccordion() {
         <span class="val-dot"></span>
         <span class="val-label">${label}</span>
         <span class="val-status ms-auto">Missing</span>
-        <button type="button" class="val-fix" data-fix-field="${key}">Fix this <i class="bi bi-arrow-right"></i></button>
+        <button type="button" class="val-fix" data-fix-field="${key}">Go to Field <i class="bi bi-arrow-right"></i></button>
       </div>`).join('');
 
     return `
@@ -2896,7 +2896,7 @@ function applyClaimForms(forms) {
       ? `All forms are shown. A <strong>${escapeHtmlText(p.code)}</strong> claim (${escapeHtmlText(p.name)}) needs ` +
         `${needed.map(label).join(', ')}. <a href="#" data-show-all-forms>Show only those</a>`
       : `<strong>${escapeHtmlText(p.code)}</strong> (${escapeHtmlText(p.name)}): this claim needs ` +
-        `${forms.map(label).join(', ')}. <a href="#" data-show-all-forms>Show all forms</a>`;
+        `${forms.map(label).join(', ')}. <a href="#" data-show-all-forms>View All Forms</a>`;
   document.querySelectorAll('.claim-forms-note').forEach(el => {
     el.innerHTML = html;
     el.style.display = html ? '' : 'none';
@@ -2967,7 +2967,7 @@ function updateValidation() {
           <span class="val-dot"></span>
           <span class="val-label">${escapeHtmlText(label)} <small class="text-muted">(red on the form)</small></span>
           <span class="val-status ms-auto">Not filled in yet</span>
-          <button type="button" class="val-fix" data-fix-field="${key}">Fix this <i class="bi bi-arrow-right"></i></button>
+          <button type="button" class="val-fix" data-fix-field="${key}">Go to Field <i class="bi bi-arrow-right"></i></button>
         </div>`).join('');
     }
     totalFields += stillRed.length;
@@ -3074,7 +3074,7 @@ function renderRuleFeedback(result) {
         <span class="rule-category">${v.category}</span>
       </div>
       <div class="rule-message">${v.message}</div>
-      ${v.field ? `<button class="rule-fix-btn" data-fix-field="${v.field}">Fix this <i class="bi bi-arrow-right"></i></button>` : ''}
+      ${v.field ? `<button class="rule-fix-btn" data-fix-field="${v.field}">Go to Field <i class="bi bi-arrow-right"></i></button>` : ''}
     </div>`;
 
   host.innerHTML = `
@@ -3502,14 +3502,14 @@ function updateExportGate(result, totalComplete, totalFields) {
   const sub   = document.getElementById('exportAllSub');
   const forms = claimForms().length;
   if (title) title.innerHTML = ready
-    ? '<i class="bi bi-check-circle-fill me-2" aria-hidden="true"></i>Everything is filled in'
+    ? '<i class="bi bi-check-circle-fill me-2" aria-hidden="true"></i>All Required Fields Complete'
     : missing
-      ? `<i class="bi bi-lock-fill me-2" aria-hidden="true"></i>Not ready to save: ${missing} box${missing === 1 ? '' : 'es'} still empty`
-      : '<i class="bi bi-lock-fill me-2" aria-hidden="true"></i>Not ready to save: fix the rule checks below';
+      ? `<i class="bi bi-lock-fill me-2" aria-hidden="true"></i>Incomplete: ${missing} required field${missing === 1 ? '' : 's'} remaining`
+      : '<i class="bi bi-lock-fill me-2" aria-hidden="true"></i>Incomplete: resolve the validation errors below';
   if (sub) sub.textContent = ready
-    ? `All ${forms} forms are ready. Save them, then print.`
-    : 'The forms can be saved once this page shows 100% and no important rule check is left. ' +
-      'The list below shows what is still missing.';
+    ? `All ${forms} forms are complete and ready to save and print.`
+    : 'The forms can be saved once all required fields are complete (100%) and no validation errors remain. ' +
+      'The list below shows the remaining items.';
   if (typeof labelExportButton === 'function') labelExportButton();
 }
 
@@ -4319,7 +4319,7 @@ const PCA_HANDWRITTEN = new Set();
     label.className = 'form-check pca-check handwritten-check-label';
     label.innerHTML = '<input type="checkbox" class="form-check-input">' +
       '<span class="form-check-label"></span>';
-    label.querySelector('span').textContent = slot.dataset.handwrittenLabel || 'Write the name by hand';
+    label.querySelector('span').textContent = slot.dataset.handwrittenLabel || 'Handwritten Name';
     label.title = 'Leaves the printed name blank, to be written by hand after printing';
     const tick = label.querySelector('input');
     slot.appendChild(label);
@@ -4602,8 +4602,8 @@ document.addEventListener('visibilitychange', () => {
     }
     if (typeof syncBoxGroupsFromState === 'function') syncBoxGroupsFromState();
     if (typeof showToast === 'function') {
-      showToast('Still here', 'The patient you were typing is back in the forms. It is not saved yet: ' +
-        'press Save patient when you can.', 'info');
+      showToast('Unsaved Record Restored', 'The patient record in progress has been restored. It has not been ' +
+        'saved yet; select Save Patient to save it.', 'info');
     }
     return;
   }
@@ -4624,8 +4624,8 @@ document.addEventListener('visibilitychange', () => {
     }
     if (typeof syncBoxGroupsFromState === 'function') syncBoxGroupsFromState();
     if (typeof showToast === 'function') {
-      showToast('Put back what was typed',
-        'The information from ' + when + ' is back in the forms. Check it before printing.', 'info');
+      showToast('Record Restored',
+        'The patient record from ' + when + ' has been restored. Review it before printing.', 'info');
     }
   }
 

@@ -483,16 +483,16 @@ class DxSentence {
     // feedback: the long list of box names made the card confusing).
     if (missing.length) {
       status.innerHTML = `<i class="bi bi-pencil me-1"></i><span class="dx-left">${missing.length} ` +
-        `blank${missing.length === 1 ? '' : 's'} left</span> to fill in`;
+        `field${missing.length === 1 ? '' : 's'} remaining</span>`;
     } else if (!auto && !inBoxes) {
       status.innerHTML = `<i class="bi bi-info-circle me-1"></i>${dxEscape(this.opts.notAutoNote || 'Not put in by itself.')}`;
     } else if (!auto || !others.length) {
-      status.innerHTML = '<i class="bi bi-check-circle-fill text-success me-1"></i>Put in the boxes';
+      status.innerHTML = '<i class="bi bi-check-circle-fill text-success me-1"></i>Applied';
     } else {
       const n = new Set(others.map(k => this.opts.label(k))).size;
-      status.innerHTML = '<i class="bi bi-check-circle-fill text-success me-1"></i>Put in. ' +
-        `<span class="dx-kept" title="Kept their own wording: ${dxEscape(names(others))}">` +
-        `${n} box${n === 1 ? '' : 'es'} kept ${n === 1 ? 'its' : 'their'} own wording ` +
+      status.innerHTML = '<i class="bi bi-check-circle-fill text-success me-1"></i>Applied. ' +
+        `<span class="dx-kept" title="Fields with manually entered text: ${dxEscape(names(others))}">` +
+        `${n} field${n === 1 ? '' : 's'} ${n === 1 ? 'retains' : 'retain'} manually entered text ` +
         '<i class="bi bi-info-circle"></i></span>';
     }
   }
@@ -545,7 +545,7 @@ function dxShell(title, extra, buttons) {
     <div class="dx-head">
       <div class="dx-title"><i class="bi bi-card-text me-2"></i>${title}</div>
       ${extra || ''}
-      <button type="button" class="dx-refill" data-dx-auto title="Fill the blanks again from the forms"><i class="bi bi-arrow-counterclockwise me-1"></i>Refill blanks</button>
+      <button type="button" class="dx-refill" data-dx-auto title="Fill the fields again from the patient's details"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset Fields</button>
     </div>
     <div class="dx-sentence"></div>
     <!-- The sentence above, filled in: kept up to date, not shown (the blanks
@@ -554,16 +554,16 @@ function dxShell(title, extra, buttons) {
     <div class="dx-foot">
       <div class="dx-status small"></div>
       <div class="dx-actions">
-        <button type="button" class="btn btn-primary btn-sm" data-dx-use hidden><i class="bi bi-plus-lg me-1"></i>${b.use || 'Put it in'}</button>
+        <button type="button" class="btn btn-primary btn-sm" data-dx-use hidden><i class="bi bi-plus-lg me-1"></i>${b.use || 'Apply'}</button>
         ${b.out ? `<button type="button" class="btn btn-outline-secondary btn-sm" data-dx-out hidden><i class="bi bi-dash-lg me-1"></i>${b.out}</button>` : ''}
       </div>
     </div>
     <div class="dx-confirm" role="alertdialog" hidden>
-      <div class="dx-confirm-title"><i class="bi bi-exclamation-triangle-fill me-2"></i>Replace what is there?</div>
+      <div class="dx-confirm-title"><i class="bi bi-exclamation-triangle-fill me-2"></i>Replace Existing Text?</div>
       <div class="dx-confirm-old"></div>
       <div class="dx-actions">
-        <button type="button" class="btn btn-warning btn-sm" data-dx-replace>Replace it</button>
-        <button type="button" class="btn btn-outline-secondary btn-sm" data-dx-keep>Keep what is there</button>
+        <button type="button" class="btn btn-warning btn-sm" data-dx-replace>Replace</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-dx-keep>Keep Existing Text</button>
       </div>
     </div>`;
 }
@@ -648,7 +648,7 @@ const dxDiagnosis = (function setupDiagnosisWording() {
       return early;
     },
   });
-  sentence.box.insertAdjacentHTML('afterbegin', dxShell('The clinic\'s wording',
+  sentence.box.insertAdjacentHTML('afterbegin', dxShell('Diagnosis Template',
     `<label class="dx-package"><span>Package</span>
        <select class="form-select form-select-sm" data-dx-package>${options}</select></label>`));
   const select = sentence.box.querySelector('[data-dx-package]');
@@ -670,7 +670,7 @@ const dxDiagnosis = (function setupDiagnosisWording() {
       sentence.refresh();
       if (!DX_PACKAGES[dxCurrentPackage()]) {
         sentence.box.querySelector('.dx-status').innerHTML = '<i class="bi bi-info-circle me-1"></i>' +
-          'This visit has no PhilHealth package of its own (not a delivery). Pick one above if it has one.';
+          'No PhilHealth package applies to this visit. Select a package above if one applies.';
       }
     },
     reset() { sentence.reset(); },
@@ -688,7 +688,7 @@ const dxCourse = (function setupCourseWording() {
     template: () => DX_COURSE_TEXT,
     auto: () => dxCurrentPackage() === 'NSDBF',
     outLabel: true,
-    notAutoNote: 'Put in by itself only for a normal delivery (NSDBF). Press "Put it in" to use it anyway.',
+    notAutoNote: 'Applied automatically for a normal delivery (NSDBF) only. Select "Apply" to use it.',
     putNote: 'The paragraph is now in the first box of the course in the ward below.',
     pkg: dxCurrentPackage,
     label: key => (key === 'cf4CourseDate1' ? 'the first date' : 'the first box'),
@@ -696,8 +696,8 @@ const dxCourse = (function setupCourseWording() {
     // of admission; the print wraps it onto that box's lines.
     targets: text => ({ cf4CourseDate1: state.data.dateAdmitted || '', cf4CourseOrder1: text }),
   });
-  sentence.box.insertAdjacentHTML('afterbegin', dxShell('The clinic\'s course in the ward (normal delivery)', '',
-    { out: 'Take it out' }));
+  sentence.box.insertAdjacentHTML('afterbegin', dxShell('Course in the Ward Template (Normal Delivery)', '',
+    { out: 'Remove' }));
   return { refresh: () => sentence.refresh(), reset: () => sentence.reset() };
 })();
 
@@ -709,13 +709,13 @@ const dxDrugs = (function setupDeliveryDrugs() {
   const box = document.createElement('div');
   box.className = 'dx-template';
   box.innerHTML = `
-    <div class="dx-head"><div class="dx-title"><i class="bi bi-capsule me-2"></i>The usual delivery medicines</div></div>
+    <div class="dx-head"><div class="dx-title"><i class="bi bi-capsule me-2"></i>Standard Delivery Medications</div></div>
     <table class="dx-drugs"><thead><tr><th>Generic name</th><th>Quantity</th><th>Dosage / route</th><th>Total cost</th></tr></thead>
       <tbody>${DX_DELIVERY_DRUGS.map(r => `<tr>${r.map(c => `<td>${dxEscape(c) || '—'}</td>`).join('')}</tr>`).join('')}</tbody></table>
     <div class="dx-status small"></div>
     <div class="dx-actions">
-      <button type="button" class="btn btn-primary btn-sm" data-dx-add-drugs><i class="bi bi-plus-lg me-1"></i>Put it in</button>
-      <button type="button" class="btn btn-outline-secondary btn-sm" data-dx-remove-drugs><i class="bi bi-dash-lg me-1"></i>Take it out</button>
+      <button type="button" class="btn btn-primary btn-sm" data-dx-add-drugs><i class="bi bi-plus-lg me-1"></i>Apply</button>
+      <button type="button" class="btn btn-outline-secondary btn-sm" data-dx-remove-drugs><i class="bi bi-dash-lg me-1"></i>Remove</button>
     </div>`;
   host.appendChild(box);
 
@@ -772,7 +772,7 @@ const dxDrugs = (function setupDeliveryDrugs() {
       const leftDelivery = lastPackage === 'NSDBF' && !delivery;
       lastPackage = pkg;
       box.querySelector('.dx-title').lastChild.textContent = delivery
-        ? 'The usual delivery medicines' : 'The usual delivery medicines (for a normal delivery, NSDBF)';
+        ? 'Standard Delivery Medications' : 'Standard Delivery Medications (Normal Delivery, NSDBF)';
       if (!delivery) {
         // Switched away from a delivery: what it put in by itself comes out.
         if (leftDelivery && autoPut && !dxApplying) takeOut(false);
@@ -785,8 +785,8 @@ const dxDrugs = (function setupDeliveryDrugs() {
       const inList = DX_DELIVERY_DRUGS.filter(r => names().includes(r[0])).length;
       const all = inList === DX_DELIVERY_DRUGS.length;
       box.querySelector('.dx-status').innerHTML = all
-        ? '<i class="bi bi-check-circle-fill text-success me-1"></i>All 3 are in the list below. Change the quantity or cost there.'
-        : `${inList} of ${DX_DELIVERY_DRUGS.length} are in the list below.`;
+        ? '<i class="bi bi-check-circle-fill text-success me-1"></i>All 3 medications are listed below. Edit the quantity or cost in the list.'
+        : `${inList} of ${DX_DELIVERY_DRUGS.length} medications listed below.`;
       box.querySelector('[data-dx-add-drugs]').hidden = all;
       box.querySelector('[data-dx-remove-drugs]').hidden = inList === 0;
     },
@@ -961,15 +961,15 @@ function dxPhraseCard(section, key, phrase, title, append, opts) {
     <div class="dx-preview" style="white-space:pre-line"></div>
     <div class="dx-status small"></div>
     <div class="dx-actions">
-      <button type="button" class="btn btn-primary btn-sm" data-phrase-put><i class="bi bi-plus-lg me-1"></i>Put it in</button>
-      <button type="button" class="btn btn-outline-secondary btn-sm" data-phrase-out hidden><i class="bi bi-dash-lg me-1"></i>Take it out</button>
+      <button type="button" class="btn btn-primary btn-sm" data-phrase-put><i class="bi bi-plus-lg me-1"></i>Apply</button>
+      <button type="button" class="btn btn-outline-secondary btn-sm" data-phrase-out hidden><i class="bi bi-dash-lg me-1"></i>Remove</button>
     </div>
     <div class="dx-confirm" role="alertdialog" hidden>
-      <div class="dx-confirm-title"><i class="bi bi-exclamation-triangle-fill me-2"></i>Replace what is there?</div>
+      <div class="dx-confirm-title"><i class="bi bi-exclamation-triangle-fill me-2"></i>Replace Existing Text?</div>
       <div class="dx-confirm-old" style="white-space:pre-line"></div>
       <div class="dx-actions">
-        <button type="button" class="btn btn-warning btn-sm" data-phrase-replace>Replace it</button>
-        <button type="button" class="btn btn-outline-secondary btn-sm" data-phrase-keep>Keep what is there</button>
+        <button type="button" class="btn btn-warning btn-sm" data-phrase-replace>Replace</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-phrase-keep>Keep Existing Text</button>
       </div>
     </div>`;
   field.insertAdjacentElement('afterend', card);

@@ -99,7 +99,7 @@
              <button type="button" class="btn btn-outline-secondary btn-sm" data-delete-no>Cancel</button>
            </div>`
         : `${isOpen
-              ? '<span class="saved-patient-here"><i class="bi bi-check2 me-1"></i>Open now</span>'
+              ? '<span class="saved-patient-here"><i class="bi bi-check2 me-1"></i>Currently Open</span>'
               : `<button type="button" class="btn btn-primary btn-sm" data-open-claim="${p.claim_id}">Open</button>`}
            ${canDelete ? `<button type="button" class="btn btn-outline-danger btn-sm saved-patient-delete" data-delete-claim="${p.claim_id}"
                    title="Delete this patient" aria-label="Delete ${name}"><i class="bi bi-trash3"></i></button>` : ''}`;

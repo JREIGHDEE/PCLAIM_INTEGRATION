@@ -160,7 +160,7 @@
       <div class="stat-card stat-card--blue">
         <div class="stat-body">
           <div class="stat-value" id="statFields">0</div>
-          <div class="stat-label">Boxes filled in</div>
+          <div class="stat-label">Fields Completed</div>
         </div>
       </div>
     </div>
@@ -217,7 +217,7 @@
         <i class="bi bi-magic me-1"></i>Fill with practice data
       </button>
       <button class="btn btn-outline-danger btn-sm" id="clearFormBtn">
-        <i class="bi bi-file-earmark-plus me-1"></i>Start a new patient
+        <i class="bi bi-file-earmark-plus me-1"></i>New Patient
       </button>
     </div>
   </div>
@@ -945,7 +945,7 @@
         <span class="form-progress-pct" id="form-progress-csf-pct">0%</span>
       </div>
       <button type="button" class="btn btn-outline-primary btn-sm form-progress-all" onclick="navigateTo('validation')" title="Step 3: Check for missing information - every form's total">
-        <i class="bi bi-list-check me-1" aria-hidden="true"></i>See all forms
+        <i class="bi bi-list-check me-1" aria-hidden="true"></i>View All Forms
       </button>
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
@@ -1107,7 +1107,7 @@
           <div class="col-12">
             <!-- The names printed over the member's and the representative's signature lines. -->
             <div class="handwritten-check" data-handwritten="csfMemberSignName,csfRepSignName"
-                 data-handwritten-label="Write both names by hand"></div>
+                 data-handwritten-label="Handwritten Names"></div>
           </div>
           <div class="col-12" data-signer="memberSignerType:Member">
             <label class="pca-label">Date Signed (Member)</label>
@@ -1321,7 +1321,7 @@
         <span class="form-progress-pct" id="form-progress-cf1-pct">0%</span>
       </div>
       <button type="button" class="btn btn-outline-primary btn-sm form-progress-all" onclick="navigateTo('validation')" title="Step 3: Check for missing information - every form's total">
-        <i class="bi bi-list-check me-1" aria-hidden="true"></i>See all forms
+        <i class="bi bi-list-check me-1" aria-hidden="true"></i>View All Forms
       </button>
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
@@ -1529,7 +1529,7 @@
           </div>
           <div class="col-12">
             <div class="handwritten-check" data-handwritten="cf1MemberSignName,cf1RepSignName"
-                 data-handwritten-label="Write both names by hand"></div>
+                 data-handwritten-label="Handwritten Names"></div>
           </div>
           <div class="col-12" data-signer="memberSignerType:Member">
             <label class="pca-label">Date Signed (Member)</label>
@@ -1619,7 +1619,7 @@
         <span class="form-progress-pct" id="form-progress-cf2-pct">0%</span>
       </div>
       <button type="button" class="btn btn-outline-primary btn-sm form-progress-all" onclick="navigateTo('validation')" title="Step 3: Check for missing information - every form's total">
-        <i class="bi bi-list-check me-1" aria-hidden="true"></i>See all forms
+        <i class="bi bi-list-check me-1" aria-hidden="true"></i>View All Forms
       </button>
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
@@ -2199,7 +2199,7 @@
         <span class="form-progress-pct" id="form-progress-cf4-pct">0%</span>
       </div>
       <button type="button" class="btn btn-outline-primary btn-sm form-progress-all" onclick="navigateTo('validation')" title="Step 3: Check for missing information - every form's total">
-        <i class="bi bi-list-check me-1" aria-hidden="true"></i>See all forms
+        <i class="bi bi-list-check me-1" aria-hidden="true"></i>View All Forms
       </button>
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
@@ -2931,7 +2931,7 @@
         <span class="form-progress-pct" id="form-progress-pmrf-pct">0%</span>
       </div>
       <button type="button" class="btn btn-outline-primary btn-sm form-progress-all" onclick="navigateTo('validation')" title="Step 3: Check for missing information - every form's total">
-        <i class="bi bi-list-check me-1" aria-hidden="true"></i>See all forms
+        <i class="bi bi-list-check me-1" aria-hidden="true"></i>View All Forms
       </button>
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
@@ -3617,7 +3617,7 @@
   <div class="pca-card export-all-card mb-3" id="exportAllCard">
     <div class="export-all-text">
       <div class="export-all-title" id="exportAllTitle">
-        <i class="bi bi-check-circle-fill me-2" aria-hidden="true"></i>Everything is filled in
+        <i class="bi bi-check-circle-fill me-2" aria-hidden="true"></i>All Required Fields Complete
       </div>
       <div class="export-all-sub" id="exportAllSub">
         All <span id="exportAllCount">4</span> forms are ready. Save them, then print.
@@ -3648,7 +3648,7 @@
   <div class="pca-card save-patient-card mb-3" id="savePatientCard">
     <div class="save-patient-text">
       <div class="save-patient-title">
-        <i class="bi bi-person-check-fill me-2" aria-hidden="true"></i>Save this patient
+        <i class="bi bi-person-check-fill me-2" aria-hidden="true"></i>Save Patient Record
       </div>
       <div class="save-patient-sub" id="savePatientNote">
         Keeps every detail of this patient, so it can be opened again and her baby's claim can copy it.
@@ -3664,7 +3664,7 @@
     <div class="score-hero-main">
       <div class="score-ring" id="scoreCircle"><span id="scoreValue">0%</span></div>
       <div class="score-hero-text">
-        <div class="score-hero-label">Boxes filled in</div>
+        <div class="score-hero-label">Fields Completed</div>
         <div class="pca-progress score-hero-bar">
           <div id="overallProgress" class="progress-bar" style="width:0%;height:100%;border-radius:99px;transition:width .5s;"></div>
         </div>
@@ -3894,18 +3894,18 @@
   <div class="modal-dialog modal-dialog-centered unsaved-draft-dialog">
     <div class="modal-content unsaved-draft">
       <div class="unsaved-draft-icon" aria-hidden="true"><i class="bi bi-clock-history"></i></div>
-      <h5 class="unsaved-draft-title" id="unsavedDraftTitle">Continue with this patient?</h5>
-      <p class="unsaved-draft-lead">The page closed before this patient was saved.</p>
+      <h5 class="unsaved-draft-title" id="unsavedDraftTitle">Restore Unsaved Patient Record?</h5>
+      <p class="unsaved-draft-lead">The page was closed before this patient record was saved.</p>
       <div class="unsaved-draft-patient">
         <i class="bi bi-person-fill" aria-hidden="true"></i>
         <div>
           <div class="unsaved-draft-name" id="unsavedDraftWho"></div>
-          <div class="unsaved-draft-when">Last typed <span id="unsavedDraftWhen"></span></div>
+          <div class="unsaved-draft-when">Last edited <span id="unsavedDraftWhen"></span></div>
         </div>
       </div>
       <div class="unsaved-draft-actions">
-        <button type="button" class="btn btn-primary" id="unsavedDraftRestore">Put them back</button>
-        <button type="button" class="btn btn-outline-secondary" id="unsavedDraftDiscard">Start empty</button>
+        <button type="button" class="btn btn-primary" id="unsavedDraftRestore">Restore Record</button>
+        <button type="button" class="btn btn-outline-secondary" id="unsavedDraftDiscard">Discard</button>
       </div>
     </div>
   </div>
@@ -4141,7 +4141,7 @@
 <script src="js/pdf/overlays/pmrf.js?v=20261101b"></script>
 <script src="js/pdf/overlays/index.js?v=20261028cf1"></script>
 <script src="js/entry-learning.js?v=20261022d"></script>
-<script src="js/pdf/pdf-overlay.js?v=20261112b"></script>
+<script src="js/pdf/pdf-overlay.js?v=20261112k"></script>
 <script src="js/pdf/pdf-calibrate.js?v=20261028cf1"></script>
 <!-- Rule-based validation engine (must load before app.js) -->
 <script src="js/validation-rules.js?v=20261106a"></script>
@@ -4152,19 +4152,19 @@
 <script src="js/pin-input.js?v=20261111a"></script>
 <!-- Davao Region address lists, and the cascading dropdowns built from
      them. Both after app.js: they write through its input listeners. -->
-<script src="js/app.js?v=20261112g"></script>
+<script src="js/app.js?v=20261112k"></script>
 <script src="js/ph-psgc.js?v=20261101s"></script>
 <script src="js/ph-address.js?v=20261101s"></script>
 <script src="js/address-select.js?v=20261101s"></script>
 <script src="js/email-check.js?v=20261105a"></script>
-<script src="js/easy.js?v=20261112j"></script>
+<script src="js/easy.js?v=20261112k"></script>
 <!-- Loads a claim sent from the OCR review: index.html?claim=<id> -->
-<script src="js/mother-baby.js?v=20261112e"></script>
-<script src="js/dx-templates.js?v=20261112h"></script>
+<script src="js/mother-baby.js?v=20261112k"></script>
+<script src="js/dx-templates.js?v=20261112k"></script>
 <!-- Reason for admission from the logbook's wording, and its pattern table -->
 <script src="js/admission-patterns.js?v=20261104a"></script>
 <script src="js/claim-loader.js?v=20261112f"></script>
-<script src="js/saved-patients.js?v=20261101s"></script>
+<script src="js/saved-patients.js?v=20261112k"></script>
 
 <datalist id="suffixOptions">
   <option value="N/A"></option>

@@ -62,9 +62,9 @@ function exportBlocked() {
     updateValidation();
     const gate = window.PCA_PRINT_READY;
     if (gate && gate.missing > 0) {
-      showToast('Not ready to save yet',
-        `${gate.missing} box${gate.missing === 1 ? ' is' : 'es are'} still empty. The forms can be saved once ` +
-        '"Check for missing information" shows 100%. The list of what is missing is shown now.', 'danger');
+      showToast('Cannot Save Yet',
+        `${gate.missing} required field${gate.missing === 1 ? ' is' : 's are'} incomplete. The forms can be saved once ` +
+        '"Check for Missing Information" shows 100%. The remaining items are now shown.', 'danger');
       if (typeof navigateTo === 'function') navigateTo('validation');
       return true;
     }
@@ -835,7 +835,7 @@ function labelExportButton() {
   btn.disabled = !keys.length || locked;
   btn.classList.toggle('is-blocked', !!locked);
   label.textContent =
-    locked ? (gate.missing ? `Fill in every box first (${gate.missing} left)` : 'Fix the rule checks first') :
+    locked ? (gate.missing ? `${gate.missing} Required Field${gate.missing === 1 ? '' : 's'} Remaining` : 'Resolve Validation Errors') :
     !keys.length ? 'Tick a form to save' :
     keys.length === 1 ? `Save ${name(keys[0])} as PDF` :
     keys.length === PDF_FORM_KEYS.length ? `Save all ${keys.length} forms as one PDF` :

@@ -269,7 +269,7 @@ function mbBabyHtml() {
         <input type="checkbox" class="form-check-input" id="mbCopyTick" ${ticked ? 'checked' : ''} ${mb.busy ? 'disabled' : ''}>
         <label class="form-check-label" for="mbCopyTick"
                title="The member, home address and contact, birth details and who signs for the baby. Boxes already filled are kept.">
-          <strong>Copy the mother's details</strong>
+          <strong>Copy Mother's Details</strong>
         </label>
       </div>
       ${ticked ? mbAppliedHtml() : ''}

@@ -34,6 +34,18 @@ Related documents:
 - *Email (P6).* A refused address (e.g. a throw-away mailinator.com one) is
   still not saved (adviser's revision S2); the message now says how to go on:
   "If the patient has no email, type N/A in the email box." (email_check.py).
+- *Formal wording on the forms page.* Titles, buttons and messages staff see
+  now use formal terms: "Diagnosis Template" (was "The clinic's wording"),
+  "Course in the Ward Template (Normal Delivery)", "Standard Delivery
+  Medications"; Apply / Remove / Reset Fields (were Put it in / Take it out /
+  Refill blanks); "4 fields remaining", "Applied. 9 fields retain manually
+  entered text"; "Restore Unsaved Patient Record?" with Restore Record /
+  Discard; "Handwritten Name(s)"; "Fields Completed"; "All Required Fields
+  Complete" / "Incomplete: 30 required fields remaining" / "30 Required Fields
+  Remaining"; Go to Field (was Fix this); Not Applicable (was Not needed);
+  View All Forms; New Patient; Save Patient Record; Copy Mother's Details;
+  Replace Existing Text? / Replace / Keep Existing Text. Nothing works
+  differently.
 - *Shorter step buttons.* Patient details' last part ends with "Check for
   missing information" (was "Done - check for missing information"), and each
   part's next button is the next part's name, e.g. "Stay at the clinic ->"

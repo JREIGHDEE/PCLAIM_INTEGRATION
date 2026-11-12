@@ -146,7 +146,7 @@
         if (toType.length) bits.push(`<span class="st-type">${toType.length} to type</span>`);
         if (toCheck) bits.push(`<span class="st-check">${toCheck} from scan to check</span>`);
         tab.querySelector('.part-status').innerHTML = bits.length ? bits.join(' · ')
-          : '<span class="st-done"><i class="bi bi-check-circle-fill"></i> Nothing missing</span>';
+          : '<span class="st-done"><i class="bi bi-check-circle-fill"></i> Complete</span>';
         tab.classList.toggle('part-done', !toType.length);
         if (toType.length && next === null) next = { i, number, toType };
       });
