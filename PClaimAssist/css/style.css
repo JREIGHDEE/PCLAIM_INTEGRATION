@@ -3557,3 +3557,16 @@ html body.easy .dx-template .dx-actions .btn {
   padding: .35rem .9rem;
   font-size: .85rem;
 }
+
+/* "Go to Field" / a red box clicked on the preview: the box it goes to
+   glows (app.js focusField), so staff see at once which one is missing.
+   A steady glow, not an animation: easy.css turns animations off, which
+   left the old flash invisible. Amber, so it stands out from the red (or,
+   in colour-blind mode, blue) "missing" edge. */
+html body .field-flash:is(input, select, textarea),
+html body .field-flash :is(input, select, textarea, .pca-box, .btn-check-option),
+html body .field-flash.btn-check-group .btn-check-option {
+  box-shadow: 0 0 0 3px #FFFFFF, 0 0 0 6px #F59E0B, 0 0 22px 8px rgba(245, 158, 11, .55) !important;
+  transition: box-shadow .2s ease;
+}
+html body .field-flash { border-radius: 6px; }

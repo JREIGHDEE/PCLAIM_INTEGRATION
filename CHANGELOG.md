@@ -34,6 +34,12 @@ Related documents:
 - *Email (P6).* A refused address (e.g. a throw-away mailinator.com one) is
   still not saved (adviser's revision S2); the message now says how to go on:
   "If the patient has no email, type N/A in the email box." (email_check.py).
+- *The box you are taken to glows.* "Go to Field" and a red box clicked on a
+  form's preview now make the box glow amber (a ring and a halo, on each box
+  of a PIN or date row) until it is typed in, or for 4 seconds. It used to
+  "flash" with an animation that easy.css turns off, so nothing showed
+  (app.js focusField; css .field-flash). Amber stands out from the red (or
+  colour-blind blue) "missing" edge.
 - *The boxes and the form preview scroll together.* On CSF, CF1, CF2, CF4 and
   PMRF, scrolling the boxes scrolls the preview to the part of the page those
   boxes print on, and scrolling the preview scrolls the boxes to the ones

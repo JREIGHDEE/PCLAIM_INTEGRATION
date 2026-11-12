@@ -3291,8 +3291,12 @@ function focusField(key) {
     const target = el.matches('input,select,textarea,button') ? el
                  : el.querySelector('input:not([type=hidden]),select,textarea,button');
     if (target && !target.disabled && !target.readOnly) target.focus({ preventScroll: true });
+    // The box glows until it is typed in, or for a few seconds (user
+    // feedback: it was not clear where the missing box was).
     el.classList.add('field-flash');
-    setTimeout(() => el.classList.remove('field-flash'), 1600);
+    const stop = () => { el.classList.remove('field-flash'); el.removeEventListener('input', stop, true); };
+    el.addEventListener('input', stop, true);
+    setTimeout(stop, 4000);
   }, 350);
 }
 
