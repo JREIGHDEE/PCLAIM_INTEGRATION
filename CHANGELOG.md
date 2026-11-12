@@ -44,6 +44,10 @@ Related documents:
   each in its own colour: Admission, Discharge, Disposition & Accommodation,
   and Reason for Admission & Diagnosis (index.html). No box was moved
   between forms or renamed.
+- *The same colours on every form and on Clinic details.* Each part of the
+  CSF, CF1, CF2, CF4 and PMRF, and of Clinic details, is now the same
+  clearly coloured panel with a heading band as on Patient details. A part
+  ticked "Not needed" still turns grey.
 - *Typing lag (P3).* Each keystroke re-searched the whole page once per field
   key (several hundred searches) to copy values between forms, and redid every
   red mark and every form's preview through the CF4 course-in-the-ward rows.

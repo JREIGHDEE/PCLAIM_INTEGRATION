@@ -3007,9 +3007,12 @@ textarea.from-patient-details:focus {
 /* Stronger colours on Patient details (user feedback: the parts were hard
    to tell apart - the tints above are almost white). Each part is a clearly
    tinted panel with a border all round, its heading a band of the part's
-   colour, so the white boxes stand out on it. Clinic details keeps the
-   lighter look. */
-#patientTabContent .patient-part[class*="part-tone-"] {
+   colour, so the white boxes stand out on it. The same on every form's
+   parts and on Clinic details (user feedback: "the same color contrast to
+   all forms"). A part ticked "Not needed" turns grey the same way. */
+#patientTabContent .patient-part[class*="part-tone-"],
+.clinic-parts .patient-part[class*="part-tone-"],
+.entry-part[class*="part-tone-"] {
   --tone-bg: color-mix(in srgb, var(--tone) 9%, #fff);
   border: 1.5px solid color-mix(in srgb, var(--tone) 35%, #fff);
   border-left: 6px solid var(--tone);
@@ -3018,7 +3021,9 @@ textarea.from-patient-details:focus {
   margin: 0 0 1.25rem;
   overflow: hidden;
 }
-#patientTabContent .patient-part[class*="part-tone-"] > .pca-tab-section-label {
+#patientTabContent .patient-part[class*="part-tone-"] > .pca-tab-section-label,
+.clinic-parts .patient-part[class*="part-tone-"] > .pca-tab-section-label,
+.entry-part[class*="part-tone-"] > .entry-section-title {
   margin: 0 -1rem .9rem !important;
   padding: .55rem 1rem;
   background: color-mix(in srgb, var(--tone) 20%, #fff);
