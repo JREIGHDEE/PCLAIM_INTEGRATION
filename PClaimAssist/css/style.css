@@ -3557,3 +3557,13 @@ html body.easy .dx-template .dx-actions .btn {
   padding: .35rem .9rem;
   font-size: .85rem;
 }
+
+/* The spot on the preview of the box being typed in (js/pdf/pdf-overlay.js
+   followFieldOnPreview). */
+.pdf-overlay .pdf-field.pdf-field--focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+  background: rgba(37, 99, 235, .14);
+  border-radius: 2px;
+  z-index: 3;
+}

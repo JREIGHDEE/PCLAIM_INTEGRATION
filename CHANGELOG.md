@@ -34,6 +34,12 @@ Related documents:
 - *Email (P6).* A refused address (e.g. a throw-away mailinator.com one) is
   still not saved (adviser's revision S2); the message now says how to go on:
   "If the patient has no email, type N/A in the email box." (email_check.py).
+- *The form preview follows the box being typed in.* Clicking or tabbing into
+  a box on CSF, CF1, CF2, CF4 or PMRF scrolls that form's preview to where the
+  value prints and outlines it in blue - including the PIN and date rows and
+  values printed joined (e.g. Patient Name from the last name). Only the
+  preview scrolls; the page still turns with the boxes' own page turner
+  (pdf-overlay.js followFieldOnPreview; css .pdf-field--focus).
 - *Formal wording on the forms page.* Titles, buttons and messages staff see
   now use formal terms: "Diagnosis Template" (was "The clinic's wording"),
   "Course in the Ward Template (Normal Delivery)", "Standard Delivery

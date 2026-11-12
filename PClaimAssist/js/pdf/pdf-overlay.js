@@ -978,3 +978,80 @@ function applyPdfZoom() {
   });
   applyPdfZoom();
 })();
+
+/* ── The preview follows the box being typed in ──────────────
+   Clicking or tabbing into a box on a form (CSF, CF1, CF2, CF4, PMRF)
+   scrolls that form's preview to where the value prints and outlines it,
+   so staff see which part of the paper form they are filling (user
+   feedback). Only scrolls the preview: the page turns with the boxes'
+   own page turner, as before. */
+(function followFieldOnPreview() {
+  let lit = [];
+  const unlight = () => { lit.forEach(s => s.classList.remove('pdf-field--focus')); lit = []; };
+
+  // The form key a box stands for, whichever kind of box it is.
+  function keyOf(el) {
+    if (el.dataset.dxVar) return null;                    // a blank in a wording card
+    if (el.dataset.autofill) return el.dataset.autofill;
+    if (el.dataset.dateFor) return el.dataset.dateFor;    // MM/DD/YYYY box (js/date-text.js)
+    const group = el.closest('[data-box-key]');
+    if (group) return group.dataset.boxKey;
+    const row = el.closest('.box-input, .box-input-date');
+    const real = row && row.dataset.target && document.querySelector(row.dataset.target);
+    if (real && real.dataset.autofill) return real.dataset.autofill;
+    const pins = el.closest('.pin-boxes');
+    const hidden = pins && pins.previousElementSibling;
+    return hidden && hidden.dataset ? hidden.dataset.autofill || null : null;
+  }
+
+  // Every spot of the form that prints the key: its own boxes, its digits,
+  // and the joined values printed from it (Patient Name from the last name,
+  // the monthly income with its peso sign - app.js FIX_FIELD_ALIASES,
+  // VAL_SPOT_KEYS).
+  function spotsFor(form, key) {
+    const aliases = typeof FIX_FIELD_ALIASES !== 'undefined' ? FIX_FIELD_ALIASES : {};
+    const parts = typeof VAL_SPOT_KEYS !== 'undefined' ? VAL_SPOT_KEYS : {};
+    return (OVERLAY_MAP[form] || []).filter(f => {
+      const name = f.computed || f.key;
+      return f.key === key || f.digitKey === key || f.computed === key ||
+        aliases[name] === key || (parts[name] || []).includes(key);
+    });
+  }
+
+  document.addEventListener('focusin', e => {
+    const el = e.target;
+    if (!el || !el.closest) return;
+    const section = el.closest('.content-section');
+    const form = section && section.id.replace('section-', '');
+    if (!form || !OVERLAY_MAP[form] || !el.closest('.form-entry-panel')) return;
+    const key = keyOf(el);
+    if (!key) return;
+    const st = pdfState[form];
+    const curPage = st ? st.page : 1;
+    const spans = spotsFor(form, key)
+      .filter(f => f.page === curPage)
+      .map(f => document.getElementById('pof-' + form + '-' + f.id))
+      .filter(s => s && !s.classList.contains('pdf-field--hidden'));
+    unlight();
+    if (!spans.length) return;
+    spans.forEach(s => s.classList.add('pdf-field--focus'));
+    lit = spans;
+    const scroller = spans[0].closest('.pdf-canvas-scroller');
+    if (!scroller) return;
+    const box = scroller.getBoundingClientRect();
+    const rects = spans.map(s => s.getBoundingClientRect());
+    const top = Math.min(...rects.map(r => r.top));
+    const bottom = Math.max(...rects.map(r => r.bottom));
+    scroller.scrollTo({
+      top: scroller.scrollTop + (top - box.top) - (scroller.clientHeight - (bottom - top)) / 2,
+      behavior: 'smooth',
+    });
+  });
+  // Out of the boxes: the outline goes too.
+  document.addEventListener('focusout', e => {
+    setTimeout(() => {
+      const now = document.activeElement;
+      if (!now || !now.closest || !now.closest('.form-entry-panel')) unlight();
+    }, 0);
+  });
+})();
