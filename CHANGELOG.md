@@ -34,6 +34,11 @@ Related documents:
 - *Email (P6).* A refused address (e.g. a throw-away mailinator.com one) is
   still not saved (adviser's revision S2); the message now says how to go on:
   "If the patient has no email, type N/A in the email box." (email_check.py).
+- *Reading a logbook scan: only the progress shows.* While a scan is sent and
+  read, step 1 of "Read a logbook page" now shows just "Reading the logbook"
+  and its progress; "1. Choose a file", the file name and "2. Read the
+  logbook" are put away and come back when it is done or fails (users found
+  the screen confusing; templates/review.html updateReadButton).
 - *The box you are taken to pulses.* "Go to Field" and a red box clicked on a
   form's preview now make the box pulse - a ring that swells and fades once
   a second, on each box of a PIN or date row - in the "missing" colour: red,

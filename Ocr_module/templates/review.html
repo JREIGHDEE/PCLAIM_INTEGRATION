@@ -83,6 +83,10 @@ a{ color:var(--blue); }
 .patient-row.here .pnum{ background:var(--blue); color:#fff; }
 .patient-top{ display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; justify-content:space-between; }
 .list-progress{ font-size:1.1rem; font-weight:700; }
+/* Step 1 while a scan is sent and read: only the progress (updateReadButton). */
+#uploadCard.is-reading .upload-intro,
+#uploadCard.is-reading .upload-actions,
+#uploadCard.is-reading #fileName{ display:none; }
 
 /* One box at a time: numbered box buttons, one field, Back / Next. */
 .box-steps{ display:flex; flex-wrap:wrap; gap:8px; list-style:none; padding:0; margin:16px 0 4px; }
@@ -410,9 +414,9 @@ if (window.top !== window.self) document.documentElement.classList.add('embedded
 </div>
 
 <div class="tab-panel" role="tabpanel" id="panel-upload" aria-labelledby="tab-upload">
-<section class="card" aria-labelledby="uploadTitle">
+<section class="card" aria-labelledby="uploadTitle" id="uploadCard">
     <h2 id="uploadTitle">Step 1. Choose the logbook scan</h2>
-    <p class="muted">A photo or scan (JPG or PNG) of one page, or a PDF with both pages of the logbook.</p>
+    <p class="muted upload-intro">A photo or scan (JPG or PNG) of one page, or a PDF with both pages of the logbook.</p>
     <div class="upload-actions">
         <label class="file-button">
             1. Choose a file
@@ -683,6 +687,15 @@ let reading = false;
 function updateReadButton(){
     const hasFile = !!document.getElementById("fileInput").files[0];
     document.getElementById("uploadBtn").disabled = reading || !hasFile;
+    // While a scan is sent and read, only its progress shows: the file
+    // chooser and the read button stay out of the way (user feedback: too
+    // much on the screen at once). They come back when it is done or fails.
+    const card = document.getElementById("uploadCard");
+    if(card){
+        card.classList.toggle("is-reading", reading);
+        document.getElementById("uploadTitle").textContent = reading
+            ? "Reading the logbook" : "Step 1. Choose the logbook scan";
+    }
 }
 
 function setUploadStatus(html, kind){
