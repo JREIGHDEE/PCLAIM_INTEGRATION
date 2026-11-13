@@ -2376,6 +2376,9 @@ const OPTIONAL_LINES = new Set([
   // PMRF: a PhilSys ID, a TIN, and the numbers only some members have
   // (PWD ID, PRA SRRV, ACR I-Card, group enrollment).
   'philsysId', 'tin', 'pwdIdNo', 'praSrrvNo', 'acrICardNo', 'groupEnrollmentNo',
+  // Proof of Income (POS / financially incapable) is for the few who
+  // register that way - not needed by itself (user request, 2026-11-13).
+  'proofOfIncome',
   // A dependent's name suffix, as other suffixes.
   'dep1Ext', 'dep2Ext', 'dep3Ext', 'dep4Ext',
 ]);

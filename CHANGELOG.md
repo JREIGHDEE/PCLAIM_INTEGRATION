@@ -60,6 +60,10 @@ Related documents:
   The score comes first and is the bigger of the two (larger ring, text
   and counts); Save Patient Record is the smaller card beside it, its
   button under its note.
+- *PMRF Proof of Income no longer needed.* It is only for members who
+  register as Point of Service or financially incapable, so it is never
+  marked red or counted as missing (app.js OPTIONAL_LINES). Chosen, it
+  still prints in the form's PROOF OF INCOME box.
 - *Typing lag (P3).* Each keystroke re-searched the whole page once per field
   key (several hundred searches) to copy values between forms, and redid every
   red mark and every form's preview through the CF4 course-in-the-ward rows.
