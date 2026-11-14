@@ -543,10 +543,11 @@ function runValidationRules(getValue, data, forms) {
 
   // The signing checklist lists every signature block the claim needs,
   // produced before printing regardless of whether a signed form exists.
+  // SP-05 is always listed (as "only if a thumbmark is used"): the page
+  // cannot know whether the member will sign or use a thumbmark.
   const signingChecklist = RULES
     .filter(r => r.category === 'Signature' && r.checklist && inClaim(r))
     .filter(r => r.id !== 'SP-04' || features.is_employed_member === 1)
-    .filter(r => r.id !== 'SP-05' || features.thumbmark_present === 1)
     .map(r => ({ id: r.id, text: r.checklist }));
 
   return {

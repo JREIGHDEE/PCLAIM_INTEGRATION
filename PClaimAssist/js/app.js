@@ -3633,7 +3633,7 @@ function updateExportGate(result, totalComplete, totalFields) {
    next to the member's line. Display only - the rules are not changed.
    -> [{form: 'CSF', items: [{id, who, where}]}] */
 const SIGNING_PLACE = {
-  'SP-05': { who: 'HCI assisting representative (thumbmark used)', where: 'CSF Part I' },
+  'SP-05': { who: 'HCI assisting representative', where: 'CSF Part I — Only if a thumbmark is used' },
 };
 const SIGNING_ORDER = ['SP-01', 'SP-05', 'SP-04', 'SP-03', 'SP-02', 'SP-06'];
 
