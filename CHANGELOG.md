@@ -15,6 +15,10 @@ Related documents:
 
 Fixes to system.
 
+## 2026-11-15 (JRAD)
+
+Fixes to system.
+
 ## 2026-11-11: Defects from user testing - typing lag, cursor moves on, red boxes that went nowhere, email message (JRAD)
 
 **After pulling:** restart the backend and press Ctrl+F5 on the forms. No migration.
