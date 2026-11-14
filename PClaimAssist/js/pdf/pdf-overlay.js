@@ -874,6 +874,8 @@ async function exportAllForms(keys) {
       const pages = await merged.copyPages(filled, filled.getPageIndices());
       pages.forEach(page => merged.addPage(page));
     }
+    // The signing checklist goes after the forms, as the last page.
+    await addSigningChecklistPage(merged);
     const pdfBytes = await merged.save();
     const blob = new Blob([pdfBytes], { type: 'application/pdf' });
     const url = URL.createObjectURL(blob);
@@ -891,6 +893,97 @@ async function exportAllForms(keys) {
     showToast('The forms could not be made',
       'Please try again. If it keeps happening, tell the clinic administrator.', 'danger');
     console.error('[PCA] Export-all error:', err);
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = label; }
+  }
+}
+
+/* ── Signing checklist page ───────────────────────────────
+   The wet-ink signatures the claim needs (SP-01 ... SP-06, as listed by
+   runValidationRules' signingChecklist), grouped by form, with a box to
+   tick and a line for the date. Added as the last page when several forms
+   are saved as one PDF, and saved by itself from the Signing Checklist
+   panel. It only reads the checklist; the rules and the form pages are
+   not touched. */
+async function addSigningChecklistPage(pdfDoc) {
+  const data = (typeof state !== 'undefined' && state.data) ? state.data : {};
+  const list = runValidationRules(getComputedValue, data).signingChecklist;
+  const groups = signingChecklistByForm(list);
+  const { StandardFonts, rgb } = PDFLib;
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const printable = new Set(font.getCharacterSet());
+  const safe = text => pdfSafeText(String(text == null ? '' : text), printable);
+
+  const first = pdfDoc.getPageCount() ? pdfDoc.getPage(0).getSize() : null;
+  const page = pdfDoc.addPage(first ? [first.width, first.height] : [595.28, 841.89]);
+  const { width, height } = page.getSize();
+  const left = 50, right = width - 50, black = rgb(0, 0, 0), grey = rgb(0.4, 0.4, 0.4);
+  let y = height - 60;
+  const text = (t, x, size, f, color) =>
+    page.drawText(safe(t), { x, y, size, font: f || font, color: color || black });
+
+  text('SIGNING CHECKLIST', left, 16, bold);
+  y -= 22;
+  text('PhilHealth requires original hand-written signatures. Obtain each one below before submitting.',
+       left, 9, font, grey);
+  y -= 24;
+
+  const name = [data.patientLastName, data.patientFirstName, data.patientMiddleName]
+    .map(v => String(v || '').trim()).filter(Boolean);
+  const patient = name.length ? `${name[0]}${name.length > 1 ? ', ' + name.slice(1).join(' ') : ''}` : '-';
+  const pkg = (typeof claimPackage === 'function' && claimPackage(data)) || '-';
+  const today = new Date();
+  const date = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' +
+    String(today.getDate()).padStart(2, '0');
+  [['Patient', patient], ['Package', pkg], ['Printed', date]].forEach(([label, value]) => {
+    text(label + ':', left, 10, bold);
+    text(value, left + 60, 10);
+    y -= 15;
+  });
+  y -= 10;
+
+  groups.forEach(group => {
+    text(group.form, left, 12, bold);
+    y -= 6;
+    page.drawLine({ start: { x: left, y }, end: { x: right, y }, thickness: 0.7, color: grey });
+    y -= 20;
+    group.items.forEach(item => {
+      page.drawRectangle({ x: left, y: y - 2, width: 10, height: 10, borderColor: black, borderWidth: 1 });
+      text(item.who, left + 18, 10, bold);
+      text(item.id, right - font.widthOfTextAtSize(item.id, 8), 8, font, grey);
+      y -= 13;
+      text(item.where, left + 18, 9, font, grey);
+      text('Date signed: ____________________', right - 170, 9);
+      y -= 24;
+    });
+    y -= 6;
+  });
+  return page;
+}
+
+async function exportSigningChecklist(button) {
+  if (!window.PDFLib) {
+    showToast('Cannot make the PDF right now', 'Check that the computer is connected to the internet, then reload the page.', 'danger');
+    return;
+  }
+  const btn = button || null;
+  const label = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Making the PDF, please wait…'; }
+  try {
+    const doc = await PDFLib.PDFDocument.create();
+    await addSigningChecklistPage(doc);
+    const blob = new Blob([await doc.save()], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `PClaimAssist_signing_checklist_${claimFileStamp()}.pdf`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    showToast('Checklist saved', 'The signing checklist was saved to your Downloads folder. Open it there to print.', 'success');
+  } catch (err) {
+    showToast('The checklist could not be made', 'Please try again.', 'danger');
+    console.error('[PCA] Signing checklist error:', err);
   } finally {
     if (btn) { btn.disabled = false; btn.innerHTML = label; }
   }

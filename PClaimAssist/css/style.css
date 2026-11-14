@@ -2425,6 +2425,14 @@ body {
   margin-bottom: .45rem;
   font-size: .83rem;
 }
+.signing-form {
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: var(--text-muted, #6b7280);
+  margin: .7rem 0 .35rem;
+}
+.signing-form:first-child { margin-top: 0; }
 
 /* ── Export gate ─────────────────────────────────────────── */
 .btn-export.is-blocked {

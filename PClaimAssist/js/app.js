@@ -3626,15 +3626,47 @@ function updateExportGate(result, totalComplete, totalFields) {
    SIGNING CHECKLIST — produced before printing; lists the
    wet-ink signatures the claim requires.
 ══════════════════════════════════════════════════════════ */
+/* The checklist grouped by form, for the panel and the printed page. Each
+   rule's own `checklist` text says who signs and where ("Member /
+   representative — CSF Part I"). SP-05's text names no form: the thumbmark
+   goes in the member's signature area, so it is listed under CSF Part I,
+   next to the member's line. Display only - the rules are not changed.
+   -> [{form: 'CSF', items: [{id, who, where}]}] */
+const SIGNING_PLACE = {
+  'SP-05': { who: 'HCI assisting representative (thumbmark used)', where: 'CSF Part I' },
+};
+const SIGNING_ORDER = ['SP-01', 'SP-05', 'SP-04', 'SP-03', 'SP-02', 'SP-06'];
+
+function signingChecklistByForm(list) {
+  const groups = [];
+  (list || [])
+    .slice()
+    .sort((a, b) => SIGNING_ORDER.indexOf(a.id) - SIGNING_ORDER.indexOf(b.id))
+    .forEach(item => {
+      const parts = String(item.text).split(' — ');
+      const placed = SIGNING_PLACE[item.id] ||
+        { who: parts[0], where: parts.slice(1).join(' — ') };
+      const form = (placed.where.match(/\b(CSF|CF\d|PMRF)\b/) || [, 'Other'])[1];
+      let group = groups.find(g => g.form === form);
+      if (!group) groups.push(group = { form, items: [] });
+      group.items.push({ id: item.id, who: placed.who, where: placed.where });
+    });
+  return groups;
+}
+
 function renderSigningChecklist(result) {
   const host = document.getElementById('signingChecklist');
   if (!host) return;
-  host.innerHTML = result.signingChecklist.map(item => `
+  const esc = text => escapeHtmlText(String(text));
+  host.innerHTML = signingChecklistByForm(result.signingChecklist).map(group => `
+    <div class="signing-form">${esc(group.form)}</div>
+    ${group.items.map(item => `
     <div class="signing-item">
-      <i class="bi bi-pen me-2 text-primary"></i>
-      <span>${item.text}</span>
-      <code class="rule-id ms-auto">${item.id}</code>
-    </div>`).join('');
+      <i class="bi bi-square me-1 text-muted" aria-hidden="true"></i>
+      <span><strong>${esc(item.who)}</strong>
+        <span class="text-muted">— ${esc(item.where)}</span></span>
+      <code class="rule-id ms-auto">${esc(item.id)}</code>
+    </div>`).join('')}`).join('');
 }
 
 /* ══════════════════════════════════════════════════════════
