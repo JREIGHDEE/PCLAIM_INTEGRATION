@@ -117,6 +117,62 @@ def _field(category, raw_text, confidence, status=None):
     }
 
 
+def _membership_row(text=None, colour=(40, 40, 40), shadow=False, line=True, address=False):
+    """One row of a left page, 1000 px wide, at its right edge: the
+    membership column's printed line at x=920, blue ruled lines top and
+    bottom, the binding's shadow down the page edge. Returns (page, box) -
+    box where the logbook setup puts the column, a little off the line."""
+    page = np.full((100, 1000, 3), 248, dtype=np.uint8)
+    if shadow:
+        for x in range(975, 1000):
+            page[:, x] = max(140, 248 - (x - 975) * 4)
+    page[4:6, :] = (200, 170, 130)
+    page[94:96, :] = (200, 170, 130)
+    if line:
+        page[:, 919:922] = (70, 70, 70)
+    if address:
+        cv2.putText(page, "DAVAO CITY", (700, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (40, 40, 40), 2)
+    if text:
+        cv2.putText(page, text, (932, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.8, colour, 2)
+    return page, (905, 0, 1000, 100)
+
+
+class MembershipColumnTests(unittest.TestCase):
+    """The left page's last, unnamed column: membership status ("NH"),
+    only looked at for writing."""
+
+    LEFT = {"segmentInfo": [{"category": "CASE #"}, {"category": "NAME"}, {"category": "ADDRESS"},
+                            {"category": None}]}
+
+    def test_it_is_the_left_pages_last_unnamed_column(self):
+        self.assertEqual(logbook_pipeline.membership_column(self.LEFT), 4)
+
+    def test_right_page_or_a_named_last_column_has_none(self):
+        right = {"segmentInfo": [{"category": "ADMITTING DIAGNOSIS"}, {"category": None}]}
+        named = {"segmentInfo": [{"category": "NAME"}, {"category": "ADDRESS"}]}
+        self.assertIsNone(logbook_pipeline.membership_column(right))
+        self.assertIsNone(logbook_pipeline.membership_column(named))
+
+    def test_nh_is_written(self):
+        self.assertTrue(logbook_pipeline.membership_written(*_membership_row("NH")))
+        self.assertTrue(logbook_pipeline.membership_written(*_membership_row("NH", shadow=True)))
+
+    def test_faint_blue_pen_is_written(self):
+        self.assertTrue(logbook_pipeline.membership_written(*_membership_row("NH", colour=(215, 175, 150))))
+
+    def test_lines_and_page_edge_shadow_alone_are_blank(self):
+        self.assertFalse(logbook_pipeline.membership_written(*_membership_row()))
+        self.assertFalse(logbook_pipeline.membership_written(*_membership_row(shadow=True)))
+
+    def test_the_address_left_of_the_line_does_not_count(self):
+        self.assertFalse(logbook_pipeline.membership_written(*_membership_row(address=True)))
+
+    def test_without_the_columns_line_it_cannot_be_told(self):
+        # The page placed off, or the column cut off by the scan: nothing ticked.
+        self.assertIsNone(logbook_pipeline.membership_written(*_membership_row("NH", line=False)))
+        self.assertIsNone(logbook_pipeline.membership_written(None, (905, 0, 1000, 100)))
+
+
 class BatchReadingTests(unittest.TestCase):
     def test_batch_results_are_used_as_the_first_read(self):
         reads = []

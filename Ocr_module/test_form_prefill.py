@@ -163,6 +163,18 @@ class BuildFormDataTests(unittest.TestCase):
         self.assertNotIn("amPmDischarge", fields)
         self.assertFalse(any(f["status"] == "required" for f in fields.values()))
 
+    def test_blank_membership_column_ticks_no_philhealth(self):
+        session = {"id": 7, "ocr_data": {"fields": [], "membership_written": False}}
+        result = form_prefill.build_form_data(_rows(), session=session)
+        self.assertIs(result["data"]["patientNoPhilhealth"], True)
+        self.assertEqual(result["fields"]["patientNoPhilhealth"]["status"], form_prefill.NEEDS_CHECK)
+
+    def test_written_or_unknown_membership_leaves_the_pin_asked(self):
+        for ocr_data in ({"fields": [], "membership_written": True}, {"fields": []}):
+            result = form_prefill.build_form_data(_rows(), session={"id": 7, "ocr_data": ocr_data})
+            self.assertNotIn("patientNoPhilhealth", result["data"])
+            self.assertNotIn("patientNoPhilhealth", result["fields"])
+
     def test_address_is_a_reference_not_split_into_form_fields(self):
         result = form_prefill.build_form_data(
             _rows(), session=_session(_ocr("ADDRESS", "accepted", "123 Rizal St., Quezon City")))

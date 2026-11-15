@@ -11,6 +11,31 @@ Related documents:
 
 ---
 
+## 2026-11-15: The logbook's membership column ticks "No PhilHealth" (JRAD)
+
+**After pulling:** restart the backend and press Ctrl+F5 on the forms. No
+migration. Only scans read after the restart carry it.
+
+- The left page's last column, set up as "Not read - marks where the column
+  before it ends", holds the patient's membership status ("NH"). It is still
+  not read, and the logbook setup is unchanged; it is now looked at for
+  writing (logbook_pipeline.membership_written). Blank: the claim opens with
+  "No PhilHealth" ticked on Patient details, tagged "please check" (the
+  PIN is then not asked for). Anything written: the PIN is asked for, as
+  before (philhealth/form_prefill.py; kept in the session's ocr_data as
+  membership_written).
+- The column's own printed line is found first and only what is right of it
+  counts, so the end of the address doesn't. Writing is told against the
+  paper around it, so the binding's shadow and the blue ruled lines don't
+  count and light-blue pen does. When the line can't be found (the page
+  placed off, the column cut off, or the column inside the shadow), nothing
+  is ticked.
+- Checked on the 10 handwriting-test writers' scanner scans, each cell read
+  by eye (100 cells): 73 right, 3 blank taken as written (the PIN is just
+  asked for), 24 not told, and no "NH" taken as blank. On the phone photos
+  of the same pages (not used for tuning) no "NH" was taken as blank
+  either, but only 4 blanks were recognised - mostly the PIN is asked for.
+
 ## 2026-11-15 (JRAD)
 
 Fixes to system.

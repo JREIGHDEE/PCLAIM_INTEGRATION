@@ -322,6 +322,108 @@ def _page_category_for_column(template, column):
     return (segments[column - 1] or {}).get("category") or None
 
 
+def membership_column(template):
+    """The left page's last column, when it has no name ("Not read"): the
+    logbook's membership status ("NH"). It is never read; it is only
+    looked at for writing (membership_written). None on any other page."""
+    segments = template.get("segmentInfo") or []
+    names = {(s or {}).get("category") for s in segments}
+    if not segments or (segments[-1] or {}).get("category") or "NAME" not in names:
+        return None
+    return len(segments)
+
+
+# Membership column (see membership_written). Shares of the page width:
+# how far from where the setup puts the column's printed line to look for
+# it, and how much of the column to the right of the line is looked at (it
+# runs to the page edge, where the binding's shadow is).
+_MEMBER_LINE_SEARCH = 0.05
+_MEMBER_LOOK_WIDTH = 0.085
+_MEMBER_MIN_WIDTH = 0.03
+# The printed line: dark down at least this share of the row.
+_MEMBER_LINE_SHARE = 0.45
+# Writing: this much darker than the paper around it (0-255), or this much
+# bluer, in strokes of at least _MEMBER_MIN_STROKE pixels,
+# _MEMBER_MIN_INK pixels in all.
+_MEMBER_INK_CONTRAST = 18
+_MEMBER_BLUE_CONTRAST = 22
+_MEMBER_MIN_STROKE = 15
+_MEMBER_MIN_INK = 45
+
+
+def membership_region(image, box):
+    """(x1, y1, x2, y2) of the membership column on one row, right of the
+    column's own printed line - found near where the setup puts it, box[0]
+    - or None when that line is not there (the page placed off, or the
+    column cut off by the scan)."""
+    if image is None or getattr(image, "size", 0) == 0:
+        return None
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if image.ndim == 3 else image
+    h, w = gray.shape
+    x_expected, y1, y2 = int(box[0]), max(0, int(box[1])), min(h, int(box[3]))
+    if y2 - y1 < 10:
+        return None
+    reach = max(6, int(w * _MEMBER_LINE_SEARCH))
+    left, right = max(0, x_expected - reach), min(w, x_expected + reach)
+    strip = gray[y1:y2, left:right]
+    if strip.size == 0:
+        return None
+    dark = cv2.adaptiveThreshold(strip, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 15, 8)
+    # A printed line is dark down the whole row; a pen stroke is not.
+    share = (dark > 0).mean(axis=0)
+    share = np.maximum(share, np.maximum(np.roll(share, 1), np.roll(share, -1)))  # a line 2-3 px wide, slanted
+    best = int(np.argmax(share))
+    if share[best] < _MEMBER_LINE_SHARE:
+        return None
+    line_x = left + best
+    start = line_x + max(3, int(w * 0.004))
+    end = min(w, line_x + int(w * _MEMBER_LOOK_WIDTH))
+    # Only a sliver left before the page edge: what was found is the edge of
+    # the binding's shadow, not the column's line - the column itself is
+    # in the shadow, where writing can't be told from it.
+    return None if end - start < w * _MEMBER_MIN_WIDTH else (start, y1, end, y2)
+
+
+def membership_written(image, box):
+    """Anything written in the logbook's membership column on one row
+    ("NH"): True, False when it is blank, None when it can't be told (its
+    line not found). Looked at against the paper around it, so the
+    binding's shadow and the printed blue ruled lines don't count as
+    writing, and light-blue pen does."""
+    region = membership_region(image, box)
+    if region is None:
+        return None
+    x1, y1, x2, y2 = region
+    cell = image[y1:y2, x1:x2]
+    gray = cv2.cvtColor(cell, cv2.COLOR_BGR2GRAY) if cell.ndim == 3 else cell
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (15, 15))
+    # The paper as it would be without the pen: a light, slowly changing
+    # surface (shadow included), found by closing the strokes over.
+    paper = cv2.morphologyEx(gray, cv2.MORPH_CLOSE, kernel)
+    ink = cv2.subtract(paper, gray) > _MEMBER_INK_CONTRAST
+    if cell.ndim == 3:
+        # Blue or black pen against grey paper and shadow: light-blue pen is
+        # hardly darker than the shadow, but it is blue.
+        blue = cv2.subtract(cell[:, :, 0], cell[:, :, 2])
+        blue = cv2.subtract(blue, cv2.morphologyEx(blue, cv2.MORPH_OPEN, kernel))
+        ink |= blue > _MEMBER_BLUE_CONTRAST
+    ink = ink.astype(np.uint8) * 255
+    # The ruled lines are long and flat: taken out.
+    h, w = ink.shape
+    rules = cv2.morphologyEx(ink, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_RECT, (max(3, int(w * 0.5)), 1)))
+    rules |= cv2.morphologyEx(ink, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_RECT, (1, max(3, int(h * 0.5)))))
+    ink = cv2.subtract(ink, cv2.dilate(rules, np.ones((3, 3), np.uint8)))
+    count, _, stats, _ = cv2.connectedComponentsWithStats(ink)
+    total = 0
+    for x, y, cw, ch, area in stats[1:]:
+        # The binding's shadow ends in a hard, tall edge at the page's side.
+        if x + cw >= w - 1 or (ch > h * 0.6 and cw < ch * 0.25):
+            continue
+        if area >= _MEMBER_MIN_STROKE:
+            total += int(area)
+    return total >= _MEMBER_MIN_INK
+
+
 def _save_crop(crop, upload_id, page_number, row, column):
     folder = os.path.join(config.REVIEW_CROPS_FOLDER, upload_id)
     os.makedirs(folder, exist_ok=True)
@@ -474,6 +576,7 @@ def build_review_rows(path, ocr_fn, templates, upload_id=None, progress=None, co
 
     iq_pages, page_reports = [], []
     rows_by_key = {}
+    membership = {}  # (spread, row) -> anything written in the membership column
     row_strips = {}  # (spread, row) -> {page: whole-row strip}, see _save_row_crops
     spread = -1
     carried_rows = None  # odd page's rows, as fractions of page height
@@ -580,9 +683,17 @@ def build_review_rows(path, ocr_fn, templates, upload_id=None, progress=None, co
 
         row_bounds = _row_bounds(placement["cells"])
         cells = []  # (cell, category, crop) for every cell to read
+        member_col = membership_column(template)
         for cell_data in placement["cells"]:
             category = _page_category_for_column(template, cell_data["column"])
             if category is None:
+                # The membership column is not read, only checked for writing:
+                # blank means the patient has no PhilHealth (form_prefill).
+                if member_col and cell_data["column"] == member_col:
+                    written = membership_written(
+                        image, (cell_data["x1"], cell_data["y1"], cell_data["x2"], cell_data["y2"]))
+                    if written is not None:
+                        membership[(spread, cell_data["row"])] = written
                 continue
             cell = Cell(row=cell_data["row"], column=cell_data["column"],
                         x1=cell_data["x1"], y1=cell_data["y1"], x2=cell_data["x2"], y2=cell_data["y2"])
@@ -635,6 +746,9 @@ def build_review_rows(path, ocr_fn, templates, upload_id=None, progress=None, co
             if corrector and paddle_assist.wants_second_look(field, flags):
                 unsure.append((field, crop))
 
+    for key, row in rows_by_key.items():
+        if key in membership:
+            row["membership_written"] = membership[key]
     rows = _drop_non_patient_rows([rows_by_key[k] for k in sorted(rows_by_key)])
     if corrector:
         # Only rows that are real patients - not the header or stray rows.
@@ -726,6 +840,10 @@ def persist_review_rows(result, source_document):
             },
             "fields": row["fields"],
         }
+        # Anything in the logbook's membership column ("NH"): blank ticks
+        # "No PhilHealth" on the forms (philhealth/form_prefill.py).
+        if row.get("membership_written") is not None:
+            ocr_data["membership_written"] = row["membership_written"]
         ocr_data["image_quality"]["passed"] = not ocr_data["image_quality"]["warnings"]
         session_id = case_session_store.create_ocr_session(
             values.get(case_bridge.CASE_NUMBER, ""), values, ocr_data,

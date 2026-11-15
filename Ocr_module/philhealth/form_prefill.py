@@ -41,6 +41,8 @@ _AM_PM_TIME = {"amPmAdmitted": "timeAdmitted", "amPmDischarge": "timeDischarge",
 # The OCR routing statuses (logbook_pipeline.py), repeated here as plain
 # strings so this module stays free of the OCR pipeline's imports.
 _OCR_MANUAL, _OCR_NEEDS_CHECK, _OCR_EMPTY = "manual_encoding_required", "needs_check", "empty"
+# The left page's last, unnamed logbook column (not a template category).
+MEMBERSHIP_STATUS = "MEMBERSHIP STATUS"
 
 
 def _serialize(value, kind):
@@ -166,6 +168,16 @@ def build_form_data(rows, session=None):
                     or "Worked out from the logbook") + " - check it"
             fields[key] = {"status": NEEDS_CHECK, "category": category, "raw_text": None,
                            "confidence": None, "reason": reason}
+
+    # The logbook's membership column ("NH", left page, never read - only
+    # looked at for writing, logbook_pipeline.membership_written): left
+    # blank, the patient has no PhilHealth, so "No PhilHealth" starts ticked
+    # and the PIN is not asked for. Anything written: the PIN stays asked.
+    if ((session or {}).get("ocr_data") or {}).get("membership_written") is False:
+        data["patientNoPhilhealth"] = True
+        fields["patientNoPhilhealth"] = {
+            "status": NEEDS_CHECK, "category": MEMBERSHIP_STATUS, "raw_text": None, "confidence": None,
+            "reason": "Nothing is written in the logbook's membership column - untick if the patient has PhilHealth"}
 
     no_ocr_source = [
         key for key in FORM_FIELDS
