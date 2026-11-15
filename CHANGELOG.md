@@ -11,6 +11,16 @@ Related documents:
 
 ---
 
+## 2026-11-15: The row picture marks the box being checked in red (JRAD)
+
+**After pulling:** Ctrl+F5 on the Logbook Reader. No restart, no migration.
+
+- Clicking a box's logbook picture on the logbook check opens the whole
+  row. The box being checked is now framed in red with its name
+  ("Checking: Patient name"); before, nothing showed which part of the row
+  it was, and the rest of the row could be taken for what is being
+  checked. The note above the picture says so (review.html .rv-mark).
+
 ## 2026-11-15: Tilt test on the Logbook Reader: read a scan as if it were not straight (JRAD)
 
 **After pulling:** restart the backend, then Ctrl+F5 on the Logbook Reader. No migration.

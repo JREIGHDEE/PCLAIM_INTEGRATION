@@ -344,9 +344,15 @@ details.more dd{ margin:0; word-break:break-word; }
 .rv-frame img{ display:block; height:auto; }
 #rowViewer.fit .rv-frame{ display:block; }
 #rowViewer.fit .rv-frame img{ width:100%; }
-/* Not drawn - the picture is shown as scanned. It only marks where the
-   box being checked is, so the viewer can scroll to it (scrollToMark). */
-.rv-mark{ position:absolute; pointer-events:none; }
+/* A red frame round the box being checked, so it is clear which part of
+   the row is being looked at; the viewer also scrolls to it (scrollToMark). */
+.rv-mark{ position:absolute; pointer-events:none; box-sizing:border-box;
+    border:3px solid #dc2626; border-radius:4px; box-shadow:0 0 0 2px rgba(255,255,255,.85), 0 0 0 5px rgba(220,38,38,.25); }
+.rv-mark-label{ position:absolute; left:-3px; bottom:100%; margin-bottom:3px; white-space:nowrap;
+    background:#dc2626; color:#fff; font:600 .8rem/1.4 system-ui, sans-serif; padding:1px 8px; border-radius:4px; }
+.rv-mark.label-below .rv-mark-label{ bottom:auto; top:100%; margin:3px 0 0; }
+.rv-note .rv-key{ display:inline-block; width:14px; height:10px; border:3px solid #dc2626; border-radius:3px;
+    vertical-align:-1px; margin-right:4px; }
 .embedded .page-intro{ display:none; }
 
 /* ══ The PClaimAssist look, and less to look at (user testing #4) ══════
@@ -524,9 +530,10 @@ if (window.top !== window.self) document.documentElement.classList.add('embedded
         <a id="rvCell" href="#" target="_blank" rel="noopener">Just this box</a>
         <button type="button" onclick="closeRowViewer()">Close ✕</button>
     </div>
-    <p class="rv-note" id="rvNote">The picture opens at the box you are checking. Scroll sideways to see the rest of the row.</p>
+    <p class="rv-note" id="rvNote"><span class="rv-key" aria-hidden="true"></span>The red frame is the box you are
+        checking; the rest is only the row around it, to look at. Scroll sideways to see the rest of the row.</p>
     <div class="rv-scroll" id="rvScroll">
-        <div class="rv-frame"><img id="rvImage" alt=""><div class="rv-mark" id="rvMark" hidden></div></div>
+        <div class="rv-frame"><img id="rvImage" alt=""><div class="rv-mark" id="rvMark" hidden><span class="rv-mark-label" id="rvMarkLabel"></span></div></div>
     </div>
 </dialog>
 
@@ -1799,6 +1806,9 @@ function openRowViewer(event, link){
             const [left, top, width, height] = box;
             Object.assign(mark.style, {left: `${left * 100}%`, top: `${top * 100}%`,
                                        width: `${width * 100}%`, height: `${height * 100}%`});
+            document.getElementById("rvMarkLabel").textContent = `Checking: ${link.dataset.title}`;
+            // Its name above the frame, or below it when the box is at the top of the row.
+            mark.classList.toggle("label-below", top < 0.25);
             mark.hidden = false;
         }
         scrollToMark();
