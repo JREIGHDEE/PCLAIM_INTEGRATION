@@ -82,6 +82,19 @@ button:focus-visible, select:focus-visible, input:focus-visible, .file-button:fo
 .file-button{ position:relative; display:inline-flex; align-items:center; justify-content:center; }
 .file-button input{ position:absolute; width:1px; height:1px; opacity:0; }
 .actions{ display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+/* Tilt test (reading a scan): each page large, turned before its columns are found. */
+.tilt-page{ border:2px solid var(--line); border-radius:12px; margin-top:18px; background:#fff; }
+.tilt-page.turned{ border-color:var(--blue); }
+.tilt-head{ position:sticky; top:0; z-index:2; display:flex; flex-wrap:wrap; align-items:center; gap:10px 12px;
+    padding:10px 14px; background:#fff; border-bottom:2px solid var(--line); border-radius:10px 10px 0 0; }
+.tilt-head h3{ margin:0; font-size:1.15rem; flex:1 0 100%; }
+.tilt-head input[type=range]{ flex:1 1 200px; min-width:120px; accent-color:var(--blue); min-height:34px; }
+.tilt-head output{ min-width:3.6em; font-weight:700; font-size:1.15rem; text-align:right; }
+.tilt-head button{ min-height:42px; padding:4px 12px; }
+.tilt-view{ display:flex; align-items:center; justify-content:center; overflow:hidden;
+    background:#d1d5db; padding:14px; border-radius:0 0 10px 10px; }
+.tilt-view img{ display:block; max-width:100%; max-height:calc(100vh - 170px); background:#fff;
+    box-shadow:0 2px 12px rgba(0,0,0,.3); transition:transform .15s ease; }
 .nav{ display:flex; flex-wrap:wrap; gap:12px; justify-content:space-between; margin-top:20px; }
 .nav button{ flex:0 1 300px; }
 
@@ -213,6 +226,22 @@ if (window.top !== window.self) document.documentElement.classList.add('embedded
                 <summary>What is set up now</summary>
                 <ul class="in-use" id="inUse"></ul>
             </details>
+        </section>
+
+        <!-- Reading a scan: the tilt test, before the columns are checked -->
+        <section class="card" id="stepTilt" hidden>
+            <h2 id="tiltTitle" tabindex="-1">Tilt test: straight or crooked?</h2>
+            <p class="muted">These are the pages as they were scanned. To see how a crooked scan is read, turn a
+                page here: its columns are then found again on the turned page. Leave every page at 0° to read
+                the scan as it is. The reader straightens a tilt of up to about 4°. The file itself is not changed.</p>
+            <div id="tiltPages"></div>
+            <div id="tiltProblem" class="notice bad" role="alert" hidden></div>
+            <div class="busy" id="tiltBusy" hidden><span class="spinner" aria-hidden="true"></span>
+                <span>Turning the pages and finding the columns again. This takes up to a minute…</span></div>
+            <div class="nav">
+                <button id="tiltBackBtn">Choose a different scan</button>
+                <button class="go" id="tiltOkBtn">Continue to the columns →</button>
+            </div>
         </section>
 
         <!-- Steps 2-3: check one page -->
@@ -361,8 +390,13 @@ async function openCheck(){
         showGate(error.message, '<a href="/review">Go back and upload the scan again</a>.');
         return;
     }
-    // With no side choice on screen, two pages found as the same side would
-    // leave no way forward: a two-page scan is the left page, then the right.
+    fixSides();
+    $("app").hidden = false;
+    showTiltStep();
+}
+// With no side choice on screen, two pages found as the same side would
+// leave no way forward: a two-page scan is the left page, then the right.
+function fixSides(){
     if(setup.pages.length === 2 && setup.pages[0].side === setup.pages[1].side){
         ["left", "right"].forEach((side, i) => {
             const page = setup.pages[i];
@@ -372,10 +406,94 @@ async function openCheck(){
             page.categories = page.categories.map((_, k) => names[k] || "");
         });
     }
-    $("app").hidden = false;
-    step = 1;
-    render();
 }
+
+/* ── Reading a scan: the tilt test, before the columns ── */
+let tilting = false;
+let tilts = [];   // degrees, one per page, as set on screen
+function appliedTilts(){ return setup.pages.map(p => Number(p.tilt) || 0); }
+function tiltText(value){ return `${value > 0 ? "+" : ""}${value}°`; }
+function showTiltStep(){
+    tilting = true;
+    tilts = appliedTilts();
+    const sideName = page => page.side === "left" ? "Left page" : page.side === "right" ? "Right page" : "Page";
+    $("tiltPages").innerHTML = setup.pages.map((page, i) => `
+        <div class="tilt-page" data-page="${i}">
+            <div class="tilt-head">
+                <h3>${escapeHtml(sideName(page))}${setup.pages.length > 1 ? ` (${i + 1} of ${setup.pages.length})` : ""}</h3>
+                <button type="button" data-step="-0.5" aria-label="${escapeHtml(sideName(page))}: tilt left half a degree">↺</button>
+                <input type="range" min="-15" max="15" step="0.5" value="0"
+                       aria-label="Tilt of the ${escapeHtml(sideName(page).toLowerCase())}, in degrees">
+                <button type="button" data-step="0.5" aria-label="${escapeHtml(sideName(page))}: tilt right half a degree">↻</button>
+                <output>0°</output>
+                <button type="button" data-straight>Straight</button>
+            </div>
+            <div class="tilt-view"><img alt="The ${escapeHtml(sideName(page).toLowerCase())} as scanned, turned by its tilt"></div>
+        </div>`).join("");
+    $("tiltPages").querySelectorAll(".tilt-page").forEach((card, i) => {
+        const page = setup.pages[i];
+        const img = card.querySelector("img");
+        img.addEventListener("load", () => setTilt(i, tilts[i]));
+        img.src = `/api/logbook-setup/${setup.setup_id}/${page.raw_picture || page.picture}`;
+        card.querySelector("input").addEventListener("input", e => setTilt(i, e.target.value));
+        card.querySelectorAll("[data-step]").forEach(b =>
+            b.addEventListener("click", () => setTilt(i, tilts[i] + Number(b.dataset.step))));
+        card.querySelector("[data-straight]").addEventListener("click", () => setTilt(i, 0));
+        setTilt(i, tilts[i]);
+    });
+    $("tiltProblem").hidden = true;
+    $("tiltBusy").hidden = true;
+    $("tiltOkBtn").disabled = false;
+    $("tiltBackBtn").disabled = false;
+    render();
+    window.scrollTo({top:0});
+}
+function setTilt(index, value){
+    tilts[index] = Math.max(-15, Math.min(15, Math.round(Number(value) * 2) / 2 || 0));
+    const card = $("tiltPages").querySelector(`.tilt-page[data-page="${index}"]`);
+    if(!card) return;
+    card.querySelector("input").value = tilts[index];
+    card.querySelector("output").textContent = tiltText(tilts[index]);
+    card.classList.toggle("turned", tilts[index] !== 0);
+    // Turned and made a little smaller, so the whole page stays in view.
+    const img = card.querySelector("img");
+    const w = img.offsetWidth, h = img.offsetHeight;
+    const a = Math.abs(tilts[index]) * Math.PI / 180;
+    const fit = w && h ? Math.min(w / (w * Math.cos(a) + h * Math.sin(a)), h / (w * Math.sin(a) + h * Math.cos(a))) : 1;
+    img.style.transform = `rotate(${tilts[index]}deg) scale(${fit})`;
+    const changed = tilts.some((t, i) => t !== appliedTilts()[i]);
+    $("tiltOkBtn").textContent = changed ? "Turn the pages and find the columns →" : "Continue to the columns →";
+}
+$("tiltBackBtn").addEventListener("click", () => {
+    readerMemory({checkSetup: null});
+    backToReader();
+});
+$("tiltOkBtn").addEventListener("click", async () => {
+    const changed = tilts.some((t, i) => t !== appliedTilts()[i]);
+    if(changed){
+        $("tiltOkBtn").disabled = true;
+        $("tiltBackBtn").disabled = true;
+        $("tiltProblem").hidden = true;
+        $("tiltBusy").hidden = false;
+        try{
+            setup = await getJson(`/api/logbook-setup/${encodeURIComponent(setup.setup_id)}/tilt`, {
+                method:"POST", headers:{"Content-Type":"application/json"},
+                body:JSON.stringify({tilt:tilts}),
+            });
+            fixSides();
+        }catch(error){
+            $("tiltBusy").hidden = true;
+            $("tiltOkBtn").disabled = false;
+            $("tiltBackBtn").disabled = false;
+            $("tiltProblem").innerHTML = `<strong>The pages could not be turned</strong>${escapeHtml(error.message)}`;
+            $("tiltProblem").hidden = false;
+            return;
+        }
+    }
+    tilting = false;
+    go(1);
+});
+window.addEventListener("resize", () => { if(tilting) tilts.forEach((t, i) => setTilt(i, t)); });
 async function readCheckedScan(){
     $("okBtn").disabled = true;
     $("okBtn").textContent = "Starting to read…";
@@ -432,6 +550,11 @@ function render(){
         $("steps").innerHTML = names.map((name, i) =>
             `<li ${i === step ? 'aria-current="step"' : ""} class="${i < step ? "done" : ""}">
                 <span class="num">${i < step ? "✓" : i + 1}</span>${escapeHtml(name)}</li>`).join("");
+    }
+    $("stepTilt").hidden = !tilting;
+    if(tilting){
+        ["stepChoose", "stepCheck", "stepSave", "stepDone"].forEach(id => { $(id).hidden = true; });
+        return;
     }
     $("stepChoose").hidden = step !== 0;
     $("stepCheck").hidden = !(step >= 1 && step <= n);
@@ -492,7 +615,7 @@ function showPage(index){
     if(img.getAttribute("src") !== src) img.src = src;
     $("okBtn").textContent = !last ? "Confirm Page →"
         : CHECK_ID ? "Confirm and Read Logbook" : "Confirm Page";
-    $("backBtn").textContent = CHECK_ID && index === 0 ? "Choose a different scan" : "Back";
+    $("backBtn").textContent = CHECK_ID && index === 0 ? "Back to the tilt test" : "Back";
     drawPage();
 }
 
@@ -721,8 +844,8 @@ document.querySelectorAll('input[name="side"]').forEach(radio => radio.addEventL
 
 $("backBtn").addEventListener("click", () => {
     if(CHECK_ID && step === 1){
-        readerMemory({checkSetup: null});
-        backToReader();
+        showTiltStep();
+        $("tiltTitle").focus();
         return;
     }
     go(step - 1);

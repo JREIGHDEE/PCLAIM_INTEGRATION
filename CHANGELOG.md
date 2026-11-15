@@ -15,20 +15,22 @@ Related documents:
 
 **After pulling:** restart the backend, then Ctrl+F5 on the Logbook Reader. No migration.
 
-- Step 1 of the Logbook Reader has a "Tilt test" panel once a file is
-  chosen. Each page (left and right) has its own picture and slider (-15
-  to +15 degrees, half a degree at a time), so one page can be crooked
-  and the other straight. "Read the logbook" then sends one angle per
-  page (POST /api/logbook-setup/read "tilt": a JSON list, or one number
-  for every page), and each page is turned by its own angle
-  (logbook_pipeline.tilt_scan / page_tilt; a PDF stays a PDF) before its
-  columns are found and it is read. The file on the computer is not
-  changed. With every page at 0 nothing differs from before.
-- The column check page says, for each page, how far it was turned and
-  how far the reader turned it back (template_engine.deskew, up to about
-  4 degrees), or that it is still off and read crooked.
-- The pages' pictures come from POST /api/logbook-setup/page-pictures (the
-  browser cannot show a PDF page as a picture).
+- After "Read the logbook", the column check page (logbook_setup.html,
+  ?check=) opens on a "Tilt test" step before the columns. Each page is
+  shown whole and large, as scanned (raw0.jpg / raw1.jpg, kept with the
+  setup), with its own slider (-15 to +15 degrees, half a degree at a
+  time) that stays on screen while scrolling.
+- At 0 on every page, "Continue to the columns" goes straight on, as
+  before. With a page turned, "Turn the pages and find the columns" sends
+  one angle per page (POST /api/logbook-setup/<id>/tilt), each page of the
+  scan as uploaded ("original.*", kept with the setup) is turned by its
+  own angle (logbook_pipeline.tilt_scan / page_tilt; a PDF stays a PDF)
+  and its columns are found again (logbook_setup.tilt_pages). The file on
+  the computer is not changed. "Back to the tilt test" from the first page
+  of columns returns here.
+- Checking the columns, each page says how far it was turned and how far
+  the reader turned it back (template_engine.deskew, up to about 4
+  degrees), or that it is still off and read crooked.
 - Tested on a handwriting scan: left page +3 degrees is turned back 2.8 and
   read straight; right page -8 degrees is turned back only 0.15 and read
   7.8 degrees off.

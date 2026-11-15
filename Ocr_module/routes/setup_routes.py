@@ -4,12 +4,10 @@ Guided logbook setup (logbook_setup.py).
   GET  /logbook-setup                          -> the setup page; with
                                                   ?check=<id>, the "Check the
                                                   columns" step of reading a scan
-  POST /api/logbook-setup/read      file [, tilt] -> columns, names and rows found
-                                                  (tilt: degrees to turn the
-                                                  pages first, one number or a
-                                                  JSON list per page - the
-                                                  tilt test)
-  POST /api/logbook-setup/page-pictures file   -> its pages as JPEGs (tilt test)
+  POST /api/logbook-setup/read      file       -> columns, names and rows found
+  POST /api/logbook-setup/<id>/tilt {tilt}     -> turn the pages (degrees, one
+                                                  per page) and find the columns
+                                                  again - the tilt test
   GET  /api/logbook-setup/<id>                 -> the same again (reopening a check)
   GET  /api/logbook-setup/<id>/<picture>       -> a page's preview picture
   POST /api/logbook-setup/save      {setup_id, pages, replace_old}   (admin)
@@ -20,8 +18,6 @@ here first, so finding and checking need only a signed-in user. Saving a
 setup for every later scan stays with the administrator. Reading the
 checked scan: POST /api/review/jobs/checked (routes/review_routes.py).
 """
-import base64
-import json
 import logging
 import math
 import re
@@ -55,15 +51,9 @@ def setup_page():
     )
 
 
-def _tilt(text):
+def _tilt(found):
     """The tilt test's angles in degrees: one number for every page, or a
-    JSON list with one per page ("[3, -1.5]"). 0 when not given."""
-    if not text:
-        return 0.0
-    try:
-        found = json.loads(text)
-    except ValueError:
-        raise InvalidRequestError("The tilt must be a number of degrees.")
+    list with one per page ([3, -1.5])."""
     angles = found if isinstance(found, list) else [found]
     limit = logbook_pipeline.TILT_MAX_DEGREES
     if not angles or len(angles) > 50 or not all(
@@ -85,28 +75,25 @@ def read_scan():
             # One OCR at a time: PaddleOCR is shared with the logbook reader.
             with review_jobs.OCR_LOCK:
                 result = logbook_setup.read_scan(path, extract_tokens_from_array, source_document,
-                                                 use_saved=request.form.get("use_saved") == "1",
-                                                 tilt=_tilt(request.form.get("tilt")))
+                                                 use_saved=request.form.get("use_saved") == "1")
         except ValueError as exc:
             raise InvalidRequestError(str(exc))
     return jsonify({"success": True, **result})
 
 
-@setup_bp.route("/api/logbook-setup/page-pictures", methods=["POST"])
+@setup_bp.route("/api/logbook-setup/<setup_id>/tilt", methods=["POST"])
 @auth.login_required
-def page_pictures():
-    """The chosen scan's pages (the two that are read) as pictures, for the
-    tilt test's preview of each page (the browser cannot show a PDF page
-    as a picture): {"pages": ["data:image/jpeg;base64,...", ...]}."""
-    file = require_file(request.files, "file")
-    extension = validate_extension(file.filename)
-    with temp_upload_path(file, prefix="logbook_pages", suffix=extension) as path:
-        try:
-            pictures = logbook_pipeline.page_pictures(path)
-        except (ValueError, RuntimeError) as exc:
-            raise InvalidRequestError(str(exc) or "The scan could not be opened.")
-    return jsonify({"success": True, "pages": [
-        "data:image/jpeg;base64," + base64.b64encode(p).decode("ascii") for p in pictures]})
+def tilt_pages(setup_id):
+    """The tilt test: turn the scan's pages ({"tilt": [degrees per page]})
+    and find their columns again. Answers like GET /api/logbook-setup/<id>."""
+    data = request.get_json(silent=True) or {}
+    tilt = _tilt(data.get("tilt", 0))
+    try:
+        with review_jobs.OCR_LOCK:
+            result = logbook_setup.tilt_pages(setup_id, tilt, extract_tokens_from_array)
+    except ValueError as exc:
+        raise InvalidRequestError(str(exc))
+    return jsonify({"success": True, **result})
 
 
 @setup_bp.route("/api/logbook-setup/<setup_id>")
@@ -120,7 +107,7 @@ def get_setup(setup_id):
 def setup_picture(setup_id, picture):
     path = logbook_setup.preview_path(setup_id, 0).parent
     # Only the preview pictures: the scan itself is kept in the same folder.
-    if not re.fullmatch(r"page\d+\.jpg", picture):
+    if not re.fullmatch(r"(page|raw)\d+\.jpg", picture):
         raise InvalidRequestError("Unknown picture.")
     return send_from_directory(path, picture, mimetype="image/jpeg")
 

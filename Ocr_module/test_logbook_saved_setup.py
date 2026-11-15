@@ -49,5 +49,48 @@ class SavedColumnsTests(unittest.TestCase):
         self.assertEqual(found["right"]["categories"], ["FINAL DIAGNOSIS"])
 
 
+class TiltTestTests(unittest.TestCase):
+    """The tilt test on the column check page (logbook_setup.tilt_pages):
+    the pages of an uploaded scan are turned, each by its own angle, and
+    their columns found again; the scan as uploaded is kept."""
+
+    def test_each_page_is_turned_and_read_again(self):
+        import cv2
+        import fitz
+        import numpy as np
+        found_on = []
+
+        def propose(image, ocr_fn, side=None):
+            found_on.append(image)
+            return {"side_found": True, "side": "left", "lines": [0.01], "categories": ["NAME"],
+                    "rules": [], "rows": [], "height": 1}
+
+        page = np.full((1700, 1000, 3), 255, np.uint8)
+        for y in range(120, 1600, 40):
+            cv2.line(page, (0, y), (1000, y), (120, 120, 120), 2)
+        with tempfile.TemporaryDirectory() as tmp:
+            scan = Path(tmp) / "scan.pdf"
+            doc = fitz.open()
+            for _ in range(2):
+                ok, png = cv2.imencode(".png", page)
+                doc.new_page(width=500, height=850).insert_image(fitz.Rect(0, 0, 500, 850), stream=png.tobytes())
+            doc.save(str(scan))
+            doc.close()
+            with mock.patch.object(logbook_setup, "SETUP_FOLDER", Path(tmp) / "setups"), \
+                    mock.patch.object(logbook_setup.logbook_layout, "propose_page", propose):
+                first = logbook_setup.read_scan(str(scan), None, "scan.pdf")
+                self.assertEqual([p["tilt"] for p in first["pages"]], [0.0, 0.0])
+                self.assertEqual([p["raw_picture"] for p in first["pages"]], ["raw0.jpg", "raw1.jpg"])
+                turned = logbook_setup.tilt_pages(first["setup_id"], [3, 0], None)
+                self.assertEqual(turned["setup_id"], first["setup_id"])
+                self.assertEqual([p["tilt"] for p in turned["pages"]], [3.0, 0.0])
+                self.assertAlmostEqual(turned["pages"][0]["straightened_by"], 3, delta=0.15)
+                self.assertEqual(turned["pages"][1]["straightened_by"], 0.0)
+                # Turned back to straight: read from the scan as uploaded again.
+                back = logbook_setup.tilt_pages(first["setup_id"], 0, None)
+                self.assertEqual([p["straightened_by"] for p in back["pages"]], [0.0, 0.0])
+                self.assertEqual(len(found_on), 6)
+
+
 if __name__ == "__main__":
     unittest.main()

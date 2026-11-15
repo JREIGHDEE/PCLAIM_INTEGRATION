@@ -151,27 +151,6 @@ input.big{
 .file-button input{ position:absolute; width:1px; height:1px; opacity:0; }
 #fileName{ font-weight:600; }
 
-/* Tilt test: turn each page before reading it, to see how a crooked scan is read. */
-.tilt-test{ margin:16px auto 0; max-width:900px; border:2px solid var(--line); border-radius:12px;
-    background:#f8fafc; padding:10px 16px; }
-.tilt-test summary{ cursor:pointer; font-weight:700; padding:4px 0; }
-.tilt-test summary .tilt-now{ font-weight:600; color:var(--blue); margin-left:6px; }
-.tilt-pages{ display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:14px; margin-top:10px; }
-.tilt-page{ border:2px solid var(--line); border-radius:10px; background:#fff; padding:10px 12px; }
-.tilt-page.turned{ border-color:var(--blue); }
-.tilt-page h3{ margin:0 0 8px; font-size:1.05rem; }
-.tilt-controls{ display:flex; align-items:center; gap:8px; margin-top:10px; }
-.tilt-controls input[type=range]{ flex:1 1 auto; min-width:80px; accent-color:var(--blue); min-height:32px; }
-.tilt-controls output{ min-width:3.6em; font-weight:700; font-size:1.05rem; text-align:right; }
-.tilt-controls button{ min-height:40px; padding:4px 10px; }
-.tilt-preview{ height:280px; display:flex; align-items:center; justify-content:center;
-    overflow:hidden; background:#e5e7eb; border-radius:8px; }
-.tilt-preview img{ max-width:76%; max-height:76%; box-shadow:0 2px 10px rgba(0,0,0,.25); background:#fff;
-    transition:transform .15s ease; }
-.tilt-pages > .muted{ grid-column:1 / -1; text-align:center; padding:12px; }
-.tilt-all{ display:flex; justify-content:flex-end; margin-top:10px; }
-#uploadCard.is-reading .tilt-test{ display:none; }
-
 /* ── Messages ──────────────────────────────────────── */
 .notice{ border-radius:12px; padding:14px 18px; margin-bottom:18px; border:2px solid; }
 .notice strong{ display:block; font-size:1.1rem; }
@@ -492,13 +471,6 @@ if (window.top !== window.self) document.documentElement.classList.add('embedded
             aria-describedby="fileName">2. Read the logbook</button>
     </div>
     <span id="fileName" class="muted">No file chosen yet — choose one first</span>
-    <details class="tilt-test" id="tiltTest" hidden ontoggle="showTiltPreview()">
-        <summary>Tilt test: read the scan as if it were not straight<span class="tilt-now" id="tiltNow"></span></summary>
-        <p class="muted">Turn each page before it is read, to see what happens when a scan is crooked.
-            The file itself is not changed. The reader straightens a tilt of up to about 4°.</p>
-        <div class="tilt-pages" id="tiltPages"><span class="muted">The pages show here.</span></div>
-        <div class="tilt-all"><button type="button" onclick="straightenAll()">All pages straight</button></div>
-    </details>
     <div class="busy" id="findingColumns" hidden><span class="spinner" aria-hidden="true"></span>
         <span>Finding the columns on the pages. This takes up to a minute…</span></div>
     <div id="readingProgress" class="heartline" hidden>
@@ -751,94 +723,7 @@ function setStep(n){
 function showFileName(){
     const file = document.getElementById("fileInput").files[0];
     document.getElementById("fileName").textContent = file ? `Chosen: ${file.name}` : "No file chosen yet — choose one first";
-    document.getElementById("tiltTest").hidden = !file;
-    tiltPreviewFor = null;
-    tilts = [];
-    document.getElementById("tiltNow").textContent = "";
-    document.getElementById("tiltPages").innerHTML = '<span class="muted">The pages show here.</span>';
-    showTiltPreview();
     updateReadButton();
-}
-
-// Tilt test: each page is turned on the server by its own number of
-// degrees (clockwise) before its columns are found and it is read
-// (POST /api/logbook-setup/read "tilt", a list with one angle per page).
-// Here each page only turns on screen, to show how far.
-let tilts = [];               // degrees, one per page shown
-let tiltPreviewFor = null;    // the file whose pages are shown
-let tiltPreviewUrl = null;
-function clampTilt(value){ return Math.max(-15, Math.min(15, Math.round(Number(value) * 2) / 2 || 0)); }
-function tiltText(value){ return `${value > 0 ? "+" : ""}${value}°`; }
-function setTilt(index, value){
-    tilts[index] = clampTilt(value);
-    const card = document.querySelector(`.tilt-page[data-page="${index}"]`);
-    if(card){
-        card.querySelector("input[type=range]").value = tilts[index];
-        card.querySelector("output").textContent = tiltText(tilts[index]);
-        card.classList.toggle("turned", tilts[index] !== 0);
-        const img = card.querySelector("img");
-        if(img) img.style.transform = `rotate(${tilts[index]}deg)`;
-    }
-    const turned = tilts.map((t, i) => t ? `page ${i + 1}: ${tiltText(t)}` : "").filter(Boolean);
-    document.getElementById("tiltNow").textContent = turned.length ? `(${turned.join(", ")})` : "";
-}
-function nudgeTilt(index, step){ setTilt(index, (tilts[index] || 0) + step); }
-function straightenAll(){ tilts.forEach((_, i) => setTilt(i, 0)); }
-// What is sent: nothing when every page is straight.
-function tiltToSend(){ return tilts.some(Boolean) ? JSON.stringify(tilts) : ""; }
-function showTiltPages(pictures, note){
-    const box = document.getElementById("tiltPages");
-    tilts = pictures.map((_, i) => tilts[i] || 0);
-    box.innerHTML = pictures.map((src, i) => `
-        <div class="tilt-page" data-page="${i}">
-            <h3>Page ${i + 1}${pictures.length > 1 ? (i === 0 ? " (left)" : i === 1 ? " (right)" : "") : ""}</h3>
-            <div class="tilt-preview">${src
-                ? `<img alt="Page ${i + 1} of the scan, turned by its tilt">`
-                : `<span class="muted">${escapeHtml(note || "")}</span>`}</div>
-            <div class="tilt-controls">
-                <button type="button" onclick="nudgeTilt(${i}, -0.5)" aria-label="Page ${i + 1}: tilt left half a degree">↺</button>
-                <input type="range" min="-15" max="15" step="0.5" value="0" aria-label="Tilt of page ${i + 1}, in degrees"
-                       oninput="setTilt(${i}, this.value)">
-                <button type="button" onclick="nudgeTilt(${i}, 0.5)" aria-label="Page ${i + 1}: tilt right half a degree">↻</button>
-                <output>0°</output>
-                <button type="button" onclick="setTilt(${i}, 0)">Straight</button>
-            </div>
-        </div>`).join("");
-    box.querySelectorAll(".tilt-page img").forEach((img, i) => { img.src = pictures[i]; });
-    tilts.forEach((t, i) => setTilt(i, t));
-}
-async function showTiltPreview(){
-    const details = document.getElementById("tiltTest");
-    const file = document.getElementById("fileInput").files[0];
-    if(!file || !details.open || tiltPreviewFor === file) return;
-    tiltPreviewFor = file;
-    const box = document.getElementById("tiltPages");
-    if(tiltPreviewUrl){ URL.revokeObjectURL(tiltPreviewUrl); tiltPreviewUrl = null; }
-    box.innerHTML = '<span class="muted">Opening the pages…</span>';
-    try{
-        let pictures;
-        if(/\.pdf$/i.test(file.name) || file.type === "application/pdf"){
-            // The browser can't show a PDF page as a picture: the server sends them.
-            const form = new FormData();
-            form.append("file", file);
-            const resp = await fetch("/api/logbook-setup/page-pictures", {method: "POST", body: form});
-            const found = await resp.json().catch(() => ({}));
-            if(!resp.ok || !found.success) throw new Error(found.error || "The pages could not be shown.");
-            pictures = found.pages;
-        }else{
-            tiltPreviewUrl = URL.createObjectURL(file);
-            pictures = [tiltPreviewUrl];
-        }
-        if(tiltPreviewFor !== file) return;   // another file was chosen meanwhile
-        showTiltPages(pictures);
-    }catch(err){
-        if(tiltPreviewFor !== file) return;
-        tiltPreviewFor = null;
-        // Without the pictures the pages can still be tilted (a logbook PDF has two).
-        const pdf = /\.pdf$/i.test(file.name);
-        showTiltPages(pdf ? [null, null] : [null],
-            `${err.message || "The page could not be shown."} The tilt still works when the logbook is read.`);
-    }
 }
 
 // "Read the logbook" is only usable once a file is chosen, and not while
@@ -2444,7 +2329,6 @@ async function uploadLogbook(){
         formData.append("file", file);
         // Start from the clinic's saved logbook setup, not a fresh guess.
         formData.append("use_saved", "1");
-        if(tiltToSend()) formData.append("tilt", tiltToSend());   // the tilt test, per page
         const resp = await fetch("/api/logbook-setup/read", {method: "POST", body: formData});
         const found = await resp.json().catch(() => ({}));
         if(!resp.ok || !found.success) throw new Error(found.error || "The scan could not be opened.");

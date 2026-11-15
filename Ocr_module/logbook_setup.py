@@ -36,7 +36,7 @@ import cv2
 import config
 import logbook_layout
 from errors import InvalidRequestError
-from logbook_pipeline import load_pages, page_tilt, tilt_scan
+from logbook_pipeline import load_pages, page_pictures, page_tilt, tilt_scan
 from template_engine import build_template_payload, detect_ruling_lines, map_rows_between_pages
 from template_store import get_template_files, save_template_payload
 
@@ -103,35 +103,56 @@ def fit_saved_columns(saved_lines, rules):
     return fitted
 
 
-def read_scan(path, ocr_fn, source_document=None, use_saved=False, tilt=0.0):
+def read_scan(path, ocr_fn, source_document=None, use_saved=False):
     """Find each page's layout. Returns {"setup_id", "pages": [...]} where
-    each page is logbook_layout.propose_page()'s result plus "index" and
-    "picture" (the preview's file name). A copy of the scan is kept with
-    the setup, so it can be read once its columns are checked.
+    each page is logbook_layout.propose_page()'s result plus "index",
+    "picture" (the preview's file name) and "raw_picture" (the page as
+    scanned, not straightened - what the tilt test turns). A copy of the
+    scan is kept with the setup, so it can be read once its columns are
+    checked.
 
     use_saved (reading a scan in the Logbook Reader): a page whose side has
     a setup in use starts from that setup's columns and names instead of
     the ones found on the page, so a stray line on one scan does not turn
-    up as an extra "not read" column.
-
-    tilt (degrees, clockwise; the tilt test): one angle for every page, or
-    a list with one per page. The pages are turned by this much first, and
-    the turned copy is what is kept and read, to see how a scan that is not
-    straight comes out. Each page then says its "tilt" and how far the
-    reader turned it back ("straightened_by")."""
-    saved = saved_columns() if use_saved else {}
+    up as an extra "not read" column."""
     setup_id = uuid.uuid4().hex
     folder = _setup_dir(setup_id)
     os.makedirs(folder, exist_ok=True)
-    scan = "scan" + os.path.splitext(str(path))[1].lower()
+    extension = os.path.splitext(str(path))[1].lower()
+    # The scan as uploaded stays as it is; the one read ("scan") may be a
+    # turned copy of it (tilt_pages).
+    shutil.copyfile(path, folder / ("original" + extension))
+    for index, picture in enumerate(page_pictures(folder / ("original" + extension), width=_PREVIEW_WIDTH)):
+        (folder / f"raw{index}.jpg").write_bytes(picture)
+    return _find_columns(setup_id, extension, ocr_fn, source_document, use_saved, 0.0)
+
+
+def tilt_pages(setup_id, tilt, ocr_fn):
+    """The tilt test, before the columns are checked: turn the pages of a
+    scan uploaded through read_scan clockwise - `tilt` is one angle for
+    every page, or a list with one per page - and find their columns again
+    on the turned pages. Returns the same as get_setup(); each page says
+    its "tilt" and how far the reader turned it back ("straightened_by")."""
+    found = _load(setup_id)
+    extension = os.path.splitext(found["scan"])[1]
+    if not (_setup_dir(setup_id) / ("original" + extension)).exists():
+        raise InvalidRequestError("This scan was uploaded before the tilt test. Please upload it again.")
+    _find_columns(setup_id, extension, ocr_fn, found.get("source_document"), found.get("use_saved", False), tilt)
+    return get_setup(setup_id)
+
+
+def _find_columns(setup_id, extension, ocr_fn, source_document, use_saved, tilt):
+    saved = saved_columns() if use_saved else {}
+    folder = _setup_dir(setup_id)
+    original, scan = folder / ("original" + extension), "scan" + extension
     if isinstance(tilt, (list, tuple)):
         tilt = [round(page_tilt(tilt, i), 1) for i in range(len(tilt))]
     else:
         tilt = round(page_tilt(tilt, 0), 1)
     if any(tilt) if isinstance(tilt, list) else tilt:
-        tilt_scan(path, folder / scan, tilt)
+        tilt_scan(original, folder / scan, tilt)
     else:
-        shutil.copyfile(path, folder / scan)
+        shutil.copyfile(original, folder / scan)
     straightened_by = []
     pages = load_pages(folder / scan, straightened_by)[:2]
 
@@ -158,6 +179,8 @@ def read_scan(path, ocr_fn, source_document=None, use_saved=False, tilt=0.0):
         preview = cv2.resize(image, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA) if scale < 1 else image
         cv2.imwrite(str(preview_path(setup_id, index)), preview, [cv2.IMWRITE_JPEG_QUALITY, 85])
         proposal["picture"] = f"page{index}.jpg"
+        if (folder / f"raw{index}.jpg").exists():
+            proposal["raw_picture"] = f"raw{index}.jpg"
         proposals.append(proposal)
 
     # Both halves of a spread share rows: show the right page's rows as the
@@ -171,7 +194,8 @@ def read_scan(path, ocr_fn, source_document=None, use_saved=False, tilt=0.0):
                               "height": round(r["height"] / right["height"], 4)} for r in mapped]
 
     with open(folder / "setup.json", "w", encoding="utf-8") as handle:
-        json.dump({"pages": proposals, "scan": scan, "source_document": source_document}, handle)
+        json.dump({"pages": proposals, "scan": scan, "source_document": source_document,
+                   "use_saved": bool(use_saved)}, handle)
     logger.info("Logbook setup %s: read %d page(s): %s", setup_id, len(proposals),
                 [(p["side"], p["categories"]) for p in proposals])
     return {"setup_id": setup_id, "pages": [_public(p) for p in proposals]}
