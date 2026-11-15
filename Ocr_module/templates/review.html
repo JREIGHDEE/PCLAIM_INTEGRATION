@@ -351,8 +351,16 @@ details.more dd{ margin:0; word-break:break-word; }
 .rv-mark-label{ position:absolute; left:-3px; bottom:100%; margin-bottom:3px; white-space:nowrap;
     background:#dc2626; color:#fff; font:600 .8rem/1.4 system-ui, sans-serif; padding:1px 8px; border-radius:4px; }
 .rv-mark.label-below .rv-mark-label{ bottom:auto; top:100%; margin:3px 0 0; }
+/* The patient's whole row in blue, one frame per page, under the red box. */
+.rv-row{ position:absolute; pointer-events:none; box-sizing:border-box; border:3px solid #1d4ed8;
+    border-radius:6px; background:rgba(29,78,216,.06); box-shadow:0 0 0 2px rgba(255,255,255,.85); }
+.rv-row-label{ position:absolute; right:-3px; bottom:100%; margin-bottom:3px; white-space:nowrap;
+    background:#1d4ed8; color:#fff; font:600 .8rem/1.4 system-ui, sans-serif; padding:1px 8px; border-radius:4px; }
+.rv-row.label-inside .rv-row-label{ bottom:auto; top:0; margin:0; border-radius:0 3px 0 4px; right:0; }
+#rowViewer.hide-box .rv-mark{ display:none; }
 .rv-note .rv-key{ display:inline-block; width:14px; height:10px; border:3px solid #dc2626; border-radius:3px;
-    vertical-align:-1px; margin-right:4px; }
+    vertical-align:-1px; margin:0 4px 0 2px; }
+.rv-note .rv-key.blue{ border-color:#1d4ed8; }
 .embedded .page-intro{ display:none; }
 
 /* ══ The PClaimAssist look, and less to look at (user testing #4) ══════
@@ -527,13 +535,15 @@ if (window.top !== window.self) document.documentElement.classList.add('embedded
     <div class="rv-head">
         <h2 id="rvTitle">The whole logbook row</h2>
         <button type="button" id="rvFit" onclick="toggleRowFit()">Fit to screen</button>
+        <button type="button" id="rvBoxToggle" onclick="toggleRowBox()" aria-pressed="true">Hide the red box</button>
         <a id="rvCell" href="#" target="_blank" rel="noopener">Just this box</a>
         <button type="button" onclick="closeRowViewer()">Close ✕</button>
     </div>
-    <p class="rv-note" id="rvNote"><span class="rv-key" aria-hidden="true"></span>The red frame is the box you are
-        checking; the rest is only the row around it, to look at. Scroll sideways to see the rest of the row.</p>
+    <p class="rv-note" id="rvNote"><span class="rv-key blue" aria-hidden="true"></span>Blue: this patient's whole row.
+        <span class="rv-key" aria-hidden="true"></span>Red: the box you are checking. Anything outside the blue frame
+        belongs to other patients. Scroll sideways to see the rest of the row.</p>
     <div class="rv-scroll" id="rvScroll">
-        <div class="rv-frame"><img id="rvImage" alt=""><div class="rv-mark" id="rvMark" hidden><span class="rv-mark-label" id="rvMarkLabel"></span></div></div>
+        <div class="rv-frame"><img id="rvImage" alt=""><div id="rvRows"></div><div class="rv-mark" id="rvMark" hidden><span class="rv-mark-label" id="rvMarkLabel"></span></div></div>
     </div>
 </dialog>
 
@@ -1316,6 +1326,29 @@ function shownAs(f, text){
     return f.kind === "name" || f.kind === "text" ? caps(text) : text;
 }
 
+// The patient's whole row in the row picture: per page, the frame round
+// all of this patient's boxes on it ("left,top,width,height;..." as shares).
+function rowFrames(session, rowCrop){
+    const pages = {};
+    for(const f of session.fields || []){
+        const b = f.row_box;
+        if(f.row_crop !== rowCrop || !Array.isArray(b) || b.length !== 4) continue;
+        const p = pages[f.page] || (pages[f.page] = {l: 1, t: 1, r: 0, b: 0});
+        p.l = Math.min(p.l, b[0]); p.t = Math.min(p.t, b[1]);
+        p.r = Math.max(p.r, b[0] + b[2]); p.b = Math.max(p.b, b[1] + b[3]);
+    }
+    // Out to the edges of each page, so columns not read as boxes (the
+    // membership "NH") are inside too: the pages sit side by side, with a
+    // small gap between them.
+    const frames = Object.values(pages).sort((a, b) => a.l - b.l);
+    frames.forEach((p, i) => {
+        if(i === 0) p.l = Math.min(p.l, 0.003);
+        p.r = i + 1 < frames.length ? Math.max(p.r, frames[i + 1].l - 0.008) : Math.max(p.r, 0.997);
+    });
+    return frames.map(p => [p.l, p.t, p.r - p.l, p.b - p.t]
+        .map(n => Math.round(n * 10000) / 10000).join(",")).join(";");
+}
+
 function renderField(session, f, index){
     const status = (f.best_guess && f.status === "needs_check" ? STATUS.best_guess : STATUS[f.status]) || STATUS.needs_check;
     const id = `f-${session.session_id}-${index}`;
@@ -1339,6 +1372,7 @@ function renderField(session, f, index){
         <p class="scan-label">Logbook image (click to view ${rowUrl ? "the full row" : "it larger"})</p>
         <a class="scan" href="${rowUrl || cropUrl}" target="_blank" rel="noopener"
             ${rowUrl ? `data-cell="${attr(cropUrl)}" data-box="${attr((f.row_box || []).join(","))}"
+            data-rows="${attr(rowFrames(session, f.row_crop))}"
             data-title="${attr(nameOf(f.category))}" onclick="openRowViewer(event, this)"` : ""}>
             <img src="${cropUrl}" alt="Scanned logbook entry for ${escapeHtml(nameOf(f.category))}" onload="enlarge(this)">
         </a>
@@ -1800,8 +1834,24 @@ function openRowViewer(event, link){
     viewer.classList.remove("fit");
     document.getElementById("rvFit").textContent = "Fit to screen";
     mark.hidden = true;
+    const rows = document.getElementById("rvRows");
+    rows.innerHTML = "";
     img.alt = `The whole logbook row containing ${link.dataset.title}`;
     img.onload = () => {
+        (link.dataset.rows || "").split(";").filter(Boolean).forEach((text, i) => {
+            const [left, top, width, height] = text.split(",").map(Number);
+            if(![left, top, width, height].every(Number.isFinite)) return;
+            const frame = document.createElement("div");
+            frame.className = "rv-row";
+            Object.assign(frame.style, {left: `${left * 100}%`, top: `${top * 100}%`,
+                                        width: `${width * 100}%`, height: `${height * 100}%`});
+            // Named once, over the first page's frame (inside it when there is no room above).
+            if(i === 0){
+                frame.innerHTML = '<span class="rv-row-label">This patient</span>';
+                frame.classList.toggle("label-inside", top < 0.12);
+            }
+            rows.appendChild(frame);
+        });
         if(hasBox){
             const [left, top, width, height] = box;
             Object.assign(mark.style, {left: `${left * 100}%`, top: `${top * 100}%`,
@@ -1823,6 +1873,15 @@ function scrollToMark(){
     const scroller = document.getElementById("rvScroll");
     if(mark.hidden) return;
     scroller.scrollLeft = mark.offsetLeft + mark.offsetWidth / 2 - scroller.clientWidth / 2;
+}
+
+// The red box can be hidden to see the patient's row on its own.
+function toggleRowBox(){
+    const viewer = document.getElementById("rowViewer");
+    const hidden = viewer.classList.toggle("hide-box");
+    const button = document.getElementById("rvBoxToggle");
+    button.textContent = hidden ? "Show the red box" : "Hide the red box";
+    button.setAttribute("aria-pressed", String(!hidden));
 }
 
 function toggleRowFit(){

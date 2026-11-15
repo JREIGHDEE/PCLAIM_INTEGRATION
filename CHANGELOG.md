@@ -11,7 +11,7 @@ Related documents:
 
 ---
 
-## 2026-11-15: The row picture marks the box being checked in red (JRAD)
+## 2026-11-15: The row picture marks the patient's row in blue and the box being checked in red (JRAD)
 
 **After pulling:** restart the backend (it keeps review.html in memory), then Ctrl+F5 on the Logbook Reader. No migration.
 
@@ -20,6 +20,12 @@ Related documents:
   ("Checking: Patient name"); before, nothing showed which part of the row
   it was, and the rest of the row could be taken for what is being
   checked. The note above the picture says so (review.html .rv-mark).
+- The patient's whole row is framed in blue ("This patient"), one frame
+  per page out to the page's edges, so the columns not read as boxes
+  ("NH") are inside it too (review.html rowFrames, .rv-row). Anything
+  outside the blue frame belongs to other patients.
+- "Hide the red box" / "Show the red box" in the viewer's header shows the
+  patient's row on its own.
 
 ## 2026-11-15: Tilt test on the Logbook Reader: read a scan as if it were not straight (JRAD)
 
