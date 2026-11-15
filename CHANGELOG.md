@@ -11,6 +11,37 @@ Related documents:
 
 ---
 
+## 2026-11-15: Discharge diagnosis by kind of visit, as the logbook writes it (JRAD)
+
+**After pulling:** press Ctrl+F5 on the forms. No migration, no restart.
+
+- The final diagnosis worked out from the admission (the diagnosis
+  template, "Fill in from the admission diagnosis", CF2's Diagnosis A) only
+  dropped the "FOR": FOR PSI INSERTION gave PSI INSERTION, and a prenatal
+  visit gave its admission sentence. It now gives the clinic's wording for
+  the kind of visit, as in the research answer key (app.js
+  dischargeFromAdmission): any family planning visit (PSI / implant, DMPA,
+  CIC, IUD, pills, FP counselling, pap smear) is FAMILY PLANNING; a
+  prenatal visit ("G2P1 (1001) PU 13 4/7 WKS AOG") is PRENATAL CHECK-UP; a
+  postpartum visit with PSI is POSTPARTUM VISIT & FAMILY PLANNING (PSI);
+  anything else drops its "FOR" (FOR WELL BABY CARE is WELL BABY CARE). A
+  delivery and a newborn keep their own wording (NSDBF's from the
+  template). On the answer key's 92 non-delivery admissions: 88 match, up
+  from 34; the 4 left are where the key disagrees with itself (one FOR
+  PILLS REFILL written PILLS REFILL, "FOR PS", a final diagnosis written
+  with FOR, a PSI visit written without "(PSI)").
+- The wording comes from the fullest of the visit's words (dischargeForVisit):
+  the postpartum package's sentence, POSTPARTUM VISITS AFTER DISCHARGE.,
+  no longer loses the PSI the logbook wrote with it.
+- The final diagnosis from the logbook is kept as written. "Same as the
+  admission diagnosis" no longer ticks itself when a claim opens just
+  because the final diagnosis is the admission without "FOR" (FOR WELL
+  BABY CARE / WELL BABY CARE); only when the logbook wrote both the same.
+  The tick is now called "Fill in from the admission diagnosis", as it
+  gives the clinic's wording rather than a copy (same id).
+- Test: Ocr_module/test_discharge_wording.py runs the app.js functions
+  under Node on the answer key's cases (skipped without Node).
+
 ## 2026-11-15: The logbook's membership column ticks "No PhilHealth" (JRAD)
 
 **After pulling:** restart the backend and press Ctrl+F5 on the forms. No

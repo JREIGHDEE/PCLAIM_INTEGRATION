@@ -1106,8 +1106,43 @@ function obFromDx(d) {
    (user testing #4). Used wherever the admission diagnosis is copied into
    a discharge / final diagnosis (Same as admission, CF2 Diagnosis A, the
    clinic's wording - js/dx-templates.js). */
+/* The clinic's discharge wording by kind of visit, as its logbook writes the
+   final diagnosis (the research answer key): any family planning visit -
+   PSI / implant, DMPA, CIC, IUD, pills, FP counselling, pap smear - is
+   FAMILY PLANNING; a prenatal visit ("G2P1 (1001) PU 13 4/7 WKS AOG") is
+   PRENATAL CHECK-UP; a postpartum visit with family planning is
+   POSTPARTUM VISIT & FAMILY PLANNING; anything else drops its "FOR"
+   ("FOR WELL BABY CARE" is WELL BABY CARE). A delivery's and a newborn's
+   wording is their own (js/dx-templates.js), so only loses the "FOR". */
+const DX_FAMILY_PLANNING = /\b(PSI|IMPLANTS?|IMPLANTABLE|SUBDERMAL|DMPA|DEPO|CIC|IUD|INTRAUTERINE|PILLS?|FP|FAMILY\s+PLANNING|CONTRACEPT\w*|PAP\s*SMEAR|PAPSMEAR)\b/;
 function dischargeFromAdmission(text) {
-  return String(text || '').replace(/^\s*FOR\s+/i, '');
+  const words = String(text || '').trim();
+  const plain = words.replace(/^\s*FOR\s+/i, '');
+  const up = words.toUpperCase();
+  if (!words || /\bIN\s+LABOU?R\b|\bCEPHALIC\b|\bDELIVER(?:ED|Y)\b|\bLIVE\s+TERM\b|\bNEWBORN\b/.test(up)) return plain;
+  if (/\bPOST\s*-?\s*PARTUM\b/.test(up)) {
+    if (!DX_FAMILY_PLANNING.test(up)) return 'POSTPARTUM VISIT';
+    return /\b(PSI|IMPLANTS?|IMPLANTABLE|SUBDERMAL)\b/.test(up)
+      ? 'POSTPARTUM VISIT & FAMILY PLANNING (PSI)' : 'POSTPARTUM VISIT & FAMILY PLANNING';
+  }
+  if (DX_FAMILY_PLANNING.test(up)) return 'FAMILY PLANNING';
+  if (/\bPRENATAL\b/.test(up) ||
+      (/\bAOG\b/.test(up) && /\b(?:G\s*\d+\s*P\s*\d+|GRAVIDA)\b/.test(up))) return 'PRENATAL CHECK-UP';
+  return plain;
+}
+
+/* The discharge for this visit from every wording of its admission - the
+   admission diagnosis, the reason for admission, and any more given (a
+   package's wording): the clinic's wording for the kind of visit, the
+   fullest found (a package's sentence, POSTPARTUM VISITS AFTER DISCHARGE.,
+   says nothing of the PSI the logbook wrote with it). Without one, the
+   first wording given without its "FOR". */
+const DX_VISIT_KIND = /^(FAMILY PLANNING|PRENATAL CHECK-UP|POSTPARTUM VISIT)/;
+function dischargeForVisit(d, ...more) {
+  const texts = [...more, d.admissionDx, d.chiefComplaint].filter(t => String(t || '').trim());
+  const kinds = texts.map(dischargeFromAdmission).filter(t => DX_VISIT_KIND.test(t));
+  if (kinds.length) return kinds.sort((a, b) => b.length - a.length)[0];
+  return dischargeFromAdmission(texts[0] || '');
 }
 
 /* The weeks AOG written in a diagnosis - "PUFT 40 2/7 WKS AOG", "39 3/7
@@ -1159,7 +1194,7 @@ const DERIVED_FIELDS = {
   // one, else the admission one - so the same words are not typed twice
   // (user testing #4). The clinic's wording replaces it (NSDBF puts in
   // SPONTANEOUS VERTEX DELIVERY), and anything typed there is kept.
-  dxADiagnosis: d => d.dischargeDx || dischargeFromAdmission(d.admissionDx),
+  dxADiagnosis: d => d.dischargeDx || dischargeForVisit(d),
   // Birth details (Patient details) start from the APGAR scores in the
   // diagnosis, so the newborn and CF4 wording (js/dx-templates.js) use them.
   apgarScore1: d => apgarFromDx(d)[0],
@@ -4315,9 +4350,11 @@ function refreshDischargeTick(values) {
 })();
 
 /* ══════════════════════════════════════════════════════════
-   FINAL DIAGNOSIS — "same as the admission diagnosis"
-   Ticked, the final diagnosis is the admission diagnosis and keeps
-   following it. It is written as if typed, so the CSF and CF4 copies
+   FINAL DIAGNOSIS — "fill in from the admission diagnosis"
+   Ticked, the final diagnosis is worked out from the admission diagnosis
+   (dischargeFromAdmission: FOR PSI INSERTION is FAMILY PLANNING, a
+   prenatal visit PRENATAL CHECK-UP...) and keeps following it. It is
+   written as if typed, so the CSF and CF4 copies
    (LINKED_FIELD_GROUPS) follow too. Off by default: the two usually
    differ (in labour on admission, delivered at discharge).
 ══════════════════════════════════════════════════════════ */
@@ -4336,8 +4373,8 @@ function refreshFinalDxTick(values) {
     const follow = toggle.checked;
     field.readOnly = follow;
     field.classList.toggle('is-locked', follow);
-    // Without a leading "FOR": the discharge says what was done.
-    const admission = dischargeFromAdmission(state.data.admissionDx);
+    // The clinic's discharge wording for this kind of visit.
+    const admission = dischargeForVisit(state.data);
     if (follow && field.value !== admission) {
       field.value = admission;
       field.dispatchEvent(new Event('input', { bubbles: true }));
@@ -4352,14 +4389,16 @@ function refreshFinalDxTick(values) {
     if (toggle.checked && e.target.dataset && e.target.dataset.autofill === 'admissionDx') apply();
   });
 
-  // A loaded claim (values with a final diagnosis): ticked only when both
-  // diagnoses are there and the same. Other updates, such as the delivery
+  // A loaded claim (values with a final diagnosis): ticked only when the
+  // logbook wrote both diagnoses word for word the same. A final diagnosis
+  // that is merely what the admission works out to ("FOR WELL BABY CARE"
+  // and WELL BABY CARE) is the logbook's own and stays unticked (user
+  // feedback: it ticked itself). Other updates, such as the delivery
   // message put in the admission diagnosis, leave the tick as it is.
   refreshFinalDxTick.run = values => {
     if (!values || 'dischargeDx' in values) {
-      const admission = state.data.admissionDx, final = state.data.dischargeDx;
-      // The same, or the same but for the admission's leading "FOR".
-      toggle.checked = !!admission && (admission === final || dischargeFromAdmission(admission) === final);
+      const admission = String(state.data.admissionDx || '').trim();
+      toggle.checked = !!admission && admission === String(state.data.dischargeDx || '').trim();
     }
     apply();
   };

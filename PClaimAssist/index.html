@@ -618,11 +618,14 @@
           </div>
           <div class="col-12">
             <label class="pca-label">Discharge / Final Diagnosis <span class="required-dot">*</span></label>
-            <!-- Copies the admission diagnosis and keeps following it (js/app.js);
-                 the CSF and CF4 copies follow as for typing. -->
+            <!-- Works the final diagnosis out from the admission diagnosis and
+                 keeps following it (js/app.js dischargeFromAdmission: FOR PSI
+                 INSERTION is FAMILY PLANNING...); the CSF and CF4 copies
+                 follow as for typing. -->
             <div class="form-check pca-checkbox mb-1">
-              <input class="form-check-input" type="checkbox" id="finalDxSameAsAdmission">
-              <label class="form-check-label" for="finalDxSameAsAdmission">Same as the admission diagnosis</label>
+              <input class="form-check-input" type="checkbox" id="finalDxSameAsAdmission"
+                     title="FOR WELL BABY CARE gives WELL BABY CARE, a PSI or other family planning visit FAMILY PLANNING, a prenatal visit PRENATAL CHECK-UP">
+              <label class="form-check-label" for="finalDxSameAsAdmission">Fill in from the admission diagnosis</label>
             </div>
             <textarea class="form-control pca-input" data-autofill="dischargeDx" rows="3" placeholder="e.g., ... GRAVIDA 3 PARA 3 (3003), DELIVERED VIA NORMAL SPONTANEOUS VAGINAL DELIVERY ON ..."></textarea>
           </div>
@@ -4177,7 +4180,7 @@
 <script src="js/pin-input.js?v=20261111a"></script>
 <!-- Davao Region address lists, and the cascading dropdowns built from
      them. Both after app.js: they write through its input listeners. -->
-<script src="js/app.js?v=20261115b"></script>
+<script src="js/app.js?v=20261115c"></script>
 <script src="js/ph-psgc.js?v=20261101s"></script>
 <script src="js/ph-address.js?v=20261101s"></script>
 <script src="js/address-select.js?v=20261101s"></script>
@@ -4185,7 +4188,7 @@
 <script src="js/easy.js?v=20261112k"></script>
 <!-- Loads a claim sent from the OCR review: index.html?claim=<id> -->
 <script src="js/mother-baby.js?v=20261112k"></script>
-<script src="js/dx-templates.js?v=20261112k"></script>
+<script src="js/dx-templates.js?v=20261115c"></script>
 <!-- Reason for admission from the logbook's wording, and its pattern table -->
 <script src="js/admission-patterns.js?v=20261104a"></script>
 <script src="js/claim-loader.js?v=20261112f"></script>

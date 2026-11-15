@@ -598,10 +598,11 @@ const dxDiagnosis = (function setupDiagnosisWording() {
     targets: (text, values) => {
       const p = DX_PACKAGES[dxCurrentPackage()];
       if (!p) return noPackage();
-      // One sentence for both: at discharge without its leading "FOR"
-      // (app.js dischargeFromAdmission) - FOR INSERTION OF ... becomes
-      // INSERTION OF ... in the final diagnosis, CF2 and CF4.
-      const final = p.finalText ? sentence.text(p.finalText, values) : dischargeFromAdmission(text);
+      // One sentence for both: at discharge, the clinic's wording for the
+      // kind of visit (app.js dischargeForVisit) - FOR INSERTION OF ...
+      // CONTRACEPTIVE is FAMILY PLANNING, prenatal care PRENATAL CHECK-UP -
+      // in the final diagnosis, CF2 and CF4, else the sentence without "FOR".
+      const final = p.finalText ? sentence.text(p.finalText, values) : dischargeForVisit(state.data, text);
       if (p.finalText) text = sentence.text(p.text, values);
       const icd = typeof p.icd === 'function' ? p.icd(values) : p.icd;
       // The first case rate (CSF Part V, CF4) prints the package's RVS code,
