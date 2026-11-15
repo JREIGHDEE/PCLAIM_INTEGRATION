@@ -3237,7 +3237,13 @@ const FIX_FIELD_ALIASES = {
   deliveryTimeStr:  'deliveryTime',
   cf4CourseInWard:      'cf4CourseDate1',
   cf4DrugsAdministered: 'cf4DrugName1',
+  // CF4 9.b / 10.b's four time boxes are the time admitted / discharged.
+  cf4TimeAdmittedDigits:  'timeAdmitted',
+  cf4TimeDischargeDigits: 'timeDischarge',
 };
+/* The member's name printed over a signature line (CSF / CF1 Part I, the
+   PMRF) is the member's name - the patient's while she is the member. */
+const SIGN_NAME_KEYS = new Set(['memberLineName', 'memberSignName']);
 
 /* Where a key can actually be typed.
 
@@ -3255,9 +3261,26 @@ const FIX_FIELD_ALIASES = {
    testing #4 it had no box and no alias, and "Fix this" did nothing. */
 function fixTargetKey(key) {
   if (FIX_FIELD_ALIASES[key]) return FIX_FIELD_ALIASES[key];
+  if (SIGN_NAME_KEYS.has(key)) {
+    const who = state.data.memberIsPatient ? 'patient' : 'member';
+    return String(state.data[who + 'LastName'] || '').trim() ? who + 'FirstName' : who + 'LastName';
+  }
   const parts = VAL_SPOT_KEYS[key];
   if (!parts || document.querySelector(`[data-autofill="${key}"], [data-box-key="${key}"]`)) return key;
   return parts.find(k => keyRedOnAnyForm(k)) || parts[0];
+}
+
+/* Hidden for good, not just out of sight: Patient details hides the boxes
+   this claim's forms don't use (applyPatientDetailsForClaim), so the form's
+   own box is the one to go to. A closed tab, another page of a form, or a
+   folded professional 2 / 3 is only out of sight: revealForTyping opens it. */
+function hiddenForThisClaim(el) {
+  for (let n = el; n && n !== document.body; n = n.parentElement) {
+    if (!n.hidden) continue;
+    if (n.matches('.pdf-page-group, .tab-pane') || (n.parentElement && n.parentElement.matches('[data-optional-prof]'))) continue;
+    return true;
+  }
+  return false;
 }
 
 function editableFieldFor(key) {
@@ -3270,6 +3293,10 @@ function editableFieldFor(key) {
   // every form section is hidden at the time and would look unusable. What
   // matters is whether the box would take typing once its page is open.
   const usable = el => {
+    if (hiddenForThisClaim(el)) return false;
+    // A row of choice buttons (co-pay, member type...) is picked, not typed:
+    // it was never found, so its red box and "Go to Field" went nowhere.
+    if (el.matches('.btn-check-group')) return [...el.querySelectorAll('button')].some(b => !b.disabled);
     const input = el.matches('input,select,textarea') ? el
                 : el.querySelector('input,select,textarea');
     if (!input) return false;
@@ -3315,6 +3342,8 @@ function editableFieldFor(key) {
    the page turned first. A row of choice buttons (Member Type) takes the
    focus on its first button. */
 function revealForTyping(el) {
+  const card = el.closest('[data-optional-prof]');
+  if (card && !card.dataset.open && card.pcaShowOptional) card.pcaShowOptional(true);
   const pane = el.closest('.tab-pane');
   if (pane && !pane.classList.contains('active') && pane.id && window.bootstrap) {
     const tab = document.querySelector(`[data-bs-target="#${pane.id}"], [href="#${pane.id}"]`);
@@ -3338,7 +3367,10 @@ function focusField(key) {
   }
   revealForTyping(el);
   // Long enough for a tab's fade to finish, so the box can take the focus.
+  // Revealed again first: a form just opened redraws itself at its own page
+  // a moment after (onFormSectionActivated), hiding a box on another page.
   setTimeout(() => {
+    revealForTyping(el);
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     const target = el.matches('input,select,textarea,button') ? el
                  : el.querySelector('input:not([type=hidden]),select,textarea,button');
@@ -3351,7 +3383,12 @@ function focusField(key) {
    it was not clear where the missing box was). */
 function pulseField(el) {
   el.classList.add('field-flash');
-  const stop = () => { el.classList.remove('field-flash'); el.removeEventListener('input', stop, true); };
+  // Stopped by someone typing, not by the page filling the box in itself
+  // (CF2's procedure date follows the admission date the moment it is shown).
+  const stop = e => {
+    if (e && e.type === 'input' && !e.isTrusted) return;
+    el.classList.remove('field-flash'); el.removeEventListener('input', stop, true);
+  };
   el.addEventListener('input', stop, true);
   setTimeout(stop, 4000);
 }
@@ -3380,6 +3417,7 @@ function isMarkedMissing(el) {
 function typeableIn(mark) {
   const usable = x => x && !x.disabled && !x.readOnly && x.type !== 'hidden';
   if (mark.matches('input, select, textarea')) return usable(mark) ? mark : null;
+  if (mark.matches('.btn-check-group')) return [...mark.querySelectorAll('button')].find(b => !b.disabled) || null;
   return [...mark.querySelectorAll('input, select, textarea')].find(usable) || null;
 }
 

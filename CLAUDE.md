@@ -52,6 +52,12 @@ test to make it pass. A new form field must be added either to
 `philhealth/field_catalog.py` `FORM_FIELDS` (its own column) or to
 `FORM_VALUES_KEYS` (kept in `claims.form_values`), or `test_form_prefill` fails.
 
+After changing a form's boxes or "Go to Field" (app.js `focusField`), also
+run `venv\Scripts\python.exe check_go_to_field.py` from `Ocr_module/` (needs
+MariaDB and Edge, about 5 minutes): it sends every missing box through the
+jump and fails if one does not land on screen. Boxes that went nowhere were
+fixed one at a time for months before this checked them all.
+
 ## Things that look wrong but are intended
 
 - **"Member (boolean)"**, the left page's last column in the logbook setup

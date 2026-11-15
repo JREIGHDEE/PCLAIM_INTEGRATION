@@ -80,6 +80,9 @@ function initDateText(real) {
   function mirror() {
     const own = ['pca-date-text'];
     if (unfinished) own.push('date-text--invalid');
+    // The glow of "Go to Field" (app.js pulseField) is this box's own, not
+    // the real date's: copying the real one's classes over took it away.
+    if (text.classList.contains('field-flash')) own.push('field-flash');
     text.className = [...real.classList].filter(c => c !== 'pca-date-real').concat(own).join(' ');
     text.readOnly = real.readOnly;
     text.disabled = real.disabled;

@@ -11,6 +11,35 @@ Related documents:
 
 ---
 
+## 2026-11-15: "Go to Field" and the red boxes land on every box (JRAD)
+
+**After pulling:** press Ctrl+F5 on the forms. No migration, no restart.
+
+Boxes that "Go to Field" or a click on a red box went nowhere for kept
+coming back because each was fixed on its own. New: Ocr_module/
+check_go_to_field.py sends every box the checker lists, on every form,
+through the jump and checks it lands (right page, on screen, glowing).
+Before: 17 of 144 did not. Now: 141 of 141 (CSF, CF1, CF2, CF4, PMRF).
+What was wrong (app.js unless said):
+
+- *CF2 co-pay* (a row of buttons): never found - only boxes with a text
+  field, list or tick counted - and, coming from Patient details, CF2 put
+  its page 1 back over page 2 a moment after the jump (the form redraws
+  itself on opening). Rows of buttons count now (editableFieldFor,
+  typeableIn - also for "on to the next missing field"), and the page is
+  turned again once the form is open (focusField).
+- *Professional 2 / 3* (CF2, CSF): folded away; now opened (revealForTyping).
+- *Printed names and CF4 times*: the member's name over a signature line
+  (CSF / CF1 Part I, PMRF) and CF4 9.b / 10.b's time boxes had no box of
+  their own; they go to the member's (or the patient's, while she is the
+  member) name, and to the time admitted / discharged (fixTargetKey).
+- *Boxes this claim does not use*, hidden on Patient details, were picked
+  over the form's own box (hiddenForThisClaim).
+- *The glow* went off at once on a box the page fills in itself (CF2's
+  procedure date): it now stops only for typing (pulseField), and a date
+  box no longer drops it when it copies the real date's look
+  (date-text.js mirror).
+
 ## 2026-11-15: Logbook review keeps the logbook's final diagnosis; a baby's Part I (JRAD)
 
 **After pulling:** restart the backend and press Ctrl+F5. No migration.
