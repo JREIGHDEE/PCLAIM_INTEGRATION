@@ -79,7 +79,11 @@ class SuggestPartsTests(unittest.TestCase):
                          ("ALCANTARA", "MARY ANN", "DENISE", "JR"))
 
     def test_unreadable_date_suggests_nothing(self):
-        self.assertEqual(review_fields.suggest_parts(BDAY, "05-O4-?9"), {"date": ""})
+        # No date is guessed; what was read of it (month, day) is kept, to
+        # be shown for staff to finish (fill_partial_dates).
+        parts = review_fields.suggest_parts(BDAY, "05-O4-?9")
+        self.assertEqual(parts["date"], "")
+        self.assertEqual(parts["partial"], {"month": 5, "day": 4, "year": None})
 
 
 class CheckTests(unittest.TestCase):
@@ -200,3 +204,49 @@ class ClaimFieldsTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PartialDateTests(unittest.TestCase):
+    """A date read only in part is put in as a guess to check, not left
+    empty (readings from the handwriting test runs)."""
+    ADM, DEL, DIS, BDAY = (case_bridge.ADMISSION_DT, case_bridge.DELIVERY_DT,
+                           case_bridge.DISCHARGE_DT, case_bridge.BDAY)
+    TODAY = date(2026, 11, 15)
+
+    def test_month_and_day_are_kept_from_a_cut_reading(self):
+        self.assertEqual(case_bridge.partial_date("09-27 1000AM"), (9, 27, None))
+        self.assertEqual(case_bridge.partial_date("09-28-"), (9, 28, None))
+        self.assertEqual(case_bridge.partial_date("09-272 0P45AM"), (9, 27, None))
+        self.assertEqual(case_bridge.partial_date("0j-28-2 09:50AM"), None)   # month not read
+        self.assertEqual(case_bridge.partial_date("10.30 AM"), None)          # a time, not a date
+
+    def test_an_event_takes_the_rows_year(self):
+        parts = {self.ADM: review_fields.suggest_parts(self.ADM, "09-27-26 10:00 AM"),
+                 self.DIS: review_fields.suggest_parts(self.DIS, "09-28 11:40AM")}
+        review_fields.fill_partial_dates(parts, today=self.TODAY)
+        self.assertEqual(parts[self.DIS]["date"], "2026-09-28")
+        self.assertTrue(parts[self.DIS]["date_guessed"])
+        self.assertNotIn("date_guessed", parts[self.ADM])
+
+    def test_without_the_rows_dates_this_year(self):
+        parts = {self.ADM: review_fields.suggest_parts(self.ADM, "09-27 1000AM")}
+        review_fields.fill_partial_dates(parts, today=self.TODAY)
+        self.assertEqual(parts[self.ADM]["date"], "2026-09-27")
+
+    def test_a_guess_far_from_the_stay_is_not_put_in(self):
+        parts = {self.ADM: review_fields.suggest_parts(self.ADM, "08-08-26 09:00 AM"),
+                 self.DIS: review_fields.suggest_parts(self.DIS, "05-09 10:00AM")}
+        review_fields.fill_partial_dates(parts, today=self.TODAY)
+        self.assertEqual(parts[self.DIS]["date"], "")
+
+    def test_a_birthdays_year_is_left_to_type(self):
+        parts = {self.BDAY: review_fields.suggest_parts(self.BDAY, "07-07-4 Fe 0")}
+        review_fields.fill_partial_dates(parts, today=self.TODAY)
+        self.assertEqual(parts[self.BDAY]["date"], "")
+        self.assertEqual(parts[self.BDAY]["date_typed"], "07/07/")
+
+    def test_a_date_read_whole_is_unchanged(self):
+        parts = {self.ADM: review_fields.suggest_parts(self.ADM, "09-27-26 10:00 AM")}
+        review_fields.fill_partial_dates(parts, today=self.TODAY)
+        self.assertEqual(parts[self.ADM]["date"], "2026-09-27")
+        self.assertNotIn("partial", parts[self.ADM])

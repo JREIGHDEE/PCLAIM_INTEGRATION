@@ -165,6 +165,27 @@ def _parse_date_flexible(text, kind=None):
     return None
 
 
+# A date read only in part: month and day, and the year if any of it is
+# there ("09-27 1000AM", "09-28-", "09-272 0P45AM" for 09-27-26). Only "-"
+# and "/" part them, so a time ("10.30") is never taken for a date.
+_PARTIAL_DATE = re.compile(
+    rf"(?<![0-9A-Za-z])({_DIGITISH}{{1,2}})\s*[-/]\s*({_DIGITISH}{{1,2}})(?:\s*[-/]\s*({_DIGITISH}{{2}}(?:{_DIGITISH}{{2}})?)(?![0-9A-Za-z]))?")
+
+
+def partial_date(text):
+    """(month, day, year or None) as numbers from a date read in part, or
+    None. The year only when two or four of its digits were read."""
+    for match in _PARTIAL_DATE.finditer(text or ""):
+        month, day, year = (part.translate(_OCR_DIGITS) if part else part for part in match.groups())
+        if not (month.isdigit() and day.isdigit()) or not (1 <= int(month) <= 12 and 1 <= int(day) <= 31):
+            continue
+        full = None
+        if year and year.isdigit():
+            full = int(year) + (1900 if int(year) >= 69 else 2000) if len(year) == 2 else int(year)
+        return int(month), int(day), full
+    return None
+
+
 def _parse_time_flexible(text):
     """Returns (HH:MM in 24h, 'AM'|'PM') on success, or (None, None)."""
     if not text:

@@ -1150,7 +1150,7 @@ function renderInputs(f, id){
     }
     if(f.kind === "date"){
         return `<label class="input-label" for="${id}">Birthday (month/day/year, as in the logbook):</label>
-            ${dateBox(id, p.date)}`;
+            ${dateBox(id, p.date, p.date_typed)}${datePartNote(p)}`;
     }
     if(f.kind === "datetime"){
         // Went home: at the earliest the day after the delivery (review_fields.check).
@@ -1161,8 +1161,8 @@ function renderInputs(f, id){
         return `<div class="when">
             <div class="date-box">
                 <label class="input-label" for="${id}">${DATETIME_LABELS[f.category] || "Date"} (month/day/year, as in the logbook):</label>
-                ${dateBox(id, p.date)}
-                ${sameDay}
+                ${dateBox(id, p.date, p.date_typed)}
+                ${sameDay}${datePartNote(p)}
             </div>
             <div>
                 <span class="input-label" id="${id}-time">Time:</span>
@@ -1958,11 +1958,23 @@ function typedFromIso(iso){
     const m = String(iso || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
     return m ? `${m[2]}/${m[3]}/${m[1]}` : "";
 }
-function dateBox(id, iso){
-    return `<input class="big" type="text" id="${id}" data-date-text inputmode="numeric" maxlength="10"
+function dateBox(id, iso, typed){
+    // typed: a birthday read in part ("07/07/"), shown for staff to finish.
+    const shown = iso ? typedFromIso(iso) : (typed || "");
+    return `<input class="big${!iso && typed ? " date-unfinished" : ""}" type="text" id="${id}" data-date-text inputmode="numeric" maxlength="10"
                 autocomplete="off" placeholder="MM/DD/YYYY" aria-label="Date, month/day/year"
-                value="${attr(typedFromIso(iso))}" oninput="dateTyped(this, event)" onblur="dateLeft(this)">
+                value="${attr(shown)}" oninput="dateTyped(this, event)" onblur="dateLeft(this)">
             <input type="hidden" data-part="date" value="${attr(iso)}">`;
+}
+// A date read only in part (review_fields.fill_partial_dates): what was read
+// is put in rather than nothing (user feedback), and said to need checking.
+function datePartNote(p){
+    if(p.date_guessed) return `<p class="field-note"><strong>Check the date:</strong> only part of it could be read
+        from the logbook${p.year_from === "row" ? "; the year is taken from this patient's other dates"
+        : p.year_from === "today" ? "; the year was not read, so this year is put in" : ""}.</p>`;
+    if(!p.date && p.date_typed) return `<p class="field-note"><strong>Finish the date:</strong> the month and day were
+        read from the logbook; type the year.</p>`;
+    return "";
 }
 // Slashes go in as it is typed: "03152024" and "3/15/2024" become 03/15/2024.
 function formatTypedDate(value){

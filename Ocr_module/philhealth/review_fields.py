@@ -138,13 +138,69 @@ def suggest_parts(category, text):
                 "middle": clean_name_part(middle, drop_digits=True), "suffix": suffix or "",
                 "guessed": bool(text) and bool(warning)}
     if kind == DATE_KIND:
-        return {"date": case_bridge._parse_date_flexible(text, case_bridge.date_kind(category)) or ""}
+        return _with_partial({"date": case_bridge._parse_date_flexible(text, case_bridge.date_kind(category)) or ""},
+                             text)
     if kind == DATETIME_KIND:
         hour, minute, am_pm = _split_time(text)
-        return {"date": case_bridge._parse_date_flexible(text, case_bridge.date_kind(category)) or "",
-                "hour": hour, "minute": minute,
-                "am_pm": am_pm}
+        return _with_partial({"date": case_bridge._parse_date_flexible(text, case_bridge.date_kind(category)) or "",
+                              "hour": hour, "minute": minute,
+                              "am_pm": am_pm}, text)
     return {"text": text}
+
+
+def _with_partial(parts, text):
+    """A date not read whole keeps what was read of it - month, day, the
+    year if any - for fill_partial_dates (user feedback: the date box was
+    left empty though most of the date was read right)."""
+    if not parts["date"]:
+        found = case_bridge.partial_date(text)
+        if found:
+            parts["partial"] = {"month": found[0], "day": found[1], "year": found[2]}
+    return parts
+
+
+_EVENT_DATES = (ADMISSION_DT, DELIVERY_DT, DISCHARGE_DT)
+_STAY_DAYS = 7
+
+
+def fill_partial_dates(parts_by_category, today=None):
+    """Put in the dates of one logbook row read only in part, as best
+    guesses to check: {category: parts} (the review's suggestions), changed
+    in place. An admission, delivery or discharge is in the logbook's own
+    year, so a year not read is the row's other dates' (else this year's);
+    a birthday's year can't be told, so without one it is only shown, for
+    staff to finish (parts["date_typed"], MM/DD/)."""
+    today = today or date.today()
+    read_whole = [date.fromisoformat(p["date"]) for c, p in parts_by_category.items()
+                  if c in _EVENT_DATES and p and p.get("date")]
+    years = [d.year for d in read_whole]
+    for category, parts in parts_by_category.items():
+        partial = (parts or {}).get("partial")
+        if not partial or parts.get("date"):
+            continue
+        month, day, year = partial["month"], partial["day"], partial.get("year")
+        event = category in _EVENT_DATES
+        year_from = None
+        if year is None and event:
+            year, year_from = (years[0], "row") if years else (today.year, "today")
+        iso = None
+        if year is not None:
+            try:
+                iso = date(year, month, day).isoformat()
+            except ValueError:
+                iso = None
+        # A stay is days long: a guess far from the row's dates read whole
+        # (admission, delivery, discharge) is a misread month or day.
+        if iso and event and read_whole and min(abs((date.fromisoformat(iso) - d).days) for d in read_whole) > _STAY_DAYS:
+            iso = None
+        if iso and case_bridge._plausible(iso, "event" if event else "birth"):
+            parts["date"] = iso
+            parts["date_guessed"] = True
+            if year_from:
+                parts["year_from"] = year_from
+        elif not event:
+            parts["date_typed"] = f"{month:02d}/{day:02d}/"
+    return parts_by_category
 
 
 # ── Normalizing, composing, blank ───────────────────────────────────────

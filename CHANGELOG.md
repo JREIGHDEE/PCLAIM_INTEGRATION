@@ -11,6 +11,25 @@ Related documents:
 
 ---
 
+## 2026-11-15: Dates read in part are put in on the logbook check, not left empty (JRAD)
+
+**After pulling:** restart the backend. No migration.
+
+- A date box on the logbook check stayed empty unless the whole date was
+  read: "09-27 1000AM", "09-28-" (the year cut off) gave nothing, though
+  the month and day were right. Now what was read is kept
+  (case_bridge.partial_date) and put in (review_fields.fill_partial_dates,
+  run per patient by routes/review_routes.py): an admission, delivery or
+  discharge takes the year of the patient's other dates, else this year; a
+  birthday shows its month and day ("07/07/") for the year to be typed. A
+  date put in this way says "Check the date" (or "Finish the date") under
+  its box (review.html datePartNote). A guess more than 7 days from the
+  patient's other dates read whole is a misread and not put in.
+- On the handwriting test readings (3,543 dates with an answer): right
+  576 -> 870, empty 2,280 -> 1,452, birthday month/day shown 223. Of the
+  605 dates put in from part of a reading, 294 are right and the rest have
+  a misread month or day - all marked to check.
+
 ## 2026-11-15: "FOR" on well baby care and postpartum visits; delivery first on the logbook check (JRAD)
 
 **After pulling:** run `database/migrations/013_admission_reason_for.sql`

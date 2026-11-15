@@ -97,6 +97,11 @@ def _with_inputs(field):
 def _session_view(session):
     _learn_enye_names()
     ocr_data = session["ocr_data"] or {}
+    fields = [_with_inputs(f) for f in ocr_data.get("fields", [])]
+    # Dates read only in part are put in as best guesses, the year from the
+    # row's other dates - not left empty (review_fields.fill_partial_dates).
+    review_fields.fill_partial_dates({f["category"]: f["parts"] for f in fields
+                                      if not f.get("parts_reviewed") and f.get("parts")})
     return {
         "session_id": session["id"],
         "case_id": session["case_id"],
@@ -107,7 +112,7 @@ def _session_view(session):
         "values": session["values"],
         "image_quality": ocr_data.get("image_quality"),
         "thresholds": ocr_data.get("thresholds") or logbook_pipeline.thresholds(),
-        "fields": [_with_inputs(f) for f in ocr_data.get("fields", [])],
+        "fields": fields,
     }
 
 
