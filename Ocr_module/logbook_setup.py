@@ -36,7 +36,7 @@ import cv2
 import config
 import logbook_layout
 from errors import InvalidRequestError
-from logbook_pipeline import load_pages, tilt_scan
+from logbook_pipeline import load_pages, page_tilt, tilt_scan
 from template_engine import build_template_payload, detect_ruling_lines, map_rows_between_pages
 from template_store import get_template_files, save_template_payload
 
@@ -114,17 +114,21 @@ def read_scan(path, ocr_fn, source_document=None, use_saved=False, tilt=0.0):
     the ones found on the page, so a stray line on one scan does not turn
     up as an extra "not read" column.
 
-    tilt (degrees, clockwise; the tilt test): the scan is turned by this
-    much first, and the turned copy is what is kept and read, to see how a
-    scan that is not straight comes out. Each page then says how far the
+    tilt (degrees, clockwise; the tilt test): one angle for every page, or
+    a list with one per page. The pages are turned by this much first, and
+    the turned copy is what is kept and read, to see how a scan that is not
+    straight comes out. Each page then says its "tilt" and how far the
     reader turned it back ("straightened_by")."""
     saved = saved_columns() if use_saved else {}
     setup_id = uuid.uuid4().hex
     folder = _setup_dir(setup_id)
     os.makedirs(folder, exist_ok=True)
     scan = "scan" + os.path.splitext(str(path))[1].lower()
-    tilt = round(float(tilt or 0), 1)
-    if tilt:
+    if isinstance(tilt, (list, tuple)):
+        tilt = [round(page_tilt(tilt, i), 1) for i in range(len(tilt))]
+    else:
+        tilt = round(page_tilt(tilt, 0), 1)
+    if any(tilt) if isinstance(tilt, list) else tilt:
         tilt_scan(path, folder / scan, tilt)
     else:
         shutil.copyfile(path, folder / scan)
@@ -147,7 +151,7 @@ def read_scan(path, ocr_fn, source_document=None, use_saved=False, tilt=0.0):
             proposal["categories"] = list(setup["categories"])
             proposal["saved_setup"] = setup["file"]
         proposal["index"] = index
-        proposal["tilt"] = tilt
+        proposal["tilt"] = round(page_tilt(tilt, index), 1)
         proposal["straightened_by"] = straightened_by[index]
         proposal["ruled_lines"] = detect_ruling_lines(image)["horizontal"]
         scale = min(1.0, _PREVIEW_WIDTH / image.shape[1])

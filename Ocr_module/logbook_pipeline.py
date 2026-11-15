@@ -155,35 +155,50 @@ def load_pages(path, straightened_by=None):
     return pages
 
 
-def first_page_picture(path, width=900):
-    """The scan's first page as a small JPEG (bytes), as scanned - what the
-    tilt test shows turning before the scan is read."""
+def page_pictures(path, width=700, limit=2):
+    """The scan's pages (the first `limit`: the ones read) as small JPEGs
+    (bytes), as scanned - what the tilt test shows turning, page by page,
+    before the scan is read."""
+    images = []
     if os.path.splitext(str(path))[1].lower() == ".pdf":
         doc = fitz.open(str(path))
         try:
-            if not len(doc):
-                raise ValueError("No pages were found in this file.")
-            page = doc[0]
-            zoom = min(_PDF_ZOOM, width / max(1.0, page.rect.width))
-            pix = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom))
-            data = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, pix.n)
-            image = cv2.cvtColor(data, {4: cv2.COLOR_RGBA2BGR, 3: cv2.COLOR_RGB2BGR}.get(pix.n, cv2.COLOR_GRAY2BGR))
+            for page in list(doc)[:limit]:
+                zoom = min(_PDF_ZOOM, width / max(1.0, page.rect.width))
+                pix = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom))
+                data = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, pix.n)
+                images.append(cv2.cvtColor(data, {4: cv2.COLOR_RGBA2BGR, 3: cv2.COLOR_RGB2BGR}
+                                           .get(pix.n, cv2.COLOR_GRAY2BGR)))
         finally:
             doc.close()
+        if not images:
+            raise ValueError("No pages were found in this file.")
     else:
         image = cv2.imread(str(path))
         if image is None:
             raise ValueError("Could not read the uploaded image.")
-    scale = min(1.0, width / image.shape[1])
-    if scale < 1:
-        image = cv2.resize(image, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
-    ok, encoded = cv2.imencode(".jpg", image, [cv2.IMWRITE_JPEG_QUALITY, 85])
-    if not ok:
-        raise ValueError("Could not show the scan.")
-    return encoded.tobytes()
+        images.append(image)
+    pictures = []
+    for image in images:
+        scale = min(1.0, width / image.shape[1])
+        if scale < 1:
+            image = cv2.resize(image, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
+        ok, encoded = cv2.imencode(".jpg", image, [cv2.IMWRITE_JPEG_QUALITY, 85])
+        if not ok:
+            raise ValueError("Could not show the scan.")
+        pictures.append(encoded.tobytes())
+    return pictures
 
 
 TILT_MAX_DEGREES = 15
+
+
+def page_tilt(degrees, index):
+    """The tilt for page `index` (from 0): `degrees` is one angle for every
+    page, or a list with one per page (a page past its end: 0)."""
+    if isinstance(degrees, (list, tuple)):
+        degrees = degrees[index] if index < len(degrees) else 0
+    return max(-TILT_MAX_DEGREES, min(TILT_MAX_DEGREES, float(degrees or 0)))
 
 
 def tilt_image(image, degrees):
@@ -201,21 +216,22 @@ def tilt_image(image, degrees):
 
 def tilt_scan(source, target, degrees):
     """Save a copy of the scan at `source` to `target` (same kind of file)
-    with every page turned clockwise by `degrees` - the Logbook Reader's
-    tilt test, to see how a scan that is not straight is read. A PDF stays
-    a PDF whose pages are read at the same size in pixels."""
-    degrees = max(-TILT_MAX_DEGREES, min(TILT_MAX_DEGREES, float(degrees)))
+    with its pages turned clockwise - the Logbook Reader's tilt test, to
+    see how a scan that is not straight is read. `degrees`: one angle for
+    every page, or a list with one per page (page_tilt). A PDF stays a PDF
+    whose pages are read at the same size in pixels."""
     if os.path.splitext(str(source))[1].lower() != ".pdf":
         image = cv2.imread(str(source))
         if image is None:
             raise ValueError("Could not read the uploaded image.")
-        if not cv2.imwrite(str(target), tilt_image(image, degrees)):
+        if not cv2.imwrite(str(target), tilt_image(image, page_tilt(degrees, 0))):
             raise ValueError("Could not save the tilted scan.")
         return
     tilted = fitz.open()
     try:
-        for _, image, _ in raw_pages(source):
-            turned = tilt_image(image, degrees)
+        for index, (_, image, _) in enumerate(raw_pages(source)):
+            angle = page_tilt(degrees, index)
+            turned = tilt_image(image, angle) if angle else image
             ok, encoded = cv2.imencode(".png", turned)
             if not ok:
                 raise ValueError("Could not save the tilted scan.")

@@ -80,16 +80,20 @@ class TiltTestTests(unittest.TestCase):
             self.assertEqual(len(pages), 1)
             self.assertAlmostEqual(angles[0], -2, delta=0.15)
 
+    @staticmethod
+    def _two_page_pdf(path, pages=2):
+        doc = fitz.open()
+        for _ in range(pages):
+            ok, png = cv2.imencode(".png", ruled_page())
+            page = doc.new_page(width=500, height=850)
+            page.insert_image(page.rect, stream=png.tobytes())
+        doc.save(path)
+        doc.close()
+
     def test_a_tilted_pdf_stays_a_pdf_of_the_same_pages(self):
         with tempfile.TemporaryDirectory() as folder:
             source, target = os.path.join(folder, "scan.pdf"), os.path.join(folder, "tilted.pdf")
-            doc = fitz.open()
-            for _ in range(2):
-                ok, png = cv2.imencode(".png", ruled_page())
-                page = doc.new_page(width=500, height=850)
-                page.insert_image(page.rect, stream=png.tobytes())
-            doc.save(source)
-            doc.close()
+            self._two_page_pdf(source)
             logbook_pipeline.tilt_scan(source, target, 1.5)
             before = logbook_pipeline.raw_pages(source)
             angles = []
@@ -100,13 +104,34 @@ class TiltTestTests(unittest.TestCase):
             for angle in angles:
                 self.assertAlmostEqual(angle, 1.5, delta=0.15)
 
-    def test_the_first_page_picture_is_a_small_jpeg(self):
+    def test_each_page_is_turned_by_its_own_tilt(self):
+        with tempfile.TemporaryDirectory() as folder:
+            source, target = os.path.join(folder, "scan.pdf"), os.path.join(folder, "tilted.pdf")
+            self._two_page_pdf(source, pages=3)
+            logbook_pipeline.tilt_scan(source, target, [2.5, -1.5])   # page 3: not given, left straight
+            angles = []
+            logbook_pipeline.load_pages(target, angles)
+            self.assertAlmostEqual(angles[0], 2.5, delta=0.15)
+            self.assertAlmostEqual(angles[1], -1.5, delta=0.15)
+            self.assertEqual(angles[2], 0.0)
+
+    def test_a_page_tilt_is_one_angle_or_one_per_page(self):
+        self.assertEqual(logbook_pipeline.page_tilt(3, 1), 3)
+        self.assertEqual(logbook_pipeline.page_tilt([3, -2], 1), -2)
+        self.assertEqual(logbook_pipeline.page_tilt([3], 1), 0)
+        self.assertEqual(logbook_pipeline.page_tilt([40], 0), logbook_pipeline.TILT_MAX_DEGREES)
+
+    def test_each_page_picture_is_a_small_jpeg(self):
         with tempfile.TemporaryDirectory() as folder:
             source = os.path.join(folder, "page.png")
             cv2.imwrite(source, ruled_page(width=2000, height=3000))
-            picture = logbook_pipeline.first_page_picture(source, width=500)
-            image = cv2.imdecode(np.frombuffer(picture, np.uint8), cv2.IMREAD_COLOR)
+            pictures = logbook_pipeline.page_pictures(source, width=500)
+            self.assertEqual(len(pictures), 1)
+            image = cv2.imdecode(np.frombuffer(pictures[0], np.uint8), cv2.IMREAD_COLOR)
             self.assertEqual(image.shape[1], 500)
+            pdf = os.path.join(folder, "scan.pdf")
+            self._two_page_pdf(pdf, pages=3)
+            self.assertEqual(len(logbook_pipeline.page_pictures(pdf)), 2)   # the two pages read
 
 
 class EntryRowTests(unittest.TestCase):

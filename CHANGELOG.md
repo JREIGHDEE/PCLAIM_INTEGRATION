@@ -16,19 +16,22 @@ Related documents:
 **After pulling:** restart the backend, then Ctrl+F5 on the Logbook Reader. No migration.
 
 - Step 1 of the Logbook Reader has a "Tilt test" panel once a file is
-  chosen: a slider (-15 to +15 degrees, half a degree at a time) turns
-  the first page on screen. "Read the logbook" then sends the tilt with
-  the scan (POST /api/logbook-setup/read "tilt"), and every page is
-  turned by that much (logbook_pipeline.tilt_scan; a PDF stays a PDF)
-  before its columns are found and it is read. The file on the computer
-  is not changed. At 0 nothing differs from before.
-- The column check page says how far the scan was turned and how far the
-  reader turned it back (template_engine.deskew, up to about 4 degrees),
-  or that it is still off and read crooked.
-- A PDF's first page is shown through POST /api/logbook-setup/first-page
-  (the browser cannot show a PDF page as a picture).
-- Tested on a handwriting scan: 3 degrees is turned back 2.8 and read
-  straight; 8 degrees is turned back 4.2 and read 3.8 degrees off.
+  chosen. Each page (left and right) has its own picture and slider (-15
+  to +15 degrees, half a degree at a time), so one page can be crooked
+  and the other straight. "Read the logbook" then sends one angle per
+  page (POST /api/logbook-setup/read "tilt": a JSON list, or one number
+  for every page), and each page is turned by its own angle
+  (logbook_pipeline.tilt_scan / page_tilt; a PDF stays a PDF) before its
+  columns are found and it is read. The file on the computer is not
+  changed. With every page at 0 nothing differs from before.
+- The column check page says, for each page, how far it was turned and
+  how far the reader turned it back (template_engine.deskew, up to about
+  4 degrees), or that it is still off and read crooked.
+- The pages' pictures come from POST /api/logbook-setup/page-pictures (the
+  browser cannot show a PDF page as a picture).
+- Tested on a handwriting scan: left page +3 degrees is turned back 2.8 and
+  read straight; right page -8 degrees is turned back only 0.15 and read
+  7.8 degrees off.
 
 ## 2026-11-15: Dates read in part are put in on the logbook check, not left empty (JRAD)
 

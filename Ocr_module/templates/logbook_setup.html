@@ -501,12 +501,17 @@ function showPage(index){
 function showTiltNote(page){
     const note = $("tiltNote");
     const tilt = Number(page.tilt) || 0;
-    note.hidden = !tilt;
-    if(!tilt) return;
+    const anyTilted = setup.pages.some(p => Number(p.tilt));
+    note.hidden = !anyTilted;
+    if(!anyTilted) return;
+    if(!tilt){
+        note.innerHTML = `<strong>Tilt test: this page was not turned.</strong> It is read as it was scanned.`;
+        return;
+    }
     const back = Number(page.straightened_by) || 0;
     const left = Math.round((tilt - back) * 10) / 10;
     const deg = x => `${Math.abs(x)}°`;
-    note.innerHTML = `<strong>Tilt test: this scan was turned ${deg(tilt)} ${tilt > 0 ? "clockwise" : "anticlockwise"}.</strong>
+    note.innerHTML = `<strong>Tilt test: this page was turned ${deg(tilt)} ${tilt > 0 ? "clockwise" : "anticlockwise"}.</strong>
         The reader turned the page back by ${deg(back)}` + (Math.abs(left) <= 0.3
             ? ", so it is read straight."
             : `, so it is still ${deg(left)} off and is read crooked (the reader straightens a tilt of up to about 4°).`);
