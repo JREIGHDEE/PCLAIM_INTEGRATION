@@ -36,7 +36,7 @@ import cv2
 import config
 import logbook_layout
 from errors import InvalidRequestError
-from logbook_pipeline import load_pages
+from logbook_pipeline import load_pages, tilt_scan
 from template_engine import build_template_payload, detect_ruling_lines, map_rows_between_pages
 from template_store import get_template_files, save_template_payload
 
@@ -103,7 +103,7 @@ def fit_saved_columns(saved_lines, rules):
     return fitted
 
 
-def read_scan(path, ocr_fn, source_document=None, use_saved=False):
+def read_scan(path, ocr_fn, source_document=None, use_saved=False, tilt=0.0):
     """Find each page's layout. Returns {"setup_id", "pages": [...]} where
     each page is logbook_layout.propose_page()'s result plus "index" and
     "picture" (the preview's file name). A copy of the scan is kept with
@@ -112,14 +112,24 @@ def read_scan(path, ocr_fn, source_document=None, use_saved=False):
     use_saved (reading a scan in the Logbook Reader): a page whose side has
     a setup in use starts from that setup's columns and names instead of
     the ones found on the page, so a stray line on one scan does not turn
-    up as an extra "not read" column."""
+    up as an extra "not read" column.
+
+    tilt (degrees, clockwise; the tilt test): the scan is turned by this
+    much first, and the turned copy is what is kept and read, to see how a
+    scan that is not straight comes out. Each page then says how far the
+    reader turned it back ("straightened_by")."""
     saved = saved_columns() if use_saved else {}
-    pages = load_pages(path)[:2]
     setup_id = uuid.uuid4().hex
     folder = _setup_dir(setup_id)
     os.makedirs(folder, exist_ok=True)
     scan = "scan" + os.path.splitext(str(path))[1].lower()
-    shutil.copyfile(path, folder / scan)
+    tilt = round(float(tilt or 0), 1)
+    if tilt:
+        tilt_scan(path, folder / scan, tilt)
+    else:
+        shutil.copyfile(path, folder / scan)
+    straightened_by = []
+    pages = load_pages(folder / scan, straightened_by)[:2]
 
     proposals = []
     for index, (page_number, image, parity) in enumerate(pages):
@@ -137,6 +147,8 @@ def read_scan(path, ocr_fn, source_document=None, use_saved=False):
             proposal["categories"] = list(setup["categories"])
             proposal["saved_setup"] = setup["file"]
         proposal["index"] = index
+        proposal["tilt"] = tilt
+        proposal["straightened_by"] = straightened_by[index]
         proposal["ruled_lines"] = detect_ruling_lines(image)["horizontal"]
         scale = min(1.0, _PREVIEW_WIDTH / image.shape[1])
         preview = cv2.resize(image, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA) if scale < 1 else image

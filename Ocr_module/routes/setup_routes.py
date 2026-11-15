@@ -4,7 +4,10 @@ Guided logbook setup (logbook_setup.py).
   GET  /logbook-setup                          -> the setup page; with
                                                   ?check=<id>, the "Check the
                                                   columns" step of reading a scan
-  POST /api/logbook-setup/read      file       -> columns, names and rows found
+  POST /api/logbook-setup/read      file [, tilt] -> columns, names and rows found
+                                                  (tilt: degrees to turn the
+                                                  scan first - the tilt test)
+  POST /api/logbook-setup/first-page file      -> its first page as a JPEG
   GET  /api/logbook-setup/<id>                 -> the same again (reopening a check)
   GET  /api/logbook-setup/<id>/<picture>       -> a page's preview picture
   POST /api/logbook-setup/save      {setup_id, pages, replace_old}   (admin)
@@ -16,13 +19,15 @@ setup for every later scan stays with the administrator. Reading the
 checked scan: POST /api/review/jobs/checked (routes/review_routes.py).
 """
 import logging
+import math
 import re
 
-from flask import Blueprint, jsonify, render_template, request, send_from_directory
+from flask import Blueprint, Response, jsonify, render_template, request, send_from_directory
 from werkzeug.utils import secure_filename
 
 import auth
 import logbook_layout
+import logbook_pipeline
 import logbook_setup
 import review_jobs
 from errors import InvalidRequestError
@@ -46,6 +51,20 @@ def setup_page():
     )
 
 
+def _tilt(text):
+    """The tilt test's angle in degrees (0 when not given)."""
+    if not text:
+        return 0.0
+    try:
+        degrees = float(text)
+    except ValueError:
+        raise InvalidRequestError("The tilt must be a number of degrees.")
+    if not math.isfinite(degrees) or abs(degrees) > logbook_pipeline.TILT_MAX_DEGREES:
+        raise InvalidRequestError(f"The tilt must be between -{logbook_pipeline.TILT_MAX_DEGREES} "
+                                  f"and {logbook_pipeline.TILT_MAX_DEGREES} degrees.")
+    return degrees
+
+
 @setup_bp.route("/api/logbook-setup/read", methods=["POST"])
 @auth.login_required
 def read_scan():
@@ -58,10 +77,26 @@ def read_scan():
             # One OCR at a time: PaddleOCR is shared with the logbook reader.
             with review_jobs.OCR_LOCK:
                 result = logbook_setup.read_scan(path, extract_tokens_from_array, source_document,
-                                                 use_saved=request.form.get("use_saved") == "1")
+                                                 use_saved=request.form.get("use_saved") == "1",
+                                                 tilt=_tilt(request.form.get("tilt")))
         except ValueError as exc:
             raise InvalidRequestError(str(exc))
     return jsonify({"success": True, **result})
+
+
+@setup_bp.route("/api/logbook-setup/first-page", methods=["POST"])
+@auth.login_required
+def first_page():
+    """The chosen scan's first page as a picture, for the tilt test's
+    preview (a PDF cannot be shown by the browser as a picture)."""
+    file = require_file(request.files, "file")
+    extension = validate_extension(file.filename)
+    with temp_upload_path(file, prefix="logbook_first_page", suffix=extension) as path:
+        try:
+            picture = logbook_pipeline.first_page_picture(path)
+        except (ValueError, RuntimeError) as exc:
+            raise InvalidRequestError(str(exc) or "The scan could not be opened.")
+    return Response(picture, mimetype="image/jpeg", headers={"Cache-Control": "no-store"})
 
 
 @setup_bp.route("/api/logbook-setup/<setup_id>")

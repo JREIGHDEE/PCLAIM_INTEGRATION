@@ -5,9 +5,12 @@ which side of the spread each page is, and fitting the columns.
 Pages are drawn here - printed lines, entries of writing - so nothing
 needs a real scan or an OCR engine.
 """
+import os
+import tempfile
 import unittest
 
 import cv2
+import fitz
 import numpy as np
 
 import logbook_pipeline
@@ -53,6 +56,57 @@ class StraighteningTests(unittest.TestCase):
         straight, angle = te.deskew(page)
         self.assertEqual(angle, 0.0)
         self.assertIs(straight, page)
+
+
+class TiltTestTests(unittest.TestCase):
+    """The Logbook Reader's tilt test: turn a scan to see how a crooked one
+    is read (logbook_pipeline.tilt_scan)."""
+
+    def test_tilting_turns_clockwise_and_keeps_the_corners(self):
+        page = ruled_page()
+        turned = logbook_pipeline.tilt_image(page, 3)
+        self.assertGreater(turned.shape[0], page.shape[0])
+        self.assertGreater(turned.shape[1], page.shape[1])
+        # Clockwise, so the reader turns it back the other way.
+        self.assertAlmostEqual(te.estimate_skew(turned), 3, delta=0.15)
+
+    def test_a_tilted_picture_is_saved_and_straightened_when_read(self):
+        with tempfile.TemporaryDirectory() as folder:
+            source, target = os.path.join(folder, "page.png"), os.path.join(folder, "tilted.png")
+            cv2.imwrite(source, ruled_page())
+            logbook_pipeline.tilt_scan(source, target, -2)
+            angles = []
+            pages = logbook_pipeline.load_pages(target, angles)
+            self.assertEqual(len(pages), 1)
+            self.assertAlmostEqual(angles[0], -2, delta=0.15)
+
+    def test_a_tilted_pdf_stays_a_pdf_of_the_same_pages(self):
+        with tempfile.TemporaryDirectory() as folder:
+            source, target = os.path.join(folder, "scan.pdf"), os.path.join(folder, "tilted.pdf")
+            doc = fitz.open()
+            for _ in range(2):
+                ok, png = cv2.imencode(".png", ruled_page())
+                page = doc.new_page(width=500, height=850)
+                page.insert_image(page.rect, stream=png.tobytes())
+            doc.save(source)
+            doc.close()
+            logbook_pipeline.tilt_scan(source, target, 1.5)
+            before = logbook_pipeline.raw_pages(source)
+            angles = []
+            after = logbook_pipeline.load_pages(target, angles)
+            self.assertEqual([(n, p) for n, _, p in after], [(1, "odd"), (2, "even")])
+            # Read at about the size it was scanned, a little larger for the turn.
+            self.assertAlmostEqual(after[0][1].shape[1] / before[0][1].shape[1], 1.05, delta=0.05)
+            for angle in angles:
+                self.assertAlmostEqual(angle, 1.5, delta=0.15)
+
+    def test_the_first_page_picture_is_a_small_jpeg(self):
+        with tempfile.TemporaryDirectory() as folder:
+            source = os.path.join(folder, "page.png")
+            cv2.imwrite(source, ruled_page(width=2000, height=3000))
+            picture = logbook_pipeline.first_page_picture(source, width=500)
+            image = cv2.imdecode(np.frombuffer(picture, np.uint8), cv2.IMREAD_COLOR)
+            self.assertEqual(image.shape[1], 500)
 
 
 class EntryRowTests(unittest.TestCase):

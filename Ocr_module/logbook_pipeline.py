@@ -107,33 +107,124 @@ def thresholds():
     return {"accept": config.OCR_CONFIDENCE_ACCEPT, "review": config.OCR_CONFIDENCE_REVIEW}
 
 
-def load_pages(path):
-    """[(page_number, BGR image, page_parity or None)] for an image or PDF."""
-    if os.path.splitext(path)[1].lower() == ".pdf":
+_PDF_ZOOM = 2   # a PDF page is read at twice its size
+
+
+def _pdf_page_image(page):
+    pix = page.get_pixmap(matrix=fitz.Matrix(_PDF_ZOOM, _PDF_ZOOM))
+    data = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, pix.n)
+    if pix.n == 4:
+        return cv2.cvtColor(data, cv2.COLOR_RGBA2BGR)
+    if pix.n == 3:
+        return cv2.cvtColor(data, cv2.COLOR_RGB2BGR)
+    return cv2.cvtColor(data, cv2.COLOR_GRAY2BGR)
+
+
+def raw_pages(path):
+    """[(page_number, BGR image as scanned - not straightened, page_parity
+    or None)] for an image or PDF."""
+    if os.path.splitext(str(path))[1].lower() == ".pdf":
         pages = []
-        doc = fitz.open(path)
+        doc = fitz.open(str(path))
         try:
             for index in range(len(doc)):
-                pix = doc[index].get_pixmap(matrix=fitz.Matrix(2, 2))
-                data = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, pix.n)
-                if pix.n == 4:
-                    image = cv2.cvtColor(data, cv2.COLOR_RGBA2BGR)
-                elif pix.n == 3:
-                    image = cv2.cvtColor(data, cv2.COLOR_RGB2BGR)
-                else:
-                    image = cv2.cvtColor(data, cv2.COLOR_GRAY2BGR)
                 parity = "odd" if (index + 1) % 2 else "even"
-                pages.append((index + 1, deskew(image)[0], parity))
+                pages.append((index + 1, _pdf_page_image(doc[index]), parity))
         finally:
             doc.close()
         return pages
 
-    image = cv2.imread(path)
+    image = cv2.imread(str(path))
     if image is None:
         raise ValueError("Could not read the uploaded image.")
     # A single image could be either side of a spread - let template
     # matching decide rather than assuming a parity.
-    return [(1, deskew(image)[0], None)]
+    return [(1, image, None)]
+
+
+def load_pages(path, straightened_by=None):
+    """[(page_number, BGR image, page_parity or None)] for an image or PDF,
+    each page straightened (template_engine.deskew). straightened_by, a
+    list, gets the angle each page was turned by."""
+    pages = []
+    for number, image, parity in raw_pages(path):
+        straight, angle = deskew(image)
+        if straightened_by is not None:
+            straightened_by.append(angle)
+        pages.append((number, straight, parity))
+    return pages
+
+
+def first_page_picture(path, width=900):
+    """The scan's first page as a small JPEG (bytes), as scanned - what the
+    tilt test shows turning before the scan is read."""
+    if os.path.splitext(str(path))[1].lower() == ".pdf":
+        doc = fitz.open(str(path))
+        try:
+            if not len(doc):
+                raise ValueError("No pages were found in this file.")
+            page = doc[0]
+            zoom = min(_PDF_ZOOM, width / max(1.0, page.rect.width))
+            pix = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom))
+            data = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, pix.n)
+            image = cv2.cvtColor(data, {4: cv2.COLOR_RGBA2BGR, 3: cv2.COLOR_RGB2BGR}.get(pix.n, cv2.COLOR_GRAY2BGR))
+        finally:
+            doc.close()
+    else:
+        image = cv2.imread(str(path))
+        if image is None:
+            raise ValueError("Could not read the uploaded image.")
+    scale = min(1.0, width / image.shape[1])
+    if scale < 1:
+        image = cv2.resize(image, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
+    ok, encoded = cv2.imencode(".jpg", image, [cv2.IMWRITE_JPEG_QUALITY, 85])
+    if not ok:
+        raise ValueError("Could not show the scan.")
+    return encoded.tobytes()
+
+
+TILT_MAX_DEGREES = 15
+
+
+def tilt_image(image, degrees):
+    """The page turned clockwise by `degrees`, as a crooked scan would be:
+    the picture grows so no corner is cut off, and white fills around it."""
+    h, w = image.shape[:2]
+    turn = cv2.getRotationMatrix2D((w / 2, h / 2), -float(degrees), 1.0)
+    cos, sin = abs(turn[0, 0]), abs(turn[0, 1])
+    new_w, new_h = int(round(h * sin + w * cos)), int(round(h * cos + w * sin))
+    turn[0, 2] += new_w / 2 - w / 2
+    turn[1, 2] += new_h / 2 - h / 2
+    return cv2.warpAffine(image, turn, (new_w, new_h), flags=cv2.INTER_LINEAR,
+                          borderValue=(255, 255, 255))
+
+
+def tilt_scan(source, target, degrees):
+    """Save a copy of the scan at `source` to `target` (same kind of file)
+    with every page turned clockwise by `degrees` - the Logbook Reader's
+    tilt test, to see how a scan that is not straight is read. A PDF stays
+    a PDF whose pages are read at the same size in pixels."""
+    degrees = max(-TILT_MAX_DEGREES, min(TILT_MAX_DEGREES, float(degrees)))
+    if os.path.splitext(str(source))[1].lower() != ".pdf":
+        image = cv2.imread(str(source))
+        if image is None:
+            raise ValueError("Could not read the uploaded image.")
+        if not cv2.imwrite(str(target), tilt_image(image, degrees)):
+            raise ValueError("Could not save the tilted scan.")
+        return
+    tilted = fitz.open()
+    try:
+        for _, image, _ in raw_pages(source):
+            turned = tilt_image(image, degrees)
+            ok, encoded = cv2.imencode(".png", turned)
+            if not ok:
+                raise ValueError("Could not save the tilted scan.")
+            h, w = turned.shape[:2]
+            page = tilted.new_page(width=w / _PDF_ZOOM, height=h / _PDF_ZOOM)
+            page.insert_image(page.rect, stream=encoded.tobytes())
+        tilted.save(str(target))
+    finally:
+        tilted.close()
 
 
 def header_side(header):
