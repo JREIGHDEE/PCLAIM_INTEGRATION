@@ -62,6 +62,22 @@ def _run(expression_per_case, cases):
     return json.loads(out.stdout)
 
 
+def _rule(path):
+    """The DX_FAMILY_PLANNING + dischargeFromAdmission text in a file."""
+    with open(path, encoding="utf-8") as handle:
+        src = handle.read()
+    start = src.index("const DX_FAMILY_PLANNING")
+    return src[start:src.index("\n}\n", src.index("function dischargeFromAdmission", start)) + 3]
+
+
+class SameRuleOnBothPagesTests(unittest.TestCase):
+    def test_review_page_has_the_forms_rule(self):
+        # The Logbook Reader's review fills the final diagnosis too: the
+        # same wording, or a claim's discharge depends on where it was typed.
+        self.assertEqual(_rule(os.path.join(ROOT, "Ocr_module", "templates", "review.html")),
+                         _rule(os.path.join(ROOT, "PClaimAssist", "js", "app.js")))
+
+
 @unittest.skipUnless(shutil.which("node"), "Node is not installed")
 class DischargeWordingTests(unittest.TestCase):
     def test_each_kind_of_visit_gets_the_clinics_wording(self):

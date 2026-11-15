@@ -1405,6 +1405,17 @@ function applySignerFromMember() {
   const same = !!d.memberIsPatient;
   const changed = memberIsPatientWas !== null && same !== memberIsPatientWas;
   memberIsPatientWas = same;
+  // A baby is filed under its mother, who signs Part I herself, as the
+  // member - not as anyone's representative (that left "Relationship of
+  // representative to member" asked for on every baby's CSF and CF1). Put
+  // right unless the representative's relationship was picked by hand.
+  if (!same && typeof dxIsBaby === 'function' && dxIsBaby()) {
+    if (!d.memberSignerType || (d.memberSignerType === 'Representative' && !d.repRelationshipOther &&
+                                (!d.repRelationship || d.repRelationship === repRelationshipFor(d)))) {
+      d.memberSignerType = 'Member';
+    }
+    return;
+  }
   const known = same || !!(d.memberLastName || d.memberFirstName || d.relationship);
   // A saved claim brings both in at once: it keeps who it says signed.
   const signerChangedToo = signerLinkWas && (d.memberSignerType || '') !== signerLinkWas.member;
@@ -1419,6 +1430,9 @@ function applySignerLink() {
   const was = signerLinkWas;
   signerLinkWas = now;
   if (!was) return;
+  // A baby's two are different people's signatures by nature: its mother
+  // signs Part I as the member and the consent as the baby's parent.
+  if (!d.memberIsPatient && typeof dxIsBaby === 'function' && dxIsBaby()) return;
   const memberChanged = now.member !== was.member;
   const consentChanged = now.consent !== was.consent;
   // Both changed at once (a saved claim loaded): keep what it was saved with.

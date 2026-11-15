@@ -18,6 +18,11 @@ class ClassifyEntryTests(unittest.TestCase):
         dx = "PUFT 39 3/7 WKS AOG DELIVERED VIA NSVD TO A LIVE TERM BABY BOY AGA W/ AS OF 4 & 1; G1P2 (1001)"
         self.assertEqual(self.role(admission_dx=dx, discharge_dx=dx), MOTHER)
 
+    def test_newborns_own_diagnosis_is_the_baby_though_it_names_the_delivery(self):
+        for dx in ("LIVE TERM BABY GIRL AGA DELIVERED VIA NSVD TO A G2P2 MOTHER W/ AS OF 8,9",
+                   "LIVE TERM BABY BOY DELIVERED VIA NORMAL SPONTANEOUS VAGINAL DELIVERY TO A GRAVIDA 3 PARA 3"):
+            self.assertEqual(classify_entry({"admission_dx": dx})["role"], "baby", dx)
+
     def test_misread_prenatal_and_postpartum_visits_are_the_mother(self):
         for dx in ("PKENATAL CHECK UP", "PRENATAL CYECK UP", "POSR PARTUN UISIT", "POST PARTUM VISIT"):
             with self.subTest(dx=dx):

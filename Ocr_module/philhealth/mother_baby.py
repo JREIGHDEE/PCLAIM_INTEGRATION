@@ -39,6 +39,12 @@ _MOTHER_WORDS = ("PRENATAL", "POSTPARTUM", "PARTUM", "DELIVERED", "DELIVERY", "P
 _MOTHER_EXACT = re.compile(r"\bG\s?\d+\s?P\s?\d+|\bAOG\b|\bPUFT\b|\bN?SVD\b|\bPPTL\b|\bC-?SECTION\b",
                            re.IGNORECASE)
 _BABY_WORDS = ("NEWBORN", "IMMUNIZATION", "VACCINATION", "SCREENING")
+# A newborn's own diagnosis names the delivery too, but starts with the baby
+# ("LIVE TERM BABY GIRL AGA DELIVERED VIA NSVD TO A G2P2 MOTHER...") and
+# says whose: checked before the mother's words. A mother's says "TO A LIVE
+# TERM BABY" further on, and never "TO A G2P2 MOTHER".
+_NEWBORN_DX = re.compile(r"^\W*(?:FOR\s+)?LIVE\s+(?:PRE\s*)?TERM\b|\bTO\s+A\s+G\s?\d+\s?P\s?\d+\s+MOTHER\b",
+                         re.IGNORECASE)
 _BABY_EXACT = re.compile(r"\bBCG\b|\bNB\s+SCREEN", re.IGNORECASE)
 # "BABY GIRL DELA CRUZ" is how a newborn without a name yet is written
 # (however OCR misread it: case_bridge.newborn_of). "BABY" alone is also a
@@ -112,6 +118,9 @@ def classify_entry(entry):
     Returns {"role": "mother" | "baby" | None, "reason": str}. None means
     the entry doesn't say - staff choose."""
     dx = " ".join(str(entry.get(k) or "") for k in ("admission_dx", "discharge_dx"))
+    for key in ("admission_dx", "discharge_dx"):
+        if _NEWBORN_DX.search(str(entry.get(key) or "")):
+            return {"role": BABY, "reason": "The diagnosis is a newborn's (live term baby, to a mother)"}
     found = _mother_dx(dx)
     if found:
         return {"role": MOTHER, "reason": f"The diagnosis says \"{found}\" (pregnancy or birth care)"}

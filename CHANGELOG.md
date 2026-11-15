@@ -11,6 +11,40 @@ Related documents:
 
 ---
 
+## 2026-11-15: Logbook review keeps the logbook's final diagnosis; a baby's Part I (JRAD)
+
+**After pulling:** restart the backend and press Ctrl+F5. No migration.
+
+- *Final diagnosis replaced on the Logbook Reader's review.* When the
+  admission pattern filled the reason for admission by itself, it also
+  ticked the review's "Same as the reason for admission" and replaced the
+  final diagnosis the scan read: a logbook's FAMILY PLANNING became PILLS
+  REFILL (claim 785). It now fills the final diagnosis only when the scan
+  read nothing there (review.html finalFollowsAdmission). The review's
+  tick gives the clinic's wording as on the forms (the same
+  dischargeFromAdmission, checked identical by test_discharge_wording.py),
+  ticks itself only when the logbook wrote both the same, and is called
+  "Fill in from the reason for admission".
+- *A baby's CSF Part I and CF1.* A patient who isn't the member was taken
+  to sign Part I as the member's representative, so every baby's claim
+  asked for "Relationship of representative to member" (red on CSF and
+  CF1). A baby's mother signs Part I herself, as the member, and the
+  consent as the baby's parent: Part I is now "Member" for a baby, and
+  the two "Signed by" are not linked for a baby (app.js
+  applySignerFromMember, applySignerLink). A representative whose
+  relationship was picked by hand is kept.
+- *A newborn taken for a mother.* A newborn's own diagnosis, LIVE TERM BABY
+  ... DELIVERED VIA NSVD TO A G2P2 MOTHER, was guessed "mother" (it says
+  NSVD), leaving Relationship to member empty until Baby was clicked. A
+  diagnosis that starts LIVE TERM BABY or says TO A G#P# MOTHER is now a
+  baby's (philhealth/mother_baby.py classify_entry).
+- Checked in the app (a separate copy, test patients deleted): a baby with
+  its mother's details copied has Relationship to member Child, Part I
+  signed by the member, the consent by a representative, and no
+  relationship box red on any form; on the review, a row whose final
+  diagnosis was read FAMILY PLANNING keeps it, and one with none gets
+  FAMILY PLANNING from FOR PILLS REFILL.
+
 ## 2026-11-15: Discharge diagnosis by kind of visit, as the logbook writes it (JRAD)
 
 **After pulling:** press Ctrl+F5 on the forms. No migration, no restart.

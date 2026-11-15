@@ -304,7 +304,7 @@ input, select, textarea{ transition:border-color .15s ease, box-shadow .15s ease
     border:2px dashed var(--line); color:var(--muted); background:#fff;
 }
 .empty-toggle .tick{ font-size:1.5rem; line-height:1; }
-/* "Same as the reason for admission" tick on the final diagnosis. */
+/* "Fill in from the reason for admission" tick on the final diagnosis. */
 .same-as{ display:flex; align-items:center; gap:10px; margin-top:12px; min-height:52px; padding:10px 16px;
     border:2px solid var(--line); border-radius:10px; font-weight:600; cursor:pointer; }
 .same-as input{ width:24px; height:24px; margin:0; }
@@ -1054,8 +1054,8 @@ function refreshPkg(el){
         if(!wording.final && final && (box._forceFinal || !final.value.trim() || final.value === box._putFinal)){
             const same = fieldEl(FINAL)?.querySelector("[data-same-as-admitting]");
             if(same && same.checked){ same.checked = false; final.readOnly = false; }
-            putInBox(final, dropFor(text));
-            box._putFinal = dropFor(text);
+            putInBox(final, dischargeFromAdmission(text));
+            box._putFinal = dischargeFromAdmission(text);
             notes.push("✓ Final diagnosis applied.");
         }
     }
@@ -1187,10 +1187,10 @@ function renderInputs(f, id){
         ${f.category === "ADMITTING DIAGNOSIS" ? renderPkgTemplate(id) : ""}
         ${f.category === "FINAL DIAGNOSIS" ? `<label class="same-as">
             <input type="checkbox" data-same-as-admitting onchange="sameAsAdmitting(this)" ${sameAs ? "checked" : ""}>
-            Same as the reason for admission</label>` : ""}`;
+            Fill in from the reason for admission</label>` : ""}`;
 }
 
-// "Same as the reason for admission" on the final diagnosis: ticked, the
+// "Fill in from the reason for admission" on the final diagnosis: ticked, the
 // box holds the reason for admission and keeps following it (the forms'
 // Discharge / Final Diagnosis has the same tick). Not saved as such - it
 // starts ticked when the two are already the same.
@@ -1201,22 +1201,40 @@ function admittingText(){
     const f = (sessions[current]?.fields || []).find(x => x.category === ADMITTING);
     return caps((f?.parts || {}).text);
 }
-// The reason for admission as a final diagnosis: without a leading "FOR"
-// ("FOR PSI INSERTION" -> "PSI INSERTION"), as on the forms
-// (PClaimAssist/js/app.js dischargeFromAdmission; user testing #4).
-function dropFor(text){
-    return String(text || "").replace(/^\s*FOR\s+/i, "");
+// The reason for admission as a final diagnosis: the clinic's wording for
+// the kind of visit, as on the forms - kept the same as
+// PClaimAssist/js/app.js dischargeFromAdmission (Ocr_module/
+// test_discharge_wording.py checks both): FOR PSI INSERTION is FAMILY
+// PLANNING, a prenatal visit PRENATAL CHECK-UP, FOR WELL BABY CARE is
+// WELL BABY CARE.
+const DX_FAMILY_PLANNING = /\b(PSI|IMPLANTS?|IMPLANTABLE|SUBDERMAL|DMPA|DEPO|CIC|IUD|INTRAUTERINE|PILLS?|FP|FAMILY\s+PLANNING|CONTRACEPT\w*|PAP\s*SMEAR|PAPSMEAR)\b/;
+function dischargeFromAdmission(text) {
+  const words = String(text || '').trim();
+  const plain = words.replace(/^\s*FOR\s+/i, '');
+  const up = words.toUpperCase();
+  if (!words || /\bIN\s+LABOU?R\b|\bCEPHALIC\b|\bDELIVER(?:ED|Y)\b|\bLIVE\s+TERM\b|\bNEWBORN\b/.test(up)) return plain;
+  if (/\bPOST\s*-?\s*PARTUM\b/.test(up)) {
+    if (!DX_FAMILY_PLANNING.test(up)) return 'POSTPARTUM VISIT';
+    return /\b(PSI|IMPLANTS?|IMPLANTABLE|SUBDERMAL)\b/.test(up)
+      ? 'POSTPARTUM VISIT & FAMILY PLANNING (PSI)' : 'POSTPARTUM VISIT & FAMILY PLANNING';
+  }
+  if (DX_FAMILY_PLANNING.test(up)) return 'FAMILY PLANNING';
+  if (/\bPRENATAL\b/.test(up) ||
+      (/\bAOG\b/.test(up) && /\b(?:G\s*\d+\s*P\s*\d+|GRAVIDA)\b/.test(up))) return 'PRENATAL CHECK-UP';
+  return plain;
 }
+// Ticked at the start only when the logbook wrote both the same: a final
+// diagnosis that is what the admission works out to is the logbook's own
+// (user feedback: it ticked itself, and changed FAMILY PLANNING).
 function sameAsAdmittingAtStart(p){
     const admitting = admittingText().trim();
-    const final = caps(p.text).trim();
-    return !!admitting && (admitting === final || dropFor(admitting) === final);
+    return !!admitting && admitting === caps(p.text).trim();
 }
 function sameAsAdmitting(box){
     const input = box.closest(".field").querySelector('[data-part="text"]');
     input.readOnly = box.checked;
     if(!box.checked) return;
-    const admitting = dropFor(admittingText());
+    const admitting = dischargeFromAdmission(admittingText());
     if(!admitting.trim()) flashNote(input, "Fill in the reason for admission first - this box will follow it.");
     if(input.value !== admitting){
         input.value = admitting;
@@ -1432,7 +1450,7 @@ async function suggestAdmission(){
         }else if(now === found.pattern.reason && scanRead !== found.pattern.reason){
             admissionPick.auto = true;
             const fin = (sessions[current]?.fields || []).find(x => x.category === FINAL);
-            if((textBox(FINAL)?.value || "").trim() === dropFor(found.pattern.reason)){
+            if((textBox(FINAL)?.value || "").trim() === dischargeFromAdmission(found.pattern.reason)){
                 admissionPick.finalFollowed = true;
                 admissionPick.finalBefore = caps(fin?.value ?? fin?.raw_text ?? "");
             }
@@ -1519,10 +1537,13 @@ function finalStillFromScan(){
     const scan = caps(f?.value ?? f?.raw_text ?? "").trim();
     return !box.value.trim() || box.value.trim() === scan;
 }
-// The final diagnosis takes the reason for admission's wording: "Same as the
-// reason for admission" ticked, so it keeps following it.
+// The final diagnosis takes the reason for admission's wording - "Fill in
+// from the reason for admission" ticked, so it keeps following it - only
+// when the logbook's own final diagnosis box is empty. One the scan read
+// is the logbook's and stays (user feedback: FAMILY PLANNING, read right,
+// was replaced by PILLS REFILL from the reason for admission).
 function finalFollowsAdmission(){
-    if(!admissionPick?.finalFromScan) return;
+    if(!admissionPick?.finalFromScan || (textBox(FINAL)?.value || "").trim()) return;
     const same = fieldEl(FINAL)?.querySelector("[data-same-as-admitting]");
     if(!same) return;
     same.checked = true;
