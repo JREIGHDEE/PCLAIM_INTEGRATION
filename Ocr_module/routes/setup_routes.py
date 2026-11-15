@@ -41,7 +41,7 @@ def setup_page():
         "logbook_setup.html",
         check_id=request.args.get("check") or None,
         sides={side: [{"value": c, "label": logbook_layout.PLAIN_NAMES[c]} for c in columns]
-               for side, columns in logbook_layout.SIDE_COLUMNS.items()},
+               for side, columns in logbook_layout.CHOICE_COLUMNS.items()},
         required=["NAME", "BDAY", "DATE & TIME OF ADMISSION"],
     )
 

@@ -16,10 +16,14 @@ Related documents:
 **After pulling:** restart the backend and press Ctrl+F5 on the forms. No
 migration. Only scans read after the restart carry it.
 
-- The left page's last column, set up as "Not read - marks where the column
-  before it ends", holds the patient's membership status ("NH"). It is still
-  not read, and the logbook setup is unchanged; it is now looked at for
-  writing (logbook_pipeline.membership_written). Blank: the claim opens with
+- The left page's last column holds the patient's membership status ("NH").
+  It was set up as "Not read - marks where the column before it ends"; it
+  is now its own column type, **"Member (boolean)"** (logbook_layout.MEMBER,
+  offered on the left page in the logbook setup). The clinic's left-page
+  setup (Ocr_module/grid_templates/Logbook_left_page_...json) has its last
+  column changed to it - one line, nothing else in the setup moved. It is
+  still not read by OCR; it is looked at for writing - any mark at all,
+  not only "NH" (logbook_pipeline.membership_written). Blank: the claim opens with
   "No PhilHealth" ticked on Patient details, tagged "please check" (the
   PIN is then not asked for). Anything written: the PIN is asked for, as
   before (philhealth/form_prefill.py; kept in the session's ocr_data as

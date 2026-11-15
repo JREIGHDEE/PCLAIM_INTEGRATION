@@ -54,10 +54,12 @@ test to make it pass. A new form field must be added either to
 
 ## Things that look wrong but are intended
 
-- **"Not read – marks where the column before it ends"** in the logbook
-  setup: the left page's last column is kept on purpose. Its printed line
-  stops ADDRESS running to the page edge and tells the left page from the
-  right. Do not delete it unless that page really has no line there.
+- **"Member (boolean)"**, the left page's last column in the logbook setup
+  (formerly "Not read"): the logbook's membership status ("NH"). It is
+  never read by OCR, only looked at for writing - blank ticks "No
+  PhilHealth" (`logbook_pipeline.membership_written`). Its printed line
+  also stops ADDRESS running to the page edge and tells the left page from
+  the right. Do not delete it unless that page really has no line there.
 - Every page asks for sign-in; signed-out API calls answer 401. That is the
   server's sign-in check (`auth.require_sign_in`), not a bug.
 - "Save as PDF" refuses and lists rule ids (MF-01 ...) while critical rules

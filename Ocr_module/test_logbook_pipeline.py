@@ -142,16 +142,32 @@ class MembershipColumnTests(unittest.TestCase):
     only looked at for writing."""
 
     LEFT = {"segmentInfo": [{"category": "CASE #"}, {"category": "NAME"}, {"category": "ADDRESS"},
-                            {"category": None}]}
+                            {"category": "MEMBER"}]}
 
-    def test_it_is_the_left_pages_last_unnamed_column(self):
+    def test_it_is_the_column_set_up_as_member(self):
         self.assertEqual(logbook_pipeline.membership_column(self.LEFT), 4)
 
-    def test_right_page_or_a_named_last_column_has_none(self):
-        right = {"segmentInfo": [{"category": "ADMITTING DIAGNOSIS"}, {"category": None}]}
-        named = {"segmentInfo": [{"category": "NAME"}, {"category": "ADDRESS"}]}
-        self.assertIsNone(logbook_pipeline.membership_column(right))
-        self.assertIsNone(logbook_pipeline.membership_column(named))
+    def test_a_not_read_column_is_not_looked_at(self):
+        not_read = {"segmentInfo": [{"category": "NAME"}, {"category": "ADDRESS"}, {"category": None}]}
+        self.assertIsNone(logbook_pipeline.membership_column(not_read))
+
+    def test_the_clinics_left_page_setup_has_it_last(self):
+        import json
+        path = os.path.join(config.GRID_TEMPLATES_FOLDER,
+                            "Logbook_left_page_set_up_2026-10-26_1154_1792986882110.json")
+        with open(path, encoding="utf-8") as handle:
+            template = json.load(handle)
+        self.assertEqual(logbook_pipeline.membership_column(template), len(template["segmentInfo"]))
+
+    def test_setup_offers_member_on_the_left_page_only(self):
+        import logbook_layout
+        from errors import InvalidRequestError
+        from logbook_setup import _clean_page
+        side, _, categories = _clean_page({"side": "left", "lines": [0.1, 0.5, 0.9],
+                                           "categories": ["NAME", "ADDRESS", "MEMBER"]})
+        self.assertEqual(categories[-1], logbook_layout.MEMBER)
+        with self.assertRaises(InvalidRequestError):
+            _clean_page({"side": "right", "lines": [0.1, 0.5], "categories": ["FINAL DIAGNOSIS", "MEMBER"]})
 
     def test_nh_is_written(self):
         self.assertTrue(logbook_pipeline.membership_written(*_membership_row("NH")))

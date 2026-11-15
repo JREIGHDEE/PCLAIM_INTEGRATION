@@ -24,6 +24,13 @@ logger = logging.getLogger(__name__)
 LEFT_COLUMNS = ("CASE #", "DATE & TIME OF ADMISSION", "NAME", "BDAY", "ADDRESS")
 RIGHT_COLUMNS = ("ADMITTING DIAGNOSIS", "DATE & TIME OF DELIVERY", "FINAL DIAGNOSIS", "DATE & TIME OF DISCHARGE")
 SIDE_COLUMNS = {"left": LEFT_COLUMNS, "right": RIGHT_COLUMNS}
+# The left page's membership-status column ("NH"): not read, only looked at
+# for writing - anything written means the patient has PhilHealth, blank
+# ticks "No PhilHealth" (logbook_pipeline.membership_written). Chosen by
+# hand in the setup; it has no printed heading to be found by.
+MEMBER = "MEMBER"
+# Every name a column can be given in the setup, per side.
+CHOICE_COLUMNS = {"left": LEFT_COLUMNS + (MEMBER,), "right": RIGHT_COLUMNS}
 SIDE_PARITY = {"left": "odd", "right": "even"}
 PLAIN_NAMES = {
     "CASE #": "Case number",
@@ -35,6 +42,7 @@ PLAIN_NAMES = {
     "DATE & TIME OF DELIVERY": "Date & time of delivery",
     "FINAL DIAGNOSIS": "Final diagnosis",
     "DATE & TIME OF DISCHARGE": "Date & time of discharge",
+    MEMBER: "Member (boolean)",
 }
 
 # A word in the printed header that names a column. Matched loosely: OCR of

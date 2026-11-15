@@ -196,7 +196,7 @@ def _clean_page(page):
         raise InvalidRequestError("The column lines are not valid. Please start again.")
     if any(not 0 <= x < 1 for x in lines) or lines != sorted(lines):
         raise InvalidRequestError("The column lines are not valid. Please start again.")
-    allowed = set(logbook_layout.SIDE_COLUMNS[side])
+    allowed = set(logbook_layout.CHOICE_COLUMNS[side])
     named = [c for c in categories if c]
     if any(c not in allowed for c in named):
         raise InvalidRequestError(f"A column name does not belong on the {side} page.")

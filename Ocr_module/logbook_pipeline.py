@@ -323,14 +323,13 @@ def _page_category_for_column(template, column):
 
 
 def membership_column(template):
-    """The left page's last column, when it has no name ("Not read"): the
+    """The column set up as "Member (boolean)" (logbook_layout.MEMBER): the
     logbook's membership status ("NH"). It is never read; it is only
-    looked at for writing (membership_written). None on any other page."""
-    segments = template.get("segmentInfo") or []
-    names = {(s or {}).get("category") for s in segments}
-    if not segments or (segments[-1] or {}).get("category") or "NAME" not in names:
-        return None
-    return len(segments)
+    looked at for writing (membership_written). None when there is none."""
+    for column, segment in enumerate(template.get("segmentInfo") or [], 1):
+        if (segment or {}).get("category") == logbook_layout.MEMBER:
+            return column
+    return None
 
 
 # Membership column (see membership_written). Shares of the page width:
@@ -683,17 +682,17 @@ def build_review_rows(path, ocr_fn, templates, upload_id=None, progress=None, co
 
         row_bounds = _row_bounds(placement["cells"])
         cells = []  # (cell, category, crop) for every cell to read
-        member_col = membership_column(template)
         for cell_data in placement["cells"]:
             category = _page_category_for_column(template, cell_data["column"])
-            if category is None:
+            if category == logbook_layout.MEMBER:
                 # The membership column is not read, only checked for writing:
                 # blank means the patient has no PhilHealth (form_prefill).
-                if member_col and cell_data["column"] == member_col:
-                    written = membership_written(
-                        image, (cell_data["x1"], cell_data["y1"], cell_data["x2"], cell_data["y2"]))
-                    if written is not None:
-                        membership[(spread, cell_data["row"])] = written
+                written = membership_written(
+                    image, (cell_data["x1"], cell_data["y1"], cell_data["x2"], cell_data["y2"]))
+                if written is not None:
+                    membership[(spread, cell_data["row"])] = written
+                continue
+            if category is None:
                 continue
             cell = Cell(row=cell_data["row"], column=cell_data["column"],
                         x1=cell_data["x1"], y1=cell_data["y1"], x2=cell_data["x2"], y2=cell_data["y2"])
