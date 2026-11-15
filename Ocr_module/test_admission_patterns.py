@@ -85,7 +85,7 @@ class SuggestionTests(unittest.TestCase):
 
     def test_reason_for_admission_put_in_and_tagged(self):
         out = ap.apply_suggestion(self.prefill({"admissionDx": "FOR POJT PAKTUM UISIT"}), PATTERNS)
-        self.assertEqual(out["data"]["chiefComplaint"], "POSTPARTUM VISIT")
+        self.assertEqual(out["data"]["chiefComplaint"], "FOR POSTPARTUM VISIT")
         tag = out["fields"]["chiefComplaint"]
         self.assertEqual(tag["status"], "needs_check")
         self.assertIn("FOR POJT PAKTUM UISIT", tag["reason"])

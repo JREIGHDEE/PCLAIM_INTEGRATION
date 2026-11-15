@@ -11,6 +11,24 @@ Related documents:
 
 ---
 
+## 2026-11-15: "FOR" on well baby care and postpartum visits; delivery first on the logbook check (JRAD)
+
+**After pulling:** run `database/migrations/013_admission_reason_for.sql`
+(phpMyAdmin, SQL tab, as root; safe to run twice), restart the backend and
+press Ctrl+F5.
+
+- *Reason for admission.* The admission patterns put in WELL BABY CARE and
+  POSTPARTUM VISIT; the clinic's logbook writes FOR WELL BABY CARE and FOR
+  POSTPARTUM VISIT (answer key), as every other visit has its FOR. Starting
+  patterns (philhealth/admission_patterns.py) and migration 013 (only a
+  pattern still worded as 012 left it). The discharge diagnosis stays
+  WELL BABY CARE / POSTPARTUM VISIT.
+- *Logbook check (review.html).* Date & time of delivery is checked before
+  the admitting and final diagnosis (the logbook's order had it after): the
+  clinic's NSDBF wording under the reason for admission needs it, and goes
+  in by itself once it is there. Only the order on screen changes
+  (deliveryFirst); nothing about how the fields are saved.
+
 ## 2026-11-15: "Go to Field" and the red boxes land on every box (JRAD)
 
 **After pulling:** press Ctrl+F5 on the forms. No migration, no restart.

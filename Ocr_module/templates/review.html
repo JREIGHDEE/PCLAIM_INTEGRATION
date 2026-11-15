@@ -2116,7 +2116,7 @@ async function saveReview(confirmWarnings){
     });
     const data = await resp.json();
     if(data.success){
-        sessions[current] = data;
+        sessions[current] = {...data, fields: deliveryFirst(data.fields)};
         forgetDraft(data.session_id);
         rememberAdmissionOnSave(admitting);
     }
@@ -2204,10 +2204,24 @@ function openForms(claimId){
     }
 }
 
+// The delivery's date and time are checked before the diagnoses (user
+// feedback): the clinic's NSDBF wording under the reason for admission
+// needs them, and goes in by itself once they are there - in the
+// logbook's own column order they came after it, so it stayed incomplete.
+const BEFORE_DIAGNOSES = ["DATE & TIME OF DELIVERY"];
+function deliveryFirst(fields){
+    const first = fields.findIndex(f => f.category === ADMITTING);
+    if(first < 0) return fields;
+    const moved = fields.filter(f => BEFORE_DIAGNOSES.includes(f.category));
+    const rest = fields.filter(f => !BEFORE_DIAGNOSES.includes(f.category));
+    const at = rest.findIndex(f => f.category === ADMITTING);
+    return [...rest.slice(0, at), ...moved, ...rest.slice(at)];
+}
 function showSessions(list, iq, pages, startAt){
     // Put back anything typed but not saved before the page was left.
     const drafts = loadMemory().drafts || {};
     sessions = list.map(s => {
+        s = {...s, fields: deliveryFirst(s.fields)};
         const draft = drafts[s.session_id];
         if(!draft) return s;
         return {...s, fields: s.fields.map(f => f.category in draft ? {...f, parts: {...f.parts, ...draft[f.category]}} : f)};
