@@ -13,7 +13,7 @@ Related documents:
 
 ## 2026-11-15: The row picture marks the box being checked in red (JRAD)
 
-**After pulling:** Ctrl+F5 on the Logbook Reader. No restart, no migration.
+**After pulling:** restart the backend (it keeps review.html in memory), then Ctrl+F5 on the Logbook Reader. No migration.
 
 - Clicking a box's logbook picture on the logbook check opens the whole
   row. The box being checked is now framed in red with its name
