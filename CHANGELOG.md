@@ -11,6 +11,25 @@ Related documents:
 
 ---
 
+## 2026-11-16: LMP warning (IC-12) explains itself and counts the sevenths (JRAD)
+
+**After pulling:** Ctrl+F5 on the forms. No restart, no migration.
+
+- Nothing fills the LMP from the weeks AOG: the LMP is only what staff
+  type. IC-12 compares the two because the weeks AOG on admission are
+  counted from the first day of the LMP, so more than 2 weeks apart means
+  one of them was likely typed wrong.
+- The old message ("The LMP does not fit the weeks AOG...") read as if the
+  LMP were taken from the AOG, and blamed the LMP. It now shows both: the
+  weeks from the LMP to the admission and the weeks AOG in the admission
+  diagnosis, says either may be the one typed wrong, and that a difference
+  can be right when the AOG was by ultrasound (it stays a warning, it does
+  not block "Save as PDF").
+- The sevenths are counted ("39 3/7" is 39 weeks 3 days, not 39), so a
+  difference just over 2 weeks is no longer missed or flagged by rounding.
+  A rule's message may now be worked out from the claim
+  (validation-rules.js runValidationRules).
+
 ## 2026-11-15: The row picture marks the patient's row in blue and the box being checked in red (JRAD)
 
 **After pulling:** restart the backend (it keeps review.html in memory), then Ctrl+F5 on the Logbook Reader. No migration.

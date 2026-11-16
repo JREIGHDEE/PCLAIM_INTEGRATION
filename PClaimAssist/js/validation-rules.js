@@ -257,12 +257,23 @@ function computeFeatures(getValue, data, forms) {
   const courseDates = Object.keys(data || {}).filter(k => /^cf4CourseDate\d+$/.test(k))
     .map(k => anyDate(data[k])).filter(Boolean);
   f._courseDateOutsideStay = (adm && dis && courseDates.some(d => d < adm || d > dis)) ? 1 : 0;
-  // The weeks AOG in the admission diagnosis against the weeks the LMP gives
-  // on the day of admission: more than 2 weeks apart does not fit.
-  const aog = String(getValue('admissionDx') || '').toUpperCase().match(/\b(\d{1,2})\s*(?:\d\/7\s*)?(?:WKS?|WEEKS)\.?\s*AOG\b/);
+  // The weeks AOG (age of gestation) on admission are counted from the first
+  // day of the LMP, so the two say the same thing: the weeks in the admission
+  // diagnosis against the weeks from the LMP to the day of admission. More
+  // than 2 weeks apart means one of them was likely typed wrong. Neither is
+  // taken from the other - the check does not say which one is wrong.
+  const aog = String(getValue('admissionDx') || '').toUpperCase()
+    .match(/\b(\d{1,2})(?:\s+(\d)\s*\/\s*7)?\s*(?:WKS?|WEEKS)\.?\s*AOG\b/);
   const lmp = parseDisplayDate(getValue('lmp')) || anyDate(data && data.lmp);
-  const lmpWeeks = adm && lmp ? (adm - lmp) / (7 * 24 * 3600 * 1000) : null;
-  f._lmpDiffersFromAog = (aog && lmpWeeks !== null && Math.abs(lmpWeeks - +aog[1]) > 2) ? 1 : 0;
+  const lmpDays = adm && lmp ? Math.round((adm - lmp) / (24 * 3600 * 1000)) : null;
+  const aogDays = aog ? +aog[1] * 7 + (+aog[2] || 0) : null;
+  const weeksText = days => `${Math.floor(days / 7)}${days % 7 ? ` ${days % 7}/7` : ''}`;
+  const dateText = d => `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}-${d.getFullYear()}`;
+  f._lmpDiffersFromAog = (aogDays !== null && lmpDays !== null && Math.abs(lmpDays - aogDays) > 14) ? 1 : 0;
+  f._lmpAog = f._lmpDiffersFromAog ? {
+    lmp: dateText(lmp), admitted: dateText(adm), aog: weeksText(aogDays),
+    fromLmp: lmpDays >= 0 ? weeksText(lmpDays) : null,
+  } : null;
   // A baby's claim against its mother's saved claim (js/mother-baby.js loads
   // her facts once the two are linked).
   const facts = typeof dxMotherFacts === 'function' ? dxMotherFacts() : {};
@@ -444,7 +455,19 @@ const RULES = [
 
   { id:'IC-12', category:'Inconsistent Entry', action:'display_warning',
     test: f => f._lmpDiffersFromAog === 1,
-    message:'The LMP does not fit the weeks AOG in the admission diagnosis (more than 2 weeks apart).',
+    // The weeks AOG are counted from the LMP: both are shown, and which one
+    // is wrong is left to the person (the AOG may be by ultrasound).
+    message: f => {
+      const x = f._lmpAog;
+      if (!x) return 'The LMP and the weeks AOG in the admission diagnosis are more than 2 weeks apart.';
+      const fromLmp = x.fromLmp
+        ? `Counted from the LMP (${x.lmp}) to the admission (${x.admitted}), she was ${x.fromLmp} weeks`
+        : `The LMP (${x.lmp}) is after the admission (${x.admitted})`;
+      return `The LMP and the weeks AOG do not agree. ${fromLmp}, but the admission diagnosis says ` +
+             `${x.aog} weeks AOG. The weeks AOG are counted from the first day of the LMP, so one of the ` +
+             "two is probably typed wrong: check both against the patient's record. If the AOG was taken " +
+             'from an ultrasound, a difference can be right and this can be left as it is.';
+    },
     field:'lmp', form:'cf4', source:'Clinic RTH reasons' },
 
   { id:'IC-13', category:'Inconsistent Entry', action:'display_warning',
@@ -529,7 +552,7 @@ function runValidationRules(getValue, data, forms) {
         id: rule.id,
         category: rule.category,
         action: rule.action,
-        message: rule.message,
+        message: typeof rule.message === 'function' ? rule.message(features) : rule.message,
         field: rule.field || null,
         form: rule.form || null,
         source: rule.source || '',
