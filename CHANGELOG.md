@@ -11,6 +11,24 @@ Related documents:
 
 ---
 
+## 2026-11-16: Mother's maiden name from the patient's name (JRAD)
+
+**After pulling:** Ctrl+F5 on the forms. No restart, no migration.
+
+- The mother being filed: "Mother's Maiden Name" (Member Profile, PMRF)
+  is now her own maiden name, worked out from the patient's name
+  (app.js motherMaidenName). Married, or filed under her husband, she kept
+  her maiden surname as her middle name: MARIA SANTOS DELA CRUZ -> SANTOS,
+  MARIA, no middle name. Not married, her name is her maiden name: MARIA
+  SANTOS LOPEZ -> LOPEZ, MARIA, SANTOS.
+- Before, the last name was always the member's middle name: filed under
+  her husband it was his middle name, and an unmarried mother got her
+  middle name as her surname (SANTOS, MARIA, SANTOS).
+- A baby's claim: the member is the mother, so her maiden name comes from
+  the member's name the same way (taken as married until a civil status
+  says otherwise, as before). Copying the mother's details still brings
+  her claim's own boxes. Anything typed in these boxes is kept.
+
 ## 2026-11-16: The member's name goes into Spouse Information when the member is the spouse (JRAD)
 
 **After pulling:** Ctrl+F5 on the forms. No restart, no migration.

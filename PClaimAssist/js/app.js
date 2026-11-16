@@ -1250,7 +1250,10 @@ const DERIVED_FIELDS = {
   apgarScore: d => apgarFromDx(d)[1],
   // PMRF: a Filipino middle name is the mother's maiden surname, and a
   // married member's spouse most often shares the member's surname.
-  motherLastName: d => d.memberMiddleName || '',
+  // The mother being filed: her own maiden name, from the patient's name
+  // (motherMaidenName). Otherwise the member's middle name, which is the
+  // member's mother's maiden surname.
+  motherLastName: d => (maidenNameFiled(d) ? maidenNameFiled(d).last : d.memberMiddleName || ''),
   // Permanent home address: the ZIP code of the city (DAVAO CITY -> 8000),
   // typed or read from the logbook. A ZIP typed by hand is kept.
   addrZip: d => zipForCity(d.addrCity),
@@ -1258,8 +1261,8 @@ const DERIVED_FIELDS = {
   // Profile tab too (staff review 3). Married, her middle name is left
   // empty: it is her maiden surname, the same as the last name above, not
   // a middle name (user testing #5).
-  motherFirstName: d => (motherIsFiled(d) ? d.patientFirstName || '' : ''),
-  motherMiddleName: d => (motherIsFiled(d) && d.civilStatus !== 'Married' ? d.patientMiddleName || '' : ''),
+  motherFirstName: d => (maidenNameFiled(d) ? maidenNameFiled(d).first : ''),
+  motherMiddleName: d => (maidenNameFiled(d) ? maidenNameFiled(d).middle : ''),
   // The member is the patient's spouse (a mother filed under her husband:
   // "Patient is the member" not ticked, Spouse picked): the name typed for
   // the member goes into Spouse Information too, as the clinic fills it
@@ -1433,6 +1436,35 @@ document.addEventListener('input', e => {
    and Spouse picked as how they are related. */
 function spouseIsMember(d) {
   return !d.memberIsPatient && d.relationship === 'Spouse';
+}
+
+/* The patient's maiden name, from her name as typed. Married (or filed
+   under her husband), she took his surname and kept her maiden surname as
+   her middle name: MARIA SANTOS DELA CRUZ -> maiden name SANTOS, MARIA,
+   with no middle name (her mother's surname is no longer in her name).
+   Not married, her name is her maiden name: MARIA SANTOS LOPEZ -> LOPEZ,
+   MARIA, SANTOS. */
+function motherMaidenName(d, who = 'patient') {
+  // On a baby's claim with no civil status yet, she is taken as married,
+  // as before (the maiden surname is her middle name).
+  const married = d.civilStatus === 'Married' || spouseIsMember(d) || (who === 'member' && !d.civilStatus);
+  const name = part => d[`${who}${part}`] || '';
+  return married
+    ? { last: name('MiddleName'), first: name('FirstName'), middle: '' }
+    : { last: name('LastName'), first: name('FirstName'), middle: name('MiddleName') };
+}
+
+/* On a baby's claim the member is its mother (the Member Profile is hers,
+   civil status included, as copied from her claim): her maiden name from
+   the member's name. */
+function babysMotherIsMember(d) {
+  return !d.memberIsPatient && typeof dxIsBaby === 'function' && dxIsBaby() &&
+    !!(d.memberFirstName || d.memberLastName);
+}
+function maidenNameFiled(d) {
+  if (motherIsFiled(d)) return motherMaidenName(d);
+  if (babysMotherIsMember(d)) return motherMaidenName(d, 'member');
+  return null;
 }
 
 /* Is this claim the mother's own (not her baby's)? */
