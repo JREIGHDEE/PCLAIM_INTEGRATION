@@ -21,10 +21,14 @@ Related documents:
   from the first day of the LMP, so they are counted back from the
   admission date ("39 WKS AOG", admitted 11-02-2026 -> 02-02-2026;
   "13 4/7 WKS AOG" -> 13 weeks 4 days back). From the admission diagnosis,
-  else the reason for admission or the final diagnosis; only weeks written
-  as "... WEEKS AOG", 4 to 45 weeks; not on a baby's claim or with "LMP not
-  applicable" ticked (app.js lmpFromAog, DERIVED_FIELDS).
-- It is a suggestion: a yellow note under the box says where it came from
+  else the reason for admission or the final diagnosis. The weeks are
+  taken as the clinic writes them: "... WKS AOG", or right after the
+  pregnancy with no "AOG" ("PUFT 40 1/7 WKS CEPHALIC IN LABOR", "PU 31
+  WKS", "PREGNANCY UTERINE PRENATAL CARE 20 4/7 WEEKS"); 4 to 45 weeks; not
+  "2 WEEKS POSTPARTUM", not on a baby's claim or with "LMP not applicable"
+  ticked (app.js lmpFromAog, DERIVED_FIELDS).
+- It is a suggestion: a yellow note under the box (Patient details,
+  Maternity) gives the date ("Suggested LMP: 01-25-2026") and where it came from
   and asks to check it against the patient's record (showLmpSuggestion).
   A date typed there is kept and the note goes. The expected date of
   delivery follows from it as from a typed LMP.

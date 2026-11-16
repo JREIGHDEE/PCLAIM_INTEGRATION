@@ -1168,13 +1168,20 @@ function aogFromDx(d) {
    mother's own claim, with the weeks written as "... WEEKS AOG" (4 to 45
    weeks). It is a suggestion: marked under the box (showLmpSuggestion),
    and a date typed there is kept (applyDerivedFields). */
-const AOG_WRITTEN = /\b(\d{1,2})(?:\s+(\d)\s*\/\s*7)?\s*(?:WEEKS?|WKS?)\.?\s*AOG\b/i;
+// The weeks as the clinic writes them: "39 3/7 WKS AOG", or right after the
+// pregnancy - "PUFT 40 1/7 WKS CEPHALIC IN LABOR", "PU 31 WKS", "PREGNANCY
+// UTERINE PRENATAL CARE 20 4/7 WEEKS" - often with no "AOG". Not "2 WEEKS
+// POSTPARTUM".
+const AOG_WRITTEN = [
+  /\b(\d{1,2})(?:\s+(\d)\s*\/\s*7)?\s*(?:WEEKS?|WKS?)\.?\s*AOG\b/i,
+  /\b(?:PU(?:FT|PT)?|PREGNANCY\s+UTERINE(?:\s+(?:FULL|PRE)\s*TERM|\s+PRENATAL\s+CARE)?)\s*(\d{1,2})(?:\s+(\d)\s*\/\s*7)?\s*(?:WEEKS?|WKS?)\b/i,
+];
 function aogOnAdmission(d) {
   if (d.cf4LmpNA || (typeof dxIsBaby === 'function' && dxIsBaby())) return null;
   const on = d.dateAdmitted || d.deliveryDate;
   if (!on) return null;
   for (const text of [d.admissionDx, d.chiefComplaint, d.dischargeDx]) {
-    const m = String(text || '').match(AOG_WRITTEN);
+    const m = AOG_WRITTEN.map(rx => String(text || '').match(rx)).find(Boolean);
     if (!m) continue;
     const days = Number(m[1]) * 7 + Number(m[2] || 0);
     if (days < 4 * 7 || days > 45 * 7) return null;
@@ -1195,9 +1202,9 @@ function showLmpSuggestion() {
   const aog = d.lmp && d.lmp === derivedLast.lmp ? aogOnAdmission(d) : null;
   note.hidden = !aog;
   if (!aog) return;
-  const [y, m, day] = aog.on.split('-');
-  note.textContent = `Suggested: ${aog.text} weeks AOG counted back from the admission (${m}-${day}-${y}). ` +
-    "Please check it against the patient's record and change it if it is different.";
+  const shown = iso => { const [y, m, day] = iso.split('-'); return `${m}-${day}-${y}`; };
+  note.innerHTML = `<strong>Suggested LMP: ${shown(d.lmp)}</strong> (${aog.text} weeks AOG counted back from ` +
+    `the admission, ${shown(aog.on)}). Please check it against the patient's record and change it if it is different.`;
 }
 
 /* The baby's sex and birth weight written in a diagnosis: "... TO A LIVE
