@@ -3742,3 +3742,7 @@ html body .field-flash { border-radius: 6px; }
 }
 #valAccordion .val-fix:hover { background: #fee2e2; }
 
+
+/* LMP suggested from the weeks AOG (app.js showLmpSuggestion): to be checked. */
+.lmp-suggested{ color:#854d0e; background:#fef9c3; border-left:3px solid #ca8a04; border-radius:4px;
+  padding:4px 8px; margin-top:6px; font-size:.82rem; }

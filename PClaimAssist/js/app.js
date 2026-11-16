@@ -1161,6 +1161,45 @@ function aogFromDx(d) {
   return '';
 }
 
+/* A suggested LMP. The weeks AOG on admission are counted from the first
+   day of the LMP, so counting them back from the admission date gives the
+   LMP they imply: "39 3/7 WKS AOG" admitted 11-10-2026 -> 02-06-2026. The
+   logbook has no LMP, so without this CF4's LMP stayed empty. Only for the
+   mother's own claim, with the weeks written as "... WEEKS AOG" (4 to 45
+   weeks). It is a suggestion: marked under the box (showLmpSuggestion),
+   and a date typed there is kept (applyDerivedFields). */
+const AOG_WRITTEN = /\b(\d{1,2})(?:\s+(\d)\s*\/\s*7)?\s*(?:WEEKS?|WKS?)\.?\s*AOG\b/i;
+function aogOnAdmission(d) {
+  if (d.cf4LmpNA || (typeof dxIsBaby === 'function' && dxIsBaby())) return null;
+  const on = d.dateAdmitted || d.deliveryDate;
+  if (!on) return null;
+  for (const text of [d.admissionDx, d.chiefComplaint, d.dischargeDx]) {
+    const m = String(text || '').match(AOG_WRITTEN);
+    if (!m) continue;
+    const days = Number(m[1]) * 7 + Number(m[2] || 0);
+    if (days < 4 * 7 || days > 45 * 7) return null;
+    return { on, days, text: Number(m[2]) ? `${m[1]} ${m[2]}/7` : m[1] };
+  }
+  return null;
+}
+function lmpFromAog(d) {
+  const aog = aogOnAdmission(d);
+  return aog ? addDaysIso(aog.on, -aog.days) : '';
+}
+
+/* Under the LMP box while it holds the suggested date (not one typed). */
+function showLmpSuggestion() {
+  const note = document.getElementById('lmpSuggestNote');
+  if (!note) return;
+  const d = state.data;
+  const aog = d.lmp && d.lmp === derivedLast.lmp ? aogOnAdmission(d) : null;
+  note.hidden = !aog;
+  if (!aog) return;
+  const [y, m, day] = aog.on.split('-');
+  note.textContent = `Suggested: ${aog.text} weeks AOG counted back from the admission (${m}-${day}-${y}). ` +
+    "Please check it against the patient's record and change it if it is different.";
+}
+
 /* The baby's sex and birth weight written in a diagnosis: "... TO A LIVE
    TERM BABY BOY ... WEIGHING 2600 GMS." */
 function babyFromDx(d) {
@@ -1185,6 +1224,9 @@ const DERIVED_FIELDS = {
   obLiving: d => obFromDx(d).obLiving,
   babySex: d => babyFromDx(d).babySex,
   birthWeight: d => babyFromDx(d).birthWeight,
+  // Suggested from the weeks AOG on admission (lmpFromAog); a date typed
+  // there is kept. Before expectedDD, which is counted from it.
+  lmp: d => lmpFromAog(d),
   expectedDD: d => addDaysIso(d.lmp, 280),
   // The admission diagnosis (Patient details, CF2 6, CF4) starts as the
   // reason for admission; the clinic's wording replaces it once complete
@@ -1629,6 +1671,7 @@ function updateFormPreviews() {
   applyEssentialNewbornCare();
   applySignerFields();
   applyDerivedFields();
+  showLmpSuggestion();
   // ...and again now the boxes above have settled.
   clearFormCheckCache();
   PREVIEW_MAP.forEach(([id, key]) => {
