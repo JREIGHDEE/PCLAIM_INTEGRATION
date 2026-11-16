@@ -11,6 +11,17 @@ Related documents:
 
 ---
 
+## 2026-11-16: The member's name goes into Spouse Information when the member is the spouse (JRAD)
+
+**After pulling:** Ctrl+F5 on the forms. No restart, no migration.
+
+- "Patient is the member" not ticked and Spouse picked (a mother filed
+  under her husband): the name typed for the member (last, first, middle,
+  extension) now goes into Spouse Information too (Member Profile, PMRF
+  "Spouse"), as the clinic fills it. Before, those boxes got the patient's
+  name. A spouse typed by hand is kept; ticking "Patient is the member"
+  again takes the copied name out (app.js spouseIsMember, DERIVED_FIELDS).
+
 ## 2026-11-16: A suggested LMP, counted back from the weeks AOG (JRAD)
 
 **After pulling:** Ctrl+F5 on the forms. No restart, no migration.

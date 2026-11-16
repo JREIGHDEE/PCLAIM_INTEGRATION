@@ -1260,12 +1260,15 @@ const DERIVED_FIELDS = {
   // a middle name (user testing #5).
   motherFirstName: d => (motherIsFiled(d) ? d.patientFirstName || '' : ''),
   motherMiddleName: d => (motherIsFiled(d) && d.civilStatus !== 'Married' ? d.patientMiddleName || '' : ''),
-  spouseLastName: d => (d.relationship === 'Spouse' ? d.patientLastName || ''
-    : d.civilStatus === 'Married' ? d.memberLastName || '' : ''),
-  // The patient is the member's spouse (a mother filed under her husband):
-  // she is the spouse on his Member Profile.
-  spouseFirstName: d => (d.relationship === 'Spouse' ? d.patientFirstName || '' : ''),
-  spouseMiddleName: d => (d.relationship === 'Spouse' ? d.patientMiddleName || '' : ''),
+  // The member is the patient's spouse (a mother filed under her husband:
+  // "Patient is the member" not ticked, Spouse picked): the name typed for
+  // the member goes into Spouse Information too, as the clinic fills it
+  // (JRAD, 2026-11-16). Otherwise a married member's spouse is taken to
+  // share the member's surname.
+  spouseLastName: d => (d.civilStatus === 'Married' || spouseIsMember(d) ? d.memberLastName || '' : ''),
+  spouseFirstName: d => (spouseIsMember(d) ? d.memberFirstName || '' : ''),
+  spouseMiddleName: d => (spouseIsMember(d) ? d.memberMiddleName || '' : ''),
+  spouseNameExt: d => (spouseIsMember(d) ? d.memberNameExt || '' : ''),
   // Certification of Member (CSF Part I): whoever signs it - the member, or
   // the patient signing for the member - also signs the consent (CSF Part
   // III, CF2 III-B), so their name and "Signed by" follow onto those.
@@ -1425,6 +1428,12 @@ document.addEventListener('input', e => {
   while (pos < next.length && seen < digitsBefore) { if (/[\d.]/.test(next[pos])) seen++; pos++; }
   try { el.setSelectionRange(pos, pos); } catch (_) { /* not a text box */ }
 }, true);
+
+/* The member is the patient's spouse: "Patient is the member" not ticked
+   and Spouse picked as how they are related. */
+function spouseIsMember(d) {
+  return !d.memberIsPatient && d.relationship === 'Spouse';
+}
 
 /* Is this claim the mother's own (not her baby's)? */
 function motherIsFiled(d) {
